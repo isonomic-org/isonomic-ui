@@ -77,6 +77,7 @@ mod tag_story;
 mod textarea_story;
 mod theme_story;
 mod time_field_story;
+mod toggle_story;
 mod welcome_story;
 
 pub use accordion_story::AccordionStory;
@@ -153,6 +154,7 @@ pub use tag_story::TagStory;
 pub use textarea_story::TextareaStory;
 pub use theme_story::ThemeColorsStory;
 pub use time_field_story::TimeFieldStory;
+pub use toggle_story::ToggleStory;
 
 pub use welcome_story::WelcomeStory;
 
