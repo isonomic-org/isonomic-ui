@@ -69,9 +69,9 @@ impl Render for AutonomyLevelControlStory {
                     .default_locked(["pay"])
                     .on_level_change(move |level, _, cx| {
                         let line = match level {
-                            AutonomyLevel::AlwaysAsk => "Level: always ask",
-                            AutonomyLevel::IfRisky => "Level: if risky",
-                            AutonomyLevel::FullAuto => "Level: full auto",
+                            AutonomyLevel::AskEveryTime => "Level: ask every time",
+                            AutonomyLevel::AskWhenRisky => "Level: ask when risky",
+                            AutonomyLevel::RunFreely => "Level: run freely",
                         };
                         levels.update(cx, |this, cx| {
                             this.last = line.into();

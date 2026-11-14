@@ -1,8 +1,8 @@
 //! Autonomy level control: how much an assistant may do without asking.
 //!
 //! Three levels, and under them the assistant's real actions sorted into what
-//! runs on its own and what asks first, so the level is never abstract. Any
-//! action can be locked to always ask, whatever the level.
+//! goes ahead and what stops for a yes, so the level is never abstract. Any
+//! action can be locked to stop every time, whatever the level.
 
 use std::rc::Rc;
 
@@ -35,30 +35,30 @@ pub enum ActionRisk {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AutonomyLevel {
     /// Every action waits for a person.
-    AlwaysAsk,
+    AskEveryTime,
     /// Safe actions run; the rest wait.
-    IfRisky,
+    AskWhenRisky,
     /// Everything runs unless it is locked.
-    FullAuto,
+    RunFreely,
 }
 
 impl AutonomyLevel {
-    const ALL: [Self; 3] = [Self::AlwaysAsk, Self::IfRisky, Self::FullAuto];
+    const ALL: [Self; 3] = [Self::AskEveryTime, Self::AskWhenRisky, Self::RunFreely];
 
     fn label(self) -> &'static str {
         match self {
-            Self::AlwaysAsk => "Always ask",
-            Self::IfRisky => "If risky",
-            Self::FullAuto => "Full auto",
+            Self::AskEveryTime => "Ask every time",
+            Self::AskWhenRisky => "Ask when risky",
+            Self::RunFreely => "Run freely",
         }
     }
 
     /// What the level means, in one line.
     fn meaning(self) -> &'static str {
         match self {
-            Self::AlwaysAsk => "Every action waits for you",
-            Self::IfRisky => "Safe actions run, risky ones wait for you",
-            Self::FullAuto => "Everything runs, except what you lock",
+            Self::AskEveryTime => "Nothing runs until you say yes",
+            Self::AskWhenRisky => "Safe steps go ahead, risky ones stop for a yes",
+            Self::RunFreely => "All of it goes ahead, apart from what you locked",
         }
     }
 }
@@ -69,9 +69,9 @@ impl AutonomyLevel {
 pub fn asks_first(risk: ActionRisk, level: AutonomyLevel, locked: bool) -> bool {
     locked
         || match level {
-            AutonomyLevel::AlwaysAsk => true,
-            AutonomyLevel::IfRisky => risk != ActionRisk::Safe,
-            AutonomyLevel::FullAuto => false,
+            AutonomyLevel::AskEveryTime => true,
+            AutonomyLevel::AskWhenRisky => risk != ActionRisk::Safe,
+            AutonomyLevel::RunFreely => false,
         }
 }
 
@@ -149,16 +149,16 @@ pub struct AutonomyLevelControl {
 }
 
 impl AutonomyLevelControl {
-    /// Create a control with no actions, starting at "If risky".
+    /// Create a control with no actions, starting at "Ask when risky".
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
             title: "Permissions".into(),
-            subtitle: "What it may do without asking you".into(),
+            subtitle: "How much it does before checking with you".into(),
             actions: Vec::new(),
             level: None,
-            default_level: AutonomyLevel::IfRisky,
+            default_level: AutonomyLevel::AskWhenRisky,
             locked: None,
             default_locked: Vec::new(),
             on_level_change: None,
@@ -196,7 +196,7 @@ impl AutonomyLevelControl {
         self
     }
 
-    /// Control which actions are locked to always ask, by id. Pair it with
+    /// Control which actions are locked to stop every time, by id. Pair it with
     /// `on_locked_change`.
     pub fn locked(mut self, ids: impl IntoIterator<Item = impl Into<SharedString>>) -> Self {
         self.locked = Some(ids.into_iter().map(Into::into).collect());
@@ -384,7 +384,7 @@ impl RenderOnce for AutonomyLevelControl {
                         .xsmall()
                         .label(if is_locked { "Locked" } else { "Lock" })
                         .selected(is_locked)
-                        .accessibility_label(format!("Always ask before: {}", action.label))
+                        .accessibility_label(format!("Stop every time before: {}", action.label))
                         .on_click({
                             let state = state.clone();
                             let locked = locked.clone();
@@ -484,12 +484,8 @@ impl RenderOnce for AutonomyLevelControl {
                     .pb_3()
                     .border_t_1()
                     .border_color(line)
-                    .child(section(
-                        "Runs on its own",
-                        runs,
-                        "Every action waits for you",
-                    ))
-                    .child(section("Asks you first", asks, "Nothing waits for you")),
+                    .child(section("Goes ahead", runs, "Nothing goes ahead unasked"))
+                    .child(section("Stops for a yes", asks, "Nothing stops for a yes")),
             )
             .refine_style(&self.style)
     }
@@ -499,31 +495,31 @@ impl RenderOnce for AutonomyLevelControl {
 mod tests {
     use super::*;
     use ActionRisk::{Destructive, Risky, Safe};
-    use AutonomyLevel::{AlwaysAsk, FullAuto, IfRisky};
+    use AutonomyLevel::{AskEveryTime, AskWhenRisky, RunFreely};
 
     #[test]
     fn the_level_decides_what_asks_first() {
-        assert!(asks_first(Safe, AlwaysAsk, false));
-        assert!(!asks_first(Safe, IfRisky, false));
-        assert!(asks_first(Risky, IfRisky, false));
-        assert!(asks_first(Destructive, IfRisky, false));
-        assert!(!asks_first(Destructive, FullAuto, false));
+        assert!(asks_first(Safe, AskEveryTime, false));
+        assert!(!asks_first(Safe, AskWhenRisky, false));
+        assert!(asks_first(Risky, AskWhenRisky, false));
+        assert!(asks_first(Destructive, AskWhenRisky, false));
+        assert!(!asks_first(Destructive, RunFreely, false));
     }
 
     #[test]
     fn a_lock_always_asks() {
-        assert!(asks_first(Safe, FullAuto, true));
-        assert!(asks_first(Safe, IfRisky, true));
+        assert!(asks_first(Safe, RunFreely, true));
+        assert!(asks_first(Safe, AskWhenRisky, true));
     }
 
     #[test]
     fn arrows_step_through_the_levels_and_stop_at_the_ends() {
-        assert_eq!(step_level(AlwaysAsk, "right"), Some(IfRisky));
-        assert_eq!(step_level(IfRisky, "down"), Some(FullAuto));
-        assert_eq!(step_level(FullAuto, "right"), Some(FullAuto));
-        assert_eq!(step_level(AlwaysAsk, "left"), Some(AlwaysAsk));
-        assert_eq!(step_level(IfRisky, "home"), Some(AlwaysAsk));
-        assert_eq!(step_level(IfRisky, "end"), Some(FullAuto));
-        assert_eq!(step_level(IfRisky, "a"), None);
+        assert_eq!(step_level(AskEveryTime, "right"), Some(AskWhenRisky));
+        assert_eq!(step_level(AskWhenRisky, "down"), Some(RunFreely));
+        assert_eq!(step_level(RunFreely, "right"), Some(RunFreely));
+        assert_eq!(step_level(AskEveryTime, "left"), Some(AskEveryTime));
+        assert_eq!(step_level(AskWhenRisky, "home"), Some(AskEveryTime));
+        assert_eq!(step_level(AskWhenRisky, "end"), Some(RunFreely));
+        assert_eq!(step_level(AskWhenRisky, "a"), None);
     }
 }
