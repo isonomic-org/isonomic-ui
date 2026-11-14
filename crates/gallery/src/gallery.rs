@@ -100,6 +100,7 @@ impl Gallery {
                 StoryContainer::panel::<NotificationStory>(window, cx),
                 StoryContainer::panel::<NumberInputStory>(window, cx),
                 StoryContainer::panel::<OtpInputStory>(window, cx),
+                StoryContainer::panel::<PaginationStory>(window, cx),
             ],
         )];
 

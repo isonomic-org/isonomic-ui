@@ -46,6 +46,7 @@ mod number_input;
 mod observe;
 mod otp_input;
 mod overscroll;
+mod pagination;
 pub mod plot;
 mod popover;
 mod popup;
@@ -137,6 +138,7 @@ pub use number_input::{
 };
 pub use observe::{ObservedElement, ObservedTextElement, TestSupportExt, TestTextExt};
 pub use otp_input::{OtpEvent, OtpInput, OtpState};
+pub use pagination::{Pagination, PaginationItem, PaginationState};
 pub use plot::PlotMotion;
 pub use popover::{Popover, PopoverState};
 pub use popup::{POPUP_PRIORITY, Popup, logical_anchor};
