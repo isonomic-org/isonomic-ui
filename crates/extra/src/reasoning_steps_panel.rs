@@ -2,7 +2,7 @@
 //!
 //! A header counts the seconds. Under it the steps appear one by one on a
 //! timeline, the newest one shimmering, and a step that searched lists what it
-//! looked at as chips. When the work is done the header reads "Worked for 7s"
+//! looked at as chips. When the work is done the header reads "Took 7s"
 //! and folds the steps away on demand.
 
 use std::{
@@ -119,8 +119,8 @@ impl ReasoningStepsPanel {
             id: id.into(),
             style: StyleRefinement::default(),
             steps: Vec::new(),
-            working_label: "Thinking".into(),
-            done_label: "Finished thinking".into(),
+            working_label: "Working it out".into(),
+            done_label: "Worked out".into(),
             interval: Duration::from_millis(1300),
             looping: false,
             collapse_when_done: false,
@@ -358,7 +358,7 @@ impl RenderOnce for ReasoningStepsPanel {
                 Some(total) => this.child(
                     div()
                         .text_color(quiet)
-                        .child(format!("Worked for {}", elapsed_label(total))),
+                        .child(format!("Took {}", elapsed_label(total))),
                 ),
                 None => this
                     .child(
