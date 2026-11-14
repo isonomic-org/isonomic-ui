@@ -38,6 +38,7 @@ pub mod carousel;
 pub mod chart;
 pub mod checkbox;
 pub mod clipboard;
+pub mod collapsible;
 pub mod color_picker;
 pub mod combobox;
 pub mod command;
