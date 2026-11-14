@@ -753,6 +753,7 @@ impl StoryState {
             "MessageScrollerStory" => story!(MessageScrollerStory),
             "DiffStory" => story!(DiffStory),
             "SeparatorStory" => story!(SeparatorStory),
+            "ShimmerStory" => story!(ShimmerStory),
             "PopoverStory" => story!(PopoverStory),
             "ProgressStory" => story!(ProgressStory),
             "ResizableStory" => story!(ResizableStory),
