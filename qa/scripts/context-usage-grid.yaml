@@ -1,0 +1,30 @@
+component: context-usage-grid
+steps:
+  - name: the headline says how full the budget is
+    check: C4
+    expect: [{text: "128K"}]
+  - name: pointing at a part puts its size in the headline
+    check: C4
+    hover: {at: [120, 300]}
+    expect: [{text: "tokens"}, {changed: true}]
+    shot: hover-part
+  - name: the files part opens on click
+    check: C4
+    click: {at: [120, 250]}   # the rows are not in the accessibility tree (a known limit)
+  - name: opened files
+    check: C4
+    expect: [{present: {contains: "Remove march-statement"}}]
+    shot: files-open
+  - name: removing a file shrinks the headline
+    check: C4
+    click: {contains: "Remove march-statement"}
+    expect: [{absent: {contains: "Remove march-statement"}}]
+  - name: compact shrinks the conversation and says so
+    check: C4
+    click: Compact
+    expect: [{text: "Compacted"}]
+    shot: compacted
+  - name: the files part can be opened by keyboard
+    check: C6
+    tabstart: true
+    expect: [{focused: true}]

@@ -1,0 +1,21 @@
+component: message-action-bar
+steps:
+  - name: the bar lights up when the message is pointed at
+    check: C4
+    hover: {at: [200, 60]}
+    expect: [{changed: true}]
+    shot: lit
+  - name: copy shows a check
+    check: C4
+    click: Copy
+    expect: [{changed: true}]
+  - name: thumbs down unfolds the reasons row
+    check: C4
+    click: {at: [117, 105]}
+    expect: [{changed: true}]
+    shot: reasons
+  - name: regenerate shows it busy and adds a version
+    check: C4
+    click: {at: [73, 105]}
+    expect: [{changed: true}]
+    shot: regenerated

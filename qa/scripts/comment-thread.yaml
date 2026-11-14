@@ -1,0 +1,26 @@
+component: comment-thread
+steps:
+  - name: status line with details folds open
+    check: C4
+    click: {at: [110, 203]}
+    expect: [{changed: true}]
+    shot: status-open
+  - name: send is disabled while the field is empty
+    check: C5
+    click: Send reply
+    expect: [{text: "2 messages"}]
+  - name: typing and Enter posts the reply and clears the field
+    check: C4
+    click: {contains: "Reply, or ask"}
+  - name: type reply
+    check: C4
+    type: "Checked, thanks"
+  - name: Enter posts
+    check: C4
+    key: Return
+    expect: [{text: "Checked, thanks"}, {present: {contains: "Reply, or ask"}}]
+    shot: replied
+  - name: close emits Close
+    check: C4
+    click: Close comment
+    expect: [{changed: true}]

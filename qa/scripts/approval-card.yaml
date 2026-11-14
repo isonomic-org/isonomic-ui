@@ -1,0 +1,44 @@
+component: approval-card
+steps:
+  - name: Approve folds the card into a resolved row
+    check: C4
+    click: {at: [410, 227]}
+    expect: [{text: "Approved"}]
+    shot: approved
+  - name: Escape while focus is in the second card denies it
+    check: C6
+    tabstart: true
+  - name: move focus into the second card
+    check: C6
+    tab: 1
+  - name: Escape
+    check: C6
+    key: Escape
+    expect: [{text: "Denied"}]
+    shot: denied-by-escape
+  - name: Ask both again starts fresh requests
+    check: C5
+    click: Ask both again
+    expect: [{text: "Expires in"}]
+  - name: Enter on a focused Deny button denies (it must not approve)
+    check: C6
+    tabstart: true
+  - name: Tab to Deny
+    check: C6
+    tab: 1
+    expect: [{focused: "deny"}]
+  - name: press Enter on Deny
+    check: C6
+    key: Return
+    expect: [{no_text: "Approved"}, {text: "Denied"}]
+    shot: enter-on-deny
+  - name: pointing at the card pauses the countdown
+    check: C4
+    click: Ask both again
+  - name: hover
+    check: C4
+    hover: {at: [300, 140]}
+  - name: countdown holds while pointed at
+    check: C4
+    wait: 2.5
+    expect: [{changed: false}]

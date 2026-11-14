@@ -1,0 +1,17 @@
+component: elimination-bracket
+steps:
+  - name: rounds are named back from the final and the judged match shows
+    check: C4
+    expect: [{text: "QUARTERFINAL"}, {text: "Semifinal 2"}, {text: "comparing"}]
+  - name: the bracket is a tab stop; Left moves to an earlier round
+    check: C6
+    tabstart: true
+  - name: left arrow
+    check: C6
+    key: Left
+    expect: [{text: "Quarterfinal 3"}]
+    shot: keyboard-left
+  - name: Escape goes back to what the judge works on
+    check: C6
+    key: Escape
+    expect: [{text: "Semifinal 2"}]

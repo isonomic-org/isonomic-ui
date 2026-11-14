@@ -1,0 +1,26 @@
+component: question-card
+steps:
+  - name: number key answers the question and the next one shows
+    check: C4
+    tabstart: true
+  - name: press 1
+    check: C4
+    key: "1"
+    expect: [{text: "1 of 1"}]
+    shot: answered-by-key
+  - name: Not now folds the card to one line
+    check: C4
+    key: Escape
+    expect: [{text: "waiting"}]
+    shot: folded
+  - name: Ask both again restores
+    check: C5
+    click: Ask both again
+    expect: [{text: "1 of 2"}]
+  - name: Down moves the selected row, Enter answers
+    check: C6
+    click: {at: [300, 140]}
+  - name: down and enter
+    check: C6
+    key: [Down, Return]
+    expect: [{text: "1 of 1"}]

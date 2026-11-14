@@ -1,0 +1,13 @@
+component: planned-vs-actual-timeline
+steps:
+  - name: header says how far behind plan in words
+    check: C4
+    expect: [{text: "behind"}]
+  - name: finished steps show the signed difference
+    check: C4
+    expect: [{text: "+12s"}]
+  - name: pointing at a step highlights linked steps
+    check: C4
+    hover: {at: [120, 230]}
+    expect: [{changed: true}]
+    shot: hover-step

@@ -1,0 +1,40 @@
+component: tag-input
+steps:
+  - name: Enter turns typed text into a chip
+    check: C4
+    click: {contains: "Add more", index: 0}
+  - name: type a value
+    check: C4
+    type: "ana@books.example"
+  - name: press Enter
+    check: C4
+    key: Return
+    expect: [{present: {contains: "Remove ana@books.example"}}]
+    shot: added
+  - name: duplicates are not added twice
+    check: C4
+    type: "ana@books.example"
+  - name: Enter on duplicate
+    check: C4
+    key: Return
+    expect: [{present: {contains: "Remove ana@books.example", index: 0}}, {absent: {contains: "Remove ana@books.example", index: 1}}]
+  - name: Escape empties what was typed
+    check: C4
+    key: Escape
+  - name: Backspace twice from an empty field removes the last chip
+    check: C6
+    key: [BackSpace, BackSpace]
+    expect: [{absent: {contains: "Remove ana@books.example"}}]
+  - name: Tab moves on from the first field to the second field
+    check: C6
+    key: Tab
+    shot: after-tab-1
+  - name: second Tab
+    check: C6
+    key: Tab
+    shot: after-tab-2
+  - name: third Tab reaches the second field's chips
+    check: C6
+    key: Tab
+    expect: [{focused: true}]
+    shot: after-tab-3

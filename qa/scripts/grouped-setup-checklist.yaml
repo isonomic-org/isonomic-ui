@@ -1,0 +1,25 @@
+component: grouped-setup-checklist
+steps:
+  - name: only the first unfinished task can be pressed
+    check: C4
+    click: Add the tax number
+    expect: [{changed: false}]
+  - name: pressing the first task ticks it and moves the count
+    check: C4
+    click: Enter the legal name
+    expect: [{text: "2/6"}, {no_text: "Nothing changed yet"}]
+    shot: ticked
+  - name: a finished task can be unticked
+    check: C4
+    click: Enter the legal name
+    expect: [{text: "1/6"}]
+  - name: a group header folds its tasks
+    check: C4
+    click: {at: [200, 126]}
+    expect: [{no_text: "Pick the financial year"}]
+    shot: folded
+  - name: minimize folds the whole panel
+    check: C4
+    click: Hide the tasks
+    expect: [{changed: true}]
+    shot: minimized

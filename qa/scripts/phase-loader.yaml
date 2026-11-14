@@ -1,0 +1,16 @@
+component: phase-loader
+steps:
+  - name: Next phase moves to the next label
+    check: C4
+    click: Next phase
+    expect: [{changed: true}]
+    shot: next-phase
+  - name: Finish swaps the spinner for a check and "Done in"
+    check: C4
+    click: Finish
+    expect: [{text: "Done in"}]
+    shot: done
+  - name: once done the loader comes to rest
+    check: C8
+    wait: 3
+    expect: [{changed: false}]

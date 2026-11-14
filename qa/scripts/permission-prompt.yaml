@@ -1,0 +1,25 @@
+component: permission-prompt
+steps:
+  - name: a destructive action is offered this once or for a time, never for good
+    check: C4
+    expect: [{text: "never allowed"}, {text: "1 hour"}]
+  - name: with Deny focused, Enter must deny and not allow (first prompt)
+    check: C6
+    tabstart: true
+  - name: Tab to the first prompt's Deny
+    check: C6
+    tab: 2
+    expect: [{focused: "reminders\"), \"deny"}]
+  - name: press Enter on Deny
+    check: C6
+    key: Return
+    expect: [{text: "told no"}, {absent: {name: "Revoke"}}]
+    shot: enter-on-deny
+  - name: with the destructive prompt itself focused, Escape denies
+    check: C6
+    tabstart: true
+  - name: Escape
+    check: C6
+    key: Escape
+    expect: [{text: "told no"}]
+    shot: denied-by-escape

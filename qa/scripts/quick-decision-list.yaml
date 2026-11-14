@@ -1,0 +1,19 @@
+component: quick-decision-list
+steps:
+  - name: answering shows a confirmation and the count drops
+    check: C4
+    click: Refund
+    expect: [{text: "2 decisions"}]
+    shot: answered
+  - name: the row leaves and the folded decision opens
+    check: C4
+    wait: 1.6
+    expect: [{absent: {name: Refund}}]
+    shot: next-open
+  - name: answer the rest
+    check: C5
+    click: {name: "Yes"}
+  - name: all answered
+    check: C5
+    wait: 1.6
+    shot: after-yes

@@ -1,0 +1,20 @@
+component: filter-menu
+steps:
+  - name: removing a chip unpicks its option
+    check: C4
+    click: {contains: "Remove filter Overdue"}
+    expect: [{absent: {contains: "Remove filter Overdue"}}]
+    shot: removed
+  - name: Clear all empties the chips
+    check: C4
+    click: Clear all
+    expect: [{absent: {contains: "Remove filter"}}]
+    shot: cleared
+  - name: the list is one tab stop; Down and Enter pick
+    check: C6
+    tabstart: true
+  - name: the option list is a Tab stop
+    check: C6
+    tab: 4
+    expect: [{focused: "list"}]
+    shot: keyboard

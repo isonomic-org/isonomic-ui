@@ -1,0 +1,33 @@
+# Card (PR #3). One step per Behaviour bullet that the story can show.
+component: card
+steps:
+  - name: unselected clickable card lifts under the pointer
+    check: C4
+    hover: {at: [330, 290]}
+    expect: [{changed: true}]
+    shot: hover
+  - name: a button inside the card runs its own click only
+    check: C4
+    click: Open
+    expect: [{no_text: "Not opened yet"}]
+    shot: inner-button
+  - name: pressing the other card selects it
+    check: C5
+    click: {at: [330, 290]}
+    expect: [{changed: true}]
+  - name: move the pointer away
+    check: C5
+    hover: {at: [800, 900]}
+    shot: selected
+  - name: Enter on a focused card activates it
+    check: C6
+    tabstart: true
+  - name: move to the first card
+    check: C6
+    tab: 2
+    expect: [{focused: mode}]
+  - name: Space activates the focused card
+    check: C6
+    key: space
+    expect: [{changed: true}]
+    shot: keyboard-select

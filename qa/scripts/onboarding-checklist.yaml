@@ -1,0 +1,18 @@
+component: onboarding-checklist
+steps:
+  - name: ticking a step fills the check and moves the count
+    check: C4
+    click: {name: "Import last year's ledger", index: 0}
+    expect: [{text: "2/4"}, {no_text: "Nothing ticked yet"}]
+    shot: ticked
+  - name: unticking in any order
+    check: C4
+    click: {name: "Name the workspace", index: 0}
+    expect: [{text: "1/4"}]
+  - name: Space toggles a focused step
+    check: C6
+    tabstart: true
+  - name: space on first step
+    check: C6
+    key: space
+    expect: [{changed: true}]

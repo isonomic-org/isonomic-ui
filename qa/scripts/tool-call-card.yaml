@@ -1,0 +1,16 @@
+component: tool-call-card
+steps:
+  - name: pressing a call's line opens arguments and result
+    check: C4
+    click: {at: [200, 73]}
+    expect: [{changed: true}]
+    shot: open
+  - name: Retry runs the failed call again
+    check: C4
+    click: Retry
+    expect: [{changed: true}]
+    shot: retry
+  - name: the group header folds the calls
+    check: C4
+    click: {at: [200, 34]}
+    expect: [{changed: true}]

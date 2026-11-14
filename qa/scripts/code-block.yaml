@@ -1,0 +1,13 @@
+component: code-block
+steps:
+  - name: header names the file and offers copy
+    check: C4
+    expect: [{text: "src/retry.rs"}, {present: {name: Copy}}]
+  - name: copy turns into a check and on_copy runs
+    check: C4
+    click: {name: Copy, index: 0}
+    expect: [{no_text: "Copied 0 times"}]
+    shot: copied
+  - name: second block has no file name and shows the language
+    check: C5
+    expect: [{text: "Bash"}]

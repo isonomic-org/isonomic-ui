@@ -1,0 +1,14 @@
+component: attempt-comparison-list
+steps:
+  - name: the best finished score is marked and in use
+    check: C4
+    expect: [{text: "Best"}, {text: "In use"}, {present: {name: "Use this"}}]
+  - name: Use this switches the attempt in use and reports it
+    check: C4
+    click: Use this
+    expect: [{text: "Now using strict"}]
+    shot: picked-strict
+  - name: Use this is reachable by keyboard
+    check: C6
+    tabstart: true
+    expect: [{focused: true}]

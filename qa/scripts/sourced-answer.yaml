@@ -1,0 +1,23 @@
+component: sourced-answer
+steps:
+  - name: pressing a chip unfolds that source's passage
+    check: C4
+    click: {contains: "Source 1"}
+    expect: [{text: "March ledger"}, {present: {name: "Close the passage"}}]
+    shot: passage-1
+  - name: Escape folds the passage and returns focus to the chip
+    check: C6
+    key: Escape
+    expect: [{focused: true}]
+  - name: Right moves between chips
+    check: C6
+    key: Right
+    expect: [{changed: true}]
+  - name: Copy quote shows "Quote copied"
+    check: C4
+    click: {contains: "Source 2"}
+  - name: copy
+    check: C4
+    click: Copy quote
+    expect: [{text: "Quote copied"}]
+    shot: copied

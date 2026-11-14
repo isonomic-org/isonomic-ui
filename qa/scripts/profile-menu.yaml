@@ -1,0 +1,20 @@
+component: profile-menu
+steps:
+  - name: pressing an action row runs on_select
+    check: C4
+    click: {at: [120, 119]}
+    expect: [{no_text: "Nothing chosen yet"}]
+    shot: chosen
+  - name: keyboard reaches the actions
+    check: C6
+    tabstart: true
+    expect: [{focused: true}]
+  - name: Down moves to the next row
+    check: C6
+    key: Down
+    expect: [{changed: true}]
+    shot: keyboard
+  - name: End jumps to the last row, Enter runs it
+    check: C6
+    key: [End, Return]
+    expect: [{text: "Sign out"}]

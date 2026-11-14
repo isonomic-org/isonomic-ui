@@ -1,0 +1,24 @@
+component: model-picker
+steps:
+  - name: the trigger opens the menu with the chosen model
+    check: C4
+    click: {contains: "Model:"}
+    expect: [{changed: true}]
+    shot: open
+  - name: Down moves the highlight and the footer note follows
+    check: C6
+    key: Down
+    expect: [{changed: true}]
+    shot: highlight
+  - name: Enter chooses and closes
+    check: C6
+    key: Return
+    expect: [{no_text: "Nothing changed yet"}]
+    shot: chosen
+  - name: Escape closes without choosing
+    check: C6
+    click: {contains: "Model:"}
+  - name: escape
+    check: C6
+    key: Escape
+    expect: [{changed: true}]

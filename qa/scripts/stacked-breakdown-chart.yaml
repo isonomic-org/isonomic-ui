@@ -1,0 +1,16 @@
+component: stacked-breakdown-chart
+steps:
+  - name: pointing at a bar opens its panel
+    check: C4
+    hover: {at: [330, 300]}
+    expect: [{changed: true}]
+    shot: hover-bar
+  - name: the measure picker opens
+    check: C4
+    click: {at: [100, 104]}
+    expect: [{changed: true}]
+    shot: measure-menu
+  - name: Escape closes the picker
+    check: C6
+    key: Escape
+    expect: [{changed: true}]
