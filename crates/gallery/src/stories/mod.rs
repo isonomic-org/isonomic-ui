@@ -1,6 +1,7 @@
 use isonomic_ui::component::dock::PanelControl;
 use isonomic_ui::{AnyView, App, AppContext as _, Entity, Hsla, Pixels, Render, Window, px};
 
+mod accordion_story;
 mod alert_dialog_story;
 mod alert_story;
 mod attachment_story;
@@ -66,6 +67,7 @@ mod tabs_story;
 mod tag_story;
 mod welcome_story;
 
+pub use accordion_story::AccordionStory;
 pub use alert_dialog_story::AlertDialogStory;
 pub use alert_story::AlertStory;
 pub use attachment_story::AttachmentStory;

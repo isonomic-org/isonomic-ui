@@ -26,6 +26,7 @@ pub(crate) mod actions {
     pub use isonomic_ui_base::actions::*;
 }
 
+pub mod accordion;
 pub mod alert;
 pub mod attachment;
 pub mod avatar;

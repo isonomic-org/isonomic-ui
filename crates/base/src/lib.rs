@@ -10,6 +10,7 @@ extern crate gpui_fast as gpui;
 extern crate gpui_fast_platform as gpui_platform;
 
 mod a11y_disabled;
+mod accordion;
 pub mod actions;
 mod alert_dialog;
 pub mod animation;
@@ -85,6 +86,7 @@ mod touch_selection;
 mod undo_history;
 mod virtual_list;
 
+pub use accordion::{Accordion, AccordionHeader, AccordionItem, AccordionPanel, AccordionTrigger};
 pub use alert_dialog::{
     AlertDialog, AlertDialogAction, AlertDialogBackdrop, AlertDialogCancel, AlertDialogClose,
     AlertDialogDescription, AlertDialogPopup, AlertDialogTitle, AlertDialogTrigger,
