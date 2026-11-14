@@ -81,6 +81,7 @@ impl Gallery {
                 StoryContainer::panel::<CommandStory>(window, cx),
                 StoryContainer::panel::<DescriptionListStory>(window, cx),
                 StoryContainer::panel::<DiffStory>(window, cx),
+                StoryContainer::panel::<DockStory>(window, cx),
             ],
         )];
 
