@@ -69,6 +69,7 @@ mod switch_story;
 mod table_story;
 mod tabs_story;
 mod tag_story;
+mod textarea_story;
 mod welcome_story;
 
 pub use accordion_story::AccordionStory;
@@ -137,6 +138,7 @@ pub use switch_story::SwitchStory;
 pub use table_story::TableStory;
 pub use tabs_story::TabsStory;
 pub use tag_story::TagStory;
+pub use textarea_story::TextareaStory;
 
 pub use welcome_story::WelcomeStory;
 
@@ -145,6 +147,7 @@ pub(crate) fn init(cx: &mut App) {
     combobox_story::init(cx);
     rating_story::init(cx);
     number_input_story::init(cx);
+    textarea_story::init(cx);
     select_story::init(cx);
     popover_story::init(cx);
     menu_story::init(cx);
