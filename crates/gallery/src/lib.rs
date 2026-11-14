@@ -771,9 +771,9 @@ impl StoryState {
             "FormStory" => story!(FormStory),
             "NotificationStory" => story!(NotificationStory),
             "ThemeColorsStory" => story!(ThemeColorsStory),
-            _ => {
-                unreachable!("Invalid story klass: {}", self.story_klass)
-            }
+            // Any other name belongs to a story of `isonomic-ui-extra`.
+            klass => stories::extra::story_for(klass, window, cx)
+                .unwrap_or_else(|| unreachable!("Invalid story klass: {}", klass)),
         }
     }
 }
