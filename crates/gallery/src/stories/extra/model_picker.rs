@@ -1,10 +1,11 @@
 //! Gallery story for the model picker.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, h_flex, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, IconName, h_flex, v_flex};
 use isonomic_ui_extra::model_picker::{ModelOption, ModelPicker, PickerSetting, SettingChange};
 
 /// Shows the picker in the toolbar of a composer and reports every change.
@@ -18,6 +19,20 @@ impl ModelPickerStory {
         cx.new(|_| Self {
             last: "Nothing changed yet".into(),
         })
+    }
+}
+
+impl Story for ModelPickerStory {
+    fn title() -> &'static str {
+        "Model picker"
+    }
+
+    fn description() -> &'static str {
+        "Choose which model answers, and the settings that go with it."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

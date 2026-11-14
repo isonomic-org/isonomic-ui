@@ -9,13 +9,7 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    Anchor, AnyElement, App, Context, ElementId, Entity, FocusHandle, InteractiveElement as _,
-    IntoElement, KeyDownEvent, Keystroke, ParentElement as _, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
@@ -23,6 +17,12 @@ use gpui_component::{
     popover::{Popover, PopoverState},
     switch::Switch,
     v_flex,
+};
+use isonomic_ui::{
+    Anchor, AnyElement, App, Context, ElementId, Entity, FocusHandle, InteractiveElement as _,
+    IntoElement, KeyDownEvent, Keystroke, ParentElement as _, RenderOnce, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 /// How many steps a meter has.
@@ -310,7 +310,7 @@ fn initial(name: &str) -> String {
 }
 
 /// The small square in front of a model's name.
-fn tile(model: &ModelOption, cx: &App) -> gpui::Div {
+fn tile(model: &ModelOption, cx: &App) -> isonomic_ui::Div {
     let theme = cx.theme();
     div()
         .flex()
