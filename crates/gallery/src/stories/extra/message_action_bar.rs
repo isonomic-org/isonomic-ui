@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, SharedString, Styled as _, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::message_action_bar::{MessageActionBar, Vote};
 
 const FIRST: &str = "March closed 4% under budget. Freight was the only line that ran over.";
@@ -54,6 +55,20 @@ impl MessageActionBarStory {
             .ok();
         })
         .detach();
+    }
+}
+
+impl Story for MessageActionBarStory {
+    fn title() -> &'static str {
+        "Message action bar"
+    }
+
+    fn description() -> &'static str {
+        "The quiet row of actions under an assistant's message."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

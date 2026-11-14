@@ -6,18 +6,18 @@
 
 use std::{f32::consts::TAU, rc::Rc, time::Duration};
 
-use gpui::{
-    Animation, AnimationExt as _, App, ClickEvent, ElementId, Focusable as _, Hsla,
-    InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Selectable as _, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     clipboard::Clipboard,
     h_flex,
     input::{Input, InputState},
     v_flex,
+};
+use isonomic_ui::{
+    Animation, AnimationExt as _, App, ClickEvent, ElementId, Focusable as _, Hsla,
+    InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
+    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 /// How long the row says thanks before it folds away.
@@ -463,6 +463,7 @@ impl RenderOnce for MessageActionBar {
                             .xsmall()
                             .icon(IconName::RefreshCw)
                             .loading(self.regenerating)
+                            .accessibility_label("Regenerate")
                             .tooltip("Regenerate")
                             .on_click({
                                 let on_regenerate = self.on_regenerate.clone();
@@ -482,6 +483,7 @@ impl RenderOnce for MessageActionBar {
                                         .xsmall()
                                         .icon(IconName::ChevronLeft)
                                         .disabled(version == 0)
+                                        .accessibility_label("Previous version")
                                         .tooltip("Previous version")
                                         .on_click(go(version.saturating_sub(1))),
                                 )
@@ -498,6 +500,7 @@ impl RenderOnce for MessageActionBar {
                                         .xsmall()
                                         .icon(IconName::ChevronRight)
                                         .disabled(version + 1 >= count)
+                                        .accessibility_label("Next version")
                                         .tooltip("Next version")
                                         .on_click(go((version + 1).min(count - 1))),
                                 ),
@@ -510,6 +513,7 @@ impl RenderOnce for MessageActionBar {
                             .xsmall()
                             .icon(IconName::ThumbsUp)
                             .selected(vote == Some(Vote::Up))
+                            .accessibility_label("Good answer")
                             .tooltip("Good answer")
                             .on_click(cast(Vote::Up)),
                     )
@@ -519,19 +523,22 @@ impl RenderOnce for MessageActionBar {
                             .xsmall()
                             .icon(IconName::ThumbsDown)
                             .selected(vote == Some(Vote::Down))
+                            .accessibility_label("Poor answer")
                             .tooltip("Poor answer")
                             .on_click(cast(Vote::Down)),
                     ),
                 MessageAction::ReadAloud => {
+                    let label = if playing {
+                        "Stop reading"
+                    } else {
+                        "Read aloud"
+                    };
                     let button = Button::new((self.id.clone(), "read-aloud"))
                         .ghost()
                         .xsmall()
                         .selected(playing)
-                        .tooltip(if playing {
-                            "Stop reading"
-                        } else {
-                            "Read aloud"
-                        })
+                        .accessibility_label(label)
+                        .tooltip(label)
                         .on_click(toggle_speak.clone());
                     bar.child(if playing {
                         button.child(equalizer(accent, still))
@@ -595,6 +602,7 @@ impl RenderOnce for MessageActionBar {
                                 .ghost()
                                 .xsmall()
                                 .icon(IconName::Close)
+                                .accessibility_label("Close")
                                 .tooltip("Close")
                                 .on_click(close_row),
                         ),
