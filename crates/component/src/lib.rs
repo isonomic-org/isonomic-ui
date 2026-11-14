@@ -55,6 +55,7 @@ pub mod shimmer;
 pub mod sidebar;
 pub mod skeleton;
 pub mod spinner;
+pub mod status_bar;
 pub mod text;
 pub mod theme;
 pub mod tooltip;
