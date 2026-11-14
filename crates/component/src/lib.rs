@@ -36,6 +36,7 @@ pub mod history;
 pub mod input;
 pub mod kbd;
 pub mod label;
+pub mod link;
 pub mod list;
 pub mod menu;
 pub mod message;
