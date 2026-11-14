@@ -64,6 +64,7 @@ mod text_selection;
 mod theme;
 pub mod theme_tokens;
 mod time_field;
+mod toast;
 mod toggle;
 mod touch_selection;
 mod undo_history;
@@ -172,6 +173,10 @@ pub use theme_tokens::{
 pub use time_field::{
     HourCycle, TimeField, TimeFieldEvent, TimeFieldSegment, TimeFieldSegmentState, TimeFieldState,
     TimePrecision, TimeSegment,
+};
+pub use toast::{
+    Toast, ToastAdvance, ToastManager, ToastMotion, ToastOptions, ToastStack, ToastStackState,
+    ToastTransitionStatus,
 };
 pub use toggle::{Toggle, ToggleStyles};
 pub use touch_selection::{SelectionEdge, TouchHandle, TouchSelectionSnapshot};
