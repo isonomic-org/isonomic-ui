@@ -500,7 +500,9 @@ mod tests {
     use super::*;
 
     fn done(score: u32) -> Attempt {
-        Attempt::new("a", "A").state(AttemptState::Done).score(score)
+        Attempt::new("a", "A")
+            .state(AttemptState::Done)
+            .score(score)
     }
 
     #[test]
@@ -517,7 +519,9 @@ mod tests {
     #[test]
     fn failed_and_running_attempts_are_never_best() {
         let attempts = [
-            Attempt::new("a", "A").state(AttemptState::Failed).score(100),
+            Attempt::new("a", "A")
+                .state(AttemptState::Failed)
+                .score(100),
             Attempt::new("b", "B").progress(0.4),
         ];
         assert_eq!(best(&attempts), None);
