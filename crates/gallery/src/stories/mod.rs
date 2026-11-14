@@ -19,6 +19,8 @@ mod description_list_story;
 mod diff_story;
 mod dock_story;
 mod dropdown_button_story;
+mod editor_story;
+mod input_completion;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -39,6 +41,7 @@ pub use description_list_story::DescriptionListStory;
 pub use diff_story::DiffStory;
 pub use dock_story::DockStory;
 pub use dropdown_button_story::DropdownButtonStory;
+pub use editor_story::EditorStory;
 
 pub use welcome_story::WelcomeStory;
 

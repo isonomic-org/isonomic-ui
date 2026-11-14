@@ -83,6 +83,7 @@ impl Gallery {
                 StoryContainer::panel::<DiffStory>(window, cx),
                 StoryContainer::panel::<DockStory>(window, cx),
                 StoryContainer::panel::<DropdownButtonStory>(window, cx),
+                StoryContainer::panel::<EditorStory>(window, cx),
             ],
         )];
 
