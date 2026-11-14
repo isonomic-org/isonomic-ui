@@ -8,6 +8,7 @@ members = [
     "crates/component",
     "crates/assets",
     "crates/fps",
+    "crates/extra",
 ]
 exclude = ["vendor"]
 resolver = "2"
@@ -23,6 +24,7 @@ isonomic-ui-base = { path = "crates/base", version = "0.1.0" }
 isonomic-ui-macros = { path = "crates/macros", version = "0.1.0" }
 isonomic-ui-assets = { path = "crates/assets", version = "0.1.0" }
 isonomic-ui-fps = { path = "crates/fps", version = "0.1.0" }
+isonomic-ui-extra = { path = "crates/extra", version = "0.1.0" }
 
 # GPUI comes from the `gpui-pre-*` snapshots of Zed's crates, and any snapshot
 # may change GPUI's API, so these requirements pin one exact snapshot. This is
