@@ -31,6 +31,7 @@ mod kbd_story;
 mod label_story;
 mod list_story;
 mod marker_story;
+mod menu_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -61,12 +62,14 @@ pub use kbd_story::KbdStory;
 pub use label_story::LabelStory;
 pub use list_story::ListStory;
 pub use marker_story::MarkerStory;
+pub use menu_story::MenuStory;
 
 pub use welcome_story::WelcomeStory;
 
 pub(crate) fn init(cx: &mut App) {
     input_story::init(cx);
     combobox_story::init(cx);
+    menu_story::init(cx);
 }
 
 pub trait Story: Render + Sized {
