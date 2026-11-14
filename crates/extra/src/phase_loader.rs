@@ -9,14 +9,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable, Size, StyledExt as _, h_flex, shimmer::ShimmerText,
+    spinner::Spinner,
+};
+use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px,
-};
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable, Size, StyledExt as _, h_flex, shimmer::ShimmerText,
-    spinner::Spinner,
 };
 
 use crate::common::resting_shadow;

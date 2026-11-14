@@ -1,10 +1,11 @@
 //! Gallery story for the phase loader.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{Sizable as _, button::Button, h_flex, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Window,
 };
-use gpui_component::{Sizable as _, button::Button, h_flex, v_flex};
 use isonomic_ui_extra::phase_loader::{PhaseLoader, PhaseLoaderVariant};
 
 const PHASES: [&str; 4] = [
@@ -27,6 +28,20 @@ impl PhaseLoaderStory {
             done: false,
             stage: 0,
         })
+    }
+}
+
+impl Story for PhaseLoaderStory {
+    fn title() -> &'static str {
+        "Phase loader"
+    }
+
+    fn description() -> &'static str {
+        "A small pill that says what is being worked on right now."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
