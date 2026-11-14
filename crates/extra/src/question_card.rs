@@ -6,18 +6,18 @@
 //! click or a number key answers at once and brings up the next question;
 //! "Not now" folds the card to one line.
 
-use gpui::{
-    AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
-    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
     v_flex,
+};
+use isonomic_ui::{
+    AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
+    InteractiveElement as _, IntoElement, KeyDownEvent, MouseButton, ParentElement as _, Render,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -241,7 +241,8 @@ impl QuestionCard {
             selected: 0,
             folded: false,
             input,
-            focus: cx.focus_handle(),
+            // A Tab stop of its own, so the keys below work without a mouse.
+            focus: cx.focus_handle().tab_stop(true),
             _input_events: input_events,
         }
     }
@@ -350,7 +351,10 @@ impl QuestionCard {
             }
             return;
         }
-        if !self.focus.is_focused(window) {
+        // Number keys and arrows work from anywhere in the card; Enter and
+        // Space only on the card itself, since a focused button takes them.
+        let on_card = self.focus.is_focused(window);
+        if !on_card && !self.focus.contains_focused(window, cx) {
             return;
         }
 
@@ -360,7 +364,7 @@ impl QuestionCard {
                 Target::Row(ix) => self.answer(rows[ix].answer.clone(), window, cx),
                 Target::Field => self.go(Target::Field, window, cx),
             }
-        } else if matches!(key, "enter" | "space") {
+        } else if on_card && matches!(key, "enter" | "space") {
             match rows.get(selected) {
                 Some(row) => self.answer(row.answer.clone(), window, cx),
                 None => self.go(Target::Field, window, cx),
@@ -522,6 +526,15 @@ impl Render for QuestionCard {
 
         card.track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_down))
+            // A click anywhere but in the field puts the keyboard on the card.
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|this, _, window, cx| {
+                    if !this.input.read(cx).focus_handle(cx).is_focused(window) {
+                        this.focus.focus(window, cx);
+                    }
+                }),
+            )
             .gap_2()
             .p_3()
             .child(

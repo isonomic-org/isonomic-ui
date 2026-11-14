@@ -1,10 +1,11 @@
 //! Gallery story for the question card.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, button::Button, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, button::Button, v_flex};
 use isonomic_ui_extra::question_card::{
     Question, QuestionAnswer, QuestionCard, QuestionCardEvent, QuestionOption,
 };
@@ -66,6 +67,20 @@ impl QuestionCardStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for QuestionCardStory {
+    fn title() -> &'static str {
+        "Question card"
+    }
+
+    fn description() -> &'static str {
+        "An assistant's question, answered in one keystroke."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
