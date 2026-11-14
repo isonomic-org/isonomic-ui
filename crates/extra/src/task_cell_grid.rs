@@ -690,9 +690,10 @@ mod tests {
     fn task(status: CellStatus, span: Option<(u64, u64)>) -> GridTask {
         let task = GridTask::new("t", "Task").status(status);
         match span {
-            Some((start, end)) => {
-                task.span(Duration::from_millis(start), Some(Duration::from_millis(end)))
-            }
+            Some((start, end)) => task.span(
+                Duration::from_millis(start),
+                Some(Duration::from_millis(end)),
+            ),
             None => task,
         }
     }
