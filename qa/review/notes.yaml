@@ -1,0 +1,63 @@
+# Findings from looking at the screenshots, merged into the report next to the
+# automatic checks. One entry per component; `check` is the C-number it belongs to.
+# Run 1 (Q0), 2026-11-14.
+
+card:
+  - check: C2
+    status: warn
+    note: "At 360 px the story's cards run past the right edge: the story fixes the column at 400 px. The card itself sizes to its container."
+code-block:
+  - check: C2
+    status: warn
+    note: "At 360 px the block is cut at the right edge: the story fixes it at 480 px. Long lines inside the block scroll as intended."
+tips-grid:
+  - check: C2
+    status: warn
+    note: "At 360 px the third column is off screen: the story fixes the grid at 680 px."
+onboarding-checklist:
+  - check: C2
+    status: warn
+    note: "At 360 px the second checklist sits off screen: the story puts both side by side without wrapping."
+approval-card:
+  - check: C2
+    status: warn
+    note: "At 360 px the footer of the first card squeezes the 'Always allow this action' label to nothing and leaves a tall empty band above the footer."
+autonomy-level-control:
+  - check: C2
+    status: warn
+    note: "At 360 px the three level labels run into each other ('Ask every time' / 'Ask when risky' / 'Run freely')."
+draft-review-card:
+  - check: C2
+    status: warn
+    note: "At 360 and 960 px the recipient's address runs under the attachment chip in the To row, so both are partly hidden."
+variant-comparison-card:
+  - check: C6
+    status: known
+    note: "No visible focus on the variant rows. The PR lists this under 'Not done here' (rows are buttons without a focus ring of their own), so it is a known limit, not a defect."
+  - check: C2
+    status: warn
+    note: "In the closed head, the status line ('Collecting', 'Week 3 of 4') overlaps the bottom of the title at every width."
+phase-loader:
+  - check: C8
+    status: info
+    note: "The story never comes to rest: the loader cycles phases until 'Finish' is pressed. Expected while running; C8 retested in Q1 after Finish."
+fallback-route-view:
+  - check: C8
+    status: info
+    note: "The story never comes to rest: the 'Trying now' spinner animates continuously. Expected for a live attempt."
+stacked-breakdown-chart:
+  - check: C10
+    status: info
+    note: "Run Q1: the screenshots differed from Q0 only because the pointer was resting over the chart and opened a bar's readout. The QA runner now parks the pointer before every screenshot."
+context-usage-grid:
+  - check: C4
+    status: info
+    note: "The first Q1 pass failed steps 4 and 5: the click meant for 'Attached files' landed on the Tools row. Rerun three times at the same SHA: all steps pass. Recorded as a harness flake, not filed. The rows are clicked by position because they are not in the accessibility tree, which the PR lists under 'Not done here'."
+planned-vs-actual-timeline:
+  - check: C8
+    status: info
+    note: "Never fully at rest: the only moving pixels are the spinner on the running step ('Post accruals'), a 12 px status icon. Expected while a step runs; the 'No motion' limit is about transitions. Not filed."
+elimination-bracket:
+  - check: C8
+    status: info
+    note: "Never fully at rest: the only moving pixels are the spinner on the match being judged and on the 'Judging' tag. Expected while judging runs. Not filed."
