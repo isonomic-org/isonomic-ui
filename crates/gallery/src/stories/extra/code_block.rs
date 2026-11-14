@@ -1,10 +1,11 @@
 //! Gallery story for the code block.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::code_block::CodeBlock;
 
 const RETRY: &str = r#"use std::time::Duration;
@@ -38,12 +39,27 @@ impl CodeBlockStory {
     }
 }
 
+impl Story for CodeBlockStory {
+    fn title() -> &'static str {
+        "Code block"
+    }
+
+    fn description() -> &'static str {
+        "Code to read and copy."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
+    }
+}
+
 impl Render for CodeBlockStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let view = cx.entity();
 
         v_flex()
-            .w(px(480.))
+            .w_full()
+            .max_w(px(480.))
             .gap_4()
             .child(
                 CodeBlock::new("file", RETRY)

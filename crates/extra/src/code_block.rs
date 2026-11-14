@@ -14,14 +14,14 @@ use std::{
     sync::Arc,
 };
 
-use gpui::{
+use isonomic_ui::component::{
+    ActiveTheme as _, Rope, StyledExt as _, clipboard::Clipboard, h_flex,
+    highlighter::SyntaxHighlighter, v_flex,
+};
+use isonomic_ui::{
     App, ElementId, HighlightStyle, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
     Pixels, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
     StyledText, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
-    ActiveTheme as _, Rope, StyledExt as _, clipboard::Clipboard, h_flex,
-    highlighter::SyntaxHighlighter, v_flex,
 };
 
 const LINE_HEIGHT: Pixels = px(20.);
@@ -254,7 +254,7 @@ impl RenderOnce for CodeBlock {
 
         // The tint and the thin edge of a marked line, on whichever element
         // starts the line. Unmarked lines keep the edge's width so text aligns.
-        let paint = |marked: bool, this: gpui::Div| -> gpui::Div {
+        let paint = |marked: bool, this: isonomic_ui::Div| -> isonomic_ui::Div {
             this.border_l_2()
                 .border_color(if marked { mark_edge } else { clear })
                 .when(marked, |this| this.bg(mark))
@@ -270,7 +270,7 @@ impl RenderOnce for CodeBlock {
                 .text_right()
                 .child((ix + 1).to_string())
         };
-        let code = |line: &Line, this: gpui::Div| -> gpui::Div {
+        let code = |line: &Line, this: isonomic_ui::Div| -> isonomic_ui::Div {
             this.pr(INSET)
                 .when(!line_numbers, |this| this.pl(INSET))
                 .child(StyledText::new(line.text.clone()).with_highlights(line.runs.clone()))
