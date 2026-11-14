@@ -10,6 +10,8 @@ mod element_ext;
 pub mod global_state;
 mod icon;
 mod index_path;
+#[cfg(any(feature = "inspector", debug_assertions))]
+mod inspector;
 mod root;
 mod sizing;
 mod styled;
@@ -76,6 +78,8 @@ pub use global_state::GlobalState;
 pub use icon::*;
 pub use index_path::IndexPath;
 pub use input::{Rope, RopeExt, RopeLines};
+#[cfg(any(feature = "inspector", debug_assertions))]
+pub use inspector::*;
 pub use isonomic_ui_base::Root;
 pub use isonomic_ui_base::animation;
 pub use isonomic_ui_base::{
@@ -103,6 +107,8 @@ rust_i18n::i18n!("locales", fallback = "en");
 pub fn init(cx: &mut App) {
     theme::init(cx);
     global_state::init(cx);
+    #[cfg(any(feature = "inspector", debug_assertions))]
+    inspector::init(cx);
     root::init(cx);
     isonomic_ui_base::init(cx);
     input::init(cx);
