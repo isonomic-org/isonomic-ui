@@ -40,6 +40,7 @@ pub mod motion;
 mod nav_stack;
 mod number_input;
 mod observe;
+mod otp_input;
 mod overscroll;
 pub mod plot;
 mod popup;
@@ -119,6 +120,7 @@ pub use number_input::{
     step_value,
 };
 pub use observe::{ObservedElement, ObservedTextElement, TestSupportExt, TestTextExt};
+pub use otp_input::{OtpEvent, OtpInput, OtpState};
 pub use plot::PlotMotion;
 pub use popup::{POPUP_PRIORITY, Popup, logical_anchor};
 pub use positioner::{Align, Positioner, ResolvedPosition};
