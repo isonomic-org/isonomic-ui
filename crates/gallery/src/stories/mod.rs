@@ -63,6 +63,7 @@ mod status_bar_story;
 mod stepper_story;
 mod switch_story;
 mod tabs_story;
+mod tag_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -125,6 +126,7 @@ pub use status_bar_story::StatusBarStory;
 pub use stepper_story::StepperStory;
 pub use switch_story::SwitchStory;
 pub use tabs_story::TabsStory;
+pub use tag_story::TagStory;
 
 pub use welcome_story::WelcomeStory;
 

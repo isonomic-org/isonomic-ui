@@ -85,6 +85,7 @@ pub mod status_bar;
 pub mod stepper;
 pub mod switch;
 pub mod tab;
+pub mod tag;
 pub mod text;
 pub mod theme;
 pub mod tooltip;
