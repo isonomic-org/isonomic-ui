@@ -139,6 +139,7 @@ impl Gallery {
                 StoryContainer::panel::<TextareaStory>(window, cx),
                 StoryContainer::panel::<ThemeColorsStory>(window, cx),
                 StoryContainer::panel::<TimeFieldStory>(window, cx),
+                StoryContainer::panel::<ToggleStory>(window, cx),
             ],
         )];
 
