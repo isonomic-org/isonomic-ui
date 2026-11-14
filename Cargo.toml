@@ -1,10 +1,13 @@
 [workspace]
+default-members = ["crates/gallery"]
 members = [
     "crates/ui",
     "crates/base",
     "crates/macros",
+    "crates/gallery",
     "crates/component",
     "crates/assets",
+    "crates/fps",
 ]
 exclude = ["vendor"]
 resolver = "2"
