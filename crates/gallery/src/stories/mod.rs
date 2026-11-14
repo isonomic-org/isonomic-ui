@@ -32,6 +32,7 @@ mod label_story;
 mod list_story;
 mod marker_story;
 mod menu_story;
+mod message_scroller_story;
 mod message_story;
 mod welcome_story;
 
@@ -64,6 +65,7 @@ pub use label_story::LabelStory;
 pub use list_story::ListStory;
 pub use marker_story::MarkerStory;
 pub use menu_story::MenuStory;
+pub use message_scroller_story::MessageScrollerStory;
 pub use message_story::MessageStory;
 
 pub use welcome_story::WelcomeStory;
