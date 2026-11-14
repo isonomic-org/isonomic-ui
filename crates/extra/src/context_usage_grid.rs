@@ -3,19 +3,20 @@
 //! The budget is a field of small cells, coloured by the part that takes
 //! them up: instructions, tools, attached files, the conversation. Pointing
 //! at a part lights its cells and puts its size in the headline. Files can be
-//! removed one by one, and a long part can be compacted.
+//! removed one by one, and a long part can be compacted: the card asks, and
+//! its owner passes the parts as they are afterwards.
 
 use std::{collections::HashSet, rc::Rc};
 
-use gpui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -47,7 +48,8 @@ pub struct BudgetPart {
     tokens: u64,
     items: Vec<BudgetItem>,
     locked: bool,
-    compact_to: Option<f32>,
+    compactable: bool,
+    compacted: bool,
     color: Option<Hsla>,
 }
 
@@ -60,7 +62,8 @@ impl BudgetPart {
             tokens,
             items: Vec::new(),
             locked: false,
-            compact_to: None,
+            compactable: false,
+            compacted: false,
             color: None,
         }
     }
@@ -77,10 +80,15 @@ impl BudgetPart {
         self
     }
 
-    /// Offer to compact the part. `share` is what is left afterwards, such
-    /// as 0.3, when the card compacts it itself.
-    pub fn compactable(mut self, share: f32) -> Self {
-        self.compact_to = Some(share.clamp(0., 1.));
+    /// Offer a Compact button for the part.
+    pub fn compactable(mut self, compactable: bool) -> Self {
+        self.compactable = compactable;
+        self
+    }
+
+    /// Say the part has been compacted: the button gives way to a check.
+    pub fn compacted(mut self, compacted: bool) -> Self {
+        self.compacted = compacted;
         self
     }
 
@@ -164,8 +172,8 @@ impl ContextUsageGrid {
         self
     }
 
-    /// Run when an item is removed. With it, the card shows exactly what it
-    /// is given; without it, the card drops the item itself.
+    /// Run with the part's and the item's ids when an item's Remove is
+    /// pressed. Pass the parts again without it.
     pub fn on_remove_item(
         mut self,
         handler: impl Fn(&SharedString, &SharedString, &mut Window, &mut App) + 'static,
@@ -174,8 +182,8 @@ impl ContextUsageGrid {
         self
     }
 
-    /// Run when a part is compacted. Without it, the card shrinks the part
-    /// to its compact share itself.
+    /// Run with the part's id when its Compact is pressed. Pass the part again
+    /// at its new size, marked `compacted`.
     pub fn on_compact(
         mut self,
         handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
@@ -242,8 +250,6 @@ fn cell_counts(sizes: &[u64], limit: u64, cells: usize) -> Vec<usize> {
 struct GridState {
     hovered: Option<usize>,
     open: HashSet<SharedString>,
-    removed: HashSet<(SharedString, SharedString)>,
-    compacted: HashSet<SharedString>,
 }
 
 impl RenderOnce for ContextUsageGrid {
@@ -270,44 +276,23 @@ impl RenderOnce for ContextUsageGrid {
         ];
 
         let state = window.use_keyed_state(self.id.clone(), cx, |_, _| GridState::default());
-        let (hovered, open, removed, compacted) = {
+        let (hovered, open) = {
             let state = state.read(cx);
-            (
-                state.hovered,
-                state.open.clone(),
-                state.removed.clone(),
-                state.compacted.clone(),
-            )
+            (state.hovered, state.open.clone())
         };
-        let controlled_items = self.on_remove_item.is_some();
-        let controlled_compact = self.on_compact.is_some();
 
-        // What each part holds now, after anything the card did itself.
-        let shown: Vec<(Vec<BudgetItem>, u64)> = self
+        // A part with items takes its size from them.
+        let sizes: Vec<u64> = self
             .parts
             .iter()
             .map(|part| {
-                let items: Vec<BudgetItem> = part
-                    .items
-                    .iter()
-                    .filter(|item| {
-                        controlled_items || !removed.contains(&(part.id.clone(), item.id.clone()))
-                    })
-                    .cloned()
-                    .collect();
-                let mut tokens = if part.items.is_empty() {
+                if part.items.is_empty() {
                     part.tokens
                 } else {
-                    items.iter().map(|item| item.tokens).sum()
-                };
-                if !controlled_compact && compacted.contains(&part.id) {
-                    let share = part.compact_to.unwrap_or(1.);
-                    tokens = (tokens as f32 * share).round() as u64;
+                    part.items.iter().map(|item| item.tokens).sum()
                 }
-                (items, tokens)
             })
             .collect();
-        let sizes: Vec<u64> = shown.iter().map(|(_, tokens)| *tokens).collect();
         let used: u64 = sizes.iter().sum();
         let share = used as f32 / self.limit.max(1) as f32;
         let full = share >= 0.95;
@@ -385,12 +370,12 @@ impl RenderOnce for ContextUsageGrid {
             });
 
         let rows = self.parts.iter().enumerate().map(|(ix, part)| {
-            let (items, tokens) = &shown[ix];
+            let items = &part.items;
+            let tokens = &sizes[ix];
             let is_open = open.contains(&part.id);
             let has_items = !part.items.is_empty();
-            let was_compacted = compacted.contains(&part.id);
-            let compact = part.compact_to.map(|_| {
-                if was_compacted && !controlled_compact {
+            let compact = part.compactable.then(|| {
+                if part.compacted {
                     h_flex()
                         .gap_1()
                         .text_xs()
@@ -399,7 +384,6 @@ impl RenderOnce for ContextUsageGrid {
                         .child("Compacted")
                         .into_any_element()
                 } else {
-                    let state = state.clone();
                     let id = part.id.clone();
                     let on_compact = self.on_compact.clone();
                     Button::new(("compact", ix))
@@ -408,10 +392,6 @@ impl RenderOnce for ContextUsageGrid {
                         .icon(IconName::Minimize)
                         .label("Compact")
                         .on_click(move |_, window, cx| {
-                            state.update(cx, |state, cx| {
-                                state.compacted.insert(id.clone());
-                                cx.notify();
-                            });
                             if let Some(handler) = &on_compact {
                                 handler(&id, window, cx);
                             }
@@ -430,14 +410,16 @@ impl RenderOnce for ContextUsageGrid {
                 .when(has_items, |this| {
                     let state = state.clone();
                     let id = part.id.clone();
-                    this.cursor_pointer().on_click(move |_, _, cx| {
-                        state.update(cx, |state, cx| {
-                            if !state.open.remove(&id) {
-                                state.open.insert(id.clone());
-                            }
-                            cx.notify();
+                    this.cursor_pointer()
+                        .aria_expanded(is_open)
+                        .on_click(move |_, _, cx| {
+                            state.update(cx, |state, cx| {
+                                if !state.open.remove(&id) {
+                                    state.open.insert(id.clone());
+                                }
+                                cx.notify();
+                            })
                         })
-                    })
                 })
                 .child(div().flex_none().size_2().rounded(px(2.)).bg(colors[ix]))
                 .child(div().min_w_0().truncate().child(part.label.clone()))
@@ -466,7 +448,6 @@ impl RenderOnce for ContextUsageGrid {
                 v_flex()
                     .pl(px(22.))
                     .children(items.iter().map(|item| {
-                        let state = state.clone();
                         let on_remove = self.on_remove_item.clone();
                         let (part_id, item_id) = (part.id.clone(), item.id.clone());
                         h_flex()
@@ -494,12 +475,6 @@ impl RenderOnce for ContextUsageGrid {
                                     .accessibility_label(format!("Remove {}", item.label))
                                     .on_click(
                                         move |_, window, cx| {
-                                            state.update(cx, |state, cx| {
-                                                state
-                                                    .removed
-                                                    .insert((part_id.clone(), item_id.clone()));
-                                                cx.notify();
-                                            });
                                             if let Some(handler) = &on_remove {
                                                 handler(&part_id, &item_id, window, cx);
                                             }
