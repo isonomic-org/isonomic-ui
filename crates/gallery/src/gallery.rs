@@ -102,6 +102,7 @@ impl Gallery {
                 StoryContainer::panel::<OtpInputStory>(window, cx),
                 StoryContainer::panel::<PaginationStory>(window, cx),
                 StoryContainer::panel::<PopoverStory>(window, cx),
+                StoryContainer::panel::<ProgressStory>(window, cx),
             ],
         )];
 
