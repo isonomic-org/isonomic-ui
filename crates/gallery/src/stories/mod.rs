@@ -27,6 +27,7 @@ mod image_story;
 mod input_completion;
 mod input_story;
 mod input_tokens;
+mod kbd_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -53,6 +54,7 @@ pub use hover_card_story::HoverCardStory;
 pub use icon_story::IconStory;
 pub use image_story::ImageStory;
 pub use input_story::InputStory;
+pub use kbd_story::KbdStory;
 
 pub use welcome_story::WelcomeStory;
 
