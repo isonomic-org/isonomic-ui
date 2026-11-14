@@ -116,6 +116,7 @@ impl Gallery {
                 StoryContainer::panel::<SliderStory>(window, cx),
                 StoryContainer::panel::<SpeechStory>(window, cx),
                 StoryContainer::panel::<SpinnerStory>(window, cx),
+                StoryContainer::panel::<StatusBarStory>(window, cx),
             ],
         )];
 
