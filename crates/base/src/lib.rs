@@ -19,6 +19,7 @@ mod button;
 mod checkbox;
 pub mod component_traits;
 mod date_picker;
+mod dialog;
 mod element_ext;
 mod event;
 mod focus_trap;
@@ -73,6 +74,10 @@ pub use checkbox::{
 pub use component_traits::FocusableExt;
 pub use component_traits::{Disableable, Selectable};
 pub use date_picker::DatePicker;
+pub use dialog::{
+    Dialog, DialogBackdrop, DialogChangeReason, DialogClose, DialogDescription, DialogHandle,
+    DialogPopup, DialogTitle, DialogTrigger,
+};
 pub use element_ext::ElementExt;
 pub use event::{InteractiveElementExt, OngoingScrollExt};
 pub use focus_trap::FocusTrapElement;
@@ -181,6 +186,7 @@ pub fn init(cx: &mut App) {
     GlobalState::init(cx);
     reduce_motion::init(cx);
     layout_direction::init(cx);
+    dialog::init(cx);
     focus_trap::init(cx);
     select::init(cx);
     number_input::init(cx);
