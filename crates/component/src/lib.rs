@@ -45,11 +45,13 @@ pub mod notification;
 pub mod plot;
 pub mod popover;
 pub mod progress;
+pub mod resizable;
 pub mod scroll;
 pub mod searchable_list;
 pub mod select;
 pub mod separator;
 pub mod sheet;
+pub mod shimmer;
 pub mod skeleton;
 pub mod spinner;
 pub mod text;
@@ -69,6 +71,10 @@ pub use isonomic_ui_base::{
     Placement, Side, measure, measure_if,
 };
 pub use isonomic_ui_macros::icon_named;
+pub use resizable::{
+    ResizablePanel, ResizablePanelEvent, ResizablePanelGroup, ResizableState, h_resizable,
+    resizable_panel, resize_handle, resize_handle_appearance, v_resizable,
+};
 pub use styled::*;
 pub use theme::*;
 pub use title_bar::*;
