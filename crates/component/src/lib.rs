@@ -43,6 +43,7 @@ pub mod description_list;
 pub mod dialog;
 pub mod diff;
 pub mod dock;
+pub mod empty;
 pub mod group_box;
 pub mod highlighter;
 pub mod history;
