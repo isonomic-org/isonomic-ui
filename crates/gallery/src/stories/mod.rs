@@ -15,6 +15,7 @@ mod checkbox_story;
 mod clipboard_story;
 mod combobox_story;
 mod command_story;
+mod description_list_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -31,6 +32,7 @@ pub use checkbox_story::CheckboxStory;
 pub use clipboard_story::ClipboardStory;
 pub use combobox_story::ComboboxStory;
 pub use command_story::CommandStory;
+pub use description_list_story::DescriptionListStory;
 
 pub use welcome_story::WelcomeStory;
 
