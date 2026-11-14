@@ -25,6 +25,8 @@ mod hover_card_story;
 mod icon_story;
 mod image_story;
 mod input_completion;
+mod input_story;
+mod input_tokens;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -50,10 +52,12 @@ pub use empty_story::EmptyStory;
 pub use hover_card_story::HoverCardStory;
 pub use icon_story::IconStory;
 pub use image_story::ImageStory;
+pub use input_story::InputStory;
 
 pub use welcome_story::WelcomeStory;
 
 pub(crate) fn init(cx: &mut App) {
+    input_story::init(cx);
     combobox_story::init(cx);
 }
 

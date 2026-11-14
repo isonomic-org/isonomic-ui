@@ -88,6 +88,7 @@ impl Gallery {
                 StoryContainer::panel::<HoverCardStory>(window, cx),
                 StoryContainer::panel::<IconStory>(window, cx),
                 StoryContainer::panel::<ImageStory>(window, cx),
+                StoryContainer::panel::<InputStory>(window, cx),
             ],
         )];
 
