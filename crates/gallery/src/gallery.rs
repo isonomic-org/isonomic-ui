@@ -94,6 +94,7 @@ impl Gallery {
                 StoryContainer::panel::<ListStory>(window, cx),
                 StoryContainer::panel::<MenuStory>(window, cx),
                 StoryContainer::panel::<MarkerStory>(window, cx),
+                StoryContainer::panel::<MessageStory>(window, cx),
             ],
         )];
 
