@@ -53,6 +53,7 @@ icons/heart.svg
 icons/inbox.svg
 icons/info.svg
 icons/inspector.svg
+icons/isonomic.svg
 icons/layout-dashboard.svg
 icons/loader-circle.svg
 icons/loader.svg
