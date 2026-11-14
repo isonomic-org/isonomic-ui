@@ -79,6 +79,7 @@ mod theme_story;
 mod time_field_story;
 mod toggle_story;
 mod toolbar_story;
+mod tooltip_story;
 mod welcome_story;
 
 pub use accordion_story::AccordionStory;
@@ -157,6 +158,7 @@ pub use theme_story::ThemeColorsStory;
 pub use time_field_story::TimeFieldStory;
 pub use toggle_story::ToggleStory;
 pub use toolbar_story::ToolbarStory;
+pub use tooltip_story::TooltipStory;
 
 pub use welcome_story::WelcomeStory;
 
@@ -169,6 +171,7 @@ pub(crate) fn init(cx: &mut App) {
     select_story::init(cx);
     popover_story::init(cx);
     menu_story::init(cx);
+    tooltip_story::init(cx);
     otp_input_story::init(cx);
 }
 
