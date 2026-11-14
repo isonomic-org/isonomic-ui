@@ -118,6 +118,7 @@ impl Gallery {
                 StoryContainer::panel::<SpinnerStory>(window, cx),
                 StoryContainer::panel::<StatusBarStory>(window, cx),
                 StoryContainer::panel::<StepperStory>(window, cx),
+                StoryContainer::panel::<SwitchStory>(window, cx),
             ],
         )];
 
