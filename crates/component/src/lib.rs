@@ -30,6 +30,7 @@ pub mod button;
 pub mod command;
 pub mod description_list;
 pub mod dialog;
+pub mod group_box;
 pub mod highlighter;
 pub mod history;
 pub mod input;
