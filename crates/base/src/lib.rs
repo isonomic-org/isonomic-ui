@@ -52,6 +52,7 @@ mod popover;
 mod popup;
 mod positioner;
 mod progress;
+pub mod questionnaire;
 mod radio;
 mod radio_group;
 mod reduce_motion;

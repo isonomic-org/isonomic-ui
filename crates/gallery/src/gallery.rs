@@ -103,6 +103,7 @@ impl Gallery {
                 StoryContainer::panel::<PaginationStory>(window, cx),
                 StoryContainer::panel::<PopoverStory>(window, cx),
                 StoryContainer::panel::<ProgressStory>(window, cx),
+                StoryContainer::panel::<QuestionnaireStory>(window, cx),
                 StoryContainer::panel::<RadioStory>(window, cx),
             ],
         )];

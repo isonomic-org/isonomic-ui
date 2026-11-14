@@ -63,6 +63,7 @@ pub mod pagination;
 pub mod plot;
 pub mod popover;
 pub mod progress;
+pub mod questionnaire;
 pub mod radio;
 pub mod resizable;
 pub mod scroll;
@@ -128,6 +129,7 @@ pub fn init(cx: &mut App) {
     carousel::init(cx);
     notification::init(cx);
     popover::init(cx);
+    questionnaire::init(cx);
     menu::init(cx);
     tooltip::init(cx);
 }
