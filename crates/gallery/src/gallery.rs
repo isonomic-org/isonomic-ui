@@ -75,6 +75,7 @@ impl Gallery {
                 StoryContainer::panel::<CalendarStory>(window, cx),
                 StoryContainer::panel::<CarouselStory>(window, cx),
                 StoryContainer::panel::<ChartStory>(window, cx),
+                StoryContainer::panel::<CheckboxStory>(window, cx),
             ],
         )];
 
