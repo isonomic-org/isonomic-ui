@@ -34,6 +34,7 @@ mod marker_story;
 mod menu_story;
 mod message_scroller_story;
 mod message_story;
+mod native_menu_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -67,6 +68,7 @@ pub use marker_story::MarkerStory;
 pub use menu_story::MenuStory;
 pub use message_scroller_story::MessageScrollerStory;
 pub use message_story::MessageStory;
+pub use native_menu_story::NativeMenuStory;
 
 pub use welcome_story::WelcomeStory;
 
