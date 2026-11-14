@@ -46,6 +46,7 @@ pub mod plot;
 mod popover;
 mod popup;
 mod positioner;
+mod progress;
 mod radio;
 mod reduce_motion;
 mod resizable;
@@ -126,6 +127,7 @@ pub use plot::PlotMotion;
 pub use popover::{Popover, PopoverState};
 pub use popup::{POPUP_PRIORITY, Popup, logical_anchor};
 pub use positioner::{Align, Positioner, ResolvedPosition};
+pub use progress::{Progress, ProgressIndicator, ProgressTrack};
 pub use radio::{Radio, RadioStyles};
 pub use reduce_motion::{
     ReduceMotionPreference, apply_system_reduce_motion, set_reduce_motion_preference,
