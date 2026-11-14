@@ -71,6 +71,7 @@ mod time_field;
 mod toast;
 mod toggle;
 mod toggle_group;
+mod tooltip;
 mod touch_selection;
 mod undo_history;
 
@@ -189,6 +190,9 @@ pub use toast::{
 };
 pub use toggle::{Toggle, ToggleStyles};
 pub use toggle_group::ToggleGroup;
+pub use tooltip::{
+    Tooltip, TooltipDefaults, TooltipOverlay, TooltipPositioner, TooltipRequest, TooltipTransition,
+};
 pub use touch_selection::{SelectionEdge, TouchHandle, TouchSelectionSnapshot};
 pub use undo_history::UndoHistory;
 
