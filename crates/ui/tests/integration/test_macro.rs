@@ -1,0 +1,32 @@
+//! `#[isonomic_ui::test]` is GPUI's test attribute reached through the umbrella
+//! crate; it needs the `test-support` feature.
+//!
+//! Test modules import what they use rather than `use isonomic_ui::*;`: with
+//! `test-support` on, the glob also brings in GPUI's `test` attribute, which
+//! would shadow the built-in `#[test]` the expansion relies on.
+
+use isonomic_ui::{AppContext as _, TestAppContext};
+
+struct Counter(u32);
+
+#[isonomic_ui::test]
+fn entity_round_trip(cx: &mut TestAppContext) {
+    let counter = cx.new(|_| Counter(1));
+    counter.update(cx, |counter, _| counter.0 += 1);
+    assert_eq!(counter.read_with(cx, |counter, _| counter.0), 2);
+}
+
+#[isonomic_ui::test]
+async fn async_test_runs(cx: &mut TestAppContext) {
+    let counter = cx.new(|_| Counter(0));
+    cx.background_executor.run_until_parked();
+    assert_eq!(counter.read_with(cx, |counter, _| counter.0), 0);
+}
+
+#[test]
+fn ordinary_rust_test_keeps_the_builtin_attribute() {
+    assert_eq!(
+        isonomic_ui::size(isonomic_ui::px(12.), isonomic_ui::px(24.)).width,
+        isonomic_ui::px(12.)
+    );
+}
