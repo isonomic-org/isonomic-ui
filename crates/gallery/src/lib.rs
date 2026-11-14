@@ -761,6 +761,7 @@ impl StoryState {
             "SwitchStory" => story!(SwitchStory),
             "LabelStory" => story!(LabelStory),
             "LayoutDirectionStory" => story!(LayoutDirectionStory),
+            "SidebarStory" => story!(SidebarStory),
             "NotificationStory" => story!(NotificationStory),
             _ => {
                 unreachable!("Invalid story klass: {}", self.story_klass)
