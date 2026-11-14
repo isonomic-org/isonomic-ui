@@ -267,6 +267,23 @@ fn amount_words(value: f64) -> String {
     words
 }
 
+/// An axis label in a few characters: "800", "2.5k", "40k", "1.2M".
+fn axis_words(value: f64) -> String {
+    let (scaled, suffix) = if value >= 1e6 {
+        (value / 1e6, "M")
+    } else if value >= 1e3 {
+        (value / 1e3, "k")
+    } else {
+        (value, "")
+    };
+    let rounded = (scaled * 10.).round() / 10.;
+    if rounded.fract() == 0. {
+        format!("{rounded:.0}{suffix}")
+    } else {
+        format!("{rounded:.1}{suffix}")
+    }
+}
+
 /// The columns from biggest to smallest, leaving out empty and hidden ones.
 fn ranked_columns(row: &[f64], hidden: &[usize]) -> Vec<usize> {
     let mut order: Vec<usize> = (0..row.len())
@@ -618,7 +635,8 @@ impl RenderOnce for StackedBreakdownChart {
                     .children((0..=4).map(|step| {
                         div()
                             .line_height(relative(1.))
-                            .child(amount_words(top * f64::from(step) / 4.))
+                            .whitespace_nowrap()
+                            .child(axis_words(top * f64::from(step) / 4.))
                     })),
             );
         let names = h_flex()
@@ -858,6 +876,14 @@ mod tests {
         assert_eq!(amount_words(212.), "212");
         assert_eq!(amount_words(12_400.), "12,400");
         assert_eq!(amount_words(1.5), "1.5");
+    }
+
+    #[test]
+    fn axis_labels_stay_short() {
+        assert_eq!(axis_words(80.), "80");
+        assert_eq!(axis_words(2500.), "2.5k");
+        assert_eq!(axis_words(40_000.), "40k");
+        assert_eq!(axis_words(1_200_000.), "1.2M");
     }
 
     #[test]
