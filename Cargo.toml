@@ -1,7 +1,9 @@
 [workspace]
 members = [
+    "crates/ui",
     "crates/base",
     "crates/macros",
+    "crates/component",
     "crates/assets",
 ]
 exclude = ["vendor"]
