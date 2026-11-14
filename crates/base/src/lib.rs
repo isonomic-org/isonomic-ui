@@ -18,6 +18,7 @@ pub mod async_util;
 mod auto_scroll;
 mod avatar;
 mod button;
+mod calendar;
 mod checkbox;
 pub mod component_traits;
 mod date_picker;
@@ -85,6 +86,10 @@ pub use alert_dialog::{
 pub use auto_scroll::AutoScroll;
 pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use button::{Button, ButtonStyles};
+pub use calendar::{
+    Calendar, CalendarEvent, CalendarItem, CalendarItemKind, CalendarItemState, CalendarState,
+    CalendarView, Date, IntervalMatcher, Matcher, RangeMatcher,
+};
 pub use checkbox::{
     Checkbox, CheckboxIndicator, CheckboxIndicatorStyles, CheckboxState, CheckboxStyles,
 };
