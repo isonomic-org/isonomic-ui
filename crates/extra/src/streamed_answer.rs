@@ -10,18 +10,18 @@
 
 use std::time::{Duration, Instant};
 
-use gpui::{
-    Animation, AnimationExt as _, App, ClipboardItem, Context, EventEmitter, FocusHandle,
-    Focusable, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Task, Window, anchored, deferred, div,
-    ease_in_out, point, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     spinner::Spinner,
     v_flex,
+};
+use isonomic_ui::{
+    Animation, AnimationExt as _, App, ClipboardItem, Context, EventEmitter, FocusHandle,
+    Focusable, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Task, Window, anchored, deferred, div,
+    ease_in_out, point, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -72,7 +72,9 @@ impl AnswerSource {
 pub enum StreamedAnswerEvent {
     /// A follow-up question was picked.
     FollowUp(SharedString),
-    /// Regenerate was pressed. The answer streams in again.
+    /// Regenerate was pressed. Give the answer its new text with
+    /// [`StreamedAnswer::set_answer`], or call [`StreamedAnswer::start`] to
+    /// stream the same text in again.
     Regenerate,
     /// Stop was pressed while it was writing.
     Stop,
@@ -204,9 +206,9 @@ fn total_steps(blocks: &[Block]) -> usize {
 /// before it when no space came between them, so a citation never wraps
 /// away from its word or the full stop after it.
 fn place(
-    runs: &mut Vec<Vec<gpui::AnyElement>>,
+    runs: &mut Vec<Vec<isonomic_ui::AnyElement>>,
     glue: &mut bool,
-    part: gpui::AnyElement,
+    part: isonomic_ui::AnyElement,
     open_end: bool,
 ) {
     match runs.last_mut() {
@@ -341,6 +343,7 @@ impl StreamedAnswer {
     }
 
     /// Say that more text is still coming, so it keeps writing once caught up.
+    /// Until the first words come in, the header says the sources are read.
     pub fn streaming(mut self, streaming: bool) -> Self {
         self.streaming = streaming;
         self
@@ -400,7 +403,7 @@ impl StreamedAnswer {
             return;
         }
         self.phase = Phase::Reading;
-        self.tick(Duration::from_millis(700), cx);
+        self.tick(Duration::ZERO, cx);
         cx.notify();
     }
 
@@ -447,11 +450,10 @@ impl StreamedAnswer {
             loop {
                 let more = this
                     .update(cx, |this, cx| {
-                        if this.phase == Phase::Reading {
-                            this.phase = Phase::Writing;
-                        }
                         let total = total_steps(&this.blocks);
                         if this.shown < total {
+                            // Words are coming in: the answer is being written.
+                            this.phase = Phase::Writing;
                             this.shown += 1;
                         } else if !this.streaming {
                             this.finish();
@@ -536,14 +538,14 @@ impl Render for StreamedAnswer {
                 .justify_center()
                 .rounded(px(3.))
                 .bg(palette[ix % palette.len()])
-                .text_color(gpui::white())
+                .text_color(isonomic_ui::white())
                 .text_size(px(size * 0.62))
                 .font_semibold()
                 .map(|this| match &source.icon {
                     Some(icon) => this.child(
                         Icon::new(icon.clone())
                             .size(px(size * 0.7))
-                            .text_color(gpui::white()),
+                            .text_color(isonomic_ui::white()),
                     ),
                     None => this.child(
                         source
@@ -663,7 +665,7 @@ impl Render for StreamedAnswer {
             if budget == 0 {
                 break;
             }
-            let mut runs: Vec<Vec<gpui::AnyElement>> = Vec::new();
+            let mut runs: Vec<Vec<isonomic_ui::AnyElement>> = Vec::new();
             let mut glue = false;
             for inline in &block.inlines {
                 if budget == 0 {
@@ -921,6 +923,7 @@ impl Render for StreamedAnswer {
                         } else {
                             IconName::Copy
                         })
+                        .accessibility_label("Copy the answer")
                         .tooltip(if self.copied { "Copied" } else { "Copy" })
                         .on_click(cx.listener(|this, _, _, cx| this.copy(cx))),
                 )
@@ -929,10 +932,10 @@ impl Render for StreamedAnswer {
                         .ghost()
                         .xsmall()
                         .icon(IconName::RotateCw)
+                        .accessibility_label("Regenerate")
                         .tooltip("Regenerate")
-                        .on_click(cx.listener(|this, _, _, cx| {
+                        .on_click(cx.listener(|_, _, _, cx| {
                             cx.emit(StreamedAnswerEvent::Regenerate);
-                            this.start(cx);
                         })),
                 )
                 .child(
@@ -940,6 +943,7 @@ impl Render for StreamedAnswer {
                         .ghost()
                         .xsmall()
                         .icon(IconName::ThumbsUp)
+                        .accessibility_label("Good answer")
                         .tooltip("Good answer")
                         .when(thumbs == Some(true), |this| this.text_color(accent))
                         .on_click(cx.listener(|this, _, _, cx| {
@@ -957,6 +961,7 @@ impl Render for StreamedAnswer {
                         .ghost()
                         .xsmall()
                         .icon(IconName::ThumbsDown)
+                        .accessibility_label("Bad answer")
                         .tooltip("Bad answer")
                         .when(thumbs == Some(false), |this| this.text_color(accent))
                         .on_click(cx.listener(|this, _, _, cx| {
