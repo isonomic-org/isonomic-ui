@@ -25,6 +25,7 @@ mod collapsible;
 mod color_picker;
 mod combobox;
 pub mod component_traits;
+mod date_field;
 mod date_picker;
 mod dialog;
 pub mod dock;
@@ -110,6 +111,10 @@ pub use color_picker::{ColorPicker, ColorPickerEvent, ColorPickerState, ColorSwa
 pub use combobox::Combobox;
 pub use component_traits::FocusableExt;
 pub use component_traits::{Disableable, Selectable};
+pub use date_field::{
+    DateField, DateFieldEvent, DateFieldSegment, DateFieldSegmentState, DateFieldState, DateOrder,
+    DateSegment,
+};
 pub use date_picker::DatePicker;
 pub use dialog::{
     Dialog, DialogBackdrop, DialogChangeReason, DialogClose, DialogDescription, DialogHandle,
@@ -258,6 +263,7 @@ pub fn init(cx: &mut App) {
     select::init(cx);
     number_input::init(cx);
     time_field::init(cx);
+    date_field::init(cx);
     input::init(cx);
     tree::init(cx);
     grid_layout::init(cx);
