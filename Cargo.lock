@@ -3946,6 +3946,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
+name = "isonomic-ui"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "gpui-fast",
+ "gpui-fast-platform",
+ "gpui-fast-web",
+ "gpui-pre",
+ "gpui-pre-macros",
+ "gpui-pre-platform",
+ "gpui-pre-web",
+ "isonomic-ui-assets",
+ "isonomic-ui-base",
+ "isonomic-ui-component",
+ "lsp-types",
+]
+
+[[package]]
 name = "isonomic-ui-assets"
 version = "0.1.0"
 dependencies = [
