@@ -56,6 +56,7 @@ mod scrollable_mask;
 mod scrollbar;
 mod select;
 mod selectable_text;
+mod sheet;
 pub mod slider;
 mod state_style;
 mod styled;
@@ -150,6 +151,7 @@ pub use scrollbar::{
 };
 pub use select::Select;
 pub use selectable_text::SelectableText;
+pub use sheet::Sheet;
 pub use slider::{Slider, SliderIndicator, SliderThumb, SliderTrack};
 pub use state_style::StateStyle;
 #[cfg(any(feature = "inspector", debug_assertions))]
@@ -207,6 +209,7 @@ pub fn init(cx: &mut App) {
     dialog::init(cx);
     focus_trap::init(cx);
     popover::init(cx);
+    sheet::init(cx);
     select::init(cx);
     number_input::init(cx);
     time_field::init(cx);
