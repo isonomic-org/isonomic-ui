@@ -7,6 +7,7 @@ mod attachment_story;
 mod avatar_story;
 mod badge_story;
 mod breadcrumb_story;
+mod button_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -15,6 +16,7 @@ pub use attachment_story::AttachmentStory;
 pub use avatar_story::AvatarStory;
 pub use badge_story::BadgeStory;
 pub use breadcrumb_story::BreadcrumbStory;
+pub use button_story::ButtonStory;
 
 pub use welcome_story::WelcomeStory;
 
