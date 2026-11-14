@@ -63,6 +63,7 @@ pub mod pagination;
 pub mod plot;
 pub mod popover;
 pub mod progress;
+pub mod radio;
 pub mod resizable;
 pub mod scroll;
 pub mod searchable_list;
