@@ -21,6 +21,7 @@ mod dock_story;
 mod dropdown_button_story;
 mod editor_story;
 mod empty_story;
+mod hover_card_story;
 mod input_completion;
 mod welcome_story;
 
@@ -44,6 +45,7 @@ pub use dock_story::DockStory;
 pub use dropdown_button_story::DropdownButtonStory;
 pub use editor_story::EditorStory;
 pub use empty_story::EmptyStory;
+pub use hover_card_story::HoverCardStory;
 
 pub use welcome_story::WelcomeStory;
 

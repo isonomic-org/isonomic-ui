@@ -47,6 +47,7 @@ pub mod empty;
 pub mod group_box;
 pub mod highlighter;
 pub mod history;
+pub mod hover_card;
 pub mod input;
 pub mod kbd;
 pub mod label;
