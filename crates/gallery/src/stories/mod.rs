@@ -43,6 +43,7 @@ mod popover_story;
 mod progress_story;
 mod questionnaire_story;
 mod radio_story;
+mod rating_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -85,12 +86,14 @@ pub use popover_story::PopoverStory;
 pub use progress_story::ProgressStory;
 pub use questionnaire_story::QuestionnaireStory;
 pub use radio_story::RadioStory;
+pub use rating_story::RatingStory;
 
 pub use welcome_story::WelcomeStory;
 
 pub(crate) fn init(cx: &mut App) {
     input_story::init(cx);
     combobox_story::init(cx);
+    rating_story::init(cx);
     number_input_story::init(cx);
     popover_story::init(cx);
     menu_story::init(cx);
