@@ -1,0 +1,108 @@
+[package]
+name = "isonomic-ui"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["component", "assets"]
+# Select GPUI Fast across the core, platforms, and already-enabled layers.
+gpui-fast = ["dep:gpui-fast", "dep:gpui-fast-platform", "dep:gpui-fast-web", "isonomic-ui-base/gpui-fast", "isonomic-ui-component?/gpui-fast", "isonomic-ui-assets?/gpui-fast"]
+# The styled component library, `isonomic_ui::component`. Initializes `isonomic-ui-base` too.
+component = ["dep:isonomic-ui-component"]
+# The default icon set for `isonomic-ui-component`, `isonomic_ui::assets`.
+assets = ["dep:isonomic-ui-assets"]
+# GPUI's test harness, native-platform rendering, and Kit UI test helpers.
+test-support = ["gpui/test-support", "gpui_platform/test-support", "isonomic-ui-base/test-support", "isonomic-ui-component?/test-support", "gpui-fast?/test-support", "gpui-fast-platform?/test-support"]
+# Frame-event instrumentation remains opt-in for performance builds.
+profiler = ["gpui/profiler", "gpui-fast?/profiler"]
+inspector = ["gpui/inspector", "isonomic-ui-base/inspector", "isonomic-ui-component?/inspector", "gpui-fast?/inspector"]
+decimal = ["component", "isonomic-ui-component/decimal"]
+# Speech input: microphone capture and the system speech recognizer.
+speech = ["component", "isonomic-ui-component/speech"]
+# Syntax highlighting from a tree-sitter syntax tree, which also drives folding
+# and syntax-aware editing. Each language is a `tree-sitter-*` grammar feature.
+tree-sitter = ["component", "isonomic-ui-component/tree-sitter"]
+# Lighter syntax highlighting: about 200 languages from syntect for a few
+# megabytes, with no syntax tree. With both enabled, tree-sitter is used.
+syntect = ["component", "isonomic-ui-component/syntect"]
+tree-sitter-languages = ["component", "isonomic-ui-component/tree-sitter-languages"]
+tree-sitter-astro = ["component", "isonomic-ui-component/tree-sitter-astro"]
+tree-sitter-bash = ["component", "isonomic-ui-component/tree-sitter-bash"]
+tree-sitter-c = ["component", "isonomic-ui-component/tree-sitter-c"]
+tree-sitter-cmake = ["component", "isonomic-ui-component/tree-sitter-cmake"]
+tree-sitter-cpp = ["component", "isonomic-ui-component/tree-sitter-cpp"]
+tree-sitter-csharp = ["component", "isonomic-ui-component/tree-sitter-csharp"]
+tree-sitter-css = ["component", "isonomic-ui-component/tree-sitter-css"]
+tree-sitter-diff = ["component", "isonomic-ui-component/tree-sitter-diff"]
+tree-sitter-ejs = ["component", "isonomic-ui-component/tree-sitter-ejs"]
+tree-sitter-elixir = ["component", "isonomic-ui-component/tree-sitter-elixir"]
+tree-sitter-erb = ["component", "isonomic-ui-component/tree-sitter-erb"]
+tree-sitter-go = ["component", "isonomic-ui-component/tree-sitter-go"]
+tree-sitter-graphql = ["component", "isonomic-ui-component/tree-sitter-graphql"]
+tree-sitter-html = ["component", "isonomic-ui-component/tree-sitter-html"]
+tree-sitter-java = ["component", "isonomic-ui-component/tree-sitter-java"]
+tree-sitter-javascript = ["component", "isonomic-ui-component/tree-sitter-javascript"]
+tree-sitter-jsdoc = ["component", "isonomic-ui-component/tree-sitter-jsdoc"]
+tree-sitter-kotlin = ["component", "isonomic-ui-component/tree-sitter-kotlin"]
+tree-sitter-lua = ["component", "isonomic-ui-component/tree-sitter-lua"]
+tree-sitter-make = ["component", "isonomic-ui-component/tree-sitter-make"]
+tree-sitter-markdown = ["component", "isonomic-ui-component/tree-sitter-markdown"]
+tree-sitter-markdown-inline = ["component", "isonomic-ui-component/tree-sitter-markdown-inline"]
+tree-sitter-php = ["component", "isonomic-ui-component/tree-sitter-php"]
+tree-sitter-proto = ["component", "isonomic-ui-component/tree-sitter-proto"]
+tree-sitter-python = ["component", "isonomic-ui-component/tree-sitter-python"]
+tree-sitter-ruby = ["component", "isonomic-ui-component/tree-sitter-ruby"]
+tree-sitter-rust = ["component", "isonomic-ui-component/tree-sitter-rust"]
+tree-sitter-scala = ["component", "isonomic-ui-component/tree-sitter-scala"]
+tree-sitter-sql = ["component", "isonomic-ui-component/tree-sitter-sql"]
+tree-sitter-svelte = ["component", "isonomic-ui-component/tree-sitter-svelte"]
+tree-sitter-swift = ["component", "isonomic-ui-component/tree-sitter-swift"]
+tree-sitter-toml = ["component", "isonomic-ui-component/tree-sitter-toml"]
+tree-sitter-tsx = ["component", "isonomic-ui-component/tree-sitter-tsx"]
+tree-sitter-typescript = ["component", "isonomic-ui-component/tree-sitter-typescript"]
+tree-sitter-yaml = ["component", "isonomic-ui-component/tree-sitter-yaml"]
+tree-sitter-zig = ["component", "isonomic-ui-component/tree-sitter-zig"]
+
+[dependencies]
+gpui_macros.workspace = true
+gpui.workspace = true
+gpui-fast = { workspace = true, optional = true }
+isonomic-ui-base.workspace = true
+isonomic-ui-component = { workspace = true, optional = true }
+isonomic-ui-assets = { workspace = true, optional = true }
+
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+gpui_platform.workspace = true
+gpui-fast-platform = { workspace = true, optional = true }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+gpui_web.workspace = true
+gpui-fast-web = { workspace = true, optional = true }
+
+[dev-dependencies]
+chrono = "0.4.38"
+gpui = { workspace = true, features = ["test-support"] }
+gpui-fast = { workspace = true, features = ["test-support"] }
+lsp-types.workspace = true
+
+[[test]]
+name = "ui"
+required-features = ["test-support", "component"]
+
+[[test]]
+name = "rendering"
+# Requires Metal (macOS) or WGPU (Linux); select explicitly with --test rendering.
+test = false
+harness = false
+required-features = ["test-support", "component", "assets"]
+
+[[test]]
+name = "native_shutdown"
+# Uses the native event loop and a hidden window; requires a desktop session.
+# Run explicitly with `cargo test -p isonomic-ui --test native_shutdown`.
+test = false
+harness = false
