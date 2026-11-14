@@ -748,6 +748,7 @@ impl StoryState {
             "InputStory" => story!(InputStory),
             "ListStory" => story!(ListStory),
             "MarkerStory" => story!(MarkerStory),
+            "MessageStory" => story!(MessageStory),
             "DiffStory" => story!(DiffStory),
             "LabelStory" => story!(LabelStory),
             _ => {
