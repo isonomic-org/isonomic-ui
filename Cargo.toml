@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/macros",
+    "crates/assets",
 ]
 exclude = ["vendor"]
 resolver = "2"
