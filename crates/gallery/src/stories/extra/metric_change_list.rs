@@ -1,10 +1,11 @@
 //! Gallery story for the metric change list.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::v_flex;
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Window, px,
 };
-use gpui_component::v_flex;
 use isonomic_ui_extra::{
     common::Tone,
     metric_change_list::{MetricChange, MetricChangeList, TrendDirection},
@@ -30,6 +31,20 @@ impl MetricChangeListStory {
                 .direction(TrendDirection::Up),
             MetricChange::new("Average basket", "Holding at 48.20"),
         ]
+    }
+}
+
+impl Story for MetricChangeListStory {
+    fn title() -> &'static str {
+        "Metric change list"
+    }
+
+    fn description() -> &'static str {
+        "A short recap of what moved over a period, one metric per row."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
