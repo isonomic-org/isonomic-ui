@@ -83,6 +83,7 @@ impl Gallery {
                 StoryContainer::panel::<ColorPickerStory>(window, cx),
                 StoryContainer::panel::<ComboboxStory>(window, cx),
                 StoryContainer::panel::<CommandStory>(window, cx),
+                StoryContainer::panel::<DataTableStory>(window, cx),
                 StoryContainer::panel::<DescriptionListStory>(window, cx),
                 StoryContainer::panel::<DiffStory>(window, cx),
                 StoryContainer::panel::<DockStory>(window, cx),
