@@ -80,6 +80,7 @@ impl Gallery {
                 StoryContainer::panel::<ComboboxStory>(window, cx),
                 StoryContainer::panel::<CommandStory>(window, cx),
                 StoryContainer::panel::<DescriptionListStory>(window, cx),
+                StoryContainer::panel::<DiffStory>(window, cx),
             ],
         )];
 

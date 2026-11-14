@@ -41,6 +41,7 @@ pub mod combobox;
 pub mod command;
 pub mod description_list;
 pub mod dialog;
+pub mod diff;
 pub mod dock;
 pub mod group_box;
 pub mod highlighter;
@@ -113,6 +114,7 @@ pub fn init(cx: &mut App) {
     root::init(cx);
     isonomic_ui_base::init(cx);
     input::init(cx);
+    diff::init(cx);
     dock::init(cx);
     sheet::init(cx);
     list::init(cx);
