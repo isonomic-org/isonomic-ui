@@ -37,8 +37,10 @@ mod list_settings;
 mod macos_accessibility;
 mod measure;
 pub mod motion;
+mod nav_stack;
 mod number_input;
 mod observe;
+mod otp_input;
 mod overscroll;
 pub mod plot;
 mod popup;
@@ -63,6 +65,7 @@ mod text_selection;
 mod theme;
 pub mod theme_tokens;
 mod time_field;
+mod toast;
 mod toggle;
 mod touch_selection;
 mod undo_history;
@@ -111,11 +114,13 @@ pub use motion::{
     StaggerOrigin, StepPosition, Timing, TimingSample, Transition, TransitionId, TransitionState,
     animate_keyframes, spring, transition, transition_with_status,
 };
+pub use nav_stack::{NavMotion, NavOperation, NavPage, NavStack, NavStackEvent, NavStackState};
 pub use number_input::{
     Decrement, Increment, NumberInput, NumberInputEvent, NumberInputText, NumberStep, StepAction,
     step_value,
 };
 pub use observe::{ObservedElement, ObservedTextElement, TestSupportExt, TestTextExt};
+pub use otp_input::{OtpEvent, OtpInput, OtpState};
 pub use plot::PlotMotion;
 pub use popup::{POPUP_PRIORITY, Popup, logical_anchor};
 pub use positioner::{Align, Positioner, ResolvedPosition};
@@ -170,6 +175,10 @@ pub use theme_tokens::{
 pub use time_field::{
     HourCycle, TimeField, TimeFieldEvent, TimeFieldSegment, TimeFieldSegmentState, TimeFieldState,
     TimePrecision, TimeSegment,
+};
+pub use toast::{
+    Toast, ToastAdvance, ToastManager, ToastMotion, ToastOptions, ToastStack, ToastStackState,
+    ToastTransitionStatus,
 };
 pub use toggle::{Toggle, ToggleStyles};
 pub use touch_selection::{SelectionEdge, TouchHandle, TouchSelectionSnapshot};
