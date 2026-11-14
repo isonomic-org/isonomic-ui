@@ -25,6 +25,7 @@ pub(crate) mod actions {
 }
 
 pub mod alert;
+pub mod attachment;
 pub mod badge;
 pub mod bubble;
 pub mod button;
