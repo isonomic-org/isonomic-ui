@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::permission_prompt::{
     PermissionItem, PermissionPrompt, PermissionRisk, PermissionScope,
 };
@@ -22,6 +23,20 @@ impl PermissionPromptStory {
         cx.new(|_| Self {
             last: "Nothing answered yet".into(),
         })
+    }
+}
+
+impl Story for PermissionPromptStory {
+    fn title() -> &'static str {
+        "Permission prompt"
+    }
+
+    fn description() -> &'static str {
+        "An assistant asks for one specific right."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

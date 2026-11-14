@@ -9,17 +9,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, Keystroke,
-    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     kbd::Kbd,
     v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, Keystroke,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -393,7 +393,9 @@ impl RenderOnce for PermissionPrompt {
         };
         let ask_again = {
             let decide = decide.clone();
-            move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| decide(None, window, cx)
+            move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
+                decide(None, window, cx)
+            }
         };
 
         let card = v_flex()
@@ -521,7 +523,7 @@ impl RenderOnce for PermissionPrompt {
         };
         let pick = |to: PermissionScope| {
             let state = state.clone();
-            move |_: &gpui::ClickEvent, _: &mut Window, cx: &mut App| {
+            move |_: &isonomic_ui::ClickEvent, _: &mut Window, cx: &mut App| {
                 state.update(cx, |state, cx| {
                     state.scope = to;
                     cx.notify();
@@ -539,7 +541,7 @@ impl RenderOnce for PermissionPrompt {
         // Clicking the text of the prompt (not a button) puts focus on it.
         let focus_here = {
             let focus = focus.clone();
-            move |_: &gpui::MouseDownEvent, window: &mut Window, cx: &mut App| {
+            move |_: &isonomic_ui::MouseDownEvent, window: &mut Window, cx: &mut App| {
                 window.focus(&focus, cx)
             }
         };
@@ -553,7 +555,6 @@ impl RenderOnce for PermissionPrompt {
             let deny = deny.clone();
             let state = state.clone();
             let scopes = scopes.clone();
-            let focus = focus.clone();
             move |event, window, cx| {
                 if event.keystroke.modifiers.modified() {
                     return;
@@ -576,7 +577,7 @@ impl RenderOnce for PermissionPrompt {
         })
         .child(
             v_flex()
-                .on_mouse_down(gpui::MouseButton::Left, focus_here.clone())
+                .on_mouse_down(isonomic_ui::MouseButton::Left, focus_here.clone())
                 .gap_3()
                 .p_4()
                 .child(
@@ -646,7 +647,7 @@ impl RenderOnce for PermissionPrompt {
         .when(!self.items.is_empty(), |this| {
             this.child(
                 v_flex()
-                    .on_mouse_down(gpui::MouseButton::Left, focus_here)
+                    .on_mouse_down(isonomic_ui::MouseButton::Left, focus_here)
                     .gap_1()
                     .px_4()
                     .py_3()
