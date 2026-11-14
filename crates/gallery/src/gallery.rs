@@ -99,6 +99,7 @@ impl Gallery {
                 StoryContainer::panel::<NativeMenuStory>(window, cx),
                 StoryContainer::panel::<NotificationStory>(window, cx),
                 StoryContainer::panel::<NumberInputStory>(window, cx),
+                StoryContainer::panel::<OtpInputStory>(window, cx),
             ],
         )];
 
