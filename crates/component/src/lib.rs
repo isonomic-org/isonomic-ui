@@ -24,7 +24,10 @@ pub(crate) mod actions {
     pub use isonomic_ui_base::actions::*;
 }
 
+pub mod badge;
+pub mod bubble;
 pub mod button;
+pub mod command;
 pub mod description_list;
 pub mod dialog;
 pub mod highlighter;
@@ -34,6 +37,7 @@ pub mod kbd;
 pub mod label;
 pub mod list;
 pub mod menu;
+pub mod message;
 pub mod native_menu;
 pub mod notification;
 pub mod plot;
@@ -83,6 +87,7 @@ pub fn init(cx: &mut App) {
     input::init(cx);
     sheet::init(cx);
     list::init(cx);
+    command::init(cx);
     notification::init(cx);
     popover::init(cx);
     menu::init(cx);
