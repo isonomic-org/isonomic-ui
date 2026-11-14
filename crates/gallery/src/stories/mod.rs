@@ -40,6 +40,7 @@ mod number_input_story;
 mod otp_input_story;
 mod pagination_story;
 mod popover_story;
+mod progress_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -79,6 +80,7 @@ pub use number_input_story::NumberInputStory;
 pub use otp_input_story::OtpInputStory;
 pub use pagination_story::PaginationStory;
 pub use popover_story::PopoverStory;
+pub use progress_story::ProgressStory;
 
 pub use welcome_story::WelcomeStory;
 
