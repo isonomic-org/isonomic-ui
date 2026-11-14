@@ -25,6 +25,7 @@ pub(crate) mod actions {
 }
 
 pub mod badge;
+pub mod bubble;
 pub mod button;
 pub mod description_list;
 pub mod dialog;
@@ -35,6 +36,7 @@ pub mod kbd;
 pub mod label;
 pub mod list;
 pub mod menu;
+pub mod message;
 pub mod native_menu;
 pub mod notification;
 pub mod plot;
