@@ -114,6 +114,7 @@ impl Gallery {
                 StoryContainer::panel::<ShimmerStory>(window, cx),
                 StoryContainer::panel::<SkeletonStory>(window, cx),
                 StoryContainer::panel::<SliderStory>(window, cx),
+                StoryContainer::panel::<SpeechStory>(window, cx),
             ],
         )];
 
