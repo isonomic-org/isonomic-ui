@@ -73,6 +73,7 @@ impl Gallery {
                 StoryContainer::panel::<BreadcrumbStory>(window, cx),
                 StoryContainer::panel::<ButtonStory>(window, cx),
                 StoryContainer::panel::<CalendarStory>(window, cx),
+                StoryContainer::panel::<CarouselStory>(window, cx),
             ],
         )];
 

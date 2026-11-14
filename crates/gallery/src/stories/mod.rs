@@ -9,6 +9,7 @@ mod badge_story;
 mod breadcrumb_story;
 mod button_story;
 mod calendar_story;
+mod carousel_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -19,6 +20,7 @@ pub use badge_story::BadgeStory;
 pub use breadcrumb_story::BreadcrumbStory;
 pub use button_story::ButtonStory;
 pub use calendar_story::CalendarStory;
+pub use carousel_story::CarouselStory;
 
 pub use welcome_story::WelcomeStory;
 
