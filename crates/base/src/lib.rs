@@ -31,6 +31,7 @@ mod event;
 mod focus_trap;
 mod geometry;
 mod global_state;
+pub mod grid_layout;
 mod history;
 mod hover_card;
 mod index_path;
@@ -114,6 +115,9 @@ pub use focus_trap::FocusTrapElement;
 pub use focus_trap::active_focus_trap;
 pub use geometry::*;
 pub use global_state::{DeferredPopover, GlobalState};
+pub use grid_layout::{
+    GridArea, GridItem, GridLayout, GridLayoutEvent, GridLayoutState, grid_drag_handle,
+};
 pub use history::History;
 pub use hover_card::{HoverCard, HoverCardState};
 pub use index_path::IndexPath;
@@ -243,6 +247,7 @@ pub fn init(cx: &mut App) {
     number_input::init(cx);
     time_field::init(cx);
     input::init(cx);
+    grid_layout::init(cx);
     text::init(cx);
     root::init(cx);
 }
