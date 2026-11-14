@@ -24,6 +24,7 @@ pub(crate) mod actions {
     pub use isonomic_ui_base::actions::*;
 }
 
+pub mod alert;
 pub mod badge;
 pub mod bubble;
 pub mod button;

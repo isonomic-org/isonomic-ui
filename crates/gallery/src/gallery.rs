@@ -61,7 +61,13 @@ impl Gallery {
             }
             _ => {}
         })];
-        let stories = vec![("", vec![StoryContainer::panel::<WelcomeStory>(window, cx)])];
+        let stories = vec![(
+            "",
+            vec![
+                StoryContainer::panel::<WelcomeStory>(window, cx),
+                StoryContainer::panel::<AlertStory>(window, cx),
+            ],
+        )];
 
         let mut this = Self {
             search_input,
