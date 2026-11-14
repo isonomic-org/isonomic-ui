@@ -56,6 +56,7 @@ mod speech_story;
 mod spinner_story;
 mod status_bar_story;
 mod stepper_story;
+mod switch_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -111,6 +112,7 @@ pub use speech_story::SpeechStory;
 pub use spinner_story::SpinnerStory;
 pub use status_bar_story::StatusBarStory;
 pub use stepper_story::StepperStory;
+pub use switch_story::SwitchStory;
 
 pub use welcome_story::WelcomeStory;
 

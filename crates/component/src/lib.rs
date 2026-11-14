@@ -81,6 +81,7 @@ pub mod speech;
 pub mod spinner;
 pub mod status_bar;
 pub mod stepper;
+pub mod switch;
 pub mod tab;
 pub mod text;
 pub mod theme;
