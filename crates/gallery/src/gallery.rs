@@ -133,6 +133,7 @@ impl Gallery {
                 StoryContainer::panel::<TagStory>(window, cx),
                 StoryContainer::panel::<TextareaStory>(window, cx),
                 StoryContainer::panel::<ThemeColorsStory>(window, cx),
+                StoryContainer::panel::<TimeFieldStory>(window, cx),
             ],
         )];
 
