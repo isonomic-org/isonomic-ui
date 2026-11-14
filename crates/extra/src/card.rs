@@ -6,14 +6,14 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    AnyElement, App, BoxShadow, ClickEvent, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement, Pixels, RenderOnce, SharedString, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable, Selectable, StyledExt as _, ThemeStyled as _, h_flex, v_flex,
+};
+use isonomic_ui::{
+    AnyElement, App, BoxShadow, ClickEvent, ElementId, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement, Pixels, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, relative,
 };
 
 use crate::common::{lifted_shadow, resting_shadow};
@@ -74,7 +74,8 @@ impl Card {
         self
     }
 
-    /// Set the name a screen reader announces for a clickable card.
+    /// Set the name a screen reader announces for a clickable card. The
+    /// header's text title by default.
     pub fn accessibility_label(mut self, label: impl Into<SharedString>) -> Self {
         self.accessibility_label = Some(label.into());
         self
@@ -158,6 +159,9 @@ impl RenderOnce for Card {
             resting_shadow(cx)
         };
         let lifted = lifted_shadow(cx);
+        let name = self
+            .accessibility_label
+            .or_else(|| self.header.as_ref().and_then(|header| header.name.clone()));
 
         let content = (!self.children.is_empty())
             .then(|| div().min_w_0().children(self.children).into_any_element());
@@ -192,9 +196,8 @@ impl RenderOnce for Card {
         )
         .disabled(self.disabled)
         .selected(self.selected)
-        .when_some(self.accessibility_label, |this, label| {
-            this.accessibility_label(label)
-        })
+        .aria_selected(self.selected)
+        .when_some(name, |this, label| this.accessibility_label(label))
         .on_click(move |event, window, cx| on_click(event, window, cx))
         .when(!self.disabled, |this| this.cursor_pointer())
         .when(self.disabled, |this| this.opacity(0.5).cursor_not_allowed())
@@ -211,6 +214,7 @@ impl RenderOnce for Card {
 pub struct CardHeader {
     icon: Option<AnyElement>,
     title: Option<AnyElement>,
+    name: Option<SharedString>,
     description: Option<AnyElement>,
     action: Option<AnyElement>,
     children: Vec<AnyElement>,
@@ -228,8 +232,17 @@ impl CardHeader {
         self
     }
 
-    /// The title.
-    pub fn title(mut self, title: impl IntoElement) -> Self {
+    /// The title. A clickable card is announced by it.
+    pub fn title(mut self, title: impl Into<SharedString>) -> Self {
+        let title = title.into();
+        self.name = Some(title.clone());
+        self.title = Some(title.into_any_element());
+        self
+    }
+
+    /// A title made of more than text. Give a clickable card its
+    /// [`Card::accessibility_label`] then.
+    pub fn title_element(mut self, title: impl IntoElement) -> Self {
         self.title = Some(title.into_any_element());
         self
     }
@@ -347,6 +360,20 @@ mod tests {
     fn a_card_is_not_selected_until_asked() {
         assert!(!Card::new("card").is_selected());
         assert!(Card::new("card").selected(true).is_selected());
+    }
+
+    #[test]
+    fn a_text_title_names_the_card() {
+        assert_eq!(
+            CardHeader::new().title("Invoice sync").name.as_deref(),
+            Some("Invoice sync")
+        );
+        assert!(
+            CardHeader::new()
+                .title_element("Invoice sync")
+                .name
+                .is_none()
+        );
     }
 
     #[test]

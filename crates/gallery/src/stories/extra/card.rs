@@ -1,13 +1,14 @@
 //! Gallery story for the card.
 
-use gpui::{
-    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
-    Window, div, px,
-};
-use gpui_component::{
+use crate::Story;
+use isonomic_ui::component::{
     ActiveTheme as _, IconName, Selectable as _, Sizable as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Window, div, px,
 };
 use isonomic_ui_extra::card::{Card, CardFooter, CardHeader};
 
@@ -20,12 +21,17 @@ const MODES: [(&str, &str); 2] = [
 pub struct CardStory {
     mode: usize,
     opened: usize,
+    last: SharedString,
 }
 
 impl CardStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { mode: 0, opened: 0 })
+        cx.new(|_| Self {
+            mode: 0,
+            opened: 0,
+            last: "Nothing pressed yet".into(),
+        })
     }
 
     fn stat(label: &'static str, value: &'static str, cx: &App) -> impl IntoElement {
@@ -41,16 +47,25 @@ impl CardStory {
     }
 }
 
+impl Story for CardStory {
+    fn title() -> &'static str {
+        "Card"
+    }
+
+    fn description() -> &'static str {
+        "A self-contained surface with a header, content and a footer."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
+    }
+}
+
 impl Render for CardStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let opened = match self.opened {
-            0 => "Not opened yet".to_string(),
-            1 => "Opened once".to_string(),
-            n => format!("Opened {n} times"),
-        };
-
         v_flex()
-            .w(px(400.))
+            .w_full()
+            .max_w(px(400.))
             .gap_6()
             .child(
                 Card::new("sync")
@@ -62,7 +77,12 @@ impl Render for CardStory {
                                 Button::new("sync-more")
                                     .ghost()
                                     .xsmall()
-                                    .icon(IconName::Ellipsis),
+                                    .icon(IconName::Ellipsis)
+                                    .accessibility_label("More actions")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.last = "Asked for more actions".into();
+                                        cx.notify();
+                                    })),
                             ),
                     )
                     .child(
@@ -73,13 +93,17 @@ impl Render for CardStory {
                             .child(Self::stat("Last run", "09:00", cx)),
                     )
                     .footer(
-                        CardFooter::new().child(opened).end(
+                        CardFooter::new().child(self.last.clone()).end(
                             Button::new("sync-open")
                                 .outline()
                                 .small()
                                 .label("Open")
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.opened += 1;
+                                    this.last = match this.opened {
+                                        1 => "Opened once".into(),
+                                        n => format!("Opened {n} times").into(),
+                                    };
                                     cx.notify();
                                 })),
                         ),
