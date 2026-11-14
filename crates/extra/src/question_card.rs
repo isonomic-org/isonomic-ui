@@ -4,7 +4,7 @@
 //! an answer. Each one offers numbered rows, with at most one recommended, or
 //! Approve and Decline, and a last row for an answer in your own words. A
 //! click or a number key answers at once and brings up the next question;
-//! "Later" folds the card to one line.
+//! "Not now" folds the card to one line.
 
 use gpui::{
     AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
@@ -225,7 +225,7 @@ impl EventEmitter<QuestionCardEvent> for QuestionCard {}
 impl QuestionCard {
     /// Create an empty card. It draws nothing until it has a question.
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Something else…"));
+        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Or write your own…"));
         let input_events = cx.subscribe_in(&input, window, |this, input, event, window, cx| {
             if let InputEvent::PressEnter { .. } = event {
                 let text = input.read(cx).value().trim().to_string();
@@ -535,7 +535,7 @@ impl Render for QuestionCard {
                             .bg(warning.opacity(0.18))
                             .text_xs()
                             .font_medium()
-                            .child("Needs you"),
+                            .child("Your call"),
                     )
                     .child(
                         div()
@@ -551,7 +551,7 @@ impl Render for QuestionCard {
                         Button::new("later")
                             .ghost()
                             .xsmall()
-                            .label("Later")
+                            .label("Not now")
                             .on_click(cx.listener(|this, _, _, cx| this.later(cx))),
                     ),
             )
