@@ -80,6 +80,7 @@ mod time_field_story;
 mod toggle_story;
 mod toolbar_story;
 mod tooltip_story;
+mod tree_story;
 mod welcome_story;
 
 pub use accordion_story::AccordionStory;
@@ -159,6 +160,7 @@ pub use time_field_story::TimeFieldStory;
 pub use toggle_story::ToggleStory;
 pub use toolbar_story::ToolbarStory;
 pub use tooltip_story::TooltipStory;
+pub use tree_story::TreeStory;
 
 pub use welcome_story::WelcomeStory;
 
@@ -173,6 +175,7 @@ pub(crate) fn init(cx: &mut App) {
     menu_story::init(cx);
     tooltip_story::init(cx);
     otp_input_story::init(cx);
+    tree_story::init(cx);
 }
 
 pub trait Story: Render + Sized {
