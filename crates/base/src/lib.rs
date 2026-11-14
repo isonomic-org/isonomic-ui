@@ -72,6 +72,7 @@ pub mod slider;
 mod state_style;
 mod styled;
 mod switch;
+mod table;
 mod tabs;
 pub mod text;
 mod text_boundary;
@@ -188,6 +189,7 @@ pub use styled::{RoleOverride, StyledExt, box_shadow, h_flex, v_flex};
 pub use switch::{
     Switch, SwitchStyles, SwitchThumb, SwitchThumbStyles, SwitchTrack, SwitchTrackStyles,
 };
+pub use table::{Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow};
 pub use tabs::{Tab, TabStyles, Tabs};
 pub use text::{
     InlineElement, InlineRenderContext, MarkdownExtensions, MarkdownNode, MarkdownParseContext,

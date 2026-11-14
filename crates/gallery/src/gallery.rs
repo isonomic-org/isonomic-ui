@@ -127,6 +127,7 @@ impl Gallery {
                 StoryContainer::panel::<StatusBarStory>(window, cx),
                 StoryContainer::panel::<StepperStory>(window, cx),
                 StoryContainer::panel::<SwitchStory>(window, cx),
+                StoryContainer::panel::<TableStory>(window, cx),
                 StoryContainer::panel::<TabsStory>(window, cx),
                 StoryContainer::panel::<TagStory>(window, cx),
             ],
