@@ -27,6 +27,7 @@ pub(crate) mod actions {
 pub mod badge;
 pub mod bubble;
 pub mod button;
+pub mod command;
 pub mod description_list;
 pub mod dialog;
 pub mod highlighter;
@@ -86,6 +87,7 @@ pub fn init(cx: &mut App) {
     input::init(cx);
     sheet::init(cx);
     list::init(cx);
+    command::init(cx);
     notification::init(cx);
     popover::init(cx);
     menu::init(cx);
