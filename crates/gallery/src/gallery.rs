@@ -363,16 +363,10 @@ impl Render for Gallery {
                                 SidebarHeader::new()
                                     .w_full()
                                     .child(
-                                        div()
-                                            .flex()
-                                            .items_center()
-                                            .justify_center()
-                                            .rounded(cx.theme().radius_lg)
-                                            .bg(cx.theme().primary)
-                                            .text_color(cx.theme().primary_foreground)
+                                        Icon::new(IconName::Isonomic)
                                             .size_8()
                                             .flex_shrink_0()
-                                            .child(Icon::new(IconName::GalleryVerticalEnd)),
+                                            .text_color(cx.theme().foreground),
                                     )
                                     .child(
                                         v_flex()

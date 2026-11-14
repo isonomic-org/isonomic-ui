@@ -65,8 +65,8 @@ fn default_assets_preserve_the_component_bundle_without_the_full_catalog() {
         .collect();
     let actual: BTreeSet<_> = Assets.list("icons/").unwrap().into_iter().collect();
     assert_eq!(actual, expected);
-    assert_eq!(actual.len(), 106);
-    assert_eq!(Assets::iter().count(), 106);
+    assert_eq!(actual.len(), 107);
+    assert_eq!(Assets::iter().count(), 107);
     assert!(Assets::get("icons/search.svg").is_some());
     assert!(Assets::get("icons/accessibility.svg").is_none());
     for path in actual {
