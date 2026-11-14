@@ -70,6 +70,7 @@ mod table_story;
 mod tabs_story;
 mod tag_story;
 mod textarea_story;
+mod theme_story;
 mod welcome_story;
 
 pub use accordion_story::AccordionStory;
@@ -139,6 +140,7 @@ pub use table_story::TableStory;
 pub use tabs_story::TabsStory;
 pub use tag_story::TagStory;
 pub use textarea_story::TextareaStory;
+pub use theme_story::ThemeColorsStory;
 
 pub use welcome_story::WelcomeStory;
 

@@ -132,6 +132,7 @@ impl Gallery {
                 StoryContainer::panel::<TabsStory>(window, cx),
                 StoryContainer::panel::<TagStory>(window, cx),
                 StoryContainer::panel::<TextareaStory>(window, cx),
+                StoryContainer::panel::<ThemeColorsStory>(window, cx),
             ],
         )];
 
