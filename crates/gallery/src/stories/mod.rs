@@ -36,6 +36,7 @@ mod message_scroller_story;
 mod message_story;
 mod native_menu_story;
 mod notification_story;
+mod number_input_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -71,12 +72,14 @@ pub use message_scroller_story::MessageScrollerStory;
 pub use message_story::MessageStory;
 pub use native_menu_story::NativeMenuStory;
 pub use notification_story::NotificationStory;
+pub use number_input_story::NumberInputStory;
 
 pub use welcome_story::WelcomeStory;
 
 pub(crate) fn init(cx: &mut App) {
     input_story::init(cx);
     combobox_story::init(cx);
+    number_input_story::init(cx);
     menu_story::init(cx);
 }
 
