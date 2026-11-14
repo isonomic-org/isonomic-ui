@@ -68,6 +68,7 @@ impl Gallery {
                 StoryContainer::panel::<AlertStory>(window, cx),
                 StoryContainer::panel::<AlertDialogStory>(window, cx),
                 StoryContainer::panel::<AttachmentStory>(window, cx),
+                StoryContainer::panel::<AvatarStory>(window, cx),
             ],
         )];
 
