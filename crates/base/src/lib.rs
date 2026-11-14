@@ -11,6 +11,7 @@ extern crate gpui_fast_platform as gpui_platform;
 
 mod a11y_disabled;
 pub mod actions;
+mod alert_dialog;
 pub mod animation;
 #[doc(hidden)]
 pub mod async_util;
@@ -66,6 +67,10 @@ mod toggle;
 mod touch_selection;
 mod undo_history;
 
+pub use alert_dialog::{
+    AlertDialog, AlertDialogAction, AlertDialogBackdrop, AlertDialogCancel, AlertDialogClose,
+    AlertDialogDescription, AlertDialogPopup, AlertDialogTitle, AlertDialogTrigger,
+};
 pub use auto_scroll::AutoScroll;
 pub use button::{Button, ButtonStyles};
 pub use checkbox::{
