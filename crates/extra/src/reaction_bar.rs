@@ -5,14 +5,14 @@
 
 use std::{rc::Rc, sync::Arc, time::Duration};
 
-use gpui::{
+use isonomic_ui::base::Toggle;
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
+};
+use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, SharedString, StyleRefinement, Styled, Transformation, Window,
     div, prelude::FluentBuilder as _, px, size,
-};
-use gpui_base::Toggle;
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
 };
 
 const POP: Duration = Duration::from_millis(320);

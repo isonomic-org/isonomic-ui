@@ -1,10 +1,11 @@
 //! Gallery story for the reaction bar.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::reaction_bar::{Reaction, ReactionBar};
 
 /// Shows a bar with counts large and small and reports the last press.
@@ -18,6 +19,20 @@ impl ReactionBarStory {
         cx.new(|_| Self {
             last: "Nothing pressed yet".into(),
         })
+    }
+}
+
+impl Story for ReactionBarStory {
+    fn title() -> &'static str {
+        "Reaction bar"
+    }
+
+    fn description() -> &'static str {
+        "A row of small toggles with public counts, such as likes or saves."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
