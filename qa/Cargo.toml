@@ -1,0 +1,23 @@
+# QA workspace for isonomic-ui. Kept separate from the library's own
+# workspace so QA-only dependencies and patches never reach a release build.
+[workspace]
+resolver = "3"
+members = ["gallery", "runner"]
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+gpui = { package = "gpui-pre", version = "=0.3.12" }
+gpui-platform = { package = "gpui-pre-platform", version = "=0.3.12", default-features = false, features = ["x11"] }
+gpui-base = "0.9.1"
+gpui-component = "0.9.1"
+gpui-kit-assets = "0.9.1"
+isonomic-ui-extra = { path = "../crates/extra" }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 2
