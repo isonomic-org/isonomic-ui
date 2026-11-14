@@ -77,6 +77,7 @@ impl Gallery {
                 StoryContainer::panel::<ChartStory>(window, cx),
                 StoryContainer::panel::<CheckboxStory>(window, cx),
                 StoryContainer::panel::<ClipboardStory>(window, cx),
+                StoryContainer::panel::<ColorPickerStory>(window, cx),
                 StoryContainer::panel::<ComboboxStory>(window, cx),
                 StoryContainer::panel::<CommandStory>(window, cx),
                 StoryContainer::panel::<DescriptionListStory>(window, cx),

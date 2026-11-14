@@ -20,6 +20,7 @@ mod avatar;
 mod button;
 mod calendar;
 mod checkbox;
+mod color_picker;
 mod combobox;
 pub mod component_traits;
 mod date_picker;
@@ -97,6 +98,7 @@ pub use calendar::{
 pub use checkbox::{
     Checkbox, CheckboxIndicator, CheckboxIndicatorStyles, CheckboxState, CheckboxStyles,
 };
+pub use color_picker::{ColorPicker, ColorPickerEvent, ColorPickerState, ColorSwatch, HslaSliders};
 pub use combobox::Combobox;
 pub use component_traits::FocusableExt;
 pub use component_traits::{Disableable, Selectable};
@@ -236,6 +238,7 @@ pub fn init(cx: &mut App) {
     popover::init(cx);
     sheet::init(cx);
     combobox::init(cx);
+    color_picker::init(cx);
     select::init(cx);
     number_input::init(cx);
     time_field::init(cx);
