@@ -7,17 +7,17 @@
 
 use std::{ops::Range, rc::Rc, time::Duration};
 
-use gpui::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
+    ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
+    button::{Button, ButtonVariants as _},
+    h_flex, v_flex,
+};
+use isonomic_ui::{
     App, ClipboardItem, ElementId, FocusHandle, HighlightStyle, InteractiveElement as _,
     InteractiveText, IntoElement, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, StyledText, Task, Window, div,
     prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
-    ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
-    button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
 };
 
 use crate::common::resting_shadow;

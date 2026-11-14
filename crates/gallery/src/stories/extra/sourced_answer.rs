@@ -1,10 +1,11 @@
 //! Gallery story for the sourced answer.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::sourced_answer::{AnswerSegment, AnswerSource, SourcedAnswer};
 
 /// Shows an answer with three sources, one of them open at the start.
@@ -18,6 +19,20 @@ impl SourcedAnswerStory {
         cx.new(|_| Self {
             last: "Nothing pressed yet".into(),
         })
+    }
+}
+
+impl Story for SourcedAnswerStory {
+    fn title() -> &'static str {
+        "Sourced answer"
+    }
+
+    fn description() -> &'static str {
+        "A finished answer wired to the sources behind it."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
