@@ -1,30 +1,26 @@
 //! Reasoning steps panel: shows what an assistant is doing while it works.
 //!
-//! A header counts the seconds. Under it the steps appear one by one on a
-//! timeline, the newest one shimmering, and a step that searched lists what it
-//! looked at as chips. When the work is done the header reads "Took 7s"
-//! and folds the steps away on demand.
+//! A header counts the seconds. Under it the steps sit on a timeline, the
+//! newest one shimmering while the work goes on, and a step that searched lists
+//! what it looked at as chips. The owner adds steps as they happen and marks
+//! the work done; then the header reads "Took 7s" and folds the steps away on
+//! demand.
 
-use std::{
-    rc::Rc,
-    time::{Duration, Instant},
+use std::time::{Duration, Instant};
+
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
+    shimmer::ShimmerText, spinner::Spinner, tooltip::Tooltip, v_flex,
 };
-
-use gpui::{
+use isonomic_ui::{
     App, Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
-use gpui_base::Button as Pressable;
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
-    shimmer::ShimmerText, spinner::Spinner, tooltip::Tooltip, v_flex,
-};
 
-/// How often the clock and the steps are checked.
-const TICK: Duration = Duration::from_millis(100);
-/// How long a looping panel rests on its finished state before starting over.
-const RESTART_AFTER: Duration = Duration::from_secs(3);
+/// How often the clock is redrawn while the work goes on.
+const TICK: Duration = Duration::from_millis(250);
 
 /// Something a step looked at.
 #[derive(Debug, Clone)]
@@ -96,8 +92,6 @@ impl ReasoningStep {
     }
 }
 
-type DoneHandler = Rc<dyn Fn(Duration, &mut Window, &mut App)>;
-
 /// A live trail of what an assistant is doing, with a clock.
 #[derive(IntoElement)]
 pub struct ReasoningStepsPanel {
@@ -106,14 +100,13 @@ pub struct ReasoningStepsPanel {
     steps: Vec<ReasoningStep>,
     working_label: SharedString,
     done_label: SharedString,
-    interval: Duration,
-    looping: bool,
+    started_at: Option<Instant>,
+    took: Option<Duration>,
     collapse_when_done: bool,
-    on_done: Option<DoneHandler>,
 }
 
 impl ReasoningStepsPanel {
-    /// Create a panel with no steps. The clock starts when it is first drawn.
+    /// Create a panel with no steps, still working.
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
@@ -121,14 +114,14 @@ impl ReasoningStepsPanel {
             steps: Vec::new(),
             working_label: "Working it out".into(),
             done_label: "Worked out".into(),
-            interval: Duration::from_millis(1300),
-            looping: false,
+            started_at: None,
+            took: None,
             collapse_when_done: false,
-            on_done: None,
         }
     }
 
-    /// Add a step after the ones already added.
+    /// Add a step after the ones already added. While the work goes on, the
+    /// last step is the current one.
     pub fn step(mut self, step: ReasoningStep) -> Self {
         self.steps.push(step);
         self
@@ -146,27 +139,22 @@ impl ReasoningStepsPanel {
         self
     }
 
-    /// Set the pause between two steps.
-    pub fn step_interval(mut self, interval: Duration) -> Self {
-        self.interval = interval;
+    /// When the work started. Without it the clock counts from when the
+    /// panel was first drawn working.
+    pub fn started_at(mut self, started_at: Instant) -> Self {
+        self.started_at = Some(started_at);
         self
     }
 
-    /// Start over a few seconds after finishing. Meant for previews.
-    pub fn looping(mut self, looping: bool) -> Self {
-        self.looping = looping;
+    /// Mark the work done, with how long it took.
+    pub fn done(mut self, took: Duration) -> Self {
+        self.took = Some(took);
         self
     }
 
-    /// Fold the steps away once the work is done. The header stays.
+    /// Fold the steps away when the work is marked done. The header stays.
     pub fn collapse_when_done(mut self, collapse: bool) -> Self {
         self.collapse_when_done = collapse;
-        self
-    }
-
-    /// Run once all steps are done, with the time the work took.
-    pub fn on_done(mut self, handler: impl Fn(Duration, &mut Window, &mut App) + 'static) -> Self {
-        self.on_done = Some(Rc::new(handler));
         self
     }
 }
@@ -178,27 +166,14 @@ impl Styled for ReasoningStepsPanel {
 }
 
 struct PanelState {
-    started: Instant,
-    /// How many steps are showing; the last of them is the current one.
-    shown: usize,
-    seconds: u64,
-    finished: Option<Duration>,
+    /// When the panel was first drawn working, for a clock without a start.
+    first_seen: Option<Instant>,
+    /// Whether the work was done at the last draw.
+    was_done: bool,
     collapsed: bool,
     /// Steps whose hidden sources were asked for.
     all_sources: Vec<usize>,
-    // Copied from the element on every draw, for the timer to read.
-    steps: usize,
-    interval: Duration,
-    looping: bool,
-    collapse_when_done: bool,
-    on_done: Option<DoneHandler>,
-    _timer: Task<()>,
-}
-
-/// How many steps are showing after `elapsed`, and whether the work is done.
-fn progress(elapsed: Duration, interval: Duration, steps: usize) -> (usize, bool) {
-    let passed = (elapsed.as_millis() / interval.as_millis().max(1)) as usize;
-    ((passed + 1).min(steps), passed >= steps)
+    ticker: Option<Task<()>>,
 }
 
 /// A duration as the header shows it: "7s", then "1m 05s".
@@ -211,43 +186,26 @@ fn elapsed_label(elapsed: Duration) -> String {
     }
 }
 
-impl PanelState {
-    /// Advance the clock. Returns whether the timer should keep running, and
-    /// the handler to call if the work finished on this tick.
-    fn tick(&mut self, cx: &mut Context<Self>) -> (bool, Option<(Duration, DoneHandler)>) {
-        let elapsed = self.started.elapsed();
-        if let Some(total) = self.finished {
-            if !self.looping {
-                return (false, None);
-            }
-            if elapsed >= total + RESTART_AFTER {
-                self.started = Instant::now();
-                self.shown = 1.min(self.steps);
-                self.seconds = 0;
-                self.finished = None;
-                self.collapsed = false;
-                self.all_sources.clear();
-                cx.notify();
-            }
-            return (true, None);
-        }
-
-        let (shown, finished) = progress(elapsed, self.interval, self.steps);
-        if finished {
-            self.shown = shown;
-            self.finished = Some(elapsed);
-            self.collapsed |= self.collapse_when_done;
-            cx.notify();
-            let done = self.on_done.clone().map(|handler| (elapsed, handler));
-            return (self.looping, done);
-        }
-        if shown != self.shown || elapsed.as_secs() != self.seconds {
-            self.shown = shown;
-            self.seconds = elapsed.as_secs();
-            cx.notify();
-        }
-        (true, None)
+/// Whether the steps show after a draw: work marked done folds them when the
+/// panel asks for that, and work that starts again unfolds them.
+fn collapsed_after(collapsed: bool, was_done: bool, done: bool, collapse_when_done: bool) -> bool {
+    match (was_done, done) {
+        (false, true) => collapsed || collapse_when_done,
+        (true, false) => false,
+        _ => collapsed,
     }
+}
+
+/// Redraw on every tick for as long as the task is kept.
+fn ticker(cx: &mut Context<PanelState>) -> Task<()> {
+    cx.spawn(async move |this, cx| {
+        loop {
+            cx.background_executor().timer(TICK).await;
+            if this.update(cx, |_, cx| cx.notify()).is_err() {
+                break;
+            }
+        }
+    })
 }
 
 impl RenderOnce for ReasoningStepsPanel {
@@ -260,58 +218,46 @@ impl RenderOnce for ReasoningStepsPanel {
         let accent = theme.info;
         let radius = theme.radius;
 
-        let state = window.use_keyed_state(self.id.clone(), cx, |window, cx| {
-            let timer = cx.spawn_in(window, async move |this, cx| {
-                loop {
-                    cx.background_executor().timer(TICK).await;
-                    let keep_going = cx.update(|window, cx| {
-                        let Some(this) = this.upgrade() else {
-                            return false;
-                        };
-                        let (keep_going, done) =
-                            this.update(cx, |state: &mut PanelState, cx| state.tick(cx));
-                        if let Some((elapsed, handler)) = done {
-                            handler(elapsed, window, cx);
-                        }
-                        keep_going
-                    });
-                    if !keep_going.unwrap_or(false) {
-                        break;
-                    }
-                }
-            });
-            PanelState {
-                started: Instant::now(),
-                shown: 0,
-                seconds: 0,
-                finished: None,
-                collapsed: false,
-                all_sources: Vec::new(),
-                steps: 0,
-                interval: Duration::from_secs(1),
-                looping: false,
-                collapse_when_done: false,
-                on_done: None,
-                _timer: timer,
-            }
+        let done = self.took.is_some();
+        let state = window.use_keyed_state(self.id.clone(), cx, |_, _| PanelState {
+            first_seen: None,
+            was_done: done,
+            collapsed: done && self.collapse_when_done,
+            all_sources: Vec::new(),
+            ticker: None,
         });
-        let (shown, seconds, finished, collapsed, all_sources) = state.update(cx, |state, _| {
-            state.steps = self.steps.len();
-            state.interval = self.interval;
-            state.looping = self.looping;
-            state.collapse_when_done = self.collapse_when_done;
-            state.on_done = self.on_done.clone();
-            if state.finished.is_none() {
-                state.shown = progress(state.started.elapsed(), state.interval, state.steps).0;
+        let (elapsed, collapsed, all_sources) = state.update(cx, |state, cx| {
+            state.collapsed = collapsed_after(
+                state.collapsed,
+                state.was_done,
+                done,
+                self.collapse_when_done,
+            );
+            if done {
+                state.first_seen = None;
+                state.ticker = None;
+            } else {
+                if state.was_done {
+                    // The work started again: so do the extra sources.
+                    state.all_sources.clear();
+                }
+                state.first_seen.get_or_insert_with(Instant::now);
+                if state.ticker.is_none() {
+                    state.ticker = Some(ticker(cx));
+                }
             }
+            state.was_done = done;
+            let started = self.started_at.or(state.first_seen);
             (
-                state.shown,
-                state.seconds,
-                state.finished,
+                self.took
+                    .or_else(|| started.map(|at| at.elapsed()))
+                    .unwrap_or_default(),
                 state.collapsed,
                 state.all_sources.clone(),
             )
         });
+        let finished = self.took;
+        let shown = self.steps.len();
 
         let child_id = |name: String| ElementId::NamedChild(self.id.clone().into(), name.into());
         let focus = window
@@ -322,7 +268,14 @@ impl RenderOnce for ReasoningStepsPanel {
             .clone();
         let is_focused = focus.is_focused(window);
 
+        // Read as the line shows: "Took 5s", or "Working it out, 6s".
+        let header_name = match finished {
+            Some(total) => format!("Took {}", elapsed_label(total)),
+            None => format!("{}, {}", self.working_label, elapsed_label(elapsed)),
+        };
         let header = Pressable::new((self.id.clone(), "header"))
+            .accessibility_label(header_name)
+            .aria_expanded(!collapsed)
             .track_focus(&focus)
             .on_click({
                 let state = state.clone();
@@ -364,11 +317,7 @@ impl RenderOnce for ReasoningStepsPanel {
                     .child(
                         ShimmerText::new(self.working_label.clone()).id(child_id("working".into())),
                     )
-                    .child(
-                        div()
-                            .text_color(quiet)
-                            .child(elapsed_label(Duration::from_secs(seconds))),
-                    ),
+                    .child(div().text_color(quiet).child(elapsed_label(elapsed))),
             })
             .child(
                 Icon::new(if collapsed {
@@ -407,28 +356,29 @@ impl RenderOnce for ReasoningStepsPanel {
                 })
         };
         // Every row has a marker on the timeline and its content beside it.
-        let row = |marker: gpui::AnyElement, joined: bool, content: gpui::AnyElement| {
-            h_flex()
-                .items_stretch()
-                .gap_2()
-                .child(
-                    v_flex()
-                        .flex_none()
-                        .w_4()
-                        .items_center()
-                        .child(
-                            div()
-                                .flex()
-                                .flex_none()
-                                .items_center()
-                                .justify_center()
-                                .h(px(22.))
-                                .child(marker),
-                        )
-                        .when(joined, |this| this.child(div().flex_1().w(px(1.)).bg(line))),
-                )
-                .child(div().flex_1().min_w_0().pb_2().child(content))
-        };
+        let row =
+            |marker: isonomic_ui::AnyElement, joined: bool, content: isonomic_ui::AnyElement| {
+                h_flex()
+                    .items_stretch()
+                    .gap_2()
+                    .child(
+                        v_flex()
+                            .flex_none()
+                            .w_4()
+                            .items_center()
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_none()
+                                    .items_center()
+                                    .justify_center()
+                                    .h(px(22.))
+                                    .child(marker),
+                            )
+                            .when(joined, |this| this.child(div().flex_1().w(px(1.)).bg(line))),
+                    )
+                    .child(div().flex_1().min_w_0().pb_2().child(content))
+            };
 
         let step_count = self.steps.len();
         let rows =
@@ -465,7 +415,7 @@ impl RenderOnce for ReasoningStepsPanel {
 
                     let hidden = step.hidden_sources.len();
                     let show_all = all_sources.contains(&ix);
-                    let mut chips: Vec<gpui::AnyElement> = step
+                    let mut chips: Vec<isonomic_ui::AnyElement> = step
                         .sources
                         .into_iter()
                         .enumerate()
@@ -481,6 +431,7 @@ impl RenderOnce for ReasoningStepsPanel {
                         let state = state.clone();
                         chips.push(
                             Pressable::new(child_id(format!("show-more-{ix}")))
+                                .accessibility_label(more_sources_label(hidden))
                                 .on_click(move |_, _, cx| {
                                     state.update(cx, |state, cx| {
                                         state.all_sources.push(ix);
@@ -552,29 +503,35 @@ impl RenderOnce for ReasoningStepsPanel {
     }
 }
 
+/// What a screen reader hears for the chip that shows a step's other sources.
+fn more_sources_label(hidden: usize) -> String {
+    match hidden {
+        1 => "Show 1 more source".into(),
+        n => format!("Show {n} more sources"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const STEP: Duration = Duration::from_millis(1000);
-
     #[test]
-    fn steps_appear_one_per_interval() {
-        assert_eq!(progress(Duration::ZERO, STEP, 3), (1, false));
-        assert_eq!(progress(Duration::from_millis(999), STEP, 3), (1, false));
-        assert_eq!(progress(Duration::from_millis(1000), STEP, 3), (2, false));
-        assert_eq!(progress(Duration::from_millis(2500), STEP, 3), (3, false));
+    fn the_more_chip_says_how_many_sources_it_shows() {
+        assert_eq!(more_sources_label(1), "Show 1 more source");
+        assert_eq!(more_sources_label(2), "Show 2 more sources");
     }
 
     #[test]
-    fn the_work_is_done_after_the_last_step_had_its_turn() {
-        assert_eq!(progress(Duration::from_millis(3000), STEP, 3), (3, true));
-        assert_eq!(progress(Duration::from_secs(60), STEP, 3), (3, true));
-    }
-
-    #[test]
-    fn nothing_to_do_is_done_at_once() {
-        assert_eq!(progress(Duration::ZERO, STEP, 0), (0, true));
+    fn marking_the_work_done_folds_the_steps_when_asked() {
+        // Done for the first time: folds only if the panel asks for it.
+        assert!(collapsed_after(false, false, true, true));
+        assert!(!collapsed_after(false, false, true, false));
+        // Still done: a fold by hand stays as it is.
+        assert!(!collapsed_after(false, true, true, true));
+        // The work starts again: the steps show.
+        assert!(!collapsed_after(true, true, false, true));
+        // Still working: whatever the header says.
+        assert!(collapsed_after(true, false, false, false));
     }
 
     #[test]
