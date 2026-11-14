@@ -79,6 +79,7 @@ impl Gallery {
                 StoryContainer::panel::<ClipboardStory>(window, cx),
                 StoryContainer::panel::<ComboboxStory>(window, cx),
                 StoryContainer::panel::<CommandStory>(window, cx),
+                StoryContainer::panel::<DescriptionListStory>(window, cx),
             ],
         )];
 
