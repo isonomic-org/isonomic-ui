@@ -92,6 +92,7 @@ impl Gallery {
                 StoryContainer::panel::<KbdStory>(window, cx),
                 StoryContainer::panel::<LabelStory>(window, cx),
                 StoryContainer::panel::<ListStory>(window, cx),
+                StoryContainer::panel::<MarkerStory>(window, cx),
             ],
         )];
 

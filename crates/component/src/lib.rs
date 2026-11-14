@@ -53,6 +53,7 @@ pub mod kbd;
 pub mod label;
 pub mod link;
 pub mod list;
+pub mod marker;
 pub mod menu;
 pub mod message;
 pub mod native_menu;
