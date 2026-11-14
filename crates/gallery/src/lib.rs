@@ -739,6 +739,7 @@ impl StoryState {
         }
 
         match self.story_klass.to_string().as_str() {
+            "AttachmentStory" => story!(AttachmentStory),
             _ => {
                 unreachable!("Invalid story klass: {}", self.story_klass)
             }
