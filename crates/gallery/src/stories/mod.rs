@@ -44,6 +44,7 @@ mod progress_story;
 mod questionnaire_story;
 mod radio_story;
 mod rating_story;
+mod resizable_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -87,6 +88,7 @@ pub use progress_story::ProgressStory;
 pub use questionnaire_story::QuestionnaireStory;
 pub use radio_story::RadioStory;
 pub use rating_story::RatingStory;
+pub use resizable_story::ResizableStory;
 
 pub use welcome_story::WelcomeStory;
 
