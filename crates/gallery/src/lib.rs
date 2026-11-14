@@ -746,6 +746,7 @@ impl StoryState {
             "IconStory" => story!(IconStory),
             "ImageStory" => story!(ImageStory),
             "InputStory" => story!(InputStory),
+            "ListStory" => story!(ListStory),
             "DiffStory" => story!(DiffStory),
             "LabelStory" => story!(LabelStory),
             _ => {

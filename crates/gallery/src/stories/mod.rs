@@ -29,6 +29,7 @@ mod input_story;
 mod input_tokens;
 mod kbd_story;
 mod label_story;
+mod list_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -57,6 +58,7 @@ pub use image_story::ImageStory;
 pub use input_story::InputStory;
 pub use kbd_story::KbdStory;
 pub use label_story::LabelStory;
+pub use list_story::ListStory;
 
 pub use welcome_story::WelcomeStory;
 
