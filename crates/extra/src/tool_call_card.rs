@@ -14,13 +14,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StyleRefinement, Styled, StyledText, Task,
-    Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Rope, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     clipboard::Clipboard,
@@ -29,6 +24,11 @@ use gpui_component::{
     shimmer::ShimmerText,
     spinner::Spinner,
     v_flex,
+};
+use isonomic_ui::{
+    App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, StyledText, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -306,6 +306,28 @@ fn count_label(count: usize) -> String {
     }
 }
 
+/// What a screen reader hears for a call's header: the tool, what it does and
+/// where it stands, as in "ledger.search, Search March, done in 1.4s".
+fn call_name(
+    name: &str,
+    summary: Option<&str>,
+    status: ToolCallStatus,
+    time: Option<&str>,
+) -> String {
+    let state = match (status, time) {
+        (ToolCallStatus::Running, Some(time)) => format!("running, {time}"),
+        (ToolCallStatus::Running, None) => "running".into(),
+        (ToolCallStatus::Success, Some(time)) => format!("done in {time}"),
+        (ToolCallStatus::Success, None) => "done".into(),
+        (ToolCallStatus::Failed, _) => "failed".into(),
+    };
+    [Some(name), summary, Some(state.as_str())]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Redraw on every tick for as long as the task is kept.
 fn ticker<T: 'static>(cx: &mut Context<T>) -> Task<()> {
     cx.spawn(async move |this, cx| {
@@ -501,6 +523,13 @@ impl RenderOnce for ToolCallCard {
         };
 
         let head = Pressable::new((self.id.clone(), "head"))
+            .accessibility_label(call_name(
+                &self.name,
+                self.summary.as_deref(),
+                status,
+                time.as_deref(),
+            ))
+            .aria_expanded(open)
             .track_focus(&focus)
             .on_click({
                 let state = state.clone();
@@ -829,7 +858,19 @@ impl RenderOnce for ToolCallGroup {
                 .unwrap_or_else(|| count_label(self.calls.len()).into())
         };
 
+        // Read as one line: "Used 4 tools, 1 failed, 3.1s".
+        let name = [
+            Some(title.to_string()),
+            (!running && failed > 0).then(|| format!("{failed} failed")),
+            total.map(|total| format_duration(total, running)),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(", ");
         let head = Pressable::new((self.id.clone(), "head"))
+            .accessibility_label(name)
+            .aria_expanded(open)
             .track_focus(&focus)
             .on_click({
                 let state = state.clone();
@@ -909,6 +950,27 @@ impl RenderOnce for ToolCallGroup {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_call_header_reads_tool_summary_and_state() {
+        assert_eq!(
+            call_name(
+                "ledger.search",
+                Some("Search March"),
+                ToolCallStatus::Success,
+                Some("1.4s")
+            ),
+            "ledger.search, Search March, done in 1.4s"
+        );
+        assert_eq!(
+            call_name("rates.fetch", None, ToolCallStatus::Failed, Some("Failed")),
+            "rates.fetch, failed"
+        );
+        assert_eq!(
+            call_name("post", None, ToolCallStatus::Running, None),
+            "post, running"
+        );
+    }
 
     #[test]
     fn durations_read_in_the_right_unit() {

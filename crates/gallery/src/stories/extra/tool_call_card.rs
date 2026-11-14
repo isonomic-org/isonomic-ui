@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Task, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::tool_call_card::{ToolCallCard, ToolCallGroup, ToolCallStatus};
 
 /// Shows a group whose last call runs, fails, and succeeds when retried.
@@ -34,6 +35,20 @@ impl ToolCallCardStory {
             })
             .ok();
         })
+    }
+}
+
+impl Story for ToolCallCardStory {
+    fn title() -> &'static str {
+        "Tool call card"
+    }
+
+    fn description() -> &'static str {
+        "One tool call of an assistant on a single line."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
