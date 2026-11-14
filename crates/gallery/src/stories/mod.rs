@@ -53,6 +53,7 @@ mod shimmer_story;
 mod skeleton_story;
 mod slider_story;
 mod speech_story;
+mod spinner_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -105,6 +106,7 @@ pub use shimmer_story::ShimmerStory;
 pub use skeleton_story::SkeletonStory;
 pub use slider_story::SliderStory;
 pub use speech_story::SpeechStory;
+pub use spinner_story::SpinnerStory;
 
 pub use welcome_story::WelcomeStory;
 
