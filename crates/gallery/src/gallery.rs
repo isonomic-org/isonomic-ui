@@ -71,6 +71,7 @@ impl Gallery {
                 StoryContainer::panel::<AvatarStory>(window, cx),
                 StoryContainer::panel::<BadgeStory>(window, cx),
                 StoryContainer::panel::<BreadcrumbStory>(window, cx),
+                StoryContainer::panel::<ButtonStory>(window, cx),
             ],
         )];
 
