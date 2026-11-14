@@ -16,6 +16,7 @@ pub mod animation;
 #[doc(hidden)]
 pub mod async_util;
 mod auto_scroll;
+mod avatar;
 mod button;
 mod checkbox;
 pub mod component_traits;
@@ -82,6 +83,7 @@ pub use alert_dialog::{
     AlertDialogDescription, AlertDialogPopup, AlertDialogTitle, AlertDialogTrigger,
 };
 pub use auto_scroll::AutoScroll;
+pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use button::{Button, ButtonStyles};
 pub use checkbox::{
     Checkbox, CheckboxIndicator, CheckboxIndicatorStyles, CheckboxState, CheckboxStyles,
