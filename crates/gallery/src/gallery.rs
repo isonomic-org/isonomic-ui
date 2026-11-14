@@ -112,6 +112,7 @@ impl Gallery {
                 StoryContainer::panel::<SeparatorStory>(window, cx),
                 StoryContainer::panel::<ShimmerStory>(window, cx),
                 StoryContainer::panel::<SkeletonStory>(window, cx),
+                StoryContainer::panel::<SliderStory>(window, cx),
             ],
         )];
 
