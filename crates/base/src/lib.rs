@@ -43,6 +43,7 @@ mod observe;
 mod otp_input;
 mod overscroll;
 pub mod plot;
+mod popover;
 mod popup;
 mod positioner;
 mod radio;
@@ -122,6 +123,7 @@ pub use number_input::{
 pub use observe::{ObservedElement, ObservedTextElement, TestSupportExt, TestTextExt};
 pub use otp_input::{OtpEvent, OtpInput, OtpState};
 pub use plot::PlotMotion;
+pub use popover::{Popover, PopoverState};
 pub use popup::{POPUP_PRIORITY, Popup, logical_anchor};
 pub use positioner::{Align, Positioner, ResolvedPosition};
 pub use radio::{Radio, RadioStyles};
@@ -202,6 +204,7 @@ pub fn init(cx: &mut App) {
     layout_direction::init(cx);
     dialog::init(cx);
     focus_trap::init(cx);
+    popover::init(cx);
     select::init(cx);
     number_input::init(cx);
     time_field::init(cx);
