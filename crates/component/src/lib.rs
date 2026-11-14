@@ -34,6 +34,7 @@ pub mod button;
 pub mod carousel;
 pub mod chart;
 pub mod checkbox;
+pub mod clipboard;
 pub mod command;
 pub mod description_list;
 pub mod dialog;
