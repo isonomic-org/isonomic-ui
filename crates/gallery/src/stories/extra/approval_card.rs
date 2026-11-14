@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, button::Button, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, button::Button, v_flex};
 use isonomic_ui_extra::approval_card::{ApprovalCard, ApprovalRisk, DenyReason};
 
 /// Shows a request that expires on its own, and one that cannot be undone.
@@ -28,6 +29,20 @@ impl ApprovalCardStory {
     fn report(&mut self, line: impl Into<SharedString>, cx: &mut Context<Self>) {
         self.last = line.into();
         cx.notify();
+    }
+}
+
+impl Story for ApprovalCardStory {
+    fn title() -> &'static str {
+        "Approval card"
+    }
+
+    fn description() -> &'static str {
+        "An assistant asks before it does something hard to undo."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

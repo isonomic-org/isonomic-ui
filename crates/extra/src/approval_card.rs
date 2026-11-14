@@ -9,18 +9,18 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, Keystroke,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     checkbox::Checkbox,
     h_flex,
     kbd::Kbd,
     v_flex,
+};
+use isonomic_ui::{
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, Keystroke,
+    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -587,65 +587,79 @@ impl RenderOnce for ApprovalCard {
                 .py_3()
                 .border_t_1()
                 .border_color(line)
-                .child(div().flex_1().min_w_0().when(self.allow_always, |this| {
+                .when(self.allow_always, |this| {
+                    // Never narrower than its label: in a narrow card the
+                    // buttons move to a row of their own instead.
                     this.child(
-                        Checkbox::new((self.id.clone(), "always"))
-                            .label(self.always_label)
-                            .checked(always)
-                            .disabled(self.busy)
-                            .on_click({
-                                let state = state.clone();
-                                move |checked, _, cx| {
-                                    state.update(cx, |state, cx| {
-                                        state.always = *checked;
-                                        cx.notify();
-                                    })
-                                }
-                            }),
-                    )
-                }))
-                .children(remaining.map(|left| {
-                    div()
-                        .flex_none()
-                        .text_xs()
-                        .text_color(if left <= URGENT_FROM { warning } else { quiet })
-                        .child(format!("Expires in {}", clock(left)))
-                }))
-                .when_some(self.on_edit, |this, on_edit| {
-                    this.child(
-                        Button::new((self.id.clone(), "edit"))
-                            .ghost()
-                            .small()
-                            .label("Edit")
-                            .disabled(self.busy)
-                            .on_click(move |_, window, cx| on_edit(window, cx)),
+                        div().flex_1().min_w(px(200.)).child(
+                            Checkbox::new((self.id.clone(), "always"))
+                                .label(self.always_label)
+                                .checked(always)
+                                .disabled(self.busy)
+                                .on_click({
+                                    let state = state.clone();
+                                    move |checked, _, cx| {
+                                        state.update(cx, |state, cx| {
+                                            state.always = *checked;
+                                            cx.notify();
+                                        })
+                                    }
+                                }),
+                        ),
                     )
                 })
                 .child(
-                    Button::new((self.id.clone(), "deny"))
-                        .ghost()
-                        .small()
-                        .disabled(self.busy)
+                    h_flex()
+                        .ml_auto()
+                        .max_w_full()
+                        .flex_wrap()
+                        .justify_end()
+                        .gap_2()
+                        .children(remaining.map(|left| {
+                            div()
+                                .flex_none()
+                                .text_xs()
+                                .text_color(if left <= URGENT_FROM { warning } else { quiet })
+                                .child(format!("Expires in {}", clock(left)))
+                        }))
+                        .when_some(self.on_edit, |this, on_edit| {
+                            this.child(
+                                Button::new((self.id.clone(), "edit"))
+                                    .ghost()
+                                    .small()
+                                    .label("Edit")
+                                    .disabled(self.busy)
+                                    .on_click(move |_, window, cx| on_edit(window, cx)),
+                            )
+                        })
                         .child(
-                            h_flex()
-                                .gap_1p5()
-                                .child(self.deny_label)
-                                .children(hint("escape")),
+                            Button::new((self.id.clone(), "deny"))
+                                .ghost()
+                                .small()
+                                .disabled(self.busy)
+                                .accessibility_label(self.deny_label.clone())
+                                .child(
+                                    h_flex()
+                                        .gap_1p5()
+                                        .child(self.deny_label)
+                                        .children(hint("escape")),
+                                )
+                                .on_click(move |_, window, cx| deny(window, cx)),
                         )
-                        .on_click(move |_, window, cx| deny(window, cx)),
-                )
-                .child(
-                    Button::new((self.id.clone(), "approve"))
-                        .primary()
-                        .small()
-                        .loading(self.busy)
                         .child(
-                            h_flex()
-                                .gap_1p5()
-                                .child(self.approve_label)
-                                .children(hint("secondary-enter")),
-                        )
-                        .on_click(move |_, window, cx| approve(window, cx)),
+                            Button::new((self.id.clone(), "approve"))
+                                .primary()
+                                .small()
+                                .loading(self.busy)
+                                .accessibility_label(self.approve_label.clone())
+                                .child(
+                                    h_flex()
+                                        .gap_1p5()
+                                        .child(self.approve_label)
+                                        .children(hint("secondary-enter")),
+                                )
+                                .on_click(move |_, window, cx| approve(window, cx)),
+                        ),
                 ),
         )
         .refine_style(&self.style)
