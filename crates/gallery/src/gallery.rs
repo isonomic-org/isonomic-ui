@@ -110,6 +110,7 @@ impl Gallery {
                 StoryContainer::panel::<ScrollbarStory>(window, cx),
                 StoryContainer::panel::<SelectStory>(window, cx),
                 StoryContainer::panel::<SeparatorStory>(window, cx),
+                StoryContainer::panel::<ShimmerStory>(window, cx),
             ],
         )];
 
