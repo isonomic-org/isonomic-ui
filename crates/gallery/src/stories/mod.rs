@@ -39,6 +39,7 @@ mod notification_story;
 mod number_input_story;
 mod otp_input_story;
 mod pagination_story;
+mod popover_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -77,6 +78,7 @@ pub use notification_story::NotificationStory;
 pub use number_input_story::NumberInputStory;
 pub use otp_input_story::OtpInputStory;
 pub use pagination_story::PaginationStory;
+pub use popover_story::PopoverStory;
 
 pub use welcome_story::WelcomeStory;
 
@@ -84,6 +86,7 @@ pub(crate) fn init(cx: &mut App) {
     input_story::init(cx);
     combobox_story::init(cx);
     number_input_story::init(cx);
+    popover_story::init(cx);
     menu_story::init(cx);
     otp_input_story::init(cx);
 }
