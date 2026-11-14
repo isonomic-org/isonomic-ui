@@ -65,6 +65,7 @@ pub mod popover;
 pub mod progress;
 pub mod questionnaire;
 pub mod radio;
+pub mod rating;
 pub mod resizable;
 pub mod scroll;
 pub mod searchable_list;

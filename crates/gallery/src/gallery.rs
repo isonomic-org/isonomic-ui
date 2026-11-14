@@ -105,6 +105,7 @@ impl Gallery {
                 StoryContainer::panel::<ProgressStory>(window, cx),
                 StoryContainer::panel::<QuestionnaireStory>(window, cx),
                 StoryContainer::panel::<RadioStory>(window, cx),
+                StoryContainer::panel::<RatingStory>(window, cx),
             ],
         )];
 
