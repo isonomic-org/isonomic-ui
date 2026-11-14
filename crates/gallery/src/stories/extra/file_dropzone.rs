@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::file_dropzone::{FileDropzone, FileDropzoneEvent};
 
 const MB: u64 = 1024 * 1024;
@@ -82,6 +83,20 @@ impl FileDropzoneStory {
             dropzone.update(cx, |dropzone, cx| dropzone.finish(id, cx));
         })
         .detach();
+    }
+}
+
+impl Story for FileDropzoneStory {
+    fn title() -> &'static str {
+        "File dropzone"
+    }
+
+    fn description() -> &'static str {
+        "Drop or pick files and watch each one upload."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

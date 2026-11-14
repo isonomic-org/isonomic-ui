@@ -11,16 +11,16 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    Context, EventEmitter, ExternalPaths, FocusHandle, InteractiveElement as _, IntoElement,
-    ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    Context, EventEmitter, ExternalPaths, FocusHandle, InteractiveElement as _, IntoElement,
+    ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
