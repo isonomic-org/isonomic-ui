@@ -10,9 +10,9 @@ use std::{
 };
 
 use gpui::{
-    App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task,
-    Window, div, prelude::FluentBuilder as _, px, relative,
+    App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, Keystroke,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 use gpui_component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -301,6 +301,9 @@ struct PromptState {
     show_all: bool,
     /// Redraws once a second while a timed right runs.
     ticker: Option<Task<()>>,
+    /// The prompt's own focus. Enter only allows while the prompt itself has
+    /// it, never while a button inside it does.
+    focus: FocusHandle,
 }
 
 impl RenderOnce for PermissionPrompt {
@@ -316,14 +319,17 @@ impl RenderOnce for PermissionPrompt {
         let success = theme.success;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
+        let ring = theme.ring;
 
         let scopes = offered_scopes(&self.scopes, self.risk);
-        let state = window.use_keyed_state(self.id.clone(), cx, |_, _| PromptState {
+        let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| PromptState {
             scope: self.default_scope,
             decision: None,
             show_all: false,
             ticker: None,
+            focus: cx.focus_handle().tab_stop(true),
         });
+        let focus = state.read(cx).focus.clone();
         let controlled = self.decision.is_some();
         let now = Instant::now();
         let (scope, decision, show_all) = state.update(cx, |state, cx| {
@@ -397,7 +403,7 @@ impl RenderOnce for PermissionPrompt {
             .overflow_hidden()
             .rounded(radius_lg)
             .border_1()
-            .border_color(line)
+            .border_color(if focus.is_focused(window) { ring } else { line })
             .bg(fill)
             .text_color(ink)
             .text_sm()
@@ -530,16 +536,31 @@ impl RenderOnce for PermissionPrompt {
         };
         let hidden = self.items.len() - shown;
 
+        // Clicking the text of the prompt (not a button) puts focus on it.
+        let focus_here = {
+            let focus = focus.clone();
+            move |_: &gpui::MouseDownEvent, window: &mut Window, cx: &mut App| {
+                window.focus(&focus, cx)
+            }
+        };
+        // The prompt is a named group a keyboard can land on; Enter there allows.
+        let card = card
+            .track_focus(&focus)
+            .role(Role::Group)
+            .aria_label(format!("{} wants to {}", self.who, self.action));
         card.on_key_down({
             let allow = allow.clone();
             let deny = deny.clone();
             let state = state.clone();
             let scopes = scopes.clone();
+            let focus = focus.clone();
             move |event, window, cx| {
                 if event.keystroke.modifiers.modified() {
                     return;
                 }
                 match event.keystroke.key.as_str() {
+                    // A focused button answers Enter itself: Deny must deny.
+                    "enter" if !focus.is_focused(window) => return,
                     "enter" => allow(window, cx),
                     "escape" => deny(window, cx),
                     key => match step_scope(&scopes, scope, key) {
@@ -555,6 +576,7 @@ impl RenderOnce for PermissionPrompt {
         })
         .child(
             v_flex()
+                .on_mouse_down(gpui::MouseButton::Left, focus_here.clone())
                 .gap_3()
                 .p_4()
                 .child(
@@ -624,6 +646,7 @@ impl RenderOnce for PermissionPrompt {
         .when(!self.items.is_empty(), |this| {
             this.child(
                 v_flex()
+                    .on_mouse_down(gpui::MouseButton::Left, focus_here)
                     .gap_1()
                     .px_4()
                     .py_3()
@@ -723,6 +746,7 @@ impl RenderOnce for PermissionPrompt {
                             Button::new((self.id.clone(), "deny"))
                                 .outline()
                                 .small()
+                                .accessibility_label("Deny")
                                 .child(h_flex().gap_1p5().child("Deny").children(hint("escape")))
                                 .on_click(move |_, window, cx| deny(window, cx)),
                         )
@@ -734,6 +758,7 @@ impl RenderOnce for PermissionPrompt {
                                 button.primary()
                             };
                             button
+                                .accessibility_label(allow_label.clone())
                                 .child(
                                     h_flex()
                                         .gap_1p5()
