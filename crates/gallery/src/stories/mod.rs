@@ -47,6 +47,7 @@ mod rating_story;
 mod resizable_story;
 mod scrollbar_story;
 mod select_story;
+mod separator_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -93,6 +94,7 @@ pub use rating_story::RatingStory;
 pub use resizable_story::ResizableStory;
 pub use scrollbar_story::ScrollbarStory;
 pub use select_story::SelectStory;
+pub use separator_story::SeparatorStory;
 
 pub use welcome_story::WelcomeStory;
 
