@@ -87,6 +87,7 @@ pub mod status_bar;
 pub mod stepper;
 pub mod switch;
 pub mod tab;
+pub mod table;
 pub mod tag;
 pub mod text;
 pub mod theme;
@@ -142,6 +143,7 @@ pub fn init(cx: &mut App) {
     popover::init(cx);
     questionnaire::init(cx);
     menu::init(cx);
+    table::init(cx);
     tooltip::init(cx);
 }
 

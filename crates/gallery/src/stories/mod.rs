@@ -65,6 +65,7 @@ mod spinner_story;
 mod status_bar_story;
 mod stepper_story;
 mod switch_story;
+mod table_story;
 mod tabs_story;
 mod tag_story;
 mod welcome_story;
@@ -131,6 +132,7 @@ pub use spinner_story::SpinnerStory;
 pub use status_bar_story::StatusBarStory;
 pub use stepper_story::StepperStory;
 pub use switch_story::SwitchStory;
+pub use table_story::TableStory;
 pub use tabs_story::TabsStory;
 pub use tag_story::TagStory;
 
