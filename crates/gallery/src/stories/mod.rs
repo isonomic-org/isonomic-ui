@@ -1,7 +1,10 @@
 use isonomic_ui::component::dock::PanelControl;
 use isonomic_ui::{AnyView, App, AppContext as _, Entity, Hsla, Pixels, Render, Window, px};
 
+mod alert_story;
 mod welcome_story;
+
+pub use alert_story::AlertStory;
 
 pub use welcome_story::WelcomeStory;
 
