@@ -13,6 +13,7 @@ mod carousel_story;
 mod chart_story;
 mod checkbox_story;
 mod clipboard_story;
+mod combobox_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -27,10 +28,13 @@ pub use carousel_story::CarouselStory;
 pub use chart_story::ChartStory;
 pub use checkbox_story::CheckboxStory;
 pub use clipboard_story::ClipboardStory;
+pub use combobox_story::ComboboxStory;
 
 pub use welcome_story::WelcomeStory;
 
-pub(crate) fn init(cx: &mut App) {}
+pub(crate) fn init(cx: &mut App) {
+    combobox_story::init(cx);
+}
 
 pub trait Story: Render + Sized {
     fn klass() -> &'static str {
