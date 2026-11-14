@@ -94,6 +94,7 @@ pub mod text;
 pub mod theme;
 pub mod toolbar;
 pub mod tooltip;
+pub mod tree;
 
 pub use crate::Disableable;
 pub use element_ext::*;

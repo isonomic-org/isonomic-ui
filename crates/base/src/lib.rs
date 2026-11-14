@@ -86,6 +86,7 @@ mod toggle_group;
 mod toolbar;
 mod tooltip;
 mod touch_selection;
+mod tree;
 mod undo_history;
 mod virtual_list;
 
@@ -224,6 +225,9 @@ pub use tooltip::{
     Tooltip, TooltipDefaults, TooltipOverlay, TooltipPositioner, TooltipRequest, TooltipTransition,
 };
 pub use touch_selection::{SelectionEdge, TouchHandle, TouchSelectionSnapshot};
+pub use tree::{Tree, TreeEntry, TreeEntryState, TreeEvent, TreeItem, TreeState};
+#[doc(hidden)]
+pub use tree::{init as init_tree, key_context as tree_key_context};
 pub use undo_history::UndoHistory;
 #[doc(hidden)]
 pub use virtual_list::virtual_list;
@@ -255,6 +259,7 @@ pub fn init(cx: &mut App) {
     number_input::init(cx);
     time_field::init(cx);
     input::init(cx);
+    tree::init(cx);
     grid_layout::init(cx);
     text::init(cx);
     root::init(cx);
