@@ -46,6 +46,7 @@ mod radio_story;
 mod rating_story;
 mod resizable_story;
 mod scrollbar_story;
+mod select_story;
 mod welcome_story;
 
 pub use alert_dialog_story::AlertDialogStory;
@@ -91,6 +92,7 @@ pub use radio_story::RadioStory;
 pub use rating_story::RatingStory;
 pub use resizable_story::ResizableStory;
 pub use scrollbar_story::ScrollbarStory;
+pub use select_story::SelectStory;
 
 pub use welcome_story::WelcomeStory;
 
@@ -99,6 +101,7 @@ pub(crate) fn init(cx: &mut App) {
     combobox_story::init(cx);
     rating_story::init(cx);
     number_input_story::init(cx);
+    select_story::init(cx);
     popover_story::init(cx);
     menu_story::init(cx);
     otp_input_story::init(cx);

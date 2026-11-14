@@ -743,6 +743,7 @@ impl StoryState {
             "BreadcrumbStory" => story!(BreadcrumbStory),
             "ButtonStory" => story!(ButtonStory),
             "CalendarStory" => story!(CalendarStory),
+            "SelectStory" => story!(SelectStory),
             "IconStory" => story!(IconStory),
             "ImageStory" => story!(ImageStory),
             "InputStory" => story!(InputStory),
