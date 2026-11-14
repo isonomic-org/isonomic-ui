@@ -767,6 +767,7 @@ impl StoryState {
             "LayoutDirectionStory" => story!(LayoutDirectionStory),
             "AccordionStory" => story!(AccordionStory),
             "SidebarStory" => story!(SidebarStory),
+            "FormStory" => story!(FormStory),
             "NotificationStory" => story!(NotificationStory),
             "ThemeColorsStory" => story!(ThemeColorsStory),
             _ => {
