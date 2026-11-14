@@ -752,6 +752,7 @@ impl StoryState {
             "MessageScrollerStory" => story!(MessageScrollerStory),
             "DiffStory" => story!(DiffStory),
             "LabelStory" => story!(LabelStory),
+            "NotificationStory" => story!(NotificationStory),
             _ => {
                 unreachable!("Invalid story klass: {}", self.story_klass)
             }

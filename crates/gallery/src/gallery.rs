@@ -97,6 +97,7 @@ impl Gallery {
                 StoryContainer::panel::<MessageStory>(window, cx),
                 StoryContainer::panel::<MessageScrollerStory>(window, cx),
                 StoryContainer::panel::<NativeMenuStory>(window, cx),
+                StoryContainer::panel::<NotificationStory>(window, cx),
             ],
         )];
 
