@@ -744,6 +744,7 @@ impl StoryState {
             "ButtonStory" => story!(ButtonStory),
             "CalendarStory" => story!(CalendarStory),
             "IconStory" => story!(IconStory),
+            "ImageStory" => story!(ImageStory),
             "DiffStory" => story!(DiffStory),
             _ => {
                 unreachable!("Invalid story klass: {}", self.story_klass)
