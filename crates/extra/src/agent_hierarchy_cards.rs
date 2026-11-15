@@ -12,6 +12,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Transformation, Window, div, percentage,
@@ -276,6 +277,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
         .cursor_pointer()
         .shadow(resting_shadow(cx))
         .when(depth == 0, |this| this.border_t_2().border_color(if is_selected { paint.accent } else { tone_color }))
+        .role(Role::Group)
         .aria_label(format!(
             "{}, {}, {}{}",
             node.name,
@@ -349,6 +351,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
                             .px_1()
                             .rounded(px(4.))
                             .hover(|style| style.bg(paint.line.opacity(0.5)))
+                            .role(Role::ListItem)
                             .aria_label(format!(
                                 "{} {helpers} helpers of {}",
                                 if is_folded { "Show" } else { "Hide" },
@@ -455,6 +458,7 @@ impl RenderOnce for AgentHierarchyCards {
             .gap_3()
             .text_sm()
             .text_color(ctx.paint.ink)
+            .role(Role::Group)
             .aria_label(format!("{total} assistants, {summary}"))
             .child(
                 h_flex()
