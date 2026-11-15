@@ -17,6 +17,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, prelude::FluentBuilder as _, px, relative,
@@ -362,6 +363,7 @@ impl RenderOnce for ApprovalStack {
             .id(self.id.clone())
             .track_focus(&focus)
             .on_key_down(key_down)
+            .role(Role::Region)
             .aria_label(match &front {
                 Some(request) => format!("{waiting} requests waiting. Front: {}", request.action),
                 None => "No requests waiting".to_string(),
