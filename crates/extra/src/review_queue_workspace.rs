@@ -19,6 +19,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
@@ -395,6 +396,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                     .cursor_pointer()
                     .when(is_current, |this| this.bg(chip))
                     .when(!is_current, |this| this.hover(|style| style.bg(chip.opacity(0.5))))
+                    .role(Role::ListItem)
                     .aria_label(format!(
                         "{}, {}{}",
                         proposal.title,
@@ -596,6 +598,7 @@ impl RenderOnce for ReviewQueueWorkspace {
             .id(self.id.clone())
             .track_focus(&focus)
             .on_key_down(key_down)
+            .role(Role::Region)
             .aria_label(format!("{}, {} of {total} decided", self.title, decided))
             .w_full()
             .max_w(px(820.))
