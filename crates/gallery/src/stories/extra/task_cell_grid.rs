@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::task_cell_grid::{CellStatus, GridTask, TaskCellGrid};
 
 /// Shows 180 receipts being matched to payments, part way through.
@@ -53,6 +54,20 @@ fn sample(n: usize) -> GridTask {
             .span(start, None)
             .cost(0.002),
         _ => task,
+    }
+}
+
+impl Story for TaskCellGridStory {
+    fn title() -> &'static str {
+        "Task cell grid"
+    }
+
+    fn description() -> &'static str {
+        "One large job split across many workers."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
