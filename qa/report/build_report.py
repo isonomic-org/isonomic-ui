@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Build the "Isonomic UI QA" report page from a run's results.
 
-  build_report.py --run qa/out --meta <dir with tested.json, queue.json, oracle.json> --dest qa/out/report
+  build_report.py --run qa/out [--meta <dir>] --dest qa/out/report
+
+`--meta` is optional: a folder with tested.json (the commit each component was
+tested at), queue.json (the component queue) and oracle.json (each
+component's stated behaviour). Without it the page is built from the results
+alone.
 
 Reads qa/out/<slug>/results.json, qa/review/notes.yaml, qa/out/issues.json and
 qa/out/history.json, and writes index.html with every image beside it under img/.
@@ -74,24 +79,29 @@ def verdict(checks: dict, issues: list[dict]) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", default=str(QA / "out"))
-    ap.add_argument("--meta", required=True)
+    ap.add_argument("--meta", default="")
     ap.add_argument("--dest", default=str(QA / "out/report"))
     ap.add_argument("--label", default="")
     args = ap.parse_args()
-    run, meta, dest = Path(args.run), Path(args.meta), Path(args.dest)
+    run, dest = Path(args.run), Path(args.dest)
+    meta = Path(args.meta) if args.meta else run / "meta"
     if dest.exists():
         shutil.rmtree(dest)
     (dest / "img").mkdir(parents=True)
 
-    tested = json.loads((meta / "tested.json").read_text())
-    queue = json.loads((meta / "queue.json").read_text())
-    oracle = json.loads((meta / "oracle.json").read_text())
+    def meta_file(name, default):
+        path = meta / name
+        return json.loads(path.read_text()) if path.exists() else default
+
+    tested = meta_file("tested.json", {})
+    queue = meta_file("queue.json", [])
+    oracle = meta_file("oracle.json", {})
     notes = yaml.safe_load((QA / "review/notes.yaml").read_text()) or {}
     issues_path = run / "issues.json"
     issues = json.loads(issues_path.read_text()) if issues_path.exists() else []
     hist_path = run / "history.json"
     history = json.loads(hist_path.read_text()) if hist_path.exists() else []
-    built = json.loads((meta / "built.json").read_text()) if (meta / "built.json").exists() else {}
+    built = meta_file("built.json", {})
 
     components = []
     for res_path in sorted(run.glob("*/results.json")):
@@ -169,7 +179,7 @@ def main():
         "branches": len(tested),
         "built": built.get("count", len(components)),
         "tested": len(components),
-        "queue": len(queue),
+        "queue": len(queue) or len(components),
         "counts": counts,
         "issues_open": sum(1 for i in issues if i.get("state", "open") == "open"),
         "not_tested": built.get("not_tested", []),

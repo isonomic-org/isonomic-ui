@@ -26,7 +26,7 @@ STORIES = REPO / "crates/gallery/src/stories/extra"
 
 def clippy() -> dict[str, list[dict]]:
     r = subprocess.run(["cargo", "clippy", "-p", "isonomic-ui-extra", "--all-targets", "--message-format=json",
-                        "--", "-D", "warnings"], cwd=QA, capture_output=True, text=True)
+                        "--", "-D", "warnings"], cwd=REPO, capture_output=True, text=True)
     by_file: dict[str, list[dict]] = {}
     for line in r.stdout.splitlines():
         try:
@@ -46,7 +46,7 @@ def clippy() -> dict[str, list[dict]]:
 
 
 def tests() -> dict[str, dict]:
-    r = subprocess.run(["cargo", "test", "-p", "isonomic-ui-extra", "--lib", "--", "--test-threads=2"], cwd=QA,
+    r = subprocess.run(["cargo", "test", "-p", "isonomic-ui-extra", "--lib", "--", "--test-threads=2"], cwd=REPO,
                        capture_output=True, text=True)
     by_mod: dict[str, dict] = {}
     for line in (r.stdout + r.stderr).splitlines():

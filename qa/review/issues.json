@@ -1,48 +1,13 @@
 [
  {
-  "number": 168,
-  "slug": "permission-prompt",
-  "sev": 1,
-  "kind": "keyboard",
-  "title": "Permission prompt: Enter on a focused Deny button allows the request",
-  "state": "verified",
-  "pr": 28,
-  "check": "C6",
-  "step": 3,
-  "verified_at": "eceecd6b34"
- },
- {
   "number": 169,
   "slug": "autonomy-level-control",
   "sev": 2,
   "kind": "keyboard",
   "title": "Autonomy level control: the level selector cannot be reached with Tab",
   "state": "open",
-  "pr": 26,
   "check": "C6",
   "step": 3
- },
- {
-  "number": 170,
-  "slug": "filter-menu",
-  "sev": 2,
-  "kind": "keyboard",
-  "title": "Filter menu: the option list cannot be reached with Tab",
-  "state": "open",
-  "pr": 22,
-  "check": "C6",
-  "step": 4
- },
- {
-  "number": 171,
-  "slug": "metric-trend-card",
-  "sev": 2,
-  "kind": "keyboard",
-  "title": "Metric trend card: the plot cannot be reached with Tab",
-  "state": "open",
-  "pr": 31,
-  "check": "C6",
-  "step": 4
  },
  {
   "number": 172,
@@ -51,87 +16,8 @@
   "kind": "keyboard",
   "title": "Question card: number keys and arrows never reach the card",
   "state": "open",
-  "pr": 20,
   "check": "C4",
   "step": 2
- },
- {
-  "number": 173,
-  "slug": "approval-card",
-  "sev": 2,
-  "kind": "a11y",
-  "title": "Approval card: Approve and Deny have no accessible name",
-  "state": "open",
-  "pr": 27,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 174,
-  "slug": "permission-prompt",
-  "sev": 2,
-  "kind": "a11y",
-  "title": "Permission prompt: Allow and Deny have no accessible name",
-  "state": "verified",
-  "pr": 28,
-  "check": "C9",
-  "step": null,
-  "verified_at": "eceecd6b34"
- },
- {
-  "number": 175,
-  "slug": "message-action-bar",
-  "sev": 2,
-  "kind": "a11y",
-  "title": "Message action bar: Regenerate, the votes and Read aloud have no accessible name",
-  "state": "open",
-  "pr": 24,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 176,
-  "slug": "profile-menu",
-  "sev": 2,
-  "kind": "a11y",
-  "title": "Profile menu: the menu items have no accessible name",
-  "state": "open",
-  "pr": 10,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 177,
-  "slug": "variant-comparison-card",
-  "sev": 2,
-  "kind": "a11y",
-  "title": "Variant comparison card: the variant rows and the head have no accessible name",
-  "state": "open",
-  "pr": 34,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 178,
-  "slug": "draft-review-card",
-  "sev": 2,
-  "kind": "a11y",
-  "title": "Draft review card: the icon-only Edit button has no accessible name",
-  "state": "open",
-  "pr": 25,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 179,
-  "slug": "draft-review-card",
-  "sev": 3,
-  "kind": "visual",
-  "title": "Draft review card: the recipient address runs under the attachment chip",
-  "state": "open",
-  "pr": 25,
-  "check": "manual",
-  "step": null
  },
  {
   "number": 180,
@@ -140,184 +26,62 @@
   "kind": "visual",
   "title": "Variant comparison card: the status line overlaps the title in the head",
   "state": "open",
-  "pr": 34,
   "check": "manual",
   "step": null
  },
  {
-  "number": 181,
-  "slug": "approval-card",
-  "sev": 3,
-  "kind": "visual",
-  "title": "Approval card: at 360 px the footer squeezes \"Always allow\" to nothing",
-  "state": "open",
-  "pr": 27,
-  "check": "manual",
-  "step": null
- },
- {
-  "number": 182,
-  "slug": "autonomy-level-control",
-  "sev": 3,
-  "kind": "visual",
-  "title": "Autonomy level control: at 360 px the level labels run into each other",
-  "state": "open",
-  "pr": 26,
-  "check": "manual",
-  "step": null
- },
- {
-  "number": 183,
-  "slug": "tool-call-card",
+  "number": 315,
+  "slug": "base-accordion",
   "sev": 3,
   "kind": "a11y",
-  "title": "Tool call card: card and group headers have no accessible name",
+  "title": "Accordion (the base): the section triggers have no accessible name or control role",
   "state": "open",
-  "pr": 21,
-  "check": "C9",
-  "step": null
+  "check": "C9"
  },
  {
-  "number": 184,
-  "slug": "grouped-setup-checklist",
+  "number": 337,
+  "slug": "writing-assistant-card",
   "sev": 3,
   "kind": "a11y",
-  "title": "Grouped setup checklist: group headers have no accessible name",
+  "title": "Writing assistant card: the microphone button has no accessible name",
   "state": "open",
-  "pr": 16,
-  "check": "C9",
-  "step": null
+  "check": "C9"
  },
  {
-  "number": 185,
-  "slug": "reasoning-steps-panel",
+  "number": 338,
+  "slug": "filter-menu",
   "sev": 3,
   "kind": "a11y",
-  "title": "Reasoning steps panel: the header and \"+N more\" have no accessible name",
+  "title": "Filter menu: Tab lands on the option list, but the list is not in the accessibility tree",
   "state": "open",
-  "pr": 17,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 186,
-  "slug": "recommendation-card",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Recommendation card: the folding heading has no accessible name",
-  "state": "open",
-  "pr": 12,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 187,
-  "slug": "comment-thread",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Comment thread: the status-line button has no accessible name",
-  "state": "open",
-  "pr": 15,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 188,
-  "slug": "quick-decision-list",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Quick decision list: folded decisions have no accessible name",
-  "state": "open",
-  "pr": 9,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 189,
-  "slug": "notice-stack",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Notice stack: the notice's action button has no accessible name",
-  "state": "open",
-  "pr": 8,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 190,
-  "slug": "card",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Card: a clickable card has no accessible name or selected state by default",
-  "state": "open",
-  "pr": 3,
-  "check": "C9",
-  "step": null
- },
- {
-  "number": 191,
-  "slug": "card",
-  "sev": 4,
-  "kind": "visual",
-  "title": "Card: the story clips at 360 px because it fixes the column at 400 px",
-  "state": "open",
-  "pr": 3,
-  "check": "manual",
-  "step": null
- },
- {
-  "number": 192,
-  "slug": "code-block",
-  "sev": 4,
-  "kind": "visual",
-  "title": "Code block: the story clips at 360 px because it fixes the block at 480 px",
-  "state": "open",
-  "pr": 5,
-  "check": "manual",
-  "step": null
- },
- {
-  "number": 193,
-  "slug": "tips-grid",
-  "sev": 4,
-  "kind": "visual",
-  "title": "Tips grid: the story clips at 360 px because it fixes the grid at 680 px",
-  "state": "open",
-  "pr": 13,
-  "check": "manual",
-  "step": null
- },
- {
-  "number": 194,
-  "slug": "onboarding-checklist",
-  "sev": 4,
-  "kind": "visual",
-  "title": "Onboarding checklist: the story's second checklist is off screen at 360 px",
-  "state": "open",
-  "pr": 11,
-  "check": "manual",
-  "step": null
- },
- {
-  "number": 196,
-  "slug": "task-cell-grid",
-  "sev": 2,
-  "kind": "keyboard",
-  "title": "Task cell grid: the grid cannot be reached with Tab",
-  "state": "open",
-  "pr": 149,
   "check": "C6",
-  "step": 3
+  "step": 4
  },
  {
-  "number": 197,
-  "slug": "elimination-bracket",
-  "sev": 2,
-  "kind": "keyboard",
-  "title": "Elimination bracket: the bracket cannot be reached with Tab",
+  "number": 339,
+  "slug": "base-combobox",
+  "sev": 3,
+  "kind": "a11y",
+  "title": "Combobox story (the base): the combobox fields have no accessible name",
   "state": "open",
-  "pr": 151,
-  "check": "C6",
-  "step": 3
+  "check": "C9"
+ },
+ {
+  "number": 340,
+  "slug": "agent-hierarchy-cards",
+  "sev": 4,
+  "kind": "a11y",
+  "title": "Agent hierarchy cards: clickable cards report a group role, not a button",
+  "state": "open",
+  "check": "C9"
+ },
+ {
+  "number": 341,
+  "slug": "agent-network-graph",
+  "sev": 4,
+  "kind": "a11y",
+  "title": "Agent network graph: the clickable canvas has no control role",
+  "state": "open",
+  "check": "C9"
  }
 ]

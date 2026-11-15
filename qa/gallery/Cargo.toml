@@ -3,17 +3,12 @@ name = "qa-gallery"
 version = "0.1.0"
 edition.workspace = true
 publish.workspace = true
-description = "QA gallery: renders every component story, one at a time or as a browsable list."
+description = "QA gallery: shows one gallery story in a bare window that the QA runner drives."
 
 [[bin]]
 name = "qa-gallery"
 path = "src/main.rs"
 
 [dependencies]
-gpui.workspace = true
-gpui-platform.workspace = true
-gpui-base.workspace = true
-gpui-component.workspace = true
-gpui-kit-assets.workspace = true
-isonomic-ui-extra.workspace = true
-env_logger = "0.11"
+isonomic-ui.workspace = true
+isonomic-ui-gallery.workspace = true

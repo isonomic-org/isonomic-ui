@@ -43,7 +43,14 @@ fn main() -> ExitCode {
         }
     }
 
-    let python = env::var("QA_PYTHON").unwrap_or_else(|_| "/usr/bin/python3.12".into());
+    // The accessibility bindings are built for the system Python.
+    let python = env::var("QA_PYTHON").unwrap_or_else(|_| {
+        ["/usr/bin/python3.12", "/usr/bin/python3"]
+            .into_iter()
+            .find(|path| PathBuf::from(path).exists())
+            .unwrap_or("python3")
+            .into()
+    });
     let driver = qa.join("runner/driver/qa_driver.py");
     match Command::new(&python).arg("-I").arg(&driver).args(&args).status() {
         Ok(status) => ExitCode::from(status.code().unwrap_or(1) as u8),

@@ -1,38 +1,46 @@
 # QA for isonomic-ui
 
-This folder is a separate Cargo workspace for testing the components in
-`crates/extra`. Nothing here is a dependency of the library, so QA code,
-patches and tools never reach a release build.
+This folder is a separate Cargo workspace for testing every story in the
+component gallery: the components of `crates/component` and of
+`crates/extra`. Nothing here is a dependency of the library, so QA code and
+tools never reach a release build.
+
+Everything runs headless, under a virtual display. QA never drives a
+person's own screen, pointer or keyboard.
 
 ## What is here
 
 | Path | What it is |
 | --- | --- |
-| `gallery/` | `qa-gallery`, a window that shows one story (`--story card`) or a browsable list of all of them, with a light/dark switch and 360/960/1440 px width buttons. A build script finds every `*Story` under `crates/gallery/src/stories/extra/`, so new stories show up without editing anything here. Over stdin it takes `theme`, `size`, `a11y`, `focus`, `ping`, `frames` and `tabstart`, which is how the runner drives it. |
+| `gallery/` | `qa-gallery`, a bare window that shows one story of the component gallery (`--story "Model picker"`). It uses the gallery's own story list, so new stories show up without editing anything here. Over stdin it takes `theme`, `size`, `a11y`, `focus`, `ping`, `frames` and `tabstart`, which is how the runner drives it. |
 | `runner/` | `qa-runner`, the command that runs the checks. The Rust binary builds the gallery and hands over to `runner/driver/qa_driver.py`. |
-| `runner/driver/code_health.py` | C11: clippy with `-D warnings`, the unit tests and `rustfmt --edition 2024 --check`, attributed to each component file. |
+| `runner/driver/code_health.py` | C11 for the components of `crates/extra`: clippy with `-D warnings`, the unit tests and `rustfmt --edition 2024 --check`, attributed to each component file. |
 | `runner/retest.py` | Retests every open QA issue listed in `review/issues.json`. |
 | `runner/probe/atspi_probe.py` | Reads the gallery's accessibility tree through the desktop accessibility bus (roles, names, on-screen bounds, actions). |
 | `scripts/<slug>.yaml` | One script per component: a step for each stated behaviour in its pull request, with the expected result. |
-| `report/` | Builds the QA report page, the pull request comments and the status table. `visual_diff.py` compares screenshots with the baselines. |
+| `report/` | `build_report.py` builds the QA report page, `status.py` the status table and `ci_comment.py` a pull request comment. `visual_diff.py` compares screenshots with the baselines. |
 | `review/` | Findings from reviewing the screenshots (`notes.yaml`), the filed defects (`defects.yaml`) and the issue list the retest uses (`issues.json`). |
 | `baselines.toml` | Which baseline screenshots are approved. |
-| `ci/qa.yml` | The QA workflow, mirrored at `.github/workflows/qa.yml`. |
 
 ## Running it
 
 Linux with an X server (a virtual one is fine), an X input tool, a screenshot
-tool, an OCR engine, the desktop accessibility bus and Python 3. The exact
-packages are the ones the workflow installs in `ci/qa.yml`. The runner starts a
-virtual display on `:99` and a window manager if none is running.
+tool, an OCR engine, the desktop accessibility bus and the system Python 3. The
+exact packages are the ones `.github/workflows/qa.yml` installs. The runner
+starts a virtual display on `:99` and a window manager if none is running.
+
+A slug names a story. A component of `crates/extra` has its file name as its
+slug (`model-picker`); every other gallery story has `base-` and its name
+(`base-button`). `cargo run -p qa-runner -- list` prints them all.
 
 ```sh
 cd qa
-cargo run -p qa-gallery -- --story card --theme dark --width 360   # look at one story
 cargo run -p qa-runner -- run card                                 # all checks for one component
+cargo run -p qa-runner -- run card base-button                     # several
 cargo run -p qa-runner -- run card --step 3                        # up to one script step
 cargo run -p qa-runner -- run --all                                # everything
-python3 runner/driver/code_health.py                               # C11 for every component
+python3 runner/driver/code_health.py                               # C11 for the extra components
+python3 report/status.py --run out --issues review/issues.json     # the status table
 ```
 
 Results go to `qa/out/<slug>/results.json`, with screenshots in
@@ -70,15 +78,10 @@ The first full run's screenshots are the proposed baselines, kept on the
 compares each run with them and lists every visual change in the report.
 A baseline counts as approved once it is listed in `baselines.toml`.
 
-## Layouts
+## The workflow
 
-The QA gallery builds `crates/extra` as it was before the component pull
-requests moved onto the foundation: on the published base crates, with
-stories that have their own `view` constructor. On the foundation layout
-(`crates/extra` on `isonomic-ui`, stories implementing the gallery's `Story`
-trait) it does not build yet, and the workflow skips the QA run with a notice
-instead of reporting a false failure. Porting it means depending on
-`isonomic-ui` and `isonomic-ui-extra` by path, carrying the workspace's
-`gpui-pre-macros` patch, and declaring a `Story` trait at the crate root that
-matches the gallery's. That port needs a build of the full workspace, which
-the QA session could not fetch.
+`.github/workflows/qa.yml` is manual only: it has no pull request trigger and
+no schedule, so it adds nothing to any pull request's checks. Start it from
+the Actions tab with the stories to test, or to retest the open QA issues.
+Its macOS job is a separate switch, off by default, because macOS minutes
+cost ten times Linux ones.

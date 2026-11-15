@@ -1,12 +1,18 @@
 //! QA gallery for isonomic-ui.
 //!
-//! Shows one story by name (`--story card`) or a browsable list of every story
-//! found under `crates/gallery/src/stories/extra/`. Light/dark and window width
-//! can be switched from the toolbar, from the command line, or by the QA runner
-//! over stdin.
+//! Shows one story of the component gallery (`crates/gallery`) in a bare
+//! window: no sidebar, no title bar, only the story. The story registry is the
+//! gallery's own, so every story it lists can be tested here without editing
+//! anything in this crate. Light/dark and the window size are set from the
+//! command line or by the QA runner over stdin.
 //!
 //! Command line:
-//!   qa-gallery [--story <slug>] [--theme light|dark] [--width <px>] [--height <px>] [--list]
+//!   qa-gallery [--story <name>] [--theme light|dark] [--width <px>] [--height <px>] [--list]
+//!
+//! `--story` takes a story's name as the gallery lists it (case does not
+//! matter). `--story __empty__` shows an empty window, which the runner times
+//! redraws against. `--list` prints every story name, one per line, in gallery
+//! order, and exits.
 //!
 //! Stdin commands (one per line), used by the QA runner:
 //!   theme light|dark      switch theme
@@ -24,20 +30,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    AnyView, App, AppContext as _, Bounds, Context, Entity, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
-    Window, WindowBounds, WindowOptions, div, prelude::FluentBuilder as _, px, size,
+use isonomic_ui::{
+    App, AppContext as _, Bounds, Context, Entity, IntoElement, ParentElement as _, Render,
+    Styled as _, Window, WindowBounds, WindowOptions,
+    assets::AllAssets,
+    component::{ActiveTheme as _, Theme, ThemeMode},
+    div, px, size,
 };
-use gpui_component::{
-    ActiveTheme as _, Sizable as _, Theme, ThemeMode,
-    button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
-};
+use isonomic_ui_gallery::Gallery;
 
-mod stories {
-    include!(concat!(env!("OUT_DIR"), "/stories.rs"));
-}
+/// The story name that shows an empty window.
+const EMPTY: &str = "__empty__";
 
 #[derive(Clone, Debug)]
 struct Args {
@@ -45,6 +48,7 @@ struct Args {
     dark: bool,
     width: f32,
     height: f32,
+    list: bool,
 }
 
 fn parse_args() -> Option<Args> {
@@ -53,6 +57,7 @@ fn parse_args() -> Option<Args> {
         dark: false,
         width: 960.,
         height: 900.,
+        list: false,
     };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
@@ -61,15 +66,10 @@ fn parse_args() -> Option<Args> {
             "--theme" => args.dark = it.next().as_deref() == Some("dark"),
             "--width" => args.width = it.next().and_then(|v| v.parse().ok()).unwrap_or(960.),
             "--height" => args.height = it.next().and_then(|v| v.parse().ok()).unwrap_or(900.),
-            "--list" => {
-                for (slug, _) in stories::STORIES {
-                    println!("{slug}");
-                }
-                return None;
-            }
+            "--list" => args.list = true,
             "--help" | "-h" => {
                 println!(
-                    "qa-gallery [--story <slug>] [--theme light|dark] [--width <px>] [--height <px>] [--list]"
+                    "qa-gallery [--story <name>] [--theme light|dark] [--width <px>] [--height <px>] [--list]"
                 );
                 return None;
             }
@@ -79,151 +79,30 @@ fn parse_args() -> Option<Args> {
     Some(args)
 }
 
-const WIDTHS: [f32; 3] = [360., 960., 1440.];
-
-struct Gallery {
-    /// Index into `stories::STORIES` of the story on show.
-    current: Option<usize>,
-    view: Option<AnyView>,
-    /// Single-story mode hides the list and toolbar so screenshots show only the story.
-    single: bool,
-    height: f32,
+/// The window's content: the gallery showing one story, or nothing.
+struct Stage {
+    gallery: Option<Entity<Gallery>>,
 }
 
-impl Gallery {
-    fn new(args: &Args, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let current = args
-            .story
-            .as_ref()
-            .and_then(|s| stories::STORIES.iter().position(|(slug, _)| slug == s));
-        if let (Some(name), None) = (&args.story, current) {
-            eprintln!("qa-gallery: no story named {name}");
-        }
-        let mut this = Self {
-            current: None,
-            view: None,
-            single: args.story.is_some(),
-            height: args.height,
-        };
-        let first = current.or(if this.single { None } else { Some(0) });
-        if let Some(ix) = first {
-            this.show(ix, window, cx);
-        }
-        this
-    }
-
-    fn show(&mut self, ix: usize, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some((_, make)) = stories::STORIES.get(ix) {
-            self.current = Some(ix);
-            self.view = Some(make(window, cx));
-            cx.notify();
-        }
-    }
-
-    fn set_dark(dark: bool, window: &mut Window, cx: &mut App) {
-        let mode = if dark {
-            ThemeMode::Dark
-        } else {
-            ThemeMode::Light
-        };
-        Theme::change(mode, Some(window), cx);
-        window.refresh();
-    }
-
-    fn toolbar(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let dark = cx.theme().is_dark();
-        let width = f32::from(window.bounds().size.width).round();
-        let title: SharedString = self
-            .current
-            .and_then(|ix| stories::STORIES.get(ix))
-            .map(|(slug, _)| SharedString::from(slug.to_string()))
-            .unwrap_or_else(|| "No story".into());
-        h_flex()
-            .id("qa-toolbar")
-            .gap_2()
-            .px_3()
-            .py_2()
-            .border_b_1()
-            .border_color(cx.theme().border)
-            .child(div().flex_1().text_sm().font_weight(gpui::FontWeight::MEDIUM).child(title))
-            .children(WIDTHS.iter().map(|w| {
-                let w = *w;
-                Button::new(SharedString::from(format!("qa-width-{w}")))
-                    .xsmall()
-                    .when(width == w, |b| b.primary())
-                    .when(width != w, |b| b.ghost())
-                    .label(format!("{w}"))
-                    .on_click(cx.listener(move |this, _, window, _| {
-                        window.resize(size(px(w), px(this.height)));
-                    }))
-            }))
-            .child(
-                Button::new("qa-theme")
-                    .xsmall()
-                    .outline()
-                    .label(if dark { "Light" } else { "Dark" })
-                    .on_click(cx.listener(move |_, _, window, cx| {
-                        Self::set_dark(!dark, window, cx);
-                    })),
-            )
-    }
-}
-
-impl Render for Gallery {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+impl Render for Stage {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
-        let stage = div()
-            .id("qa-stage")
-            .flex_1()
-            .min_w_0()
-            .h_full()
-            .overflow_y_scroll()
-            .p_6()
-            .bg(theme.background)
-            .text_color(theme.foreground)
-            .when_some(self.view.clone(), |this, view| this.child(view));
-
-        if self.single {
-            return div()
-                .size_full()
-                .bg(theme.background)
-                .text_color(theme.foreground)
-                .font_family(theme.font_family.clone())
-                .child(stage)
-                .into_any_element();
-        }
-
-        let list = v_flex()
-            .id("qa-story-list")
-            .w(px(220.))
-            .h_full()
-            .flex_none()
-            .overflow_y_scroll()
-            .border_r_1()
-            .border_color(theme.border)
-            .p_2()
-            .gap_0p5()
-            .children(stories::STORIES.iter().enumerate().map(|(ix, (slug, _))| {
-                let selected = self.current == Some(ix);
-                Button::new(("qa-story", ix))
-                    .xsmall()
-                    .w_full()
-                    .justify_start()
-                    .when(selected, |b| b.primary())
-                    .when(!selected, |b| b.ghost())
-                    .label(*slug)
-                    .on_click(cx.listener(move |this, _, window, cx| this.show(ix, window, cx)))
-            }));
-
-        v_flex()
+        div()
             .size_full()
             .bg(theme.background)
             .text_color(theme.foreground)
-            .font_family(theme.font_family.clone())
-            .child(self.toolbar(window, cx))
-            .child(h_flex().flex_1().min_h_0().child(list).child(stage))
-            .into_any_element()
+            .children(self.gallery.clone())
     }
+}
+
+fn set_dark(dark: bool, window: &mut Window, cx: &mut App) {
+    let mode = if dark {
+        ThemeMode::Dark
+    } else {
+        ThemeMode::Light
+    };
+    Theme::change(mode, Some(window), cx);
+    window.refresh();
 }
 
 enum Command {
@@ -261,7 +140,13 @@ fn parse_command(line: &str) -> Option<Command> {
 }
 
 /// Redraw `left` more frames back to back, timing each one, then write the times.
-fn record_frames(window: &mut Window, left: usize, last: Instant, mut times: Vec<f64>, path: String) {
+fn record_frames(
+    window: &mut Window,
+    left: usize,
+    last: Instant,
+    mut times: Vec<f64>,
+    path: String,
+) {
     window.refresh();
     window.on_next_frame(move |window, _| {
         let now = Instant::now();
@@ -269,7 +154,11 @@ fn record_frames(window: &mut Window, left: usize, last: Instant, mut times: Vec
         if left <= 1 {
             let json = format!(
                 "[{}]",
-                times.iter().map(|t| format!("{t:.3}")).collect::<Vec<_>>().join(",")
+                times
+                    .iter()
+                    .map(|t| format!("{t:.3}"))
+                    .collect::<Vec<_>>()
+                    .join(",")
             );
             let _ = std::fs::write(&path, json);
         } else {
@@ -304,27 +193,49 @@ fn main() {
         // Safety: set before any other thread starts.
         unsafe { std::env::set_var("RUST_LOG", "warn") };
     }
-    env_logger::init();
 
-    let app = gpui_platform::application().with_assets(gpui_kit_assets::Assets);
+    let app = isonomic_ui::application().with_assets(AllAssets);
     app.run(move |cx: &mut App| {
-        gpui_component::init(cx);
+        isonomic_ui_gallery::init(cx);
         let bounds = Bounds::centered(None, size(px(args.width), px(args.height)), cx);
         let options = WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             ..Default::default()
         };
-        let window = cx
-            .open_window(options, |window, cx| {
-                Gallery::set_dark(args.dark, window, cx);
-                let gallery: Entity<Gallery> = cx.new(|cx| Gallery::new(&args, window, cx));
-                cx.new(|cx| gpui_base::Root::new(gallery, window, cx))
-            })
-            .expect("open window");
+        let empty = args.story.as_deref() == Some(EMPTY);
+        let story = args.story.clone().unwrap_or_else(|| "Welcome".into());
+        let (window, stage) = isonomic_ui::open_window(options, cx, |window, cx| {
+            set_dark(args.dark, window, cx);
+            let gallery = (!empty).then(|| Gallery::embedded_view(&story, window, cx));
+            cx.new(|_| Stage { gallery })
+        })
+        .expect("open window");
+
+        if let Some(gallery) = stage.read(cx).gallery.clone() {
+            let names = gallery.read(cx).story_names(cx);
+            if args.list {
+                for name in &names {
+                    println!("{name}");
+                }
+                cx.quit();
+                return;
+            }
+            if !names.iter().any(|name| name.eq_ignore_ascii_case(&story)) {
+                eprintln!("qa-gallery: no story named {story}");
+                std::process::exit(3);
+            }
+        }
         cx.activate(true);
 
         let rx = spawn_stdin();
+        let dark = args.dark;
         cx.spawn(async move |cx| {
+            // The gallery restores its last theme in the background when it
+            // starts; apply the requested one again once that has landed.
+            cx.background_executor()
+                .timer(Duration::from_millis(300))
+                .await;
+            let _ = window.update(cx, |_, window, cx| set_dark(dark, window, cx));
             loop {
                 cx.background_executor()
                     .timer(Duration::from_millis(30))
@@ -332,7 +243,7 @@ fn main() {
                 while let Ok(cmd) = rx.try_recv() {
                     let quit = matches!(cmd, Command::Quit);
                     let _ = window.update(cx, |_, window, cx| match cmd {
-                        Command::Theme(dark) => Gallery::set_dark(dark, window, cx),
+                        Command::Theme(dark) => set_dark(dark, window, cx),
                         Command::Size(w, h) => window.resize(size(px(w), px(h))),
                         Command::A11y(path) => {
                             let json = window

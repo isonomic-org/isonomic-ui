@@ -4,7 +4,11 @@
 Runs each story in the QA gallery under a virtual X display, takes the
 screenshots, reads the accessibility tree, plays the story's script and
 writes one results JSON per component. `cargo run -p qa-runner -- ...` calls
-this file; it can also be run directly with python3.12.
+this file; it can also be run directly with the system Python.
+
+A slug names a story. A component of `crates/extra` has its file name as its
+slug (`model-picker`). Every other gallery story has `base-` and its name
+(`base-button`).
 
   qa_driver.py run <slug>... | --all  [--step N] [--out DIR] [--themes ..] [--widths ..]
   qa_driver.py list
@@ -36,10 +40,13 @@ QA = HERE.parent.parent  # qa/
 REPO = QA.parent
 STORIES_DIR = Path(os.environ.get("QA_STORIES_DIR", REPO / "crates/gallery/src/stories/extra"))
 COMPONENTS_DIR = REPO / "crates/extra/src"
+BASE_DIR = REPO / "crates/component/src"
 SCRIPTS_DIR = QA / "scripts"
 GALLERY = Path(os.environ.get("QA_GALLERY", QA / "target/debug/qa-gallery"))
 PROBE = QA / "runner/probe/atspi_probe.py"
-PY = os.environ.get("QA_PYTHON", "/usr/bin/python3.12")
+# The accessibility bindings are built for the system Python.
+PY = os.environ.get("QA_PYTHON") or next(
+    (p for p in ("/usr/bin/python3.12", "/usr/bin/python3") if Path(p).exists()), sys.executable)
 DISPLAY = os.environ.get("QA_DISPLAY", ":99")
 SCREEN = (1600, 2600)
 THEMES = ["light", "dark"]
@@ -119,7 +126,7 @@ class App:
         self.stderr_path = out / "gallery.log"
         self.err = open(self.stderr_path, "ab")
         env = dict(os.environ, RUST_LOG=os.environ.get("RUST_LOG", "warn"), RUST_BACKTRACE="1")
-        self.proc = subprocess.Popen([str(GALLERY), "--story", slug, "--theme", theme, "--width", str(width),
+        self.proc = subprocess.Popen([str(GALLERY), "--story", story_name(slug), "--theme", theme, "--width", str(width),
                                       "--height", str(HEIGHT)], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                      stderr=self.err, env=env)
         self.wid = None
@@ -393,17 +400,49 @@ def overflow_nodes(nodes: list[dict], width: int) -> list[dict]:
     return out
 
 
+def slugify(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+STORIES: dict[str, str] = {}
+
+
+def stories() -> dict[str, str]:
+    """Every story the gallery lists, as slug -> story name, in gallery order.
+
+    The gallery lists its own stories first and then one story per file in
+    `stories/extra`, in file-name order.
+    """
+    if STORIES:
+        return STORIES
+    r = subprocess.run([str(GALLERY), "--list"], capture_output=True, text=True, timeout=120)
+    names = [line for line in r.stdout.splitlines() if line.strip()]
+    if not names:
+        log("the QA gallery listed no stories:", r.stderr[-2000:])
+        return STORIES
+    extra = sorted(p.stem for p in STORIES_DIR.glob("*.rs") if p.stem != "mod")
+    split = len(names) - len(extra)
+    for name in names[:split]:
+        STORIES["base-" + slugify(name)] = name
+    for stem, name in zip(extra, names[split:]):
+        STORIES[stem.replace("_", "-")] = name
+    twice = {n for n in names if names.count(n) > 1}
+    if twice:
+        log("warning: stories that share a name can only show the first:", ", ".join(sorted(twice)))
+    return STORIES
+
+
 def story_slugs() -> list[str]:
-    slugs = []
-    for p in sorted(STORIES_DIR.glob("*.rs")):
-        if p.stem == "mod":
-            continue
-        if re.search(r"pub struct \w+Story\b", p.read_text()):
-            slugs.append(p.stem.replace("_", "-"))
-    return slugs
+    return list(stories())
+
+
+def story_name(slug: str) -> str:
+    return slug if slug.startswith("__") else stories().get(slug, slug)
 
 
 def component_file(slug: str) -> Path:
+    if slug.startswith("base-"):
+        return BASE_DIR / f"{slug[5:].replace('-', '_')}.rs"
     return COMPONENTS_DIR / f"{slug.replace('-', '_')}.rs"
 
 
@@ -873,15 +912,18 @@ def main():
     sub.add_parser("list")
     args = ap.parse_args()
 
+    ensure_display()
     if args.cmd == "list":
         print("\n".join(story_slugs()))
         return 0
 
-    ensure_display()
     ensure_a11y()
     slugs = story_slugs() if args.all else args.slugs
     if not slugs:
         ap.error("name a story or pass --all")
+    unknown = [s for s in slugs if s not in stories()]
+    if unknown:
+        ap.error("no such story: " + ", ".join(unknown) + " (see `list`)")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     summary = []
