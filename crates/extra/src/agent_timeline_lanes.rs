@@ -176,6 +176,28 @@ fn clock(secs: u32) -> String {
     format!("{}:{:02}", secs / 60, secs % 60)
 }
 
+/// The handoffs at a lane, in time order and in words, so the arrows are not
+/// the only place they show.
+pub fn handoff_words(lanes: &[(SharedString, SharedString)], handoffs: &[LaneHandoff], lane: &str) -> String {
+    let name = |id: &SharedString| lanes.iter().find(|(l, _)| l == id).map(|(_, n)| n.to_string()).unwrap_or_else(|| id.to_string());
+    let mut touching: Vec<&LaneHandoff> = handoffs.iter().filter(|h| h.from.as_ref() == lane || h.to.as_ref() == lane).collect();
+    touching.sort_by_key(|h| h.at);
+    if touching.is_empty() {
+        return "No handoffs".into();
+    }
+    touching
+        .iter()
+        .map(|h| {
+            if h.from.as_ref() == lane {
+                format!("Hands off to {} at {}", name(&h.to), clock(h.at))
+            } else {
+                format!("Takes over from {} at {}", name(&h.from), clock(h.at))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
 impl RenderOnce for AgentTimelineLanes {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
@@ -278,6 +300,10 @@ impl RenderOnce for AgentTimelineLanes {
                     })
                     .collect();
                 h_flex()
+                    .id(ElementId::NamedChild(self.id.clone().into(), format!("lane-{lane_id}").into()))
+                    .role(Role::Group)
+                    .aria_label(name.clone())
+                    .aria_description(handoff_words(&self.lanes, &self.handoffs, lane_id))
                     .h(px(LANE))
                     .border_b_1()
                     .border_color(line)
@@ -425,6 +451,20 @@ impl RenderOnce for AgentTimelineLanes {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn handoffs_are_told_from_each_lane_in_time_order() {
+        let lanes = vec![("plan".into(), "Planner".into()), ("write".into(), "Writer".into())];
+        let handoffs = vec![
+            LaneHandoff { at: 130, from: "write".into(), to: "plan".into() },
+            LaneHandoff { at: 65, from: "plan".into(), to: "write".into() },
+        ];
+        assert_eq!(
+            handoff_words(&lanes, &handoffs, "plan"),
+            "Hands off to Writer at 1:05; Takes over from Writer at 2:10"
+        );
+        assert_eq!(handoff_words(&lanes, &[], "plan"), "No handoffs");
+    }
 
     #[test]
     fn the_span_reaches_now_and_the_last_event() {
