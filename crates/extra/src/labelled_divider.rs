@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Sizable as _, StyledExt as _, button::{Button, ButtonVariants as _}, h_flex};
 use isonomic_ui::{
+    Role,
     App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
@@ -126,6 +127,7 @@ impl RenderOnce for LabelledDivider {
             .id(self.id.clone())
             .w_full()
             .gap_2()
+            .role(Role::Heading)
             .when_some(self.label.clone(), |this, label| this.aria_label(label))
             .when(centered && self.label.is_some(), |this| this.child(rule()))
             .when_some(self.label, |this, label| {
