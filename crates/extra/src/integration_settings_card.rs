@@ -11,13 +11,7 @@ use std::{
     rc::Rc,
 };
 
-use gpui::{
-    App, AppContext as _, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, Focusable,
-    InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
@@ -25,6 +19,12 @@ use gpui_component::{
     menu::{DropdownMenu as _, PopupMenuItem},
     switch::Switch,
     v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -307,7 +307,7 @@ impl Render for IntegrationSettingsCard {
                                     .flex_1()
                                     .min_w_0()
                                     .truncate()
-                                    .font_family(mono.clone())
+                                    .font_family(mono)
                                     .text_xs()
                                     .child(key.clone()),
                             )
@@ -342,7 +342,7 @@ impl Render for IntegrationSettingsCard {
                 .child(
                     div()
                         .flex_1()
-                        .font_family(mono.clone())
+                        .font_family(mono)
                         .text_xs()
                         .text_color(quiet)
                         .child(masked(key)),

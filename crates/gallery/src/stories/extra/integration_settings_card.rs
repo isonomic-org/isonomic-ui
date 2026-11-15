@@ -1,10 +1,11 @@
 //! Gallery story for the integration settings card.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::integration_settings_card::{
     IntegrationSettingsCard, IntegrationSettingsEvent, IntegrationValues,
 };
@@ -64,6 +65,20 @@ impl IntegrationSettingsCardStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for IntegrationSettingsCardStory {
+    fn title() -> &'static str {
+        "Integration settings card"
+    }
+
+    fn description() -> &'static str {
+        "The settings of one connected service."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
