@@ -264,7 +264,10 @@ impl RenderOnce for CostBreakdownWaterfall {
                                     .items_center()
                                     .justify_center()
                                     .when(row.has_children, |this| {
-                                        this.rounded(px(4.))
+                                        this.role(Role::Button)
+                                            .aria_label(format!("{} {}", if is_open { "Fold" } else { "Unfold" }, step.label))
+                                            .aria_expanded(is_open)
+                                            .rounded(px(4.))
                                             .hover(|s| s.bg(line))
                                             .on_click(move |_, window, cx| {
                                                 cx.stop_propagation();
@@ -317,6 +320,8 @@ impl RenderOnce for CostBreakdownWaterfall {
                 .text_xs()
                 .when(active, |this| this.bg(fill).shadow(resting_shadow(cx)).font_medium())
                 .when(!active, |this| this.text_color(quiet))
+                .role(Role::RadioButton)
+                .aria_label(format!("Measure in {}", label.to_lowercase()))
                 .aria_selected(active)
                 .on_click(move |_, window, cx| {
                     if let Some(on_measure) = &on_measure {
