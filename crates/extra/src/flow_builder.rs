@@ -26,6 +26,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     Animation, AnimationExt as _, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
     KeyDownEvent, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Transformation, Window, div, percentage, prelude::FluentBuilder as _,
@@ -475,6 +476,7 @@ impl Ctx<'_> {
             .cursor_pointer()
             .when(faded, |this| this.opacity(0.55))
             .when(is_selected, |this| this.focus_ring_style(window, cx))
+            .role(Role::Button)
             .aria_label(name)
             .aria_selected(is_selected)
             .on_click(move |_, window, cx| {
@@ -841,6 +843,7 @@ impl RenderOnce for FlowBuilder {
                     .id(ctx.child_id("canvas".into()))
                     .track_focus(&focus)
                     .on_key_down(key_down)
+                    .role(Role::Group)
                     .aria_label(format!("Flow, {count} steps"))
                     .m_1()
                     .p_4()
