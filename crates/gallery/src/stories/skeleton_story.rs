@@ -62,7 +62,12 @@ impl Render for SkeletonStory {
                         isonomic_ui::component::h_flex()
                             .w_full()
                             .gap_3()
-                            .child(Skeleton::new().size_12().rounded_full_style(cx))
+                            .child(
+                                Skeleton::new()
+                                    .size_12()
+                                    .rounded_full_style(cx)
+                                    .loading_label("profile-loading", "Loading the profile"),
+                            )
                             .child(
                                 v_flex()
                                     .flex_1()
