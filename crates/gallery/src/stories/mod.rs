@@ -84,6 +84,9 @@ mod tree_story;
 mod virtual_list_story;
 mod welcome_story;
 
+// The stories of `isonomic-ui-extra`, which `build.rs` finds and registers.
+pub(crate) mod extra;
+
 pub use accordion_story::AccordionStory;
 pub use alert_dialog_story::AlertDialogStory;
 pub use alert_story::AlertStory;
