@@ -463,6 +463,8 @@ impl RenderOnce for VariantComparisonCard {
             }));
         let is_focused = focus.is_focused(window);
         let head = Pressable::new((self.id.clone(), "head"))
+            .accessibility_label(self.title.clone())
+            .aria_expanded(open)
             .track_focus(&focus)
             .on_click({
                 let state = state.clone();
@@ -486,6 +488,10 @@ impl RenderOnce for VariantComparisonCard {
                     .flex_1()
                     .min_w_0()
                     .items_start()
+                    .gap_0p5()
+                    // The pressable sets a tight line height; give the two
+                    // lines their own so they never overlap.
+                    .line_height(relative(1.4))
                     .child(div().w_full().truncate().font_medium().child(self.title))
                     .child(
                         h_flex()
@@ -593,8 +599,30 @@ impl RenderOnce for VariantComparisonCard {
                 }))
         });
 
+        let row_focus: Vec<FocusHandle> = (0..self.variants.len())
+            .map(|ix| {
+                window
+                    .use_keyed_state(child_id(format!("variant-focus-{ix}")), cx, |_, cx| {
+                        cx.focus_handle()
+                    })
+                    .read(cx)
+                    .clone()
+            })
+            .collect();
         let rows = self.variants.iter().enumerate().map(|(ix, variant)| {
             let is_picked = picked_ix == Some(ix);
+            let row_focused = row_focus[ix].is_focused(window);
+            let mut name = format!(
+                "{}, {}, {}",
+                variant.key,
+                variant.name,
+                (metric.format)(values[ix])
+            );
+            if ix == control {
+                name.push_str(", control");
+            } else if let Some(lift) = lift(values[ix], base) {
+                name.push_str(&format!(", {}", lift_words(lift)));
+            }
             let faded = picked_ix.is_some_and(|picked| picked != ix) && hovered != Some(ix);
             let share = if peak > 0. {
                 (values[ix] / peak).clamp(0., 1.) as f32
@@ -603,6 +631,9 @@ impl RenderOnce for VariantComparisonCard {
             };
             let id = variant.id.clone();
             Pressable::new(child_id(format!("variant-{ix}")))
+                .accessibility_label(name)
+                .aria_selected(is_picked)
+                .track_focus(&row_focus[ix])
                 .on_click({
                     let state = state.clone();
                     let on_pick = self.on_pick.clone();
@@ -646,6 +677,7 @@ impl RenderOnce for VariantComparisonCard {
                 .cursor_pointer()
                 .when(is_picked, |this| this.bg(accent.opacity(0.08)))
                 .when(faded, |this| this.opacity(0.55))
+                .when(row_focused, |this| this.focus_ring_style(window, cx))
                 .child(
                     div()
                         .flex()
