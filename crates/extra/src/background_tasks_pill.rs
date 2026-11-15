@@ -15,6 +15,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _,
     IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Transformation, Window, div,
@@ -235,6 +236,7 @@ impl RenderOnce for BackgroundTasksPill {
             .text_xs()
             .text_color(ink)
             .when(is_focused, |this| this.focus_ring_style(window, cx))
+            .role(Role::Button)
             .aria_label(format!("Background tasks, {words}"))
             .aria_expanded(open)
             .on_click(move |_, window, cx| {
@@ -278,6 +280,7 @@ impl RenderOnce for BackgroundTasksPill {
                         .rounded(radius)
                         .cursor_pointer()
                         .hover(|style| style.bg(chip.opacity(0.6)))
+                        .role(Role::Button)
                         .aria_label(format!("{}, {}", task.label, task.note))
                         .on_click(move |_, window, cx| {
                             if let Some(open_task) = &open_task {
