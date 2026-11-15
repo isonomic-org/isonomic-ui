@@ -1,10 +1,11 @@
 //! Gallery story for the autonomy level control.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::autonomy_level_control::{
     ActionRisk, AgentAction, AutonomyLevel, AutonomyLevelControl,
 };
@@ -20,6 +21,20 @@ impl AutonomyLevelControlStory {
         cx.new(|_| Self {
             last: "Paying suppliers starts locked".into(),
         })
+    }
+}
+
+impl Story for AutonomyLevelControlStory {
+    fn title() -> &'static str {
+        "Autonomy level control"
+    }
+
+    fn description() -> &'static str {
+        "How much an assistant may do without asking."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

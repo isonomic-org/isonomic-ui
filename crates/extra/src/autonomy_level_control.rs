@@ -6,16 +6,16 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Selectable as _, Sizable as _, StyledExt as _,
     ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -419,7 +419,7 @@ impl RenderOnce for AutonomyLevelControl {
             }
         }
 
-        let section = |title: &'static str, rows: Vec<gpui::Div>, empty: &'static str| {
+        let section = |title: &'static str, rows: Vec<isonomic_ui::Div>, empty: &'static str| {
             v_flex()
                 .gap_0p5()
                 .child(
