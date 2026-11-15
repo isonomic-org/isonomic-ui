@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Task, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::handoff_relay::{
     Handoff, HandoffItem, HandoffRelay, ItemKind, RelayTask, RelayTaskStatus, RelayWorker,
 };
@@ -113,6 +114,20 @@ impl HandoffRelayStory {
             .ok();
         }));
         cx.notify();
+    }
+}
+
+impl Story for HandoffRelayStory {
+    fn title() -> &'static str {
+        "Handoff relay"
+    }
+
+    fn description() -> &'static str {
+        "A task passed from worker to worker."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

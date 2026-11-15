@@ -7,16 +7,16 @@
 
 use std::{any::Any, rc::Rc};
 
-use gpui::{
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
+    button::{Button, ButtonVariants as _},
+    h_flex, v_flex,
+};
+use isonomic_ui::{
     App, AppContext as _, Bounds, ElementId, InteractiveElement as _, IntoElement,
     ParentElement as _, PathBuilder, Pixels, Render, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
     prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
 };
 
 use crate::common::resting_shadow;
@@ -315,7 +315,7 @@ struct DraggedTask {
 }
 
 impl Render for DraggedTask {
-    fn render(&mut self, _: &mut Window, cx: &mut gpui::Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut isonomic_ui::Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
         div()
             .px_3()
@@ -577,7 +577,7 @@ impl RenderOnce for HandoffRelay {
                 let toggle = {
                     let ui = ui.clone();
                     let id = handoff.id.clone();
-                    move |_: &gpui::ClickEvent, _: &mut Window, cx: &mut App| {
+                    move |_: &isonomic_ui::ClickEvent, _: &mut Window, cx: &mut App| {
                         ui.update(cx, |ui, cx| {
                             ui.open = if ui.open.as_ref() == Some(&id) {
                                 None
