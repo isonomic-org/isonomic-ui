@@ -77,6 +77,7 @@ struct ComboboxOptions {
     size: Size,
     cleanable: bool,
     placeholder: Option<SharedString>,
+    accessibility_label: Option<SharedString>,
     search_placeholder: Option<SharedString>,
     highlight_matches: bool,
     menu_width: Length,
@@ -95,6 +96,7 @@ impl Default for ComboboxOptions {
             size: Size::default(),
             cleanable: false,
             placeholder: None,
+            accessibility_label: None,
             search_placeholder: None,
             highlight_matches: false,
             menu_width: Length::Auto,
@@ -850,6 +852,14 @@ where
         self
     }
 
+    /// Name the field for screen readers.
+    ///
+    /// Without one, the field is named by its placeholder.
+    pub fn accessibility_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.options.accessibility_label = Some(label.into());
+        self
+    }
+
     /// Set the placeholder text for the search input.
     pub fn search_placeholder(mut self, placeholder: impl Into<SharedString>) -> Self {
         self.options.search_placeholder = Some(placeholder.into());
@@ -954,6 +964,11 @@ where
         let footer = self.footer;
         let empty = self.empty;
         let opts = self.options;
+        // A field with no name of its own is named by the placeholder it shows.
+        let accessibility_label: SharedString = opts
+            .accessibility_label
+            .or_else(|| opts.placeholder.clone())
+            .unwrap_or_else(|| t!("Combobox.placeholder").into());
 
         self.state.update(cx, |this, _| {
             this.state.style = opts.style;
@@ -985,6 +1000,7 @@ where
         BaseCombobox::new(self.id)
             .open(is_open)
             .disabled(disabled)
+            .accessibility_label(accessibility_label)
             .focus_handle(&focus_handle)
             .content_focus_handle(&content_focus_handle)
             .on_open_change(move |open, _, cx| {
