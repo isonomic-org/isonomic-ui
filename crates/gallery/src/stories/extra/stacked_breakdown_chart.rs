@@ -1,9 +1,10 @@
 //! Gallery story for the stacked breakdown chart.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::v_flex;
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Window,
 };
-use gpui_component::v_flex;
 use isonomic_ui_extra::stacked_breakdown_chart::{
     BreakdownDimension, BreakdownMeasure, BreakdownRecord, StackedBreakdownChart,
 };
@@ -26,6 +27,20 @@ const INVOICES: [(&str, [usize; 3], f64); 4] = [
     ("Paid", [31, 18, 12], 220.),
 ];
 const GROUPS: [&str; 3] = ["Retail", "Wholesale", "Subscription"];
+
+impl Story for StackedBreakdownChartStory {
+    fn title() -> &'static str {
+        "Stacked breakdown chart"
+    }
+
+    fn description() -> &'static str {
+        "One set of records, split the way the reader asks."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
+    }
+}
 
 impl Render for StackedBreakdownChartStory {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
