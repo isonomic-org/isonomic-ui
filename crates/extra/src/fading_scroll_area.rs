@@ -9,6 +9,7 @@ use isonomic_ui::component::{
     button::{Button, ButtonVariants as _},
 };
 use isonomic_ui::{
+    Role,
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, Pixels, RenderOnce, ScrollHandle,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, linear_color_stop, linear_gradient,
     point, prelude::FluentBuilder as _, px,
@@ -89,6 +90,7 @@ impl RenderOnce for FadingScrollArea {
                     .max_h(self.max_height)
                     .overflow_y_scroll()
                     .track_scroll(&handle)
+                    .role(Role::ScrollView)
                     .when_some(self.label, |this, label| this.aria_label(label))
                     .on_scroll(|_, window, _| window.refresh())
                     .children(self.children)
