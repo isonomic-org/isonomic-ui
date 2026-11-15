@@ -9,7 +9,10 @@ use gpui::{
 use isonomic_ui_base::{Toggle as BaseToggle, ToggleGroup as BaseToggleGroup};
 use smallvec::{SmallVec, smallvec};
 
-use crate::{ActiveTheme, Disableable, Icon, Sizable, Size, StyledExt, tooltip::ComponentTooltip};
+use crate::{
+    ActiveTheme, Disableable, Icon, Sizable, Size, StyledExt, ThemeStyled as _,
+    tooltip::ComponentTooltip,
+};
 
 #[derive(Default, Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ToggleVariant {
@@ -156,7 +159,13 @@ impl Styled for Toggle {
 }
 
 impl RenderOnce for Toggle {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        // The toggle owns its focus handle so it can show where the keyboard is.
+        let focus_handle = window
+            .use_keyed_state(self.id.clone(), cx, |_, cx| cx.focus_handle())
+            .read(cx)
+            .clone();
+        let is_focused = focus_handle.is_focused(window);
         let checked = self.checked;
         let disabled = self.disabled;
         let hoverable = !disabled && !checked;
@@ -168,6 +177,7 @@ impl RenderOnce for Toggle {
             super::logical_corners_edges(self.border_corners, self.border_edges, cx);
 
         BaseToggle::new(self.id)
+            .track_focus(&focus_handle)
             .pressed(checked)
             .disabled(disabled)
             .when_some(
@@ -221,6 +231,7 @@ impl RenderOnce for Toggle {
                 })
             })
             .refine_style(&self.style)
+            .when(is_focused, |this| this.focus_ring_style(window, cx))
             .children(self.children)
             .map(|this| self.tooltip.apply(this))
     }
