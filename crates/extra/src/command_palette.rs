@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, AppContext as _, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
     InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke, ParentElement as _, Render,
     SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
@@ -209,6 +210,7 @@ impl Render for CommandPalette {
                             .when(ix == cursor, |this| this.bg(chip))
                             .when(!off, |this| this.cursor_pointer())
                             .aria_selected(ix == cursor)
+                            .role(Role::ListBoxOption)
                             .aria_label(match &command.unavailable {
                                 Some(why) => format!("{}, unavailable: {why}", command.name),
                                 None => command.name.to_string(),
