@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     canvas, div, point, prelude::FluentBuilder as _, px, relative,
@@ -200,6 +201,7 @@ impl RenderOnce for JobQueueView {
                     .border_1()
                     .border_color(line)
                     .when(!worker.online, |this| this.border_dashed().opacity(0.6))
+                    .role(Role::Group)
                     .aria_label(format!(
                         "{}, {}{}",
                         worker.name,
@@ -243,6 +245,7 @@ impl RenderOnce for JobQueueView {
                     .px_2()
                     .py_1p5()
                     .when(ix > 0, |this| this.border_t_1().border_color(line))
+                    .role(Role::ListItem)
                     .aria_label(format!("{}, waited {}", job.label, waited_words(job.waited_secs)))
                     .child(div().w(px(18.)).flex_none().text_xs().text_color(quiet).child((ix + 1).to_string()))
                     .child(
@@ -326,6 +329,7 @@ impl RenderOnce for JobQueueView {
                         .relative()
                         .h(px(64.))
                         .w_full()
+                        .role(Role::Image)
                         .aria_label(format!("Backlog depth over {} samples, peak {peak}, now {latest}", samples.len()))
                         .child(
                             canvas(
