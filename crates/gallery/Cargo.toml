@@ -15,6 +15,7 @@ default = ["tree-sitter"]
 anyhow.workspace = true
 isonomic-ui = { workspace = true, features = ["speech"] }
 isonomic-ui-fps.workspace = true
+isonomic-ui-extra.workspace = true
 lsp-types.workspace = true
 
 async-channel = "2.3.1"

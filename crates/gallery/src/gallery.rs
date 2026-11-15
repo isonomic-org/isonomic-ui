@@ -61,7 +61,7 @@ impl Gallery {
             }
             _ => {}
         })];
-        let stories = vec![(
+        let mut stories = vec![(
             "",
             vec![
                 StoryContainer::panel::<WelcomeStory>(window, cx),
@@ -146,6 +146,9 @@ impl Gallery {
                 StoryContainer::panel::<VirtualListStory>(window, cx),
             ],
         )];
+        // Then every story of `isonomic-ui-extra`, which `build.rs` lists.
+        let extra = crate::stories::extra::panels(window, cx);
+        stories[0].1.extend(extra);
 
         let mut this = Self {
             search_input,
