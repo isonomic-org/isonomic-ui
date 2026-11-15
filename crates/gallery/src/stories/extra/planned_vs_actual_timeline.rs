@@ -2,10 +2,11 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::v_flex;
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Window,
 };
-use gpui_component::v_flex;
 use isonomic_ui_extra::planned_vs_actual_timeline::{PlanStep, PlannedVsActualTimeline};
 
 /// Shows a month-end close running late after the bank import overran.
@@ -20,6 +21,20 @@ impl PlannedVsActualTimelineStory {
 
 fn secs(seconds: u64) -> Duration {
     Duration::from_secs(seconds)
+}
+
+impl Story for PlannedVsActualTimelineStory {
+    fn title() -> &'static str {
+        "Planned vs actual timeline"
+    }
+
+    fn description() -> &'static str {
+        "A run's plan against what really happened."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
+    }
 }
 
 impl Render for PlannedVsActualTimelineStory {
