@@ -216,8 +216,13 @@ impl RenderOnce for ProfileMenu {
             .map(|((item, id), handle)| {
                 let is_focused = handle.is_focused(window);
                 let on_select = item.on_select;
+                let name = match &item.badge {
+                    Some(badge) => format!("{}, {badge}", item.label),
+                    None => item.label.to_string(),
+                };
                 Pressable::new(id)
                     .role(Role::MenuItem)
+                    .accessibility_label(name)
                     .track_focus(handle)
                     .on_click(move |_, window, cx| {
                         if let Some(on_select) = &on_select {
@@ -285,6 +290,7 @@ impl RenderOnce for ProfileMenu {
                 .when_some(next, |this, next| {
                     this.child(
                         Pressable::new(next_id)
+                            .accessibility_label(format!("Next: {next}"))
                             .track_focus(&next_focus)
                             .on_click(move |_, window, cx| {
                                 if let Some(on_continue) = &on_continue {
