@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     menu::{DropdownMenu as _, PopupMenuItem},
 };
 use isonomic_ui::{
+    Role,
     App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
 };
@@ -168,6 +169,7 @@ impl RenderOnce for PageNavigator {
                         .px_1()
                         .text_sm()
                         .text_color(quiet)
+                        .role(Role::Label)
                         .aria_label("More pages")
                         .child("\u{2026}")
                         .into_any_element(),
@@ -214,6 +216,7 @@ impl RenderOnce for PageNavigator {
             .gap_3()
             .justify_between()
             .flex_wrap()
+            .role(Role::Navigation)
             .aria_label(format!("Pages, on page {page} of {pages}"))
             .child(
                 h_flex()
