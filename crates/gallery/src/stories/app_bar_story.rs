@@ -160,15 +160,20 @@ impl Render for AppBarStory {
             )
             .child(
                 section("With content")
-                    .description("Content such as a search field fills the space before the commands.")
+                    .description("A search field or tabs fill the space before the commands.")
                     .child(frame(content_bar, cx)),
             )
             .child(
                 section("Overflow")
                     .description(
-                        "Past the limit, commands move into a More actions menu, in order; a long title truncates first.",
+                        "Extra commands move into a More actions menu; long titles truncate.",
                     )
-                    .child(div().w_full().max_w(px(360.)).child(frame(overflow_bar, cx))),
+                    .child(
+                        div()
+                            .w_full()
+                            .max_w(px(360.))
+                            .child(frame(overflow_bar, cx)),
+                    ),
             )
             .child(
                 section("Without a border")
