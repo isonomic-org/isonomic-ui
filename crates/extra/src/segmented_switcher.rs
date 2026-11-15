@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
 use isonomic_ui::{
+    KeyDownEvent,
     Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
@@ -67,6 +68,34 @@ pub fn short_count(count: usize) -> String {
     }
 }
 
+/// The segment an arrow, Home or End key moves to from `selected`, skipping
+/// segments that are off and wrapping at the ends.
+pub fn step_segment(selected: usize, enabled: &[bool], key: &str) -> Option<usize> {
+    let count = enabled.len();
+    if count == 0 || !enabled.iter().any(|e| *e) {
+        return None;
+    }
+    let first = enabled.iter().position(|e| *e)?;
+    let last = enabled.iter().rposition(|e| *e)?;
+    let walk = |forward: bool| {
+        let mut ix = selected.min(count - 1);
+        for _ in 0..count {
+            ix = if forward { (ix + 1) % count } else { (ix + count - 1) % count };
+            if enabled[ix] {
+                return Some(ix);
+            }
+        }
+        None
+    };
+    match key {
+        "right" | "down" => walk(true),
+        "left" | "up" => walk(false),
+        "home" => Some(first),
+        "end" => Some(last),
+        _ => None,
+    }
+}
+
 type SelectHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
 /// A row of joined choices.
@@ -121,8 +150,19 @@ impl Styled for SegmentedSwitcher {
 }
 
 impl RenderOnce for SegmentedSwitcher {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let focus = window
+            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
+            .read(cx)
+            .clone();
+        let focused = focus.is_focused(window);
+        let enabled: Vec<bool> = self.segments.iter().map(|s| !s.disabled).collect();
+        let selected = self.selected;
+        let key_pick = self.on_select.clone();
         let theme = cx.theme();
+        let ring = theme.ring;
         let track = theme.muted;
         let raised = theme.background;
         let ink = theme.foreground;
@@ -147,6 +187,7 @@ impl RenderOnce for SegmentedSwitcher {
                 .aria_label(segment_label(&segment.label, segment.count))
                 .aria_selected(on)
                 .when(on, |this| this.bg(raised).shadow(shadow.clone()).text_color(ink).font_medium())
+                .when(on && focused, |this| this.border_1().border_color(ring))
                 .when(!on && !segment.disabled, |this| {
                     this.text_color(quiet).cursor_pointer().hover(|s| s.text_color(ink)).on_click(move |_, window, cx| {
                         if let Some(pick) = &pick {
@@ -181,6 +222,15 @@ impl RenderOnce for SegmentedSwitcher {
             .when(self.fill, |this| this.w_full())
             .role(Role::RadioGroup)
             .aria_label(self.label.clone())
+            .track_focus(&focus)
+            .on_key_down(move |event: &KeyDownEvent, window, cx| {
+                if let Some(next) = step_segment(selected, &enabled, event.keystroke.key.as_str()) {
+                    cx.stop_propagation();
+                    if let Some(pick) = &key_pick {
+                        pick(next, window, cx);
+                    }
+                }
+            })
             .children(segments)
             .refine_style(&self.style)
     }
@@ -199,6 +249,13 @@ mod tests {
         assert_eq!(short_count(1250), "1.2k");
         assert_eq!(short_count(48_200), "48k");
         assert_eq!(short_count(3_400_000), "3m");
+        assert_eq!(step_segment(0, &[true, true, false, true], "right"), Some(1));
+        assert_eq!(step_segment(1, &[true, true, false, true], "right"), Some(3));
+        assert_eq!(step_segment(3, &[true, true, false, true], "right"), Some(0));
+        assert_eq!(step_segment(0, &[true, true, false, true], "left"), Some(3));
+        assert_eq!(step_segment(2, &[false, true, true, false], "home"), Some(1));
+        assert_eq!(step_segment(0, &[true, true], "end"), Some(1));
+        assert_eq!(step_segment(0, &[false, false], "right"), None);
         let segment = Segment::new("Draft").icon(IconName::File).count(2).disabled(true);
         assert!(segment.disabled && segment.count == Some(2));
     }
