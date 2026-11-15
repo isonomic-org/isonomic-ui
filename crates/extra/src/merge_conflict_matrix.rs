@@ -16,6 +16,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
@@ -240,6 +241,7 @@ impl RenderOnce for MergeConflictMatrix {
                     .h(px(36.))
                     .when(ix > 0, |this| this.border_t_1().border_color(line))
                     .when(conflict && file.resolution.is_none(), |this| this.bg(warning.opacity(0.05)))
+                    .role(Role::Row)
                     .aria_label(format!(
                         "{}, changed on {} branches{}",
                         file.path,
