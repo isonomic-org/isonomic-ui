@@ -351,7 +351,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
                             .px_1()
                             .rounded(px(4.))
                             .hover(|style| style.bg(paint.line.opacity(0.5)))
-                            .role(Role::ListItem)
+                            .role(Role::Button)
                             .aria_label(format!(
                                 "{} {helpers} helpers of {}",
                                 if is_folded { "Show" } else { "Hide" },
