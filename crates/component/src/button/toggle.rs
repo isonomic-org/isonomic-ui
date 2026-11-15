@@ -44,6 +44,8 @@ pub struct Toggle {
     children: SmallVec<[AnyElement; 1]>,
     on_click: Option<Box<dyn Fn(&bool, &mut Window, &mut App) + 'static>>,
     tooltip: ComponentTooltip,
+    label: Option<SharedString>,
+    accessibility_label: Option<SharedString>,
 }
 
 impl Toggle {
@@ -66,6 +68,8 @@ impl Toggle {
             children: smallvec![],
             on_click: None,
             tooltip: ComponentTooltip::default(),
+            label: None,
+            accessibility_label: None,
         }
     }
 
@@ -83,10 +87,20 @@ impl Toggle {
         self
     }
 
-    /// Add a label to the toggle.
+    /// Add a label to the toggle. It also names the toggle for screen readers.
     pub fn label(mut self, label: impl Into<SharedString>) -> Self {
         let label: SharedString = label.into();
+        self.label.get_or_insert_with(|| label.clone());
         self.children.push(label.into_any_element());
+        self
+    }
+
+    /// Name the toggle for screen readers.
+    ///
+    /// Without one, the toggle is named by its label, or else by its tooltip.
+    /// A toggle that shows only an icon needs one of the three.
+    pub fn accessibility_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.accessibility_label = Some(label.into());
         self
     }
 
@@ -171,7 +185,9 @@ impl RenderOnce for Toggle {
             .pressed(checked)
             .disabled(disabled)
             .when_some(
-                self.tooltip.text.as_ref().map(|(text, _)| text.clone()),
+                self.accessibility_label
+                    .or(self.label)
+                    .or_else(|| self.tooltip.text.as_ref().map(|(text, _)| text.clone())),
                 |this, label| this.accessibility_label(label),
             )
             .when_some(self.on_click, |this, on_click| {
