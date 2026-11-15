@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -129,6 +130,7 @@ impl RenderOnce for EmptyStatePanel {
                 .border_dashed()
                 .border_color(line)
                 .text_sm()
+                .role(Role::Group)
                 .aria_label(format!("{}. {}", self.title, self.body))
                 .child(Icon::new(icon).small().text_color(color))
                 .child(
@@ -155,6 +157,7 @@ impl RenderOnce for EmptyStatePanel {
             .border_dashed()
             .border_color(line)
             .text_sm()
+            .role(Role::Group)
             .aria_label(format!("{}. {}", self.title, self.body))
             .child(
                 div()
