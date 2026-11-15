@@ -51,7 +51,8 @@ impl Render for TipsGridStory {
         let find = Keystroke::parse("cmd-f").ok().map(Kbd::new);
 
         v_flex()
-            .w(px(680.))
+            .w_full()
+            .max_w(px(680.))
             .gap_3()
             .child(
                 TipsGrid::new("tips")
