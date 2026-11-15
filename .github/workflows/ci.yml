@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    uses: isonomic-org/.github/.github/workflows/rust-ci.yml@main
+    secrets: inherit
+    with:
+      # The toolchain the code is formatted and linted with. Newer rustfmt
+      # lays out some macro arguments differently, so stable would fail fmt.
+      toolchain: "1.97"
+      # Default features plus the test hooks. `gpui-fast` swaps in the other
+      # GPUI backend, so --all-features would run the suite on the wrong one.
+      features: --features isonomic-ui-component/test-support,isonomic-ui-base/test-support
+      linux-gui-libs: true
+      # The gallery opens native file dialogs through GTK on Linux.
+      apt-packages: libgtk-3-dev
+      # Some existing files exceed 20 KB; new files still keep to 20 KB.
+      max-file-bytes: 1048576
