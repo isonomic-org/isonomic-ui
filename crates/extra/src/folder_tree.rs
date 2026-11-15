@@ -9,6 +9,7 @@ use std::collections::HashSet;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     App, Context, ElementId, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyDownEvent,
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
     prelude::FluentBuilder as _, px,
@@ -211,6 +212,9 @@ impl Render for FolderTree {
                 .when(picked, |this| this.bg(picked_bg))
                 .when(picked && focused, |this| this.border_1().border_color(ring))
                 .when(!picked, |this| this.hover(move |s| s.bg(hover)))
+                .role(Role::TreeItem)
+                .aria_level(row.depth + 1)
+                .when(row.folder, |this| this.aria_expanded(open))
                 .aria_label(match (row.folder, open) {
                     (true, true) => format!("{label}, folder, open"),
                     (true, false) => format!("{label}, folder, closed"),
@@ -253,6 +257,7 @@ impl Render for FolderTree {
             .id("folder-tree")
             .track_focus(&self.focus)
             .gap_px()
+            .role(Role::Tree)
             .aria_label(self.label.clone())
             .on_key_down(cx.listener(Self::key_down))
             .children(items)
