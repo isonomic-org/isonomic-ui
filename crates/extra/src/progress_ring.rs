@@ -9,6 +9,7 @@ use std::time::Instant;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
 use isonomic_ui::{
+    Role,
     App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder, Pixels,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
     prelude::FluentBuilder as _, px,
@@ -165,6 +166,10 @@ impl RenderOnce for ProgressRing {
             .id(self.id.clone())
             .gap_2()
             .flex_none()
+            .role(Role::ProgressIndicator)
+            .when_some(share, |this, share| {
+                this.aria_numeric_value(f64::from(share * 100.0)).aria_min_numeric_value(0.0).aria_max_numeric_value(100.0)
+            })
             .aria_label(spoken)
             .child(
                 div()
