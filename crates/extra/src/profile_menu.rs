@@ -3,15 +3,15 @@
 
 use std::rc::Rc;
 
-use gpui::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
+    avatar::Avatar, h_flex, progress::Progress, v_flex,
+};
+use isonomic_ui::{
     AnyElement, App, ElementId, FocusHandle, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
-    avatar::Avatar, h_flex, progress::Progress, v_flex,
 };
 
 type Handler = Rc<dyn Fn(&mut Window, &mut App)>;

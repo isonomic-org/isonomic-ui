@@ -1,10 +1,11 @@
 //! Gallery story for the profile menu.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::profile_menu::{ProfileMenu, ProfileMenuItem, ProfileSetup};
 
 /// Shows a menu with a badge and setup progress, and reports the last choice.
@@ -18,6 +19,20 @@ impl ProfileMenuStory {
         cx.new(|_| Self {
             last: "Nothing chosen yet".into(),
         })
+    }
+}
+
+impl Story for ProfileMenuStory {
+    fn title() -> &'static str {
+        "Profile menu"
+    }
+
+    fn description() -> &'static str {
+        "The card behind an avatar, with the signed-in user, account"
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
