@@ -5,7 +5,8 @@ use std::time::Duration;
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StyleRefinement, Styled, Window, div,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -66,6 +67,22 @@ impl MetricChange {
             _ => Some(self.direction.unwrap_or(TrendDirection::Up)),
         }
     }
+}
+
+/// A change in words for screen readers, such as "Churn: Down to 2.1%, falling, good".
+pub fn spoken_change(change: &MetricChange) -> String {
+    let way = match change.arrow() {
+        None => "no change",
+        Some(TrendDirection::Up) => "rising",
+        Some(TrendDirection::Down) => "falling",
+    };
+    let verdict = match change.tone {
+        Tone::Success => ", good",
+        Tone::Warning => ", needs attention",
+        Tone::Danger => ", bad",
+        Tone::Neutral | Tone::Info => "",
+    };
+    format!("{}: {}, {way}{verdict}", change.label, change.change)
 }
 
 /// A card that lists what changed since last time.
@@ -153,6 +170,7 @@ impl RenderOnce for MetricChangeList {
 
         let rows = self.changes.into_iter().enumerate().map(|(ix, change)| {
             let arrow = change.arrow();
+            let spoken = spoken_change(&change);
             let mark = match arrow {
                 None => IconName::Minus,
                 Some(TrendDirection::Up) => IconName::ArrowUp,
@@ -160,6 +178,8 @@ impl RenderOnce for MetricChangeList {
             };
             let row = div()
                 .id(ix)
+                .role(Role::ListItem)
+                .aria_label(spoken)
                 .relative()
                 .flex()
                 .px(inset)
@@ -227,8 +247,14 @@ impl RenderOnce for MetricChangeList {
             .into_any_element()
         });
 
+        let heading = match &self.period {
+            Some(period) => format!("{}, {period}", self.title),
+            None => self.title.to_string(),
+        };
         v_flex()
             .id(self.id)
+            .role(Role::List)
+            .aria_label(heading)
             .w_full()
             .max_w(px(480.))
             .overflow_hidden()
@@ -279,6 +305,13 @@ impl RenderOnce for MetricChangeList {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn changes_read_in_words() {
+        let churn = MetricChange::new("Churn", "Down to 2.1%").tone(Tone::Success).direction(TrendDirection::Down);
+        assert_eq!(spoken_change(&churn), "Churn: Down to 2.1%, falling, good");
+        assert_eq!(spoken_change(&MetricChange::new("Seats", "Same as last week")), "Seats: Same as last week, no change");
+    }
 
     #[test]
     fn a_neutral_change_draws_a_dash() {
