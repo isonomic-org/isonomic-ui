@@ -16,6 +16,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
     PathBuilder, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
     Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px, relative,
@@ -312,6 +313,7 @@ impl RenderOnce for AgentNetworkGraph {
                     .gap_1()
                     .cursor_pointer()
                     .when(!near, |this| this.opacity(0.35))
+                    .role(Role::Button)
                     .aria_label(format!("{}, {} links", node.label, neighbours(&self.links, &node.id).len()))
                     .aria_selected(is_selected)
                     .on_click(move |_, window, cx| {
@@ -438,6 +440,7 @@ impl RenderOnce for AgentNetworkGraph {
                     .id(ElementId::NamedChild(self.id.clone().into(), "canvas".into()))
                     .track_focus(&focus)
                     .on_key_down(key_down)
+                    .role(Role::Group)
                     .aria_label("Network")
                     .relative()
                     .m_1()
