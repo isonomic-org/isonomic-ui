@@ -12,7 +12,7 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, Bounds, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, PathBuilder, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    ParentElement as _, PathBuilder, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, canvas, div, fill, point, prelude::FluentBuilder as _, px,
     relative, size,
 };
@@ -275,6 +275,30 @@ impl RenderOnce for MetricTrendCard {
             })
             .collect();
         let format = self.format.clone();
+        let card_name = match self.delta {
+            Some(delta) => format!("{}: {}, {} on the period before", self.title, self.value, delta_words(delta, format.as_ref())),
+            None => format!("{}: {}", self.title, self.value),
+        };
+        let plot_name = if is_empty {
+            self.empty_text.to_string()
+        } else {
+            match shown {
+                Some(ix) => {
+                    let heading = self.long_labels.get(ix).or_else(|| self.labels.get(ix)).map(|h| format!("{h}: ")).unwrap_or_default();
+                    let values = self
+                        .series
+                        .iter()
+                        .map(|series| match series.values.get(ix) {
+                            Some(value) => format!("{} {}", series.label, format(*value)),
+                            None => format!("{} no value", series.label),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!("Plot, {heading}{values}")
+                }
+                None => format!("Plot of {points} points. Use the arrow keys to read each one"),
+            }
+        };
 
         let delta = self.delta.map(|delta| {
             let (color, icon) = if delta > 0. {
@@ -432,6 +456,8 @@ impl RenderOnce for MetricTrendCard {
         let is_focused = focus.is_focused(window);
         let plot = div()
             .id((self.id.clone(), "plot"))
+            .role(Role::Figure)
+            .aria_label(plot_name)
             .track_focus(&focus)
             .on_key_down({
                 move |event, _, cx| {
@@ -500,6 +526,8 @@ impl RenderOnce for MetricTrendCard {
 
         v_flex()
             .id(self.id.clone())
+            .role(Role::Group)
+            .aria_label(card_name)
             .w_full()
             .max_w(px(460.))
             .rounded(radius_lg)
