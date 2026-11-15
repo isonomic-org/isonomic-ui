@@ -41,8 +41,14 @@ impl PromptComposerStory {
             let composer =
                 cx.new(|cx| PromptComposer::new("Ask about your books\u{2026}", window, cx));
             let apps = vec![
-                (ComposerChoice::new("bank", "Bank feed").note("Read only"), true),
-                (ComposerChoice::new("mail", "Mail").note("Drafts only"), true),
+                (
+                    ComposerChoice::new("bank", "Bank feed").note("Read only"),
+                    true,
+                ),
+                (
+                    ComposerChoice::new("mail", "Mail").note("Drafts only"),
+                    true,
+                ),
                 (ComposerChoice::new("payroll", "Payroll"), false),
             ];
             composer.update(cx, |composer, cx| {
