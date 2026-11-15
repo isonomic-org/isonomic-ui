@@ -17,8 +17,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -298,6 +298,29 @@ impl RenderOnce for EliminationBracket {
             .or(latest)
             .filter(|(round, _)| *round < rounds);
 
+        // A match in words: "Semi-final: Draft A against Draft B, Draft A won".
+        let match_words = |key: MatchKey| {
+            let (round, position) = key;
+            let name = |slot: Option<usize>| {
+                slot.and_then(|ix| self.contenders.get(ix))
+                    .map(|c| c.name.to_string())
+                    .unwrap_or_else(|| "waiting".into())
+            };
+            let upper = slots[round].get(position * 2).copied().flatten();
+            let lower = slots[round].get(position * 2 + 1).copied().flatten();
+            let result = match self.verdicts.get(&key) {
+                Some(verdict) => {
+                    let winner = match verdict.winner {
+                        Side::Upper => name(upper),
+                        Side::Lower => name(lower),
+                    };
+                    format!(", {winner} won")
+                }
+                None if self.judging == Some(key) => ", being judged".to_string(),
+                None => String::new(),
+            };
+            format!("{}: {} against {}{result}", round_name(round, rounds), name(upper), name(lower))
+        };
         let open = |key: MatchKey| {
             let state = state.clone();
             move |_: &isonomic_ui::ClickEvent, _: &mut Window, cx: &mut App| {
@@ -363,6 +386,9 @@ impl RenderOnce for EliminationBracket {
                 let lower = slots[round][position * 2 + 1];
                 div()
                     .id(("match", round * 64 + position))
+                    .role(Role::Button)
+                    .aria_label(match_words(key))
+                    .aria_selected(is_shown)
                     .relative()
                     .rounded(radius)
                     .border_1()
@@ -406,6 +432,9 @@ impl RenderOnce for EliminationBracket {
                     .flex_1()
                     .min_w_0()
                     .gap_2()
+                    .id("winner")
+                    .role(Role::Status)
+                    .aria_label(format!("Winner: {}", winner.name))
                     .child(div().text_xs().text_color(quiet).child("WINNER"))
                     .child(
                         v_flex().flex_1().justify_center().child(
@@ -430,8 +459,14 @@ impl RenderOnce for EliminationBracket {
             });
 
         let is_focused = focus.is_focused(window);
+        let bracket_name = match shown {
+            Some(key) => format!("Bracket, {decided} of {total} matches decided. {}", match_words(key)),
+            None => format!("Bracket, {decided} of {total} matches decided"),
+        };
         let bracket = h_flex()
             .id((self.id.clone(), "bracket"))
+            .role(Role::Group)
+            .aria_label(bracket_name)
             .track_focus(&focus)
             .on_key_down({
                 let state = state.clone();
@@ -572,6 +607,8 @@ impl RenderOnce for EliminationBracket {
 
         v_flex()
             .id(self.id.clone())
+            .role(Role::Group)
+            .aria_label(self.title.clone())
             .w_full()
             .gap_3()
             .text_sm()
