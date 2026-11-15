@@ -14,9 +14,8 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, AppContext as _, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
-    HighlightStyle, InteractiveElement as _, IntoElement, ParentElement as _, Render,
+    HighlightStyle, InteractiveElement as _, IntoElement, ParentElement as _, Render, Role,
     SharedString, StatefulInteractiveElement as _, Styled as _, StyledText, Subscription, Window,
     div, prelude::FluentBuilder as _, px, relative,
 };
@@ -45,7 +44,11 @@ pub struct Participant {
 
 impl Participant {
     /// Create a participant.
-    pub fn new(id: impl Into<SharedString>, handle: impl Into<SharedString>, kind: ParticipantKind) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        handle: impl Into<SharedString>,
+        kind: ParticipantKind,
+    ) -> Self {
         Self {
             id: id.into(),
             handle: handle.into(),
@@ -71,7 +74,11 @@ pub struct StreamMessage {
 
 impl StreamMessage {
     /// Create a message from a participant.
-    pub fn new(id: impl Into<SharedString>, from: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        from: impl Into<SharedString>,
+        text: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             from: Some(from.into()),
@@ -145,7 +152,10 @@ pub fn mentions_in(people: &[Participant], text: &str) -> Vec<SharedString> {
             let tag = format!("@{}", p.handle);
             text.match_indices(&tag).any(|(at, _)| {
                 let end = at + tag.len();
-                text[end..].chars().next().is_none_or(|c| !c.is_alphanumeric())
+                text[end..]
+                    .chars()
+                    .next()
+                    .is_none_or(|c| !c.is_alphanumeric())
             })
         })
         .map(|p| p.id.clone())
@@ -196,18 +206,19 @@ impl AgentMessageStream {
             field.set_submit_on_enter(true, cx);
             field
         });
-        let field_events = cx.subscribe_in(&field, window, |this, _, event, window, cx| match event {
-            InputEvent::PressEnter { shift: false, .. } => {
-                if !this.complete_mention(window, cx) {
-                    this.send(window, cx);
+        let field_events =
+            cx.subscribe_in(&field, window, |this, _, event, window, cx| match event {
+                InputEvent::PressEnter { shift: false, .. } => {
+                    if !this.complete_mention(window, cx) {
+                        this.send(window, cx);
+                    }
                 }
-            }
-            InputEvent::Change => {
-                this.picked = 0;
-                cx.notify();
-            }
-            _ => {}
-        });
+                InputEvent::Change => {
+                    this.picked = 0;
+                    cx.notify();
+                }
+                _ => {}
+            });
         Self {
             people,
             messages: Vec::new(),
@@ -239,7 +250,12 @@ impl AgentMessageStream {
     fn matches(&self, cx: &App) -> Vec<Participant> {
         let text = self.field.read(cx).value();
         typing_mention(&text)
-            .map(|typed| mention_matches(&self.people, typed).into_iter().cloned().collect())
+            .map(|typed| {
+                mention_matches(&self.people, typed)
+                    .into_iter()
+                    .cloned()
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -253,7 +269,8 @@ impl AgentMessageStream {
             return false;
         };
         let next = format!("{}@{} ", &text[..at], person.handle);
-        self.field.update(cx, |field, cx| field.set_value(next, window, cx));
+        self.field
+            .update(cx, |field, cx| field.set_value(next, window, cx));
         self.picked = 0;
         cx.notify();
         true
@@ -263,7 +280,8 @@ impl AgentMessageStream {
         let text = self.field.read(cx).value().to_string();
         if let Some(at) = text.rfind('@') {
             let next = format!("{}@{handle} ", &text[..at]);
-            self.field.update(cx, |field, cx| field.set_value(next, window, cx));
+            self.field
+                .update(cx, |field, cx| field.set_value(next, window, cx));
         }
         self.field.focus_handle(cx).focus(window, cx);
         cx.notify();
@@ -280,7 +298,8 @@ impl AgentMessageStream {
             text: trimmed.to_string().into(),
             mentions,
         });
-        self.field.update(cx, |field, cx| field.set_value("", window, cx));
+        self.field
+            .update(cx, |field, cx| field.set_value("", window, cx));
         cx.notify();
     }
 
@@ -322,7 +341,10 @@ impl Render for AgentMessageStream {
             .map(|person| {
                 let id = person.as_ref().map(|p| p.id.clone());
                 let active = self.filter == id;
-                let label: SharedString = person.as_ref().map(|p| p.handle.clone()).unwrap_or_else(|| "Everyone".into());
+                let label: SharedString = person
+                    .as_ref()
+                    .map(|p| p.handle.clone())
+                    .unwrap_or_else(|| "Everyone".into());
                 h_flex()
                     .id(ElementId::Name(format!("filter-{label}").into()))
                     .gap_1()
@@ -343,9 +365,13 @@ impl Render for AgentMessageStream {
                         cx.notify();
                     }))
                     .children(person.map(|p| {
-                        Icon::new(if p.kind == ParticipantKind::Agent { IconName::Bot } else { IconName::User })
-                            .xsmall()
-                            .text_color(quiet)
+                        Icon::new(if p.kind == ParticipantKind::Agent {
+                            IconName::Bot
+                        } else {
+                            IconName::User
+                        })
+                        .xsmall()
+                        .text_color(quiet)
                     }))
                     .child(label)
             })
@@ -393,12 +419,20 @@ impl Render for AgentMessageStream {
                                     .flex()
                                     .items_center()
                                     .justify_center()
-                                    .rounded(if kind == Some(ParticipantKind::Person) { px(12.) } else { px(6.) })
+                                    .rounded(if kind == Some(ParticipantKind::Person) {
+                                        px(12.)
+                                    } else {
+                                        px(6.)
+                                    })
                                     .bg(chip)
                                     .child(
-                                        Icon::new(if kind == Some(ParticipantKind::Person) { IconName::User } else { IconName::Bot })
-                                            .xsmall()
-                                            .text_color(quiet),
+                                        Icon::new(if kind == Some(ParticipantKind::Person) {
+                                            IconName::User
+                                        } else {
+                                            IconName::Bot
+                                        })
+                                        .xsmall()
+                                        .text_color(quiet),
                                     ),
                             )
                             .child(
@@ -409,11 +443,20 @@ impl Render for AgentMessageStream {
                                         h_flex()
                                             .gap_1p5()
                                             .text_xs()
-                                            .child(div().font_semibold().text_color(ink).child(self.handle(from)))
+                                            .child(
+                                                div()
+                                                    .font_semibold()
+                                                    .text_color(ink)
+                                                    .child(self.handle(from)),
+                                            )
                                             .children(message.to.as_ref().map(|to| {
-                                                div().text_color(quiet).child(format!("\u{2192} {}", self.handle(to)))
+                                                div()
+                                                    .text_color(quiet)
+                                                    .child(format!("\u{2192} {}", self.handle(to)))
                                             }))
-                                            .child(div().text_color(quiet).child(message.when.clone())),
+                                            .child(
+                                                div().text_color(quiet).child(message.when.clone()),
+                                            ),
                                     )
                                     .child(div().line_height(relative(1.45)).child(text)),
                             )
@@ -446,11 +489,17 @@ impl Render for AgentMessageStream {
                         .cursor_pointer()
                         .when(ix == picked, |this| this.bg(chip))
                         .aria_selected(ix == picked)
-                        .on_click(cx.listener(move |this, _, window, cx| this.pick(handle.clone(), window, cx)))
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.pick(handle.clone(), window, cx)
+                        }))
                         .child(
-                            Icon::new(if person.kind == ParticipantKind::Agent { IconName::Bot } else { IconName::User })
-                                .xsmall()
-                                .text_color(quiet),
+                            Icon::new(if person.kind == ParticipantKind::Agent {
+                                IconName::Bot
+                            } else {
+                                IconName::User
+                            })
+                            .xsmall()
+                            .text_color(quiet),
                         )
                         .child(format!("@{}", person.handle))
                 }))
@@ -498,25 +547,33 @@ impl Render for AgentMessageStream {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .capture_key_down(cx.listener(move |this, event: &isonomic_ui::KeyDownEvent, _, cx| {
-                        if count == 0 {
-                            return;
-                        }
-                        match event.keystroke.key.as_str() {
-                            "down" => {
-                                this.picked = (this.picked + 1) % count;
-                                cx.stop_propagation();
-                                cx.notify();
+                    .capture_key_down(cx.listener(
+                        move |this, event: &isonomic_ui::KeyDownEvent, _, cx| {
+                            if count == 0 {
+                                return;
                             }
-                            "up" => {
-                                this.picked = (this.picked + count - 1) % count;
-                                cx.stop_propagation();
-                                cx.notify();
+                            match event.keystroke.key.as_str() {
+                                "down" => {
+                                    this.picked = (this.picked + 1) % count;
+                                    cx.stop_propagation();
+                                    cx.notify();
+                                }
+                                "up" => {
+                                    this.picked = (this.picked + count - 1) % count;
+                                    cx.stop_propagation();
+                                    cx.notify();
+                                }
+                                _ => {}
                             }
-                            _ => {}
-                        }
-                    }))
-                    .child(div().flex_1().min_w_0().child(Textarea::new(&self.field).appearance(false).aria_label("Message to the stream")))
+                        },
+                    ))
+                    .child(
+                        div().flex_1().min_w_0().child(
+                            Textarea::new(&self.field)
+                                .appearance(false)
+                                .aria_label("Message to the stream"),
+                        ),
+                    )
                     .child(
                         Button::new("stream-send")
                             .small()
@@ -553,9 +610,15 @@ mod tests {
     #[test]
     fn matches_and_mentions_find_people() {
         let people = people();
-        let found: Vec<_> = mention_matches(&people, "pa").iter().map(|p| p.id.to_string()).collect();
+        let found: Vec<_> = mention_matches(&people, "pa")
+            .iter()
+            .map(|p| p.id.to_string())
+            .collect();
         assert_eq!(found, ["p"]);
-        assert_eq!(mentions_in(&people, "@Maya and @Payables, please"), ["p", "m"]);
+        assert_eq!(
+            mentions_in(&people, "@Maya and @Payables, please"),
+            ["p", "m"]
+        );
         assert!(mentions_in(&people, "@Mayan").is_empty());
         assert_eq!(mention_ranges(&people, "ok @Maya"), [3..8]);
     }

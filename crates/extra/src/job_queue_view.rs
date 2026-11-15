@@ -14,10 +14,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    canvas, div, point, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, canvas, div, point, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -74,7 +73,11 @@ pub struct WaitingJob {
 
 impl WaitingJob {
     /// Create a job.
-    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>, waited_secs: u32) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+        waited_secs: u32,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -148,13 +151,19 @@ impl JobQueueView {
     }
 
     /// Run when a job is moved to the front.
-    pub fn on_front(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_front(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_front = Some(Rc::new(handler));
         self
     }
 
     /// Run when a job is cancelled.
-    pub fn on_cancel(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_cancel(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_cancel = Some(Rc::new(handler));
         self
     }
@@ -182,52 +191,76 @@ impl RenderOnce for JobQueueView {
         let online = self.workers.iter().filter(|w| w.online).count();
         let busy = self.workers.iter().filter(|w| w.job.is_some()).count();
 
-        let slots: Vec<_> = self
-            .workers
-            .iter()
-            .map(|worker| {
-                let (state, color) = match (&worker.job, worker.online) {
-                    (_, false) => ("Off", quiet),
-                    (Some(_), true) => ("Busy", accent),
-                    (None, true) => ("Free", Tone::Success.color(cx)),
-                };
-                v_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("slot-{}", worker.id).into()))
-                    .w(px(150.))
-                    .flex_grow(1.)
-                    .gap_1()
-                    .p_2p5()
-                    .rounded(radius)
-                    .border_1()
-                    .border_color(line)
-                    .when(!worker.online, |this| this.border_dashed().opacity(0.6))
-                    .role(Role::Group)
-                    .aria_label(format!(
-                        "{}, {}{}",
-                        worker.name,
-                        state,
-                        worker.job.as_ref().map(|(job, _)| format!(", {job}")).unwrap_or_default()
-                    ))
-                    .child(
-                        h_flex()
-                            .gap_1p5()
-                            .text_xs()
-                            .child(div().size(px(7.)).rounded_full().bg(color))
-                            .child(div().flex_1().min_w_0().truncate().font_medium().child(worker.name.clone()))
-                            .child(div().text_color(quiet).child(state)),
-                    )
-                    .child(
-                        div()
-                            .text_xs()
-                            .truncate()
-                            .text_color(if worker.job.is_some() { ink } else { quiet })
-                            .child(worker.job.as_ref().map(|(job, _)| job.clone()).unwrap_or_else(|| "\u{2014}".into())),
-                    )
-                    .child(div().h(px(3.)).rounded_full().bg(chip).child(
-                        div().h_full().rounded_full().bg(accent).w(relative(worker.job.as_ref().map(|(_, p)| *p).unwrap_or(0.))),
-                    ))
-            })
-            .collect();
+        let slots: Vec<_> =
+            self.workers
+                .iter()
+                .map(|worker| {
+                    let (state, color) = match (&worker.job, worker.online) {
+                        (_, false) => ("Off", quiet),
+                        (Some(_), true) => ("Busy", accent),
+                        (None, true) => ("Free", Tone::Success.color(cx)),
+                    };
+                    v_flex()
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("slot-{}", worker.id).into(),
+                        ))
+                        .w(px(150.))
+                        .flex_grow(1.)
+                        .gap_1()
+                        .p_2p5()
+                        .rounded(radius)
+                        .border_1()
+                        .border_color(line)
+                        .when(!worker.online, |this| this.border_dashed().opacity(0.6))
+                        .role(Role::Group)
+                        .aria_label(format!(
+                            "{}, {}{}",
+                            worker.name,
+                            state,
+                            worker
+                                .job
+                                .as_ref()
+                                .map(|(job, _)| format!(", {job}"))
+                                .unwrap_or_default()
+                        ))
+                        .child(
+                            h_flex()
+                                .gap_1p5()
+                                .text_xs()
+                                .child(div().size(px(7.)).rounded_full().bg(color))
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .min_w_0()
+                                        .truncate()
+                                        .font_medium()
+                                        .child(worker.name.clone()),
+                                )
+                                .child(div().text_color(quiet).child(state)),
+                        )
+                        .child(
+                            div()
+                                .text_xs()
+                                .truncate()
+                                .text_color(if worker.job.is_some() { ink } else { quiet })
+                                .child(
+                                    worker
+                                        .job
+                                        .as_ref()
+                                        .map(|(job, _)| job.clone())
+                                        .unwrap_or_else(|| "\u{2014}".into()),
+                                ),
+                        )
+                        .child(
+                            div().h(px(3.)).rounded_full().bg(chip).child(
+                                div().h_full().rounded_full().bg(accent).w(relative(
+                                    worker.job.as_ref().map(|(_, p)| *p).unwrap_or(0.),
+                                )),
+                            ),
+                        )
+                })
+                .collect();
 
         let free = online.saturating_sub(busy).max(online.min(1));
         let rows: Vec<_> = self
@@ -240,14 +273,28 @@ impl RenderOnce for JobQueueView {
                 let (a, b) = (job.id.clone(), job.id.clone());
                 let eta = expected_wait(ix, free, self.typical_secs);
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("job-{}", job.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("job-{}", job.id).into(),
+                    ))
                     .gap_2()
                     .px_2()
                     .py_1p5()
                     .when(ix > 0, |this| this.border_t_1().border_color(line))
                     .role(Role::ListItem)
-                    .aria_label(format!("{}, waited {}", job.label, waited_words(job.waited_secs)))
-                    .child(div().w(px(18.)).flex_none().text_xs().text_color(quiet).child((ix + 1).to_string()))
+                    .aria_label(format!(
+                        "{}, waited {}",
+                        job.label,
+                        waited_words(job.waited_secs)
+                    ))
+                    .child(
+                        div()
+                            .w(px(18.))
+                            .flex_none()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child((ix + 1).to_string()),
+                    )
                     .child(
                         v_flex()
                             .flex_1()
@@ -257,7 +304,14 @@ impl RenderOnce for JobQueueView {
                                     .gap_1p5()
                                     .child(div().min_w_0().truncate().child(job.label.clone()))
                                     .when(job.urgent, |this| {
-                                        this.child(div().flex_none().text_xs().text_color(warning).font_medium().child("Urgent"))
+                                        this.child(
+                                            div()
+                                                .flex_none()
+                                                .text_xs()
+                                                .text_color(warning)
+                                                .font_medium()
+                                                .child("Urgent"),
+                                        )
                                     }),
                             )
                             .child(div().text_xs().text_color(quiet).child(format!(
@@ -265,41 +319,54 @@ impl RenderOnce for JobQueueView {
                                 waited_words(job.waited_secs),
                                 match eta {
                                     Some(0) => ", next up".to_string(),
-                                    Some(secs) => format!(", starts in about {}", waited_words(secs)),
+                                    Some(secs) =>
+                                        format!(", starts in about {}", waited_words(secs)),
                                     None => ", no worker online".to_string(),
                                 }
                             ))),
                     )
                     .child(
-                        Button::new(ElementId::NamedChild(self.id.clone().into(), format!("front-{}", job.id).into()))
-                            .xsmall()
-                            .ghost()
-                            .icon(IconName::ArrowUp)
-                            .disabled(ix == 0)
-                            .accessibility_label(format!("Move {} to the front", job.label))
-                            .on_click(move |_, window, cx| {
-                                if let Some(front) = &front {
-                                    front(&a, window, cx);
-                                }
-                            }),
+                        Button::new(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("front-{}", job.id).into(),
+                        ))
+                        .xsmall()
+                        .ghost()
+                        .icon(IconName::ArrowUp)
+                        .disabled(ix == 0)
+                        .accessibility_label(format!("Move {} to the front", job.label))
+                        .on_click(move |_, window, cx| {
+                            if let Some(front) = &front {
+                                front(&a, window, cx);
+                            }
+                        }),
                     )
                     .child(
-                        Button::new(ElementId::NamedChild(self.id.clone().into(), format!("cancel-{}", job.id).into()))
-                            .xsmall()
-                            .ghost()
-                            .icon(IconName::Close)
-                            .accessibility_label(format!("Cancel {}", job.label))
-                            .on_click(move |_, window, cx| {
-                                if let Some(cancel) = &cancel {
-                                    cancel(&b, window, cx);
-                                }
-                            }),
+                        Button::new(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("cancel-{}", job.id).into(),
+                        ))
+                        .xsmall()
+                        .ghost()
+                        .icon(IconName::Close)
+                        .accessibility_label(format!("Cancel {}", job.label))
+                        .on_click(move |_, window, cx| {
+                            if let Some(cancel) = &cancel {
+                                cancel(&b, window, cx);
+                            }
+                        }),
                     )
             })
             .collect();
 
         let samples = self.depth.clone();
-        let peak = samples.iter().copied().max().unwrap_or(0).max(online as u32).max(1);
+        let peak = samples
+            .iter()
+            .copied()
+            .max()
+            .unwrap_or(0)
+            .max(online as u32)
+            .max(1);
         let latest = samples.last().copied().unwrap_or(self.jobs.len() as u32);
         let first = samples.first().copied().unwrap_or(latest);
         let trend = latest as i64 - first as i64;
@@ -330,7 +397,10 @@ impl RenderOnce for JobQueueView {
                         .h(px(64.))
                         .w_full()
                         .role(Role::Image)
-                        .aria_label(format!("Backlog depth over {} samples, peak {peak}, now {latest}", samples.len()))
+                        .aria_label(format!(
+                            "Backlog depth over {} samples, peak {peak}, now {latest}",
+                            samples.len()
+                        ))
                         .child(
                             canvas(
                                 |_, _, _| {},
@@ -338,12 +408,23 @@ impl RenderOnce for JobQueueView {
                                     let n = samples.len();
                                     let x = |ix: usize| {
                                         bounds.origin.x
-                                            + if n > 1 { bounds.size.width * (ix as f32 / (n - 1) as f32) } else { bounds.size.width / 2. }
+                                            + if n > 1 {
+                                                bounds.size.width * (ix as f32 / (n - 1) as f32)
+                                            } else {
+                                                bounds.size.width / 2.
+                                            }
                                     };
-                                    let y = |v: f32| bounds.origin.y + bounds.size.height * (1. - v / peak as f32);
-                                    let mut base = PathBuilder::stroke(px(1.)).dash_array(&[px(3.), px(3.)]);
+                                    let y = |v: f32| {
+                                        bounds.origin.y
+                                            + bounds.size.height * (1. - v / peak as f32)
+                                    };
+                                    let mut base =
+                                        PathBuilder::stroke(px(1.)).dash_array(&[px(3.), px(3.)]);
                                     base.move_to(point(bounds.origin.x, y(online as f32)));
-                                    base.line_to(point(bounds.origin.x + bounds.size.width, y(online as f32)));
+                                    base.line_to(point(
+                                        bounds.origin.x + bounds.size.width,
+                                        y(online as f32),
+                                    ));
                                     if let Ok(path) = base.build() {
                                         window.paint_path(path, grid);
                                     }
@@ -412,7 +493,13 @@ impl RenderOnce for JobQueueView {
                     .border_color(line)
                     .children(rows)
                     .when(self.jobs.is_empty(), |this| {
-                        this.child(div().px_2().py_3().text_color(quiet).child("Nothing waiting."))
+                        this.child(
+                            div()
+                                .px_2()
+                                .py_3()
+                                .text_color(quiet)
+                                .child("Nothing waiting."),
+                        )
                     }),
             )
             .refine_style(&self.style)

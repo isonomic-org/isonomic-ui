@@ -15,10 +15,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, AnyElement, App, AppContext as _, Context, Entity,
-    EventEmitter, FocusHandle, Focusable, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Subscription, Transformation, Window, div, percentage,
-    prelude::FluentBuilder as _, px,
+    Animation, AnimationExt as _, AnyElement, App, AppContext as _, Context, Entity, EventEmitter,
+    FocusHandle, Focusable, IntoElement, ParentElement as _, Render, SharedString, Styled as _,
+    Subscription, Transformation, Window, div, percentage, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -88,15 +87,18 @@ impl RunControlComposer {
     /// Create a composer.
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let field = cx.new(|cx| {
-            let mut field = TextareaState::new(window, cx).auto_grow(1, 6).placeholder("Add a note for the run");
+            let mut field = TextareaState::new(window, cx)
+                .auto_grow(1, 6)
+                .placeholder("Add a note for the run");
             field.set_submit_on_enter(true, cx);
             field
         });
-        let field_events = cx.subscribe_in(&field, window, |this, _, event, window, cx| match event {
-            InputEvent::PressEnter { shift: false, .. } => this.send(false, window, cx),
-            InputEvent::Change => cx.notify(),
-            _ => {}
-        });
+        let field_events =
+            cx.subscribe_in(&field, window, |this, _, event, window, cx| match event {
+                InputEvent::PressEnter { shift: false, .. } => this.send(false, window, cx),
+                InputEvent::Change => cx.notify(),
+                _ => {}
+            });
         Self {
             field,
             phase: RunPhase::Idle,
@@ -107,14 +109,23 @@ impl RunControlComposer {
     }
 
     /// Set where the run is and a line about what it's doing.
-    pub fn set_phase(&mut self, phase: RunPhase, status: impl Into<SharedString>, cx: &mut Context<Self>) {
+    pub fn set_phase(
+        &mut self,
+        phase: RunPhase,
+        status: impl Into<SharedString>,
+        cx: &mut Context<Self>,
+    ) {
         self.phase = phase;
         self.status = status.into();
         cx.notify();
     }
 
     /// Show these queued messages, each as id and text.
-    pub fn set_queued(&mut self, queued: Vec<(SharedString, SharedString)>, cx: &mut Context<Self>) {
+    pub fn set_queued(
+        &mut self,
+        queued: Vec<(SharedString, SharedString)>,
+        cx: &mut Context<Self>,
+    ) {
         self.queued = queued;
         cx.notify();
     }
@@ -131,7 +142,8 @@ impl RunControlComposer {
         } else {
             RunControlEvent::Queue(text.into())
         });
-        self.field.update(cx, |field, cx| field.set_value("", window, cx));
+        self.field
+            .update(cx, |field, cx| field.set_value("", window, cx));
         cx.notify();
     }
 }
@@ -161,12 +173,18 @@ impl Render for RunControlComposer {
             Icon::new(IconName::LoaderCircle)
                 .xsmall()
                 .text_color(color)
-                .with_animation("run-spin", Animation::new(std::time::Duration::from_secs(1)).repeat(), |icon, delta| {
-                    icon.transform(Transformation::rotate(percentage(delta)))
-                })
+                .with_animation(
+                    "run-spin",
+                    Animation::new(std::time::Duration::from_secs(1)).repeat(),
+                    |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
+                )
                 .into_any_element()
         } else {
-            div().size(px(7.)).rounded_full().bg(color).into_any_element()
+            div()
+                .size(px(7.))
+                .rounded_full()
+                .bg(color)
+                .into_any_element()
         };
 
         let controls: Vec<_> = controls_for(phase)
@@ -211,7 +229,9 @@ impl Render for RunControlComposer {
                             .ghost()
                             .icon(IconName::Close)
                             .accessibility_label(format!("Take back: {text}"))
-                            .on_click(cx.listener(move |_, _, _, cx| cx.emit(RunControlEvent::Unqueue(id.clone())))),
+                            .on_click(cx.listener(move |_, _, _, cx| {
+                                cx.emit(RunControlEvent::Unqueue(id.clone()))
+                            })),
                     )
             })
             .collect();
@@ -235,7 +255,14 @@ impl Render for RunControlComposer {
                     .text_xs()
                     .child(mark)
                     .child(div().font_medium().text_color(color).child(word))
-                    .child(div().flex_1().min_w_0().truncate().text_color(quiet).child(self.status.clone()))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .text_color(quiet)
+                            .child(self.status.clone()),
+                    )
                     .children(controls),
             )
             .when(!chips.is_empty(), |this| {
@@ -243,20 +270,38 @@ impl Render for RunControlComposer {
                     v_flex()
                         .gap_1()
                         .px_1()
-                        .child(div().text_xs().text_color(quiet).child("Queued for the next step"))
+                        .child(
+                            div()
+                                .text_xs()
+                                .text_color(quiet)
+                                .child("Queued for the next step"),
+                        )
                         .child(h_flex().flex_wrap().gap_1().children(chips)),
                 )
             })
-            .child(div().px_1().child(Textarea::new(&self.field).appearance(false).aria_label("Note for the run")))
+            .child(
+                div().px_1().child(
+                    Textarea::new(&self.field)
+                        .appearance(false)
+                        .aria_label("Note for the run"),
+                ),
+            )
             .child(
                 h_flex()
                     .gap_2()
                     .justify_end()
-                    .child(div().flex_1().px_1().text_xs().text_color(quiet).child(if live {
-                        "Enter queues it for the next step"
-                    } else {
-                        "Enter sends it"
-                    }))
+                    .child(
+                        div()
+                            .flex_1()
+                            .px_1()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(if live {
+                                "Enter queues it for the next step"
+                            } else {
+                                "Enter sends it"
+                            }),
+                    )
                     .when(live, |this| {
                         this.child(
                             Button::new("run-queue")
@@ -264,7 +309,9 @@ impl Render for RunControlComposer {
                                 .outline()
                                 .label("Queue")
                                 .disabled(!has_text)
-                                .on_click(cx.listener(|this, _, window, cx| this.send(false, window, cx))),
+                                .on_click(
+                                    cx.listener(|this, _, window, cx| this.send(false, window, cx)),
+                                ),
                         )
                     })
                     .child(
@@ -274,7 +321,9 @@ impl Render for RunControlComposer {
                             .icon(IconName::ArrowUp)
                             .label(if live { "Steer now" } else { "Send" })
                             .disabled(!has_text)
-                            .on_click(cx.listener(|this, _, window, cx| this.send(true, window, cx))),
+                            .on_click(
+                                cx.listener(|this, _, window, cx| this.send(true, window, cx)),
+                            ),
                     ),
             )
     }
@@ -286,7 +335,10 @@ mod tests {
 
     #[test]
     fn each_phase_offers_its_controls() {
-        assert_eq!(controls_for(RunPhase::Running), &[RunControlEvent::Pause, RunControlEvent::Stop]);
+        assert_eq!(
+            controls_for(RunPhase::Running),
+            &[RunControlEvent::Pause, RunControlEvent::Stop]
+        );
         assert_eq!(controls_for(RunPhase::Failed), &[RunControlEvent::Retry]);
         assert!(controls_for(RunPhase::Done).is_empty());
     }

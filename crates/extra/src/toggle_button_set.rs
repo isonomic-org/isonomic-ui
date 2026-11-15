@@ -13,9 +13,8 @@ use isonomic_ui::component::{
     h_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, px,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, px,
 };
 
 /// How many buttons can be pressed at once.
@@ -57,12 +56,18 @@ pub struct ToggleItem {
 impl ToggleItem {
     /// A text button.
     pub fn text(label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), icon: None }
+        Self {
+            label: label.into(),
+            icon: None,
+        }
     }
 
     /// An icon button, with a label for screen readers and the tooltip.
     pub fn icon(icon: IconName, label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), icon: Some(icon) }
+        Self {
+            label: label.into(),
+            icon: Some(icon),
+        }
     }
 }
 
@@ -107,7 +112,10 @@ impl ToggleButtonSet {
     }
 
     /// Run with every button's new state.
-    pub fn on_change(mut self, handler: impl Fn(Vec<bool>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_change(
+        mut self,
+        handler: impl Fn(Vec<bool>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_change = Some(Rc::new(handler));
         self
     }
@@ -130,16 +138,19 @@ impl RenderOnce for ToggleButtonSet {
             let change = self.on_change.clone();
             let now = pressed.clone();
             let mode = self.mode;
-            let button = Button::new(ElementId::NamedChild(self.id.clone().into(), format!("toggle-{ix}").into()))
-                .small()
-                .ghost()
-                .selected(on)
-                .accessibility_label(format!("{}, {}", item.label, if on { "on" } else { "off" }))
-                .on_click(move |_, window, cx| {
-                    if let Some(change) = &change {
-                        change(press(&now, ix, mode), window, cx);
-                    }
-                });
+            let button = Button::new(ElementId::NamedChild(
+                self.id.clone().into(),
+                format!("toggle-{ix}").into(),
+            ))
+            .small()
+            .ghost()
+            .selected(on)
+            .accessibility_label(format!("{}, {}", item.label, if on { "on" } else { "off" }))
+            .on_click(move |_, window, cx| {
+                if let Some(change) = &change {
+                    change(press(&now, ix, mode), window, cx);
+                }
+            });
             match item.icon {
                 Some(icon) => button.icon(icon).tooltip(item.label),
                 None => button.label(item.label),
@@ -167,9 +178,15 @@ mod tests {
     #[test]
     fn modes_press_differently() {
         assert_eq!(press(&[true, false], 1, PressMode::Many), [true, true]);
-        assert_eq!(press(&[true, false, false], 2, PressMode::One), [false, false, true]);
+        assert_eq!(
+            press(&[true, false, false], 2, PressMode::One),
+            [false, false, true]
+        );
         assert_eq!(press(&[false, true], 1, PressMode::One), [false, false]);
-        assert_eq!(press(&[false, true], 1, PressMode::ExactlyOne), [false, true]);
+        assert_eq!(
+            press(&[false, true], 1, PressMode::ExactlyOne),
+            [false, true]
+        );
         assert_eq!(press(&[false], 4, PressMode::Many), [false]);
         let item = ToggleItem::icon(IconName::Search, "Find");
         assert_eq!(item.label, "Find");

@@ -27,10 +27,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, AnyView, App, AppContext as _, ClipboardEntry, Context, ElementId,
-    Entity, EventEmitter, ExternalPaths, FocusHandle, Focusable, Image, InteractiveElement as _,
-    IntoElement, KeyDownEvent, ParentElement as _, Render, Role, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    Animation, AnimationExt as _, AnyView, App, AppContext as _, ClipboardEntry, Context,
+    ElementId, Entity, EventEmitter, ExternalPaths, FocusHandle, Focusable, Image,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, Role,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -318,7 +318,11 @@ impl PromptComposer {
     /// Offer these suggestions in the open menu, best first. An empty list
     /// hides the menu until the word changes.
     pub fn set_suggestions(&mut self, suggestions: Vec<ComposerChoice>, cx: &mut Context<Self>) {
-        self.suggestions = if self.query.is_some() { suggestions } else { Vec::new() };
+        self.suggestions = if self.query.is_some() {
+            suggestions
+        } else {
+            Vec::new()
+        };
         self.highlight = 0;
         cx.notify();
     }
@@ -331,8 +335,9 @@ impl PromptComposer {
         cx: &mut Context<Self>,
     ) {
         let placeholder = placeholder.into();
-        self.field
-            .update(cx, |field, cx| field.set_placeholder(placeholder, window, cx));
+        self.field.update(cx, |field, cx| {
+            field.set_placeholder(placeholder, window, cx)
+        });
     }
 
     /// Empty the field and close any suggestion menu.
@@ -392,7 +397,8 @@ impl PromptComposer {
     }
 
     fn accept(&mut self, ix: usize, window: &mut Window, cx: &mut Context<Self>) {
-        let (Some((trigger, start)), Some(choice)) = (self.query, self.suggestions.get(ix).cloned())
+        let (Some((trigger, start)), Some(choice)) =
+            (self.query, self.suggestions.get(ix).cloned())
         else {
             return;
         };
@@ -699,7 +705,9 @@ impl Render for PromptComposer {
                         .rounded(theme.radius)
                         .cursor_pointer()
                         .when(on, |this| this.bg(chip))
-                        .on_click(cx.listener(move |this, _, window, cx| this.accept(ix, window, cx)))
+                        .on_click(
+                            cx.listener(move |this, _, window, cx| this.accept(ix, window, cx)),
+                        )
                         .child(div().font_medium().child(choice.label.clone()))
                         .children(
                             choice
@@ -1010,11 +1018,23 @@ mod tests {
 
     #[test]
     fn triggers_open_only_where_they_belong() {
-        assert_eq!(open_token("/clo"), Some((SuggestTrigger::Slash, 0, "clo".into())));
-        assert_eq!(open_token("Ask \n/sum"), Some((SuggestTrigger::Slash, 5, "sum".into())));
+        assert_eq!(
+            open_token("/clo"),
+            Some((SuggestTrigger::Slash, 0, "clo".into()))
+        );
+        assert_eq!(
+            open_token("Ask \n/sum"),
+            Some((SuggestTrigger::Slash, 5, "sum".into()))
+        );
         assert_eq!(open_token("Ask /sum"), None);
-        assert_eq!(open_token("Ask @Da"), Some((SuggestTrigger::Mention, 4, "Da".into())));
-        assert_eq!(open_token("@"), Some((SuggestTrigger::Mention, 0, String::new())));
+        assert_eq!(
+            open_token("Ask @Da"),
+            Some((SuggestTrigger::Mention, 4, "Da".into()))
+        );
+        assert_eq!(
+            open_token("@"),
+            Some((SuggestTrigger::Mention, 0, String::new()))
+        );
         assert_eq!(open_token("mail@x"), None);
         assert_eq!(open_token("Ask @Dana "), None);
         assert_eq!(open_token(""), None);

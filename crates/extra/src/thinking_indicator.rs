@@ -11,9 +11,9 @@ use std::time::Instant;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, shimmer::ShimmerText};
 use isonomic_ui::{
-    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder, Pixels,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div,
-    point, prelude::FluentBuilder as _, px, size,
+    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
+    PathBuilder, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px, size,
 };
 
 /// What kind of work the orb shows.
@@ -62,16 +62,31 @@ impl OrbState {
 
 /// Where in its motion an orb is, from 0 to 1, after `elapsed` seconds.
 pub fn orb_phase(elapsed: f32, period: f32) -> f32 {
-    if period <= 0.0 { 0.0 } else { (elapsed / period).fract() }
+    if period <= 0.0 {
+        0.0
+    } else {
+        (elapsed / period).fract()
+    }
 }
 
 /// The point at `turn` (0 at the top, clockwise) on a circle.
 fn on_circle(center: (f32, f32), radius: f32, turn: f32) -> (f32, f32) {
     let angle = turn * std::f32::consts::TAU;
-    (center.0 + radius * angle.sin(), center.1 - radius * angle.cos())
+    (
+        center.0 + radius * angle.sin(),
+        center.1 - radius * angle.cos(),
+    )
 }
 
-fn arc(window: &mut Window, bounds: Bounds<Pixels>, radius: f32, start: f32, sweep: f32, width: f32, color: Hsla) {
+fn arc(
+    window: &mut Window,
+    bounds: Bounds<Pixels>,
+    radius: f32,
+    start: f32,
+    sweep: f32,
+    width: f32,
+    color: Hsla,
+) {
     let side = f32::from(bounds.size.width);
     let center = (side / 2.0, side / 2.0);
     let steps = ((sweep * 48.0).ceil() as usize).max(2);
@@ -93,7 +108,11 @@ fn arc(window: &mut Window, bounds: Bounds<Pixels>, radius: f32, start: f32, swe
 fn dot(window: &mut Window, bounds: Bounds<Pixels>, at: (f32, f32), diameter: f32, color: Hsla) {
     let center = point(bounds.left() + px(at.0), bounds.top() + px(at.1));
     window.paint_quad(
-        isonomic_ui::fill(Bounds::centered_at(center, size(px(diameter), px(diameter))), color).corner_radii(px(diameter / 2.0)),
+        isonomic_ui::fill(
+            Bounds::centered_at(center, size(px(diameter), px(diameter))),
+            color,
+        )
+        .corner_radii(px(diameter / 2.0)),
     );
 }
 
@@ -106,7 +125,13 @@ fn paint_orb(window: &mut Window, bounds: Bounds<Pixels>, state: OrbState, phase
         OrbState::Reasoning => {
             for ix in 0..3 {
                 let turn = phase + ix as f32 / 3.0;
-                dot(window, bounds, on_circle(c, r * 0.6, turn), side * 0.2, ink.opacity(1.0 - ix as f32 * 0.25));
+                dot(
+                    window,
+                    bounds,
+                    on_circle(c, r * 0.6, turn),
+                    side * 0.2,
+                    ink.opacity(1.0 - ix as f32 * 0.25),
+                );
             }
         }
         OrbState::Searching => {
@@ -116,10 +141,26 @@ fn paint_orb(window: &mut Window, bounds: Bounds<Pixels>, state: OrbState, phase
         }
         OrbState::Using => {
             dot(window, bounds, c, side * 0.36, ink);
-            arc(window, bounds, r * (0.55 + 0.45 * phase), 0.0, 1.0, 1.5, ink.opacity(1.0 - phase));
+            arc(
+                window,
+                bounds,
+                r * (0.55 + 0.45 * phase),
+                0.0,
+                1.0,
+                1.5,
+                ink.opacity(1.0 - phase),
+            );
         }
         OrbState::Waiting => {
-            arc(window, bounds, r, 0.0, 1.0, 1.5, ink.opacity(0.45 + 0.4 * wave));
+            arc(
+                window,
+                bounds,
+                r,
+                0.0,
+                1.0,
+                1.5,
+                ink.opacity(0.45 + 0.4 * wave),
+            );
             dot(window, bounds, c, side * 0.18, ink.opacity(0.6));
         }
         OrbState::Retrying => {
@@ -130,7 +171,15 @@ fn paint_orb(window: &mut Window, bounds: Bounds<Pixels>, state: OrbState, phase
         OrbState::Compacting => {
             for ix in 0..3 {
                 let shrink = (phase + ix as f32 / 3.0).fract();
-                arc(window, bounds, r * (1.0 - shrink * 0.8), 0.0, 1.0, 1.2, ink.opacity(shrink));
+                arc(
+                    window,
+                    bounds,
+                    r * (1.0 - shrink * 0.8),
+                    0.0,
+                    1.0,
+                    1.2,
+                    ink.opacity(shrink),
+                );
             }
         }
     }
@@ -149,7 +198,13 @@ pub struct ActivityOrb {
 impl ActivityOrb {
     /// Create a 20 px orb.
     pub fn new(id: impl Into<ElementId>, state: OrbState) -> Self {
-        Self { id: id.into(), style: StyleRefinement::default(), state, size: 20.0, color: None }
+        Self {
+            id: id.into(),
+            style: StyleRefinement::default(),
+            state,
+            size: 20.0,
+            color: None,
+        }
     }
 
     /// Draw it this many pixels across.
@@ -188,8 +243,19 @@ impl RenderOnce for ActivityOrb {
             .flex_none()
             .size(px(self.size))
             .role(Role::Image)
-            .aria_label(state.default_label().trim_end_matches('\u{2026}').to_string())
-            .child(canvas(|_, _, _| {}, move |bounds, _, window, _| paint_orb(window, bounds, state, phase, ink)).size_full())
+            .aria_label(
+                state
+                    .default_label()
+                    .trim_end_matches('\u{2026}')
+                    .to_string(),
+            )
+            .child(
+                canvas(
+                    |_, _, _| {},
+                    move |bounds, _, window, _| paint_orb(window, bounds, state, phase, ink),
+                )
+                .size_full(),
+            )
             .refine_style(&self.style)
     }
 }
@@ -206,7 +272,12 @@ pub struct ThinkingIndicator {
 impl ThinkingIndicator {
     /// Create an indicator for one kind of work.
     pub fn new(id: impl Into<ElementId>, state: OrbState) -> Self {
-        Self { id: id.into(), style: StyleRefinement::default(), state, label: None }
+        Self {
+            id: id.into(),
+            style: StyleRefinement::default(),
+            state,
+            label: None,
+        }
     }
 
     /// Say what's happening, such as "Reading 3 statements…".
@@ -226,23 +297,32 @@ impl RenderOnce for ThinkingIndicator {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let quiet = cx.theme().muted_foreground;
         let still = cx.reduce_motion();
-        let label = self.label.unwrap_or_else(|| self.state.default_label().into());
+        let label = self
+            .label
+            .unwrap_or_else(|| self.state.default_label().into());
         let working = self.state != OrbState::Waiting;
         h_flex()
             .id(self.id.clone())
             .gap_2()
             .role(Role::Status)
             .aria_label(label.clone())
-            .child(ActivityOrb::new(ElementId::NamedChild(self.id.clone().into(), "orb".into()), self.state).color(quiet))
             .child(
-                div().text_sm().text_color(quiet).map(|this| {
-                    if working && !still {
-                        this.child(ShimmerText::new(label.clone()).id(ElementId::NamedChild(self.id.clone().into(), "shine".into())))
-                    } else {
-                        this.child(label.clone())
-                    }
-                }),
+                ActivityOrb::new(
+                    ElementId::NamedChild(self.id.clone().into(), "orb".into()),
+                    self.state,
+                )
+                .color(quiet),
             )
+            .child(div().text_sm().text_color(quiet).map(|this| {
+                if working && !still {
+                    this.child(ShimmerText::new(label.clone()).id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "shine".into(),
+                    )))
+                } else {
+                    this.child(label.clone())
+                }
+            }))
             .refine_style(&self.style)
     }
 }
@@ -255,7 +335,10 @@ mod tests {
     fn states_carry_labels_and_phases_wrap() {
         assert_eq!(OrbState::default(), OrbState::Reasoning);
         assert_eq!(OrbState::Waiting.default_label(), "Waiting for you");
-        assert_eq!(OrbState::Compacting.default_label(), "Tidying the conversation\u{2026}");
+        assert_eq!(
+            OrbState::Compacting.default_label(),
+            "Tidying the conversation\u{2026}"
+        );
         assert!((orb_phase(1.8, 1.2) - 0.5).abs() < 1e-5);
         assert_eq!(orb_phase(3.0, 0.0), 0.0);
         let (x, y) = on_circle((10.0, 10.0), 5.0, 0.25);

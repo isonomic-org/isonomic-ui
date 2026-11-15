@@ -6,7 +6,9 @@ use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Window, div, px,
 };
-use isonomic_ui_extra::background_tasks_pill::{BackgroundState, BackgroundTask, BackgroundTasksPill};
+use isonomic_ui_extra::background_tasks_pill::{
+    BackgroundState, BackgroundTask, BackgroundTasksPill,
+};
 
 /// A header with the pill at its right, over four bookkeeping tasks. The
 /// story keeps the panel open or closed and pauses tasks.
@@ -89,7 +91,8 @@ impl Render for BackgroundTasksPillStory {
                             })
                             .on_pause(move |id, _, cx| {
                                 pause.update(cx, |this, cx| {
-                                    if let Some(task) = this.tasks.iter_mut().find(|t| &t.id == id) {
+                                    if let Some(task) = this.tasks.iter_mut().find(|t| &t.id == id)
+                                    {
                                         task.state = match task.state {
                                             BackgroundState::Paused => BackgroundState::Running,
                                             _ => BackgroundState::Paused,
@@ -110,9 +113,15 @@ impl Render for BackgroundTasksPillStory {
                             }),
                     ),
             )
-            .child(div().px_3().text_xs().text_color(quiet).child(match &self.picked {
-                Some(id) => format!("Opened task: {id}"),
-                None => "Click the pill to open or close the list.".into(),
-            }))
+            .child(
+                div()
+                    .px_3()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child(match &self.picked {
+                        Some(id) => format!("Opened task: {id}"),
+                        None => "Click the pill to open or close the list.".into(),
+                    }),
+            )
     }
 }

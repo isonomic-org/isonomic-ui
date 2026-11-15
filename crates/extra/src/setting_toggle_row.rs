@@ -6,11 +6,14 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, switch::Switch, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+    switch::Switch, v_flex,
+};
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px,
 };
 
 /// What a screen reader hears for the row, such as "Email receipts, on".
@@ -105,18 +108,25 @@ impl RenderOnce for SettingToggleRow {
         let switch_change = self.on_change.clone();
 
         let control = if self.saving {
-            div().text_xs().text_color(quiet).child("Saving\u{2026}").into_any_element()
-        } else {
-            Switch::new(ElementId::NamedChild(self.id.clone().into(), "switch".into()))
-                .checked(on)
-                .disabled(self.locked.is_some())
-                .accessibility_label(self.title.clone())
-                .on_change(move |value, window, cx| {
-                    if let Some(change) = &switch_change {
-                        change(*value, window, cx);
-                    }
-                })
+            div()
+                .text_xs()
+                .text_color(quiet)
+                .child("Saving\u{2026}")
                 .into_any_element()
+        } else {
+            Switch::new(ElementId::NamedChild(
+                self.id.clone().into(),
+                "switch".into(),
+            ))
+            .checked(on)
+            .disabled(self.locked.is_some())
+            .accessibility_label(self.title.clone())
+            .on_change(move |value, window, cx| {
+                if let Some(change) = &switch_change {
+                    change(*value, window, cx);
+                }
+            })
+            .into_any_element()
         };
 
         v_flex()
@@ -129,11 +139,13 @@ impl RenderOnce for SettingToggleRow {
             .role(Role::Group)
             .aria_label(spoken)
             .when(!frozen, |this| {
-                this.cursor_pointer().hover(move |s| s.bg(hover)).on_click(move |_, window, cx| {
-                    if let Some(change) = &row_change {
-                        change(!on, window, cx);
-                    }
-                })
+                this.cursor_pointer()
+                    .hover(move |s| s.bg(hover))
+                    .on_click(move |_, window, cx| {
+                        if let Some(change) = &row_change {
+                            change(!on, window, cx);
+                        }
+                    })
             })
             .child(
                 h_flex()
@@ -150,7 +162,9 @@ impl RenderOnce for SettingToggleRow {
                                     .font_medium()
                                     .child(self.title.clone())
                                     .when(self.locked.is_some(), |this| {
-                                        this.child(Icon::new(IconName::Ban).xsmall().text_color(quiet))
+                                        this.child(
+                                            Icon::new(IconName::Ban).xsmall().text_color(quiet),
+                                        )
                                     }),
                             )
                             .when_some(self.description, |this, text| {
@@ -182,8 +196,14 @@ mod tests {
 
     #[test]
     fn rows_read_their_state() {
-        assert_eq!(spoken_setting("Email receipts", true, false, None), "Email receipts, on");
-        assert_eq!(spoken_setting("Email receipts", false, true, None), "Email receipts, off, saving");
+        assert_eq!(
+            spoken_setting("Email receipts", true, false, None),
+            "Email receipts, on"
+        );
+        assert_eq!(
+            spoken_setting("Email receipts", false, true, None),
+            "Email receipts, off, saving"
+        );
         assert_eq!(
             spoken_setting("Multi-currency", false, false, Some("Not on your plan")),
             "Multi-currency, off, locked: Not on your plan"

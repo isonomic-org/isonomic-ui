@@ -12,9 +12,9 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, Bounds, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, PathBuilder, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, canvas, div, fill, point, prelude::FluentBuilder as _, px,
-    relative, size,
+    ParentElement as _, PathBuilder, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, fill, point,
+    prelude::FluentBuilder as _, px, relative, size,
 };
 
 use crate::common::{lifted_shadow, resting_shadow};
@@ -276,7 +276,12 @@ impl RenderOnce for MetricTrendCard {
             .collect();
         let format = self.format.clone();
         let card_name = match self.delta {
-            Some(delta) => format!("{}: {}, {} on the period before", self.title, self.value, delta_words(delta, format.as_ref())),
+            Some(delta) => format!(
+                "{}: {}, {} on the period before",
+                self.title,
+                self.value,
+                delta_words(delta, format.as_ref())
+            ),
             None => format!("{}: {}", self.title, self.value),
         };
         let plot_name = if is_empty {
@@ -284,7 +289,12 @@ impl RenderOnce for MetricTrendCard {
         } else {
             match shown {
                 Some(ix) => {
-                    let heading = self.long_labels.get(ix).or_else(|| self.labels.get(ix)).map(|h| format!("{h}: ")).unwrap_or_default();
+                    let heading = self
+                        .long_labels
+                        .get(ix)
+                        .or_else(|| self.labels.get(ix))
+                        .map(|h| format!("{h}: "))
+                        .unwrap_or_default();
                     let values = self
                         .series
                         .iter()

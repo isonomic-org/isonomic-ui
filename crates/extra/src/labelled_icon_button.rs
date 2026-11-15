@@ -12,8 +12,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Toggled,
-    Window, div, prelude::FluentBuilder as _, px,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Toggled, Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// The words a screen reader hears for the button.
@@ -100,9 +100,11 @@ impl Styled for LabelledIconButton {
 impl RenderOnce for LabelledIconButton {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focus = window
-            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
-                cx.focus_handle().tab_stop(true)
-            })
+            .use_keyed_state(
+                ElementId::NamedChild(self.id.clone().into(), "focus".into()),
+                cx,
+                |_, cx| cx.focus_handle().tab_stop(true),
+            )
             .read(cx)
             .clone();
         let focused = focus.is_focused(window);
@@ -135,7 +137,11 @@ impl RenderOnce for LabelledIconButton {
             .when(focused, |this| this.border_2().border_color(ring))
             .aria_label(spoken_name(&self.name, self.pressed, self.count))
             .when_some(self.pressed, |this, pressed| {
-                this.aria_toggled(if pressed { Toggled::True } else { Toggled::False })
+                this.aria_toggled(if pressed {
+                    Toggled::True
+                } else {
+                    Toggled::False
+                })
             })
             .tooltip(move |window, cx| {
                 Tooltip::new(name.clone())
@@ -166,7 +172,11 @@ impl RenderOnce for LabelledIconButton {
                     .text_color(fill)
                     .text_xs()
                     .font_semibold()
-                    .child(if count > 99 { "99+".to_string() } else { count.to_string() })
+                    .child(if count > 99 {
+                        "99+".to_string()
+                    } else {
+                        count.to_string()
+                    })
             }))
             .refine_style(&self.style)
     }

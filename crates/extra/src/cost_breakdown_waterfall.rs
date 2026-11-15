@@ -8,10 +8,11 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -35,7 +36,12 @@ pub struct CostStep {
 
 impl CostStep {
     /// Create a step with its own cost in hundredths of a cent and its tokens.
-    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>, cost: u32, tokens: u32) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+        cost: u32,
+        tokens: u32,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -76,7 +82,14 @@ pub struct WaterfallRow {
 /// The rows showing when `open` steps are unfolded. An open step's bar
 /// covers only its own share; its steps follow on from there.
 pub fn waterfall(steps: &[CostStep], open: &[SharedString], tokens: bool) -> Vec<WaterfallRow> {
-    fn walk(steps: &[CostStep], open: &[SharedString], tokens: bool, depth: usize, at: &mut u64, rows: &mut Vec<WaterfallRow>) {
+    fn walk(
+        steps: &[CostStep],
+        open: &[SharedString],
+        tokens: bool,
+        depth: usize,
+        at: &mut u64,
+        rows: &mut Vec<WaterfallRow>,
+    ) {
         for step in steps {
             let is_open = open.contains(&step.id) && !step.children.is_empty();
             let value = if is_open {
@@ -122,9 +135,13 @@ pub fn measure_words(value: u64, tokens: bool) -> String {
 }
 
 fn find<'a>(steps: &'a [CostStep], id: &str) -> Option<&'a CostStep> {
-    steps
-        .iter()
-        .find_map(|s| if s.id.as_ref() == id { Some(s) } else { find(&s.children, id) })
+    steps.iter().find_map(|s| {
+        if s.id.as_ref() == id {
+            Some(s)
+        } else {
+            find(&s.children, id)
+        }
+    })
 }
 
 type IdHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
@@ -179,13 +196,19 @@ impl CostBreakdownWaterfall {
     }
 
     /// Run when a row is clicked.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
 
     /// Run when a step is folded or unfolded.
-    pub fn on_toggle(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_toggle(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_toggle = Some(Rc::new(handler));
         self
     }
@@ -232,7 +255,10 @@ impl RenderOnce for CostBreakdownWaterfall {
                 let (id, toggle_id) = (row.id.clone(), row.id.clone());
                 let heavy = row.value == biggest && biggest > 0;
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("row-{}", row.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-{}", row.id).into(),
+                    ))
                     .h(px(28.))
                     .gap_2()
                     .px_2()
@@ -241,7 +267,11 @@ impl RenderOnce for CostBreakdownWaterfall {
                     .when(is_selected, |this| this.bg(chip))
                     .hover(|style| style.bg(chip.opacity(0.6)))
                     .role(Role::Button)
-                    .aria_label(format!("{}, {}", step.label, measure_words(row.value, tokens)))
+                    .aria_label(format!(
+                        "{}, {}",
+                        step.label,
+                        measure_words(row.value, tokens)
+                    ))
                     .aria_selected(is_selected)
                     .when(row.has_children, |this| this.aria_expanded(is_open))
                     .on_click(move |_, window, cx| {
@@ -257,7 +287,10 @@ impl RenderOnce for CostBreakdownWaterfall {
                             .pl(px(row.depth as f32 * 14.))
                             .child(
                                 div()
-                                    .id(ElementId::NamedChild(self.id.clone().into(), format!("fold-{}", row.id).into()))
+                                    .id(ElementId::NamedChild(
+                                        self.id.clone().into(),
+                                        format!("fold-{}", row.id).into(),
+                                    ))
                                     .size(px(16.))
                                     .flex_none()
                                     .flex()
@@ -265,7 +298,11 @@ impl RenderOnce for CostBreakdownWaterfall {
                                     .justify_center()
                                     .when(row.has_children, |this| {
                                         this.role(Role::Button)
-                                            .aria_label(format!("{} {}", if is_open { "Fold" } else { "Unfold" }, step.label))
+                                            .aria_label(format!(
+                                                "{} {}",
+                                                if is_open { "Fold" } else { "Unfold" },
+                                                step.label
+                                            ))
                                             .aria_expanded(is_open)
                                             .rounded(px(4.))
                                             .hover(|s| s.bg(line))
@@ -276,13 +313,23 @@ impl RenderOnce for CostBreakdownWaterfall {
                                                 }
                                             })
                                             .child(
-                                                Icon::new(if is_open { IconName::ChevronDown } else { IconName::ChevronRight })
-                                                    .xsmall()
-                                                    .text_color(quiet),
+                                                Icon::new(if is_open {
+                                                    IconName::ChevronDown
+                                                } else {
+                                                    IconName::ChevronRight
+                                                })
+                                                .xsmall()
+                                                .text_color(quiet),
                                             )
                                     }),
                             )
-                            .child(div().min_w_0().truncate().when(heavy, |this| this.font_medium()).child(step.label.clone())),
+                            .child(
+                                div()
+                                    .min_w_0()
+                                    .truncate()
+                                    .when(heavy, |this| this.font_medium())
+                                    .child(step.label.clone()),
+                            ),
                     )
                     .child(
                         div().relative().flex_1().h(px(12.)).child(
@@ -293,7 +340,11 @@ impl RenderOnce for CostBreakdownWaterfall {
                                 .left(relative(row.start as f32 / scale))
                                 .w(relative((row.value as f32 / scale).max(0.004)))
                                 .rounded(px(2.))
-                                .bg(if is_selected || heavy { accent } else { accent.opacity(0.55) }),
+                                .bg(if is_selected || heavy {
+                                    accent
+                                } else {
+                                    accent.opacity(0.55)
+                                }),
                         ),
                     )
                     .child(
@@ -312,13 +363,18 @@ impl RenderOnce for CostBreakdownWaterfall {
             let on_measure = self.on_measure.clone();
             let active = tokens == want;
             div()
-                .id(ElementId::NamedChild(self.id.clone().into(), format!("measure-{label}").into()))
+                .id(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("measure-{label}").into(),
+                ))
                 .px_2()
                 .py_0p5()
                 .rounded(px(5.))
                 .cursor_pointer()
                 .text_xs()
-                .when(active, |this| this.bg(fill).shadow(resting_shadow(cx)).font_medium())
+                .when(active, |this| {
+                    this.bg(fill).shadow(resting_shadow(cx)).font_medium()
+                })
                 .when(!active, |this| this.text_color(quiet))
                 .role(Role::RadioButton)
                 .aria_label(format!("Measure in {}", label.to_lowercase()))
@@ -364,7 +420,12 @@ impl RenderOnce for CostBreakdownWaterfall {
                     .py_2p5()
                     .border_b_1()
                     .border_color(line)
-                    .child(div().flex_1().font_medium().child(format!("Run total {}", measure_words(total, tokens))))
+                    .child(
+                        div()
+                            .flex_1()
+                            .font_medium()
+                            .child(format!("Run total {}", measure_words(total, tokens))),
+                    )
                     .child(
                         h_flex()
                             .p_0p5()
@@ -384,8 +445,22 @@ impl RenderOnce for CostBreakdownWaterfall {
                     .border_t_1()
                     .border_color(line)
                     .child(div().w(px(190.)).flex_none().font_semibold().child("Total"))
-                    .child(div().flex_1().h(px(12.)).rounded(px(2.)).bg(ink.opacity(0.7)))
-                    .child(div().w(px(64.)).flex_none().text_right().text_xs().font_semibold().child(measure_words(total, tokens))),
+                    .child(
+                        div()
+                            .flex_1()
+                            .h(px(12.))
+                            .rounded(px(2.))
+                            .bg(ink.opacity(0.7)),
+                    )
+                    .child(
+                        div()
+                            .w(px(64.))
+                            .flex_none()
+                            .text_right()
+                            .text_xs()
+                            .font_semibold()
+                            .child(measure_words(total, tokens)),
+                    ),
             )
             .child(
                 div()
@@ -425,7 +500,10 @@ mod tests {
     #[test]
     fn open_steps_split_into_their_own() {
         let rows = waterfall(&run(), &["b".into()], true);
-        let spans: Vec<_> = rows.iter().map(|r| (r.id.to_string(), r.start, r.value)).collect();
+        let spans: Vec<_> = rows
+            .iter()
+            .map(|r| (r.id.to_string(), r.start, r.value))
+            .collect();
         assert_eq!(
             spans,
             [

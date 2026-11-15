@@ -15,9 +15,8 @@ use isonomic_ui::component::{
     menu::{ContextMenuExt as _, DropdownMenu as _, PopupMenu, PopupMenuItem},
 };
 use isonomic_ui::{
-    Role,
     App, Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
 };
 
 /// One action.
@@ -37,7 +36,11 @@ pub struct RowAction {
 
 impl RowAction {
     /// Create an action.
-    pub fn new(id: impl Into<SharedString>, section: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        section: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -83,7 +86,12 @@ pub fn menu_order(actions: &[RowAction]) -> Vec<(SharedString, Vec<RowAction>)> 
 
 type RunHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 
-fn build_menu(mut menu: PopupMenu, actions: &[RowAction], run: &Option<RunHandler>, _: &mut Context<PopupMenu>) -> PopupMenu {
+fn build_menu(
+    mut menu: PopupMenu,
+    actions: &[RowAction],
+    run: &Option<RunHandler>,
+    _: &mut Context<PopupMenu>,
+) -> PopupMenu {
     for (ix, (section, list)) in menu_order(actions).into_iter().enumerate() {
         if ix > 0 {
             menu = menu.separator();
@@ -113,7 +121,11 @@ trait DestructiveMark {
 
 impl DestructiveMark for PopupMenuItem {
     fn when_icon(self, destructive: bool) -> Self {
-        if destructive { self.icon(IconName::Delete) } else { self }
+        if destructive {
+            self.icon(IconName::Delete)
+        } else {
+            self
+        }
     }
 }
 
@@ -130,7 +142,12 @@ pub struct RowActionsMenu {
 
 impl RowActionsMenu {
     /// Create a row with a title and detail line.
-    pub fn new(id: impl Into<ElementId>, title: impl Into<SharedString>, detail: impl Into<SharedString>, actions: Vec<RowAction>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        title: impl Into<SharedString>,
+        detail: impl Into<SharedString>,
+        actions: Vec<RowAction>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -142,7 +159,10 @@ impl RowActionsMenu {
     }
 
     /// Run with the action picked.
-    pub fn on_run(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_run(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_run = Some(Rc::new(handler));
         self
     }
@@ -169,13 +189,22 @@ impl RenderOnce for RowActionsMenu {
             .rounded(theme.radius)
             .hover(|s| s.bg(chip.opacity(0.6)))
             .role(Role::Group)
-            .aria_label(format!("{}, {}. Right-click or use More for actions", self.title, self.detail))
+            .aria_label(format!(
+                "{}, {}. Right-click or use More for actions",
+                self.title, self.detail
+            ))
             .child(
                 div()
                     .flex_1()
                     .min_w_0()
                     .child(div().truncate().child(self.title.clone()))
-                    .child(div().truncate().text_xs().text_color(quiet).child(self.detail.clone())),
+                    .child(
+                        div()
+                            .truncate()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(self.detail.clone()),
+                    ),
             )
             .child(
                 Button::new(ElementId::NamedChild(self.id.clone().into(), "more".into()))
@@ -202,8 +231,18 @@ mod tests {
             RowAction::new("pdf", "Export", "Download PDF"),
             RowAction::new("remind", "Send", "Send a reminder").unavailable("Not due yet"),
         ];
-        let order: Vec<_> = menu_order(&actions).into_iter().map(|(s, l)| (s.to_string(), l.len())).collect();
-        assert_eq!(order, [("Send".into(), 2), ("Export".into(), 1), ("Remove".into(), 1)]);
+        let order: Vec<_> = menu_order(&actions)
+            .into_iter()
+            .map(|(s, l)| (s.to_string(), l.len()))
+            .collect();
+        assert_eq!(
+            order,
+            [
+                ("Send".into(), 2),
+                ("Export".into(), 1),
+                ("Remove".into(), 1)
+            ]
+        );
         assert_eq!(actions[3].menu_label(), "Send a reminder (Not due yet)");
     }
 }

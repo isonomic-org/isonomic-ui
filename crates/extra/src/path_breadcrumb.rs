@@ -13,10 +13,9 @@ use isonomic_ui::component::{
     menu::{DropdownMenu as _, PopupMenuItem},
 };
 use isonomic_ui::{
-    Role,
     App, ClipboardItem, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// Which places show and which fold: indexes shown, with `None` where the fold goes.
@@ -89,13 +88,27 @@ impl RenderOnce for PathBreadcrumb {
         let chip = theme.muted;
         let count = self.places.len();
         let layout = trail_layout(count, self.keep_last);
-        let folded: Vec<usize> = if layout.contains(&None) { (1..count - self.keep_last).collect() } else { Vec::new() };
-        let joined = self.places.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(&format!(" {} ", self.separator));
+        let folded: Vec<usize> = if layout.contains(&None) {
+            (1..count - self.keep_last).collect()
+        } else {
+            Vec::new()
+        };
+        let joined = self
+            .places
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>()
+            .join(&format!(" {} ", self.separator));
 
         let mut items: Vec<isonomic_ui::AnyElement> = Vec::new();
         for (n, slot) in layout.iter().enumerate() {
             if n > 0 {
-                items.push(Icon::new(IconName::ChevronRight).xsmall().text_color(quiet).into_any_element());
+                items.push(
+                    Icon::new(IconName::ChevronRight)
+                        .xsmall()
+                        .text_color(quiet)
+                        .into_any_element(),
+                );
             }
             match slot {
                 Some(ix) => {
@@ -104,7 +117,10 @@ impl RenderOnce for PathBreadcrumb {
                     let go = self.on_go.clone();
                     items.push(
                         div()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("place-{ix}").into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("place-{ix}").into(),
+                            ))
                             .max_w(px(180.))
                             .truncate()
                             .px_1()
@@ -132,7 +148,10 @@ impl RenderOnce for PathBreadcrumb {
                 }
                 None => {
                     let go = self.on_go.clone();
-                    let entries: Vec<(usize, SharedString)> = folded.iter().map(|ix| (*ix, self.places[*ix].clone())).collect();
+                    let entries: Vec<(usize, SharedString)> = folded
+                        .iter()
+                        .map(|ix| (*ix, self.places[*ix].clone()))
+                        .collect();
                     items.push(
                         Button::new(ElementId::NamedChild(self.id.clone().into(), "fold".into()))
                             .xsmall()
@@ -143,11 +162,13 @@ impl RenderOnce for PathBreadcrumb {
                                 entries.iter().fold(menu, |menu, (ix, name)| {
                                     let go = go.clone();
                                     let ix = *ix;
-                                    menu.item(PopupMenuItem::new(name.clone()).on_click(move |_, window, cx| {
-                                        if let Some(go) = &go {
-                                            go(ix, window, cx);
-                                        }
-                                    }))
+                                    menu.item(PopupMenuItem::new(name.clone()).on_click(
+                                        move |_, window, cx| {
+                                            if let Some(go) = &go {
+                                                go(ix, window, cx);
+                                            }
+                                        },
+                                    ))
                                 })
                             })
                             .into_any_element(),
@@ -170,7 +191,9 @@ impl RenderOnce for PathBreadcrumb {
                     .ghost()
                     .icon(IconName::Copy)
                     .accessibility_label("Copy the path")
-                    .on_click(move |_, _, cx| cx.write_to_clipboard(ClipboardItem::new_string(joined.clone()))),
+                    .on_click(move |_, _, cx| {
+                        cx.write_to_clipboard(ClipboardItem::new_string(joined.clone()))
+                    }),
             )
             .refine_style(&self.style)
     }

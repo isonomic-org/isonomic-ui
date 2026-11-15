@@ -12,16 +12,19 @@ use isonomic_ui::component::{
     input::{Input, InputEvent, InputState},
 };
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div,
-    prelude::FluentBuilder as _, px,
+    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
+    Styled as _, Subscription, Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// Read an amount as people write it, or `None` when it isn't one.
 pub fn parse_amount(text: &str) -> Option<f64> {
     let trimmed = text.trim();
     let negative = trimmed.starts_with('-') || (trimmed.starts_with('(') && trimmed.ends_with(')'));
-    let digits: String = trimmed.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
+    let digits: String = trimmed
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '.')
+        .collect();
     if digits.is_empty() || digits.matches('.').count() > 1 {
         return None;
     }
@@ -43,7 +46,11 @@ pub fn format_amount(value: f64, decimals: usize) -> String {
         }
         grouped.push(ch);
     }
-    let sign = if value < 0.0 && fixed.chars().any(|c| c.is_ascii_digit() && c != '0') { "-" } else { "" };
+    let sign = if value < 0.0 && fixed.chars().any(|c| c.is_ascii_digit() && c != '0') {
+        "-"
+    } else {
+        ""
+    };
     match fraction {
         Some(f) => format!("{sign}{grouped}.{f}"),
         None => format!("{sign}{grouped}"),
@@ -53,7 +60,11 @@ pub fn format_amount(value: f64, decimals: usize) -> String {
 /// Move `value` by `steps` steps and keep it between `min` and `max`.
 pub fn step_amount(value: f64, step: f64, steps: i32, min: f64, max: f64) -> f64 {
     let moved = value + step * f64::from(steps);
-    let snapped = if step > 0.0 { (moved / step).round() * step } else { moved };
+    let snapped = if step > 0.0 {
+        (moved / step).round() * step
+    } else {
+        moved
+    };
     snapped.clamp(min, max)
 }
 
@@ -89,16 +100,31 @@ impl Focusable for AmountStepper {
 
 impl AmountStepper {
     /// Create a stepper holding `value`, named `label` for screen readers.
-    pub fn new(label: impl Into<SharedString>, value: f64, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        label: impl Into<SharedString>,
+        value: f64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let field = cx.new(|cx| {
             InputState::new(window, cx).validate(|text, _| {
-                text.chars().all(|c| c.is_ascii_digit() || matches!(c, '.' | ',' | '-' | '(' | ')' | ' ' | '$' | '\u{20ac}' | '\u{a3}'))
+                text.chars().all(|c| {
+                    c.is_ascii_digit()
+                        || matches!(
+                            c,
+                            '.' | ',' | '-' | '(' | ')' | ' ' | '$' | '\u{20ac}' | '\u{a3}'
+                        )
+                })
             })
         });
-        let events = cx.subscribe_in(&field, window, |this: &mut Self, _, event: &InputEvent, window, cx| match event {
-            InputEvent::Blur | InputEvent::PressEnter { .. } => this.settle(window, cx),
-            _ => {}
-        });
+        let events = cx.subscribe_in(
+            &field,
+            window,
+            |this: &mut Self, _, event: &InputEvent, window, cx| match event {
+                InputEvent::Blur | InputEvent::PressEnter { .. } => this.settle(window, cx),
+                _ => {}
+            },
+        );
         let mut this = Self {
             field,
             value,
@@ -117,7 +143,13 @@ impl AmountStepper {
     }
 
     /// Keep the value between these.
-    pub fn range(mut self, min: f64, max: f64, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn range(
+        mut self,
+        min: f64,
+        max: f64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         self.min = min.min(max);
         self.max = max.max(min);
         self.value = self.value.clamp(self.min, self.max);
@@ -132,7 +164,12 @@ impl AmountStepper {
     }
 
     /// Show this many decimal places. Two by default.
-    pub fn decimals(mut self, decimals: usize, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn decimals(
+        mut self,
+        decimals: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         self.decimals = decimals;
         self.show(window, cx);
         self
@@ -171,7 +208,8 @@ impl AmountStepper {
 
     fn show(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let text = format_amount(self.value, self.decimals);
-        self.field.update(cx, |field, cx| field.set_value(text, window, cx));
+        self.field
+            .update(cx, |field, cx| field.set_value(text, window, cx));
         cx.notify();
     }
 
@@ -210,7 +248,11 @@ impl Render for AmountStepper {
             .gap_1()
             .w(px(200.))
             .capture_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
-                let big = if event.keystroke.modifiers.shift { 10 } else { 1 };
+                let big = if event.keystroke.modifiers.shift {
+                    10
+                } else {
+                    1
+                };
                 match event.keystroke.key.as_str() {
                     "up" => {
                         this.nudge(big, window, cx);
@@ -238,8 +280,12 @@ impl Render for AmountStepper {
                         .small()
                         .disabled(disabled)
                         .aria_label(self.label.clone())
-                        .when_some(unit.clone().filter(|_| self.unit_first), |this, unit| this.prefix(div().text_sm().text_color(quiet).child(unit)))
-                        .when_some(unit.filter(|_| !self.unit_first), |this, unit| this.suffix(div().text_sm().text_color(quiet).child(unit))),
+                        .when_some(unit.clone().filter(|_| self.unit_first), |this, unit| {
+                            this.prefix(div().text_sm().text_color(quiet).child(unit))
+                        })
+                        .when_some(unit.filter(|_| !self.unit_first), |this, unit| {
+                            this.suffix(div().text_sm().text_color(quiet).child(unit))
+                        }),
                 ),
             )
             .child(

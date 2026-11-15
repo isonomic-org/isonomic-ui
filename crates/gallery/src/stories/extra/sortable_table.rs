@@ -1,7 +1,9 @@
 //! Gallery story for the sortable table.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
 use isonomic_ui_extra::sortable_table::{SortableTable, TableColumn, TableRow};
 
 /// Unpaid bills, sortable and selectable, totalled over the selection.
@@ -12,12 +14,27 @@ pub struct SortableTableStory {
 
 fn rows() -> Vec<TableRow> {
     vec![
-        TableRow::new("b1", vec!["Harbour Supply", "Invoice 2291", "Mar 2", "$1,240.50"]),
+        TableRow::new(
+            "b1",
+            vec!["Harbour Supply", "Invoice 2291", "Mar 2", "$1,240.50"],
+        ),
         TableRow::new("b2", vec!["Northline Fuel", "March", "Mar 31", "$612.08"]),
-        TableRow::new("b3", vec!["Kestrel Print", "400 flyers", "Apr 4", "$289.00"]),
-        TableRow::new("b4", vec!["Bayview Rentals", "April rent", "Apr 1", "$4,200.00"]),
-        TableRow::new("b5", vec!["Oak & Iron", "Shelving, disputed", "Mar 18", "$980.00"]),
-        TableRow::new("b6", vec!["Juniper Cafe", "Team lunch", "Mar 28", "$146.40"]),
+        TableRow::new(
+            "b3",
+            vec!["Kestrel Print", "400 flyers", "Apr 4", "$289.00"],
+        ),
+        TableRow::new(
+            "b4",
+            vec!["Bayview Rentals", "April rent", "Apr 1", "$4,200.00"],
+        ),
+        TableRow::new(
+            "b5",
+            vec!["Oak & Iron", "Shelving, disputed", "Mar 18", "$980.00"],
+        ),
+        TableRow::new(
+            "b6",
+            vec!["Juniper Cafe", "Team lunch", "Mar 28", "$146.40"],
+        ),
     ]
 }
 

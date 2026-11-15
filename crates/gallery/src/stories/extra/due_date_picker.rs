@@ -11,7 +11,11 @@ pub struct DueDatePickerStory {
     cursor: Option<Day>,
 }
 
-const TODAY: Day = Day { year: 2026, month: 4, day: 14 };
+const TODAY: Day = Day {
+    year: 2026,
+    month: 4,
+    day: 14,
+};
 
 impl DueDatePickerStory {
     /// Create the story view.

@@ -19,12 +19,10 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, FocusHandle, HighlightStyle, Hsla, InteractiveElement as _, InteractiveText,
-    IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, SharedString,
+    IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StrikethroughStyle, StyleRefinement, Styled, StyledText,
-    TestSupportExt as _,
-    UnderlineStyle, Window, div, prelude::FluentBuilder as _, px, relative,
+    TestSupportExt as _, UnderlineStyle, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;

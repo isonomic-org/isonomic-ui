@@ -1,7 +1,9 @@
 //! Gallery story for the run schedule board.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
 use isonomic_ui_extra::run_schedule_board::{RunScheduleBoard, ScheduledSession, auto_place};
 
 const DAYS: [&str; 5] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -49,21 +51,26 @@ impl Render for RunScheduleBoardStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let place = cx.entity();
         let auto = cx.entity();
-        RunScheduleBoard::new("week", DAYS.iter().map(|d| SharedString::from(*d)).collect(), HOURS, CAP)
-            .sessions(self.sessions.clone())
-            .on_place(move |id, slot, _, cx| {
-                place.update(cx, |this, cx| {
-                    if let Some(session) = this.sessions.iter_mut().find(|s| &s.id == id) {
-                        session.slot = slot;
-                    }
-                    cx.notify();
-                })
+        RunScheduleBoard::new(
+            "week",
+            DAYS.iter().map(|d| SharedString::from(*d)).collect(),
+            HOURS,
+            CAP,
+        )
+        .sessions(self.sessions.clone())
+        .on_place(move |id, slot, _, cx| {
+            place.update(cx, |this, cx| {
+                if let Some(session) = this.sessions.iter_mut().find(|s| &s.id == id) {
+                    session.slot = slot;
+                }
+                cx.notify();
             })
-            .on_auto(move |_, cx| {
-                auto.update(cx, |this, cx| {
-                    auto_place(&mut this.sessions, DAYS.len(), HOURS, CAP);
-                    cx.notify();
-                })
+        })
+        .on_auto(move |_, cx| {
+            auto.update(cx, |this, cx| {
+                auto_place(&mut this.sessions, DAYS.len(), HOURS, CAP);
+                cx.notify();
             })
+        })
     }
 }

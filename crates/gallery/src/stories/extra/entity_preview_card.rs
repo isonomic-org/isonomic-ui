@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div,
+};
 use isonomic_ui_extra::common::Tone;
 use isonomic_ui_extra::entity_preview_card::{EntityKind, EntityPreview, EntityPreviewCard};
 
@@ -47,11 +50,15 @@ impl Render for EntityPreviewCardStory {
         let customer = EntityPreviewCard::new(
             "customer",
             "Northwind Dental",
-            EntityPreview::new(EntityKind::Company, "Northwind Dental", "Customer since 2019")
-                .status("Overdue", Tone::Warning)
-                .fact("Owes", "$3,120.00 over 2 invoices")
-                .fact("Usually pays", "12 days late")
-                .fact("Contact", "Dana Whitlock"),
+            EntityPreview::new(
+                EntityKind::Company,
+                "Northwind Dental",
+                "Customer since 2019",
+            )
+            .status("Overdue", Tone::Warning)
+            .fact("Owes", "$3,120.00 over 2 invoices")
+            .fact("Usually pays", "12 days late")
+            .fact("Contact", "Dana Whitlock"),
         )
         .on_open(open("Northwind Dental", cx));
         let invoice = EntityPreviewCard::new(
@@ -85,9 +92,14 @@ impl Render for EntityPreviewCardStory {
                     .child(agent)
                     .child("to send a firmer reminder tomorrow."),
             )
-            .child(div().text_xs().text_color(cx.theme().muted_foreground).child(match self.opened {
-                Some(what) => format!("Opened {what}"),
-                None => "Hover the underlined names.".into(),
-            }))
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(match self.opened {
+                        Some(what) => format!("Opened {what}"),
+                        None => "Hover the underlined names.".into(),
+                    }),
+            )
     }
 }

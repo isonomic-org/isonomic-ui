@@ -5,11 +5,14 @@
 //! reason instead and the note leads with it, so people learn why rather
 //! than guessing. Long notes wrap at a readable width.
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, tooltip::Tooltip, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, tooltip::Tooltip,
+    v_flex,
+};
 use isonomic_ui::{
-    Role,
-    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Pixels, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Pixels,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::shortcut_keys::ShortcutKeys;
@@ -45,7 +48,11 @@ pub struct ExplainedTooltip {
 
 impl ExplainedTooltip {
     /// Wrap `child` with a note titled `title`.
-    pub fn new(id: impl Into<ElementId>, child: impl IntoElement, title: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        child: impl IntoElement,
+        title: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -113,7 +120,9 @@ impl RenderOnce for ExplainedTooltip {
                                 .gap_3()
                                 .justify_between()
                                 .child(div().text_sm().font_medium().child(title.clone()))
-                                .when_some(shortcut.clone(), |this, keys| this.child(ShortcutKeys::new(shortcut_id.clone(), keys))),
+                                .when_some(shortcut.clone(), |this, keys| {
+                                    this.child(ShortcutKeys::new(shortcut_id.clone(), keys))
+                                }),
                         )
                         .when_some(reason.clone(), |this, reason| {
                             this.child(
@@ -126,12 +135,18 @@ impl RenderOnce for ExplainedTooltip {
                                     .child(div().flex_1().child(reason)),
                             )
                         })
-                        .when_some(body.clone(), |this, body| this.child(div().text_xs().text_color(quiet).child(body)))
+                        .when_some(body.clone(), |this, body| {
+                            this.child(div().text_xs().text_color(quiet).child(body))
+                        })
                 })
                 .build(window, cx)
             })
             .role(Role::Group)
-            .aria_label(spoken_note(&self.title, self.body.as_deref(), self.off_because.as_deref()))
+            .aria_label(spoken_note(
+                &self.title,
+                self.body.as_deref(),
+                self.off_because.as_deref(),
+            ))
             .child(self.child)
             .refine_style(&self.style)
     }
@@ -148,7 +163,11 @@ mod tests {
         assert_eq!(note_width(400), px(300.));
         assert_eq!(spoken_note("Export", None, None), "Export");
         assert_eq!(
-            spoken_note("Close the month", Some("Locks every entry before 1 Dec."), Some("2 bank feeds are unreconciled")),
+            spoken_note(
+                "Close the month",
+                Some("Locks every entry before 1 Dec."),
+                Some("2 bank feeds are unreconciled")
+            ),
             "Close the month. Unavailable: 2 bank feeds are unreconciled. Locks every entry before 1 Dec."
         );
     }

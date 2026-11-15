@@ -8,10 +8,11 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -41,7 +42,12 @@ pub struct TraceSpan {
 
 impl TraceSpan {
     /// Create a finished span.
-    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>, start: u32, end: u32) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+        start: u32,
+        end: u32,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -81,16 +87,26 @@ impl TraceSpan {
 
     /// Its tokens and cost including everything it started.
     pub fn totals(&self) -> (u64, u64) {
-        self.children.iter().fold((self.tokens as u64, self.cost as u64), |(t, c), child| {
-            let (ct, cc) = child.totals();
-            (t + ct, c + cc)
-        })
+        self.children
+            .iter()
+            .fold((self.tokens as u64, self.cost as u64), |(t, c), child| {
+                let (ct, cc) = child.totals();
+                (t + ct, c + cc)
+            })
     }
 }
 
 /// A visible row: the span's id and depth.
-pub fn trace_rows<'a>(spans: &'a [TraceSpan], open: &[SharedString]) -> Vec<(&'a TraceSpan, usize)> {
-    fn walk<'a>(spans: &'a [TraceSpan], open: &[SharedString], depth: usize, out: &mut Vec<(&'a TraceSpan, usize)>) {
+pub fn trace_rows<'a>(
+    spans: &'a [TraceSpan],
+    open: &[SharedString],
+) -> Vec<(&'a TraceSpan, usize)> {
+    fn walk<'a>(
+        spans: &'a [TraceSpan],
+        open: &[SharedString],
+        depth: usize,
+        out: &mut Vec<(&'a TraceSpan, usize)>,
+    ) {
         for span in spans {
             out.push((span, depth));
             if open.contains(&span.id) {
@@ -122,7 +138,13 @@ fn cost_words(cost: u64) -> String {
 }
 
 fn find<'a>(spans: &'a [TraceSpan], id: &str) -> Option<&'a TraceSpan> {
-    spans.iter().find_map(|s| if s.id.as_ref() == id { Some(s) } else { find(&s.children, id) })
+    spans.iter().find_map(|s| {
+        if s.id.as_ref() == id {
+            Some(s)
+        } else {
+            find(&s.children, id)
+        }
+    })
 }
 
 type SpanHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
@@ -168,13 +190,19 @@ impl TraceTimeline {
     }
 
     /// Run when a row is clicked.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
 
     /// Run when a span is folded or unfolded.
-    pub fn on_toggle(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_toggle(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_toggle = Some(Rc::new(handler));
         self
     }
@@ -208,7 +236,10 @@ impl RenderOnce for TraceTimeline {
         });
         let running = {
             fn count(spans: &[TraceSpan]) -> usize {
-                spans.iter().map(|s| usize::from(s.end.is_none()) + count(&s.children)).sum()
+                spans
+                    .iter()
+                    .map(|s| usize::from(s.end.is_none()) + count(&s.children))
+                    .sum()
             }
             count(&self.spans)
         };
@@ -226,7 +257,10 @@ impl RenderOnce for TraceTimeline {
                 let toggle = self.on_toggle.clone();
                 let (id, toggle_id) = (span.id.clone(), span.id.clone());
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("span-{}", span.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("span-{}", span.id).into(),
+                    ))
                     .h(px(28.))
                     .gap_2()
                     .px_2()
@@ -238,7 +272,9 @@ impl RenderOnce for TraceTimeline {
                     .aria_label(format!(
                         "{}, {}{}",
                         span.label,
-                        span.end.map(|e| span_time(e - span.start)).unwrap_or_else(|| "running".into()),
+                        span.end
+                            .map(|e| span_time(e - span.start))
+                            .unwrap_or_else(|| "running".into()),
                         if span.failed { ", failed" } else { "" }
                     ))
                     .aria_selected(is_selected)
@@ -256,7 +292,10 @@ impl RenderOnce for TraceTimeline {
                             .pl(px(depth as f32 * 14.))
                             .child(
                                 div()
-                                    .id(ElementId::NamedChild(self.id.clone().into(), format!("fold-{}", span.id).into()))
+                                    .id(ElementId::NamedChild(
+                                        self.id.clone().into(),
+                                        format!("fold-{}", span.id).into(),
+                                    ))
                                     .size(px(16.))
                                     .flex_none()
                                     .flex()
@@ -272,9 +311,13 @@ impl RenderOnce for TraceTimeline {
                                                 }
                                             })
                                             .child(
-                                                Icon::new(if is_open { IconName::ChevronDown } else { IconName::ChevronRight })
-                                                    .xsmall()
-                                                    .text_color(quiet),
+                                                Icon::new(if is_open {
+                                                    IconName::ChevronDown
+                                                } else {
+                                                    IconName::ChevronRight
+                                                })
+                                                .xsmall()
+                                                .text_color(quiet),
                                             )
                                     }),
                             )
@@ -297,7 +340,9 @@ impl RenderOnce for TraceTimeline {
                                 .w(relative(((end - span.start) as f32 / total_end).max(0.004)))
                                 .rounded(px(2.))
                                 .bg(color.opacity(if is_selected { 0.9 } else { 0.55 }))
-                                .when(span.end.is_none(), |this| this.border_r_2().border_color(color)),
+                                .when(span.end.is_none(), |this| {
+                                    this.border_r_2().border_color(color)
+                                }),
                         ),
                     )
                     .child(
@@ -307,14 +352,34 @@ impl RenderOnce for TraceTimeline {
                             .text_right()
                             .text_xs()
                             .text_color(quiet)
-                            .child(span.end.map(|e| span_time(e - span.start)).unwrap_or_else(|| "running".into())),
+                            .child(
+                                span.end
+                                    .map(|e| span_time(e - span.start))
+                                    .unwrap_or_else(|| "running".into()),
+                            ),
                     )
-                    .child(div().w(px(52.)).flex_none().text_right().text_xs().text_color(quiet).child(if tokens >= 1000 {
-                        format!("{:.1}k", tokens as f64 / 1000.)
-                    } else {
-                        tokens.to_string()
-                    }))
-                    .child(div().w(px(52.)).flex_none().text_right().text_xs().text_color(quiet).child(cost_words(cost)))
+                    .child(
+                        div()
+                            .w(px(52.))
+                            .flex_none()
+                            .text_right()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(if tokens >= 1000 {
+                                format!("{:.1}k", tokens as f64 / 1000.)
+                            } else {
+                                tokens.to_string()
+                            }),
+                    )
+                    .child(
+                        div()
+                            .w(px(52.))
+                            .flex_none()
+                            .text_right()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(cost_words(cost)),
+                    )
             })
             .collect();
 
@@ -327,7 +392,9 @@ impl RenderOnce for TraceTimeline {
                 format!(
                     "{}: {} from {}, {} tokens, {} ({:.0}% of the cost)",
                     span.label,
-                    span.end.map(|e| span_time(e - span.start)).unwrap_or_else(|| "still running".into()),
+                    span.end
+                        .map(|e| span_time(e - span.start))
+                        .unwrap_or_else(|| "still running".into()),
                     span_time(span.start),
                     tokens,
                     cost_words(cost),
@@ -355,10 +422,32 @@ impl RenderOnce for TraceTimeline {
                     .border_b_1()
                     .border_color(line)
                     .child(Icon::new(IconName::Network).small().text_color(quiet))
-                    .child(div().flex_1().font_medium().child(format!("{} so far", span_time(now))))
-                    .when(running > 0, |this| this.child(div().text_xs().text_color(accent).child(format!("{running} running"))))
-                    .child(div().text_xs().text_color(quiet).child(format!("{all_tokens} tokens")))
-                    .child(div().text_xs().text_color(quiet).child(cost_words(all_cost))),
+                    .child(
+                        div()
+                            .flex_1()
+                            .font_medium()
+                            .child(format!("{} so far", span_time(now))),
+                    )
+                    .when(running > 0, |this| {
+                        this.child(
+                            div()
+                                .text_xs()
+                                .text_color(accent)
+                                .child(format!("{running} running")),
+                        )
+                    })
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(format!("{all_tokens} tokens")),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(cost_words(all_cost)),
+                    ),
             )
             .child(
                 h_flex()
@@ -399,14 +488,19 @@ mod tests {
 
     #[test]
     fn rows_and_totals_follow_the_tree() {
-        let spans = vec![TraceSpan::new("a", "A", 0, 100)
-            .usage(10, 5)
-            .child(TraceSpan::new("b", "B", 10, 50).usage(20, 7))
-            .child(TraceSpan::new("c", "C", 60, 0).running().usage(5, 1))];
+        let spans = vec![
+            TraceSpan::new("a", "A", 0, 100)
+                .usage(10, 5)
+                .child(TraceSpan::new("b", "B", 10, 50).usage(20, 7))
+                .child(TraceSpan::new("c", "C", 60, 0).running().usage(5, 1)),
+        ];
         assert_eq!(spans[0].totals(), (35, 13));
         assert_eq!(trace_rows(&spans, &[]).len(), 1);
         let open: Vec<SharedString> = vec!["a".into()];
-        let rows: Vec<_> = trace_rows(&spans, &open).iter().map(|(s, d)| (s.id.to_string(), *d)).collect();
+        let rows: Vec<_> = trace_rows(&spans, &open)
+            .iter()
+            .map(|(s, d)| (s.id.to_string(), *d))
+            .collect();
         assert_eq!(rows, [("a".into(), 0), ("b".into(), 1), ("c".into(), 1)]);
         assert_eq!(span_time(2_400), "2.4 s");
     }

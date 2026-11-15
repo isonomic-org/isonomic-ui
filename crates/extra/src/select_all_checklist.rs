@@ -8,12 +8,11 @@
 use std::rc::Rc;
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, checkbox::Checkbox, h_flex,
-    v_flex,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
+    checkbox::Checkbox, h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
 };
@@ -109,7 +108,11 @@ pub struct SelectAllChecklist {
 
 impl SelectAllChecklist {
     /// Create a checklist with a title for its parent box.
-    pub fn new(id: impl Into<ElementId>, title: impl Into<SharedString>, items: Vec<ChecklistItem>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        title: impl Into<SharedString>,
+        items: Vec<ChecklistItem>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -120,7 +123,10 @@ impl SelectAllChecklist {
     }
 
     /// Run with the items whose state should change.
-    pub fn on_change(mut self, handler: impl Fn(Vec<(SharedString, bool)>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_change(
+        mut self,
+        handler: impl Fn(Vec<(SharedString, bool)>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_change = Some(Rc::new(handler));
         self
     }
@@ -150,7 +156,11 @@ impl RenderOnce for SelectAllChecklist {
             .py_1p5()
             .cursor_pointer()
             .role(Role::CheckBox)
-            .aria_label(format!("{}, {ticked} of {} ticked", self.title, self.items.len()))
+            .aria_label(format!(
+                "{}, {ticked} of {} ticked",
+                self.title,
+                self.items.len()
+            ))
             .aria_selected(state == ParentState::All)
             .on_click(move |_, window, cx| {
                 if let Some(on_all) = &on_all {
@@ -166,16 +176,29 @@ impl RenderOnce for SelectAllChecklist {
                     .justify_center()
                     .rounded(px(4.))
                     .border_1()
-                    .border_color(if state == ParentState::None { line } else { accent })
+                    .border_color(if state == ParentState::None {
+                        line
+                    } else {
+                        accent
+                    })
                     .when(state != ParentState::None, |this| this.bg(accent))
                     .map(|this| match state {
-                        ParentState::All => this.child(Icon::new(IconName::Check).xsmall().text_color(fill)),
-                        ParentState::Some => this.child(div().w(px(8.)).h(px(2.)).rounded_full().bg(fill)),
+                        ParentState::All => {
+                            this.child(Icon::new(IconName::Check).xsmall().text_color(fill))
+                        }
+                        ParentState::Some => {
+                            this.child(div().w(px(8.)).h(px(2.)).rounded_full().bg(fill))
+                        }
                         ParentState::None => this,
                     }),
             )
             .child(div().flex_1().font_medium().child(self.title.clone()))
-            .child(div().text_xs().text_color(quiet).child(format!("{ticked} of {}", self.items.len())));
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child(format!("{ticked} of {}", self.items.len())),
+            );
 
         let rows: Vec<_> = self
             .items
@@ -188,20 +211,29 @@ impl RenderOnce for SelectAllChecklist {
                     .py_1()
                     .pl(px(24.))
                     .child(
-                        Checkbox::new(ElementId::NamedChild(self.id.clone().into(), format!("item-{}", item.id).into()))
-                            .checked(item.checked)
-                            .label(item.label.clone())
-                            .when(item.locked, |this| this.tooltip("Locked"))
-                            .on_click(move |checked, window, cx| {
-                                if let Some(on_change) = &on_change {
-                                    on_change(vec![(id.clone(), *checked)], window, cx);
-                                }
-                            })
-                            .disabled(item.locked),
+                        Checkbox::new(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("item-{}", item.id).into(),
+                        ))
+                        .checked(item.checked)
+                        .label(item.label.clone())
+                        .when(item.locked, |this| this.tooltip("Locked"))
+                        .on_click(move |checked, window, cx| {
+                            if let Some(on_change) = &on_change {
+                                on_change(vec![(id.clone(), *checked)], window, cx);
+                            }
+                        })
+                        .disabled(item.locked),
                     )
                     .child(div().flex_1())
-                    .when(item.locked, |this| this.child(Icon::new(IconName::Ban).xsmall().text_color(quiet)))
-                    .children(item.note.clone().map(|n| div().text_xs().text_color(quiet).child(n)))
+                    .when(item.locked, |this| {
+                        this.child(Icon::new(IconName::Ban).xsmall().text_color(quiet))
+                    })
+                    .children(
+                        item.note
+                            .clone()
+                            .map(|n| div().text_xs().text_color(quiet).child(n)),
+                    )
             })
             .collect();
 
@@ -229,7 +261,10 @@ mod tests {
         ];
         assert_eq!(parent_state(&items), ParentState::Some);
         assert_eq!(toggle_all(&items), [("b".into(), true)]);
-        let all = vec![ChecklistItem::new("a", "A").checked(true), ChecklistItem::new("b", "B").checked(true)];
+        let all = vec![
+            ChecklistItem::new("a", "A").checked(true),
+            ChecklistItem::new("b", "B").checked(true),
+        ];
         assert_eq!(parent_state(&all), ParentState::All);
         assert_eq!(toggle_all(&all).len(), 2);
     }

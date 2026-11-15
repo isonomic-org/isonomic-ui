@@ -7,8 +7,7 @@
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, px,
 };
 
@@ -24,7 +23,11 @@ pub enum KeyPlatform {
 impl KeyPlatform {
     /// The platform this build runs on.
     pub fn current() -> Self {
-        if cfg!(target_os = "macos") { Self::Mac } else { Self::Other }
+        if cfg!(target_os = "macos") {
+            Self::Mac
+        } else {
+            Self::Other
+        }
     }
 }
 
@@ -32,10 +35,34 @@ impl KeyPlatform {
 pub fn key_cap(key: &str, platform: KeyPlatform) -> (String, String) {
     let mac = platform == KeyPlatform::Mac;
     let (cap, word) = match key.to_lowercase().as_str() {
-        "mod" | "cmd" | "cmd-or-ctrl" => if mac { ("\u{2318}", "Command") } else { ("Ctrl", "Control") },
-        "ctrl" | "control" => if mac { ("\u{2303}", "Control") } else { ("Ctrl", "Control") },
-        "alt" | "option" => if mac { ("\u{2325}", "Option") } else { ("Alt", "Alt") },
-        "shift" => if mac { ("\u{21e7}", "Shift") } else { ("Shift", "Shift") },
+        "mod" | "cmd" | "cmd-or-ctrl" => {
+            if mac {
+                ("\u{2318}", "Command")
+            } else {
+                ("Ctrl", "Control")
+            }
+        }
+        "ctrl" | "control" => {
+            if mac {
+                ("\u{2303}", "Control")
+            } else {
+                ("Ctrl", "Control")
+            }
+        }
+        "alt" | "option" => {
+            if mac {
+                ("\u{2325}", "Option")
+            } else {
+                ("Alt", "Alt")
+            }
+        }
+        "shift" => {
+            if mac {
+                ("\u{21e7}", "Shift")
+            } else {
+                ("Shift", "Shift")
+            }
+        }
         "enter" | "return" => ("\u{21b5}", "Enter"),
         "escape" | "esc" => ("Esc", "Escape"),
         "backspace" => ("\u{232b}", "Backspace"),
@@ -54,7 +81,12 @@ pub fn key_cap(key: &str, platform: KeyPlatform) -> (String, String) {
 pub fn parse_shortcut(shortcut: &str) -> Vec<Vec<String>> {
     shortcut
         .split_whitespace()
-        .map(|step| step.split('-').filter(|k| !k.is_empty()).map(str::to_string).collect())
+        .map(|step| {
+            step.split('-')
+                .filter(|k| !k.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
         .filter(|keys: &Vec<String>| !keys.is_empty())
         .collect()
 }
@@ -63,7 +95,12 @@ pub fn parse_shortcut(shortcut: &str) -> Vec<Vec<String>> {
 pub fn spoken_shortcut(shortcut: &str, platform: KeyPlatform) -> String {
     parse_shortcut(shortcut)
         .iter()
-        .map(|step| step.iter().map(|k| key_cap(k, platform).1).collect::<Vec<_>>().join(" "))
+        .map(|step| {
+            step.iter()
+                .map(|k| key_cap(k, platform).1)
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
         .collect::<Vec<_>>()
         .join(", then ")
 }
@@ -114,15 +151,34 @@ impl RenderOnce for ShortcutKeys {
         let line = theme.border;
         let chip = theme.muted;
         let platform = self.platform;
-        let spoken = self.shortcuts.iter().map(|s| spoken_shortcut(s, platform)).collect::<Vec<_>>().join(", or ");
+        let spoken = self
+            .shortcuts
+            .iter()
+            .map(|s| spoken_shortcut(s, platform))
+            .collect::<Vec<_>>()
+            .join(", or ");
         let mut parts: Vec<isonomic_ui::AnyElement> = Vec::new();
         for (alt, shortcut) in self.shortcuts.iter().enumerate() {
             if alt > 0 {
-                parts.push(div().px_1().text_xs().text_color(quiet).child("or").into_any_element());
+                parts.push(
+                    div()
+                        .px_1()
+                        .text_xs()
+                        .text_color(quiet)
+                        .child("or")
+                        .into_any_element(),
+                );
             }
             for (ix, step) in parse_shortcut(shortcut).iter().enumerate() {
                 if ix > 0 {
-                    parts.push(div().px_0p5().text_xs().text_color(quiet).child("then").into_any_element());
+                    parts.push(
+                        div()
+                            .px_0p5()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child("then")
+                            .into_any_element(),
+                    );
                 }
                 parts.push(
                     h_flex()
@@ -165,9 +221,18 @@ mod tests {
 
     #[test]
     fn shortcuts_read_per_platform() {
-        assert_eq!(spoken_shortcut("mod-k p", KeyPlatform::Mac), "Command K, then P");
-        assert_eq!(spoken_shortcut("mod-shift-p", KeyPlatform::Other), "Control Shift P");
+        assert_eq!(
+            spoken_shortcut("mod-k p", KeyPlatform::Mac),
+            "Command K, then P"
+        );
+        assert_eq!(
+            spoken_shortcut("mod-shift-p", KeyPlatform::Other),
+            "Control Shift P"
+        );
         assert_eq!(key_cap("alt", KeyPlatform::Mac).0, "\u{2325}");
-        assert_eq!(parse_shortcut("g  i"), [vec!["g".to_string()], vec!["i".to_string()]]);
+        assert_eq!(
+            parse_shortcut("g  i"),
+            [vec!["g".to_string()], vec!["i".to_string()]]
+        );
     }
 }

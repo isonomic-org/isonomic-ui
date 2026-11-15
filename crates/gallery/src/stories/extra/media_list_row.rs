@@ -6,7 +6,10 @@ use isonomic_ui::component::{
     button::{Button, ButtonVariants as _},
     v_flex,
 };
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div, px,
+};
 use isonomic_ui_extra::media_list_row::{MediaListRow, RowMedia};
 
 /// What's in scope for a conversation with a bookkeeping assistant: files,
@@ -20,7 +23,10 @@ pub struct MediaListRowStory {
 impl MediaListRowStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { picked: 0, removed: Vec::new() })
+        cx.new(|_| Self {
+            picked: 0,
+            removed: Vec::new(),
+        })
     }
 }
 
@@ -43,9 +49,21 @@ impl Render for MediaListRowStory {
         let theme = cx.theme();
         let (line, quiet, success) = (theme.border, theme.muted_foreground, theme.success);
         let rows = [
-            (IconName::FileText, "March bank statement for the operating account.csv", "18 KB \u{b7} added by you"),
-            (IconName::File, "Receipts Q1.zip", "2.4 MB \u{b7} 214 receipts"),
-            (IconName::Globe, "Bank feed", "Read only \u{b7} synced 4 minutes ago"),
+            (
+                IconName::FileText,
+                "March bank statement for the operating account.csv",
+                "18 KB \u{b7} added by you",
+            ),
+            (
+                IconName::File,
+                "Receipts Q1.zip",
+                "2.4 MB \u{b7} 214 receipts",
+            ),
+            (
+                IconName::Globe,
+                "Bank feed",
+                "Read only \u{b7} synced 4 minutes ago",
+            ),
             (IconName::Inbox, "Mail", "Drafts only"),
         ];
         let picked = self.picked;
@@ -56,37 +74,42 @@ impl Render for MediaListRowStory {
             .rounded(px(8.))
             .border_1()
             .border_color(line)
-            .children(rows.into_iter().enumerate().filter(|(ix, _)| !self.removed.contains(ix)).map(|(ix, (icon, title, note))| {
-                let pick = cx.entity();
-                let remove = cx.entity();
-                let row = MediaListRow::new(("context-row", ix), title)
-                    .media(RowMedia::Icon(icon))
-                    .secondary(note)
-                    .picked(ix == picked)
-                    .on_click(move |_, _, cx| {
-                        pick.update(cx, |this, cx| {
-                            this.picked = ix;
-                            cx.notify();
-                        })
-                    });
-                if ix < 2 {
-                    row.trailing(
-                        Button::new(("remove-row", ix))
-                            .xsmall()
-                            .ghost()
-                            .icon(IconName::Close)
-                            .accessibility_label(format!("Remove {title}"))
+            .children(
+                rows.into_iter()
+                    .enumerate()
+                    .filter(|(ix, _)| !self.removed.contains(ix))
+                    .map(|(ix, (icon, title, note))| {
+                        let pick = cx.entity();
+                        let remove = cx.entity();
+                        let row = MediaListRow::new(("context-row", ix), title)
+                            .media(RowMedia::Icon(icon))
+                            .secondary(note)
+                            .picked(ix == picked)
                             .on_click(move |_, _, cx| {
-                                remove.update(cx, |this, cx| {
-                                    this.removed.push(ix);
+                                pick.update(cx, |this, cx| {
+                                    this.picked = ix;
                                     cx.notify();
                                 })
-                            }),
-                    )
-                } else {
-                    row.trailing(div().text_xs().text_color(success).child("On"))
-                }
-            }))
+                            });
+                        if ix < 2 {
+                            row.trailing(
+                                Button::new(("remove-row", ix))
+                                    .xsmall()
+                                    .ghost()
+                                    .icon(IconName::Close)
+                                    .accessibility_label(format!("Remove {title}"))
+                                    .on_click(move |_, _, cx| {
+                                        remove.update(cx, |this, cx| {
+                                            this.removed.push(ix);
+                                            cx.notify();
+                                        })
+                                    }),
+                            )
+                        } else {
+                            row.trailing(div().text_xs().text_color(success).child("On"))
+                        }
+                    }),
+            )
             .child(
                 MediaListRow::new("payroll-row", "Payroll")
                     .media(RowMedia::Icon(IconName::User))
@@ -94,6 +117,13 @@ impl Render for MediaListRowStory {
                     .disabled(true)
                     .compact(),
             )
-            .child(div().px_2().py_1().text_xs().text_color(quiet).child("Long names end in an ellipsis; a screen reader hears them in full."))
+            .child(
+                div()
+                    .px_2()
+                    .py_1()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("Long names end in an ellipsis; a screen reader hears them in full."),
+            )
     }
 }

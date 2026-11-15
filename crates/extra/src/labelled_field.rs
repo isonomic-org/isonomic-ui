@@ -6,11 +6,12 @@
 //! past it. The field passes its label, hint and error to screen readers as
 //! one name.
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    Role,
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _,
 };
 
@@ -22,7 +23,12 @@ pub fn count_words(used: usize, limit: usize) -> (String, bool) {
 }
 
 /// The name a screen reader hears.
-pub fn field_name(label: &str, required: Option<bool>, hint: Option<&str>, error: Option<&str>) -> String {
+pub fn field_name(
+    label: &str,
+    required: Option<bool>,
+    hint: Option<&str>,
+    error: Option<&str>,
+) -> String {
     let mut out = label.to_string();
     match required {
         Some(true) => out.push_str(", required"),
@@ -107,7 +113,12 @@ impl RenderOnce for LabelledField {
         let theme = cx.theme();
         let quiet = theme.muted_foreground;
         let danger = Tone::Danger.color(cx);
-        let name = field_name(&self.label, self.required, self.hint.as_deref(), self.error.as_deref());
+        let name = field_name(
+            &self.label,
+            self.required,
+            self.hint.as_deref(),
+            self.error.as_deref(),
+        );
         let count = self.count.map(|(used, limit)| count_words(used, limit));
         v_flex()
             .id(self.id.clone())
@@ -128,28 +139,35 @@ impl RenderOnce for LabelledField {
                     })),
             )
             .children(self.children)
-            .when(self.error.is_some() || self.hint.is_some() || count.is_some(), |this| {
-                this.child(
-                    h_flex()
-                        .gap_2()
-                        .text_xs()
-                        .child(match &self.error {
-                            Some(error) => h_flex()
-                                .flex_1()
-                                .gap_1()
-                                .text_color(danger)
-                                .child(Icon::new(IconName::CircleAlert).xsmall())
-                                .child(error.clone())
-                                .into_any_element(),
-                            None => div()
-                                .flex_1()
-                                .text_color(quiet)
-                                .children(self.hint.clone())
-                                .into_any_element(),
-                        })
-                        .children(count.map(|(words, over)| div().text_color(if over { danger } else { quiet }).child(words))),
-                )
-            })
+            .when(
+                self.error.is_some() || self.hint.is_some() || count.is_some(),
+                |this| {
+                    this.child(
+                        h_flex()
+                            .gap_2()
+                            .text_xs()
+                            .child(match &self.error {
+                                Some(error) => h_flex()
+                                    .flex_1()
+                                    .gap_1()
+                                    .text_color(danger)
+                                    .child(Icon::new(IconName::CircleAlert).xsmall())
+                                    .child(error.clone())
+                                    .into_any_element(),
+                                None => div()
+                                    .flex_1()
+                                    .text_color(quiet)
+                                    .children(self.hint.clone())
+                                    .into_any_element(),
+                            })
+                            .children(count.map(|(words, over)| {
+                                div()
+                                    .text_color(if over { danger } else { quiet })
+                                    .child(words)
+                            })),
+                    )
+                },
+            )
             .refine_style(&self.style)
     }
 }
@@ -160,8 +178,19 @@ mod tests {
 
     #[test]
     fn names_and_counts_read_naturally() {
-        assert_eq!(field_name("Email", Some(true), Some("For receipts"), None), "Email, required. For receipts");
-        assert_eq!(field_name("Email", Some(true), Some("For receipts"), Some("Not an address")), "Email, required. Error: Not an address");
+        assert_eq!(
+            field_name("Email", Some(true), Some("For receipts"), None),
+            "Email, required. For receipts"
+        );
+        assert_eq!(
+            field_name(
+                "Email",
+                Some(true),
+                Some("For receipts"),
+                Some("Not an address")
+            ),
+            "Email, required. Error: Not an address"
+        );
         assert_eq!(count_words(141, 140), ("141 / 140".to_string(), true));
     }
 }

@@ -19,32 +19,56 @@ pub struct ReviewQueueWorkspaceStory {
 
 fn proposals() -> Vec<Proposal> {
     vec![
-        Proposal::new("pay-harbour", "Pay Harbour Supply 1,240.50", ProposalRisk::High)
-            .reason("Invoice 2291 is 14 days overdue and matches the purchase order.")
-            .from("Payables assistant", "6 min", 2)
-            .change(ProposedChange::new("Status", Some("Unpaid"), "Scheduled"))
-            .change(ProposedChange::new("Pay on", None, "Tomorrow, 09:00"))
-            .change(ProposedChange::new("From account", None, "Operating, \u{2026}4417")),
+        Proposal::new(
+            "pay-harbour",
+            "Pay Harbour Supply 1,240.50",
+            ProposalRisk::High,
+        )
+        .reason("Invoice 2291 is 14 days overdue and matches the purchase order.")
+        .from("Payables assistant", "6 min", 2)
+        .change(ProposedChange::new("Status", Some("Unpaid"), "Scheduled"))
+        .change(ProposedChange::new("Pay on", None, "Tomorrow, 09:00"))
+        .change(ProposedChange::new(
+            "From account",
+            None,
+            "Operating, \u{2026}4417",
+        )),
         Proposal::new("void-2240", "Void invoice 2240", ProposalRisk::High)
             .reason("It was issued twice; 2241 carries the same lines and was paid.")
             .from("Billing assistant", "22 min", 1)
             .change(ProposedChange::new("Status", Some("Open"), "Void")),
-        Proposal::new("merge-dana", "Merge two contacts named Dana Whitlock", ProposalRisk::Medium)
-            .reason("Same email address and the same company.")
-            .from("Contacts assistant", "1 h", 3)
-            .change(ProposedChange::new(
-                "Phone",
-                Some("(none)"),
-                "+1 716 555 0148",
-            ))
-            .change(ProposedChange::new("Invoices", Some("4 and 2"), "6")),
-        Proposal::new("recat-fuel", "Move 3 fuel receipts to Vehicle costs", ProposalRisk::Low)
-            .reason("They were filed under Office supplies.")
-            .from("Tidy-up assistant", "2 h", 4)
-            .change(ProposedChange::new("Category", Some("Office supplies"), "Vehicle costs")),
-        Proposal::new("rename-tag", "Rename the tag 'misc' to 'Sundries'", ProposalRisk::Low)
-            .from("Tidy-up assistant", "3 h", 5)
-            .change(ProposedChange::new("Tag", Some("misc"), "Sundries")),
+        Proposal::new(
+            "merge-dana",
+            "Merge two contacts named Dana Whitlock",
+            ProposalRisk::Medium,
+        )
+        .reason("Same email address and the same company.")
+        .from("Contacts assistant", "1 h", 3)
+        .change(ProposedChange::new(
+            "Phone",
+            Some("(none)"),
+            "+1 716 555 0148",
+        ))
+        .change(ProposedChange::new("Invoices", Some("4 and 2"), "6")),
+        Proposal::new(
+            "recat-fuel",
+            "Move 3 fuel receipts to Vehicle costs",
+            ProposalRisk::Low,
+        )
+        .reason("They were filed under Office supplies.")
+        .from("Tidy-up assistant", "2 h", 4)
+        .change(ProposedChange::new(
+            "Category",
+            Some("Office supplies"),
+            "Vehicle costs",
+        )),
+        Proposal::new(
+            "rename-tag",
+            "Rename the tag 'misc' to 'Sundries'",
+            ProposalRisk::Low,
+        )
+        .from("Tidy-up assistant", "3 h", 5)
+        .change(ProposedChange::new("Tag", Some("misc"), "Sundries")),
     ]
 }
 
@@ -91,14 +115,13 @@ impl Render for ReviewQueueWorkspaceStory {
                     })
                     .on_decide(move |id, decision, _, cx| {
                         story.update(cx, |this, cx| {
-                            if let Some(proposal) =
-                                this.proposals.iter_mut().find(|p| &p.id == id)
+                            if let Some(proposal) = this.proposals.iter_mut().find(|p| &p.id == id)
                             {
                                 proposal.decision = decision;
                             }
                             if decision.is_some() {
-                                this.current = next_open(&this.proposals, Some(id))
-                                    .or(Some(id.clone()));
+                                this.current =
+                                    next_open(&this.proposals, Some(id)).or(Some(id.clone()));
                             }
                             cx.notify();
                         })

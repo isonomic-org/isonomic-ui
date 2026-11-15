@@ -1,8 +1,12 @@
 //! Gallery story for the approval stack.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
-use isonomic_ui_extra::approval_stack::{ApprovalStack, PendingRequest, RequestRisk, StackDecision};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
+use isonomic_ui_extra::approval_stack::{
+    ApprovalStack, PendingRequest, RequestRisk, StackDecision,
+};
 
 /// Five requests from bookkeeping assistants. The story takes the front card
 /// off on each decision and puts it back on undo.
@@ -13,22 +17,47 @@ pub struct ApprovalStackStory {
 
 fn requests() -> Vec<PendingRequest> {
     vec![
-        PendingRequest::new("pay", "Payables assistant", "Pay Harbour Supply $1,240.50", RequestRisk::High)
-            .detail("Invoice", "2291, due 14 days ago")
-            .detail("From", "Operating, \u{2026}4417")
-            .detail("When", "Tomorrow, 09:00")
-            .asked("6 min ago"),
-        PendingRequest::new("void", "Billing assistant", "Void invoice 2240", RequestRisk::High)
-            .detail("Reason", "Issued twice; 2241 was paid")
-            .asked("22 min ago"),
-        PendingRequest::new("email", "Collections", "Send a second reminder to Northwind Dental", RequestRisk::Medium)
-            .detail("Owed", "$3,120.00, 41 days")
-            .detail("Tone", "Firm")
-            .asked("1 h ago"),
-        PendingRequest::new("rule", "Tidy-up assistant", "File Shell receipts under Vehicle costs from now on", RequestRisk::Low)
-            .asked("2 h ago"),
-        PendingRequest::new("merge", "Contacts assistant", "Merge two contacts named Dana Whitlock", RequestRisk::Low)
-            .asked("3 h ago"),
+        PendingRequest::new(
+            "pay",
+            "Payables assistant",
+            "Pay Harbour Supply $1,240.50",
+            RequestRisk::High,
+        )
+        .detail("Invoice", "2291, due 14 days ago")
+        .detail("From", "Operating, \u{2026}4417")
+        .detail("When", "Tomorrow, 09:00")
+        .asked("6 min ago"),
+        PendingRequest::new(
+            "void",
+            "Billing assistant",
+            "Void invoice 2240",
+            RequestRisk::High,
+        )
+        .detail("Reason", "Issued twice; 2241 was paid")
+        .asked("22 min ago"),
+        PendingRequest::new(
+            "email",
+            "Collections",
+            "Send a second reminder to Northwind Dental",
+            RequestRisk::Medium,
+        )
+        .detail("Owed", "$3,120.00, 41 days")
+        .detail("Tone", "Firm")
+        .asked("1 h ago"),
+        PendingRequest::new(
+            "rule",
+            "Tidy-up assistant",
+            "File Shell receipts under Vehicle costs from now on",
+            RequestRisk::Low,
+        )
+        .asked("2 h ago"),
+        PendingRequest::new(
+            "merge",
+            "Contacts assistant",
+            "Merge two contacts named Dana Whitlock",
+            RequestRisk::Low,
+        )
+        .asked("3 h ago"),
     ]
 }
 

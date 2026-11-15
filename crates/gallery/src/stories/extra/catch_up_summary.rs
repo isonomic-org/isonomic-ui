@@ -18,17 +18,34 @@ pub struct CatchUpSummaryStory {
 fn items() -> Vec<CatchUpItem> {
     use CatchUpKind::*;
     vec![
-        CatchUpItem::new("recon", Done, "Matched all 61 operating account lines for March").when("1:12 pm"),
-        CatchUpItem::new("approve", NeedsYou, "Friday's supplier run is ready: 9 bills, $14,822.10")
-            .when("1:40 pm")
-            .action("Review"),
-        CatchUpItem::new("cards", Failed, "201 card matches couldn't post because the March ledger is locked")
-            .when("1:55 pm")
-            .action("See why"),
+        CatchUpItem::new(
+            "recon",
+            Done,
+            "Matched all 61 operating account lines for March",
+        )
+        .when("1:12 pm"),
+        CatchUpItem::new(
+            "approve",
+            NeedsYou,
+            "Friday's supplier run is ready: 9 bills, $14,822.10",
+        )
+        .when("1:40 pm")
+        .action("Review"),
+        CatchUpItem::new(
+            "cards",
+            Failed,
+            "201 card matches couldn't post because the March ledger is locked",
+        )
+        .when("1:55 pm")
+        .action("See why"),
         CatchUpItem::new("reminders", Done, "Sent 5 of 7 payment reminders").when("2:05 pm"),
-        CatchUpItem::new("reply", NeedsYou, "Northwind Dental replied asking for a payment plan")
-            .when("2:20 pm")
-            .action("Open"),
+        CatchUpItem::new(
+            "reply",
+            NeedsYou,
+            "Northwind Dental replied asking for a payment plan",
+        )
+        .when("2:20 pm")
+        .action("Open"),
         CatchUpItem::new("note", Note, "Spend today is $0.84 of the $5 daily budget"),
     ]
 }

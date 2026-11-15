@@ -1,7 +1,9 @@
 //! Gallery story for the context treemap.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
 use isonomic_ui_extra::context_treemap::{ContextBlock, ContextTreemap};
 
 /// A bookkeeping assistant's context in the middle of a close. The story
@@ -18,9 +20,11 @@ fn blocks() -> Vec<ContextBlock> {
         ContextBlock::new("ledger", "Files", "March ledger export", 38_400).compacts_to(9_000),
         ContextBlock::new("bank", "Files", "Operating statement", 14_800).compacts_to(4_100),
         ContextBlock::new("policy", "Files", "Expense policy", 5_300),
-        ContextBlock::new("talk1", "Conversation", "This morning's turns", 21_600).compacts_to(3_200),
+        ContextBlock::new("talk1", "Conversation", "This morning's turns", 21_600)
+            .compacts_to(3_200),
         ContextBlock::new("talk2", "Conversation", "Last hour", 9_800),
-        ContextBlock::new("tool1", "Tool results", "Unmatched card lines", 26_900).compacts_to(2_400),
+        ContextBlock::new("tool1", "Tool results", "Unmatched card lines", 26_900)
+            .compacts_to(2_400),
         ContextBlock::new("tool2", "Tool results", "Vendor balances", 7_700).compacts_to(1_100),
         ContextBlock::new("tool3", "Tool results", "Posting errors", 1_900),
     ]

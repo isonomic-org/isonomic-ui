@@ -26,11 +26,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     Animation, AnimationExt as _, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Transformation, Window, div, percentage, prelude::FluentBuilder as _,
-    px, relative,
+    KeyDownEvent, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Transformation, Window, div,
+    percentage, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -175,8 +174,7 @@ pub fn insert_step(steps: &mut Vec<FlowStep>, at: &InsertAt, step: FlowStep) -> 
         }
     }
     for s in steps.iter_mut() {
-        if insert_step(&mut s.yes, at, step.clone()) || insert_step(&mut s.no, at, step.clone())
-        {
+        if insert_step(&mut s.yes, at, step.clone()) || insert_step(&mut s.no, at, step.clone()) {
             return true;
         }
     }
@@ -188,9 +186,9 @@ pub fn remove_step(steps: &mut Vec<FlowStep>, id: &str) -> Option<FlowStep> {
     if let Some(ix) = steps.iter().position(|s| s.id.as_ref() == id) {
         return Some(steps.remove(ix));
     }
-    steps.iter_mut().find_map(|s| {
-        remove_step(&mut s.yes, id).or_else(|| remove_step(&mut s.no, id))
-    })
+    steps
+        .iter_mut()
+        .find_map(|s| remove_step(&mut s.yes, id).or_else(|| remove_step(&mut s.no, id)))
 }
 
 /// Move a step one place up or down within its lane. The trigger stays
@@ -376,10 +374,9 @@ impl Ctx<'_> {
         let paint = self.paint;
         let add = self.handlers.add.clone();
         let line = || div().w(px(2.)).h(px(10.)).bg(paint.line);
-        v_flex()
-            .items_center()
-            .child(line())
-            .when_some(add.filter(|_| !self.testing), |this, add| {
+        v_flex().items_center().child(line()).when_some(
+            add.filter(|_| !self.testing),
+            |this, add| {
                 this.child(
                     Button::new(self.child_id(format!("add-{key}")))
                         .outline()
@@ -414,7 +411,8 @@ impl Ctx<'_> {
                         }),
                 )
                 .child(line())
-            })
+            },
+        )
     }
 
     fn badge(&self, run: &StepRun) -> Option<impl IntoElement> {
@@ -470,7 +468,11 @@ impl Ctx<'_> {
             .p_2p5()
             .rounded(px(10.))
             .border_1()
-            .border_color(if is_selected { paint.accent } else { paint.line })
+            .border_color(if is_selected {
+                paint.accent
+            } else {
+                paint.line
+            })
             .bg(paint.fill)
             .shadow(resting_shadow(cx))
             .cursor_pointer()
@@ -574,36 +576,37 @@ impl Ctx<'_> {
             column = column.child(self.card(step, window, cx));
             if step.kind == FlowStepKind::Branch {
                 let paint = self.paint;
-                let lane_box = |label: &'static str, yes: bool, cx: &mut App, window: &mut Window| {
-                    v_flex()
-                        .flex_1()
-                        .min_w_0()
-                        .items_center()
-                        .child(div().w(px(2.)).h(px(10.)).bg(paint.line))
-                        .child(
-                            div()
-                                .px_2()
-                                .rounded(px(5.))
-                                .bg(if yes {
-                                    paint.success.opacity(0.14)
-                                } else {
-                                    paint.chip
-                                })
-                                .text_xs()
-                                .font_medium()
-                                .child(label),
-                        )
-                        .child(self.lane(
-                            if yes { &step.yes } else { &step.no },
-                            Some(InsertAt::LaneStart {
-                                branch: step.id.clone(),
-                                yes,
-                            }),
-                            false,
-                            window,
-                            cx,
-                        ))
-                };
+                let lane_box =
+                    |label: &'static str, yes: bool, cx: &mut App, window: &mut Window| {
+                        v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .items_center()
+                            .child(div().w(px(2.)).h(px(10.)).bg(paint.line))
+                            .child(
+                                div()
+                                    .px_2()
+                                    .rounded(px(5.))
+                                    .bg(if yes {
+                                        paint.success.opacity(0.14)
+                                    } else {
+                                        paint.chip
+                                    })
+                                    .text_xs()
+                                    .font_medium()
+                                    .child(label),
+                            )
+                            .child(self.lane(
+                                if yes { &step.yes } else { &step.no },
+                                Some(InsertAt::LaneStart {
+                                    branch: step.id.clone(),
+                                    yes,
+                                }),
+                                false,
+                                window,
+                                cx,
+                            ))
+                    };
                 column = column.child(
                     h_flex()
                         .items_start()
@@ -807,12 +810,23 @@ impl RenderOnce for FlowBuilder {
                     .border_color(paint.line)
                     .bg(paint.fill)
                     .rounded_t(radius_lg)
-                    .child(div().flex_1().min_w_0().truncate().font_medium().child(self.title))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .font_medium()
+                            .child(self.title),
+                    )
                     .child(
                         div()
                             .flex_none()
                             .text_xs()
-                            .text_color(if failed > 0 { paint.danger } else { paint.quiet })
+                            .text_color(if failed > 0 {
+                                paint.danger
+                            } else {
+                                paint.quiet
+                            })
                             .child(summary),
                     )
                     .child(
@@ -865,8 +879,16 @@ mod tests {
         vec![
             FlowStep::new("start", FlowStepKind::Trigger, "Invoice is overdue"),
             FlowStep::new("check", FlowStepKind::Branch, "Over 1,000?").lanes(
-                vec![FlowStep::new("call", FlowStepKind::Action, "Ask for a call")],
-                vec![FlowStep::new("mail", FlowStepKind::Action, "Send a reminder")],
+                vec![FlowStep::new(
+                    "call",
+                    FlowStepKind::Action,
+                    "Ask for a call",
+                )],
+                vec![FlowStep::new(
+                    "mail",
+                    FlowStepKind::Action,
+                    "Send a reminder",
+                )],
             ),
             FlowStep::new("log", FlowStepKind::Action, "Log the chase"),
         ]
@@ -874,7 +896,10 @@ mod tests {
 
     #[test]
     fn reading_order_walks_lanes_after_their_branch() {
-        let order: Vec<_> = reading_order(&flow()).iter().map(|s| s.to_string()).collect();
+        let order: Vec<_> = reading_order(&flow())
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         assert_eq!(order, ["start", "check", "call", "mail", "log"]);
     }
 
@@ -882,7 +907,11 @@ mod tests {
     fn steps_insert_after_a_step_or_at_a_lane_start() {
         let mut steps = flow();
         let wait = FlowStep::new("wait", FlowStepKind::Delay, "Wait 3 days");
-        assert!(insert_step(&mut steps, &InsertAt::After("mail".into()), wait));
+        assert!(insert_step(
+            &mut steps,
+            &InsertAt::After("mail".into()),
+            wait
+        ));
         assert_eq!(steps[1].no[1].id.as_ref(), "wait");
         let first = FlowStep::new("note", FlowStepKind::Action, "Add a note");
         let at = InsertAt::LaneStart {

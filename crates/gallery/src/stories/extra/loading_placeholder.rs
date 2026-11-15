@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div, px,
+};
 use isonomic_ui_extra::loading_placeholder::{LoadingPlaceholder, PlaceholderShape};
 
 /// Each shape the placeholder takes while a bookkeeping dashboard loads.
@@ -41,13 +44,20 @@ impl Render for LoadingPlaceholderStory {
                     .gap_8()
                     .child(
                         v_flex().w(px(300.)).gap_2().child(caption("Notes")).child(
-                            LoadingPlaceholder::new("notes", PlaceholderShape::Lines(4)).label("Loading notes"),
+                            LoadingPlaceholder::new("notes", PlaceholderShape::Lines(4))
+                                .label("Loading notes"),
                         ),
                     )
                     .child(
-                        v_flex().w(px(300.)).gap_2().child(caption("Clients")).child(
-                            LoadingPlaceholder::new("clients", PlaceholderShape::MediaRow).repeat(3).label("Loading clients"),
-                        ),
+                        v_flex()
+                            .w(px(300.))
+                            .gap_2()
+                            .child(caption("Clients"))
+                            .child(
+                                LoadingPlaceholder::new("clients", PlaceholderShape::MediaRow)
+                                    .repeat(3)
+                                    .label("Loading clients"),
+                            ),
                     ),
             )
             .child(
@@ -59,13 +69,26 @@ impl Render for LoadingPlaceholderStory {
                             .w(px(240.))
                             .gap_2()
                             .child(caption("Report card"))
-                            .child(LoadingPlaceholder::new("report", PlaceholderShape::Card).label("Loading report")),
+                            .child(
+                                LoadingPlaceholder::new("report", PlaceholderShape::Card)
+                                    .label("Loading report"),
+                            ),
                     )
                     .child(
-                        v_flex().w(px(420.)).gap_2().child(caption("Invoices table")).child(
-                            LoadingPlaceholder::new("invoices", PlaceholderShape::Table { rows: 4, columns: 4 })
+                        v_flex()
+                            .w(px(420.))
+                            .gap_2()
+                            .child(caption("Invoices table"))
+                            .child(
+                                LoadingPlaceholder::new(
+                                    "invoices",
+                                    PlaceholderShape::Table {
+                                        rows: 4,
+                                        columns: 4,
+                                    },
+                                )
                                 .label("Loading invoices"),
-                        ),
+                            ),
                     ),
             )
     }

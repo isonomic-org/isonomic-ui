@@ -9,10 +9,9 @@ use std::time::Instant;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
 use isonomic_ui::{
-    Role,
-    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder, Pixels,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
-    prelude::FluentBuilder as _, px,
+    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
+    PathBuilder, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px,
 };
 
 /// How big the ring is.
@@ -51,18 +50,34 @@ pub fn percent_label(share: f32) -> String {
 }
 
 /// Points along an arc, from `start` turning `sweep` (both in turns, 0 at the top, clockwise).
-pub fn arc_points(center: (f32, f32), radius: f32, start: f32, sweep: f32, steps: usize) -> Vec<(f32, f32)> {
+pub fn arc_points(
+    center: (f32, f32),
+    radius: f32,
+    start: f32,
+    sweep: f32,
+    steps: usize,
+) -> Vec<(f32, f32)> {
     let steps = steps.max(1);
     (0..=steps)
         .map(|ix| {
             let turn = start + sweep * ix as f32 / steps as f32;
             let angle = turn * std::f32::consts::TAU;
-            (center.0 + radius * angle.sin(), center.1 - radius * angle.cos())
+            (
+                center.0 + radius * angle.sin(),
+                center.1 - radius * angle.cos(),
+            )
         })
         .collect()
 }
 
-fn stroke_arc(window: &mut Window, bounds: Bounds<Pixels>, width: f32, start: f32, sweep: f32, color: Hsla) {
+fn stroke_arc(
+    window: &mut Window,
+    bounds: Bounds<Pixels>,
+    width: f32,
+    start: f32,
+    sweep: f32,
+    color: Hsla,
+) {
     if sweep <= 0.0 {
         return;
     }
@@ -70,7 +85,10 @@ fn stroke_arc(window: &mut Window, bounds: Bounds<Pixels>, width: f32, start: f3
     let radius = (side - width) / 2.0;
     let steps = (sweep * 96.0).ceil() as usize;
     let mut path = PathBuilder::stroke(px(width));
-    for (ix, (x, y)) in arc_points((side / 2.0, side / 2.0), radius, start, sweep, steps).into_iter().enumerate() {
+    for (ix, (x, y)) in arc_points((side / 2.0, side / 2.0), radius, start, sweep, steps)
+        .into_iter()
+        .enumerate()
+    {
         let at = point(bounds.left() + px(x), bounds.top() + px(y));
         if ix == 0 {
             path.move_to(at);
@@ -96,7 +114,13 @@ pub struct ProgressRing {
 impl ProgressRing {
     /// Create a ring that circles until a share is set.
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), style: StyleRefinement::default(), share: None, size: RingSize::Medium, label: None }
+        Self {
+            id: id.into(),
+            style: StyleRefinement::default(),
+            share: None,
+            size: RingSize::Medium,
+            label: None,
+        }
     }
 
     /// Fill to this share, from 0 to 1.
@@ -168,30 +192,30 @@ impl RenderOnce for ProgressRing {
             .flex_none()
             .role(Role::ProgressIndicator)
             .when_some(share, |this, share| {
-                this.aria_numeric_value(f64::from(share * 100.0)).aria_min_numeric_value(0.0).aria_max_numeric_value(100.0)
+                this.aria_numeric_value(f64::from(share * 100.0))
+                    .aria_min_numeric_value(0.0)
+                    .aria_max_numeric_value(100.0)
             })
             .aria_label(spoken)
-            .child(
-                div()
-                    .relative()
-                    .size(side)
-                    .flex_none()
-                    .child(ring)
-                    .when(size == RingSize::Large && share.is_some(), |this| {
-                        this.child(
-                            div()
-                                .absolute()
-                                .inset_0()
-                                .flex()
-                                .items_center()
-                                .justify_center()
-                                .text_sm()
-                                .font_medium()
-                                .child(percent_label(share.unwrap_or(0.0))),
-                        )
-                    }),
-            )
-            .when_some(self.label, |this, label| this.child(div().text_sm().text_color(quiet).child(label)))
+            .child(div().relative().size(side).flex_none().child(ring).when(
+                size == RingSize::Large && share.is_some(),
+                |this| {
+                    this.child(
+                        div()
+                            .absolute()
+                            .inset_0()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .text_sm()
+                            .font_medium()
+                            .child(percent_label(share.unwrap_or(0.0))),
+                    )
+                },
+            ))
+            .when_some(self.label, |this, label| {
+                this.child(div().text_sm().text_color(quiet).child(label))
+            })
             .refine_style(&self.style)
     }
 }

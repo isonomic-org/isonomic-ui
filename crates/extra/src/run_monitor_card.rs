@@ -13,11 +13,10 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _,
-    IntoElement, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Transformation, Window, div, percentage,
-    prelude::FluentBuilder as _, px, relative,
+    Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Transformation, Window, div, percentage, prelude::FluentBuilder as _,
+    px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -233,9 +232,18 @@ impl RenderOnce for RunMonitorCard {
                     |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
                 )
                 .into_any_element(),
-            MonitorState::Paused => Icon::new(IconName::Pause).small().text_color(tone_color).into_any_element(),
-            MonitorState::Done => Icon::new(IconName::CircleCheck).small().text_color(tone_color).into_any_element(),
-            MonitorState::Failed => Icon::new(IconName::CircleX).small().text_color(tone_color).into_any_element(),
+            MonitorState::Paused => Icon::new(IconName::Pause)
+                .small()
+                .text_color(tone_color)
+                .into_any_element(),
+            MonitorState::Done => Icon::new(IconName::CircleCheck)
+                .small()
+                .text_color(tone_color)
+                .into_any_element(),
+            MonitorState::Failed => Icon::new(IconName::CircleX)
+                .small()
+                .text_color(tone_color)
+                .into_any_element(),
         };
 
         let progress = div().h(px(3.)).w_full().rounded_full().bg(chip).child(
@@ -251,8 +259,16 @@ impl RenderOnce for RunMonitorCard {
             Button::new(ElementId::NamedChild(self.id.clone().into(), "fold".into()))
                 .xsmall()
                 .ghost()
-                .icon(if self.folded { IconName::ChevronUp } else { IconName::ChevronDown })
-                .accessibility_label(if self.folded { "Show run details" } else { "Fold run to a bar" })
+                .icon(if self.folded {
+                    IconName::ChevronUp
+                } else {
+                    IconName::ChevronDown
+                })
+                .accessibility_label(if self.folded {
+                    "Show run details"
+                } else {
+                    "Fold run to a bar"
+                })
                 .on_click(move |_, window, cx| {
                     if let Some(on_fold) = &on_fold {
                         on_fold(window, cx);
@@ -277,7 +293,12 @@ impl RenderOnce for RunMonitorCard {
                 .text_sm()
                 .shadow(resting_shadow(cx))
                 .role(Role::Group)
-                .aria_label(format!("{}, {}, {}", self.title, self.state.word(), self.current))
+                .aria_label(format!(
+                    "{}, {}, {}",
+                    self.title,
+                    self.state.word(),
+                    self.current
+                ))
                 .child(mark)
                 .child(
                     v_flex()
@@ -287,8 +308,20 @@ impl RenderOnce for RunMonitorCard {
                         .child(
                             h_flex()
                                 .gap_2()
-                                .child(div().flex_1().min_w_0().truncate().child(self.current.clone()))
-                                .child(div().flex_none().text_xs().text_color(quiet).child(clock(self.elapsed_secs))),
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .min_w_0()
+                                        .truncate()
+                                        .child(self.current.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .flex_none()
+                                        .text_xs()
+                                        .text_color(quiet)
+                                        .child(clock(self.elapsed_secs)),
+                                ),
                         )
                         .child(progress),
                 )
@@ -300,16 +333,23 @@ impl RenderOnce for RunMonitorCard {
         let pause = {
             let on_pause = self.on_pause.clone();
             let paused = self.state == MonitorState::Paused;
-            Button::new(ElementId::NamedChild(self.id.clone().into(), "pause".into()))
-                .small()
-                .outline()
-                .icon(if paused { IconName::Play } else { IconName::Pause })
-                .label(if paused { "Resume" } else { "Pause" })
-                .on_click(move |_, window, cx| {
-                    if let Some(on_pause) = &on_pause {
-                        on_pause(window, cx);
-                    }
-                })
+            Button::new(ElementId::NamedChild(
+                self.id.clone().into(),
+                "pause".into(),
+            ))
+            .small()
+            .outline()
+            .icon(if paused {
+                IconName::Play
+            } else {
+                IconName::Pause
+            })
+            .label(if paused { "Resume" } else { "Pause" })
+            .on_click(move |_, window, cx| {
+                if let Some(on_pause) = &on_pause {
+                    on_pause(window, cx);
+                }
+            })
         };
         let stop = {
             let on_stop = self.on_stop.clone();
@@ -331,7 +371,12 @@ impl RenderOnce for RunMonitorCard {
                 .flex_1()
                 .min_w(px(80.))
                 .child(div().text_xs().text_color(quiet).child(label))
-                .child(div().font_semibold().when(warn, |this| this.text_color(danger)).child(value))
+                .child(
+                    div()
+                        .font_semibold()
+                        .when(warn, |this| this.text_color(danger))
+                        .child(value),
+                )
         };
 
         v_flex()
@@ -355,7 +400,14 @@ impl RenderOnce for RunMonitorCard {
                     .py_2p5()
                     .border_b_1()
                     .border_color(line)
-                    .child(div().flex_1().min_w_0().truncate().font_medium().child(self.title.clone()))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .font_medium()
+                            .child(self.title.clone()),
+                    )
                     .child(
                         div()
                             .px_1p5()
@@ -380,12 +432,18 @@ impl RenderOnce for RunMonitorCard {
                                 v_flex()
                                     .flex_1()
                                     .min_w_0()
-                                    .child(div().text_xs().text_color(quiet).child(match self.state {
-                                        MonitorState::Done => "Finished with",
-                                        MonitorState::Failed => "Stopped at",
-                                        _ => "Now",
-                                    }))
-                                    .child(div().line_height(relative(1.35)).child(self.current.clone())),
+                                    .child(div().text_xs().text_color(quiet).child(
+                                        match self.state {
+                                            MonitorState::Done => "Finished with",
+                                            MonitorState::Failed => "Stopped at",
+                                            _ => "Now",
+                                        },
+                                    ))
+                                    .child(
+                                        div()
+                                            .line_height(relative(1.35))
+                                            .child(self.current.clone()),
+                                    ),
                             ),
                     )
                     .child(progress)
@@ -405,7 +463,9 @@ impl RenderOnce for RunMonitorCard {
                             .child(stat(
                                 "Spent",
                                 match self.budget_cents {
-                                    Some(budget) => format!("{} of {}", money(self.spent_cents), money(budget)),
+                                    Some(budget) => {
+                                        format!("{} of {}", money(self.spent_cents), money(budget))
+                                    }
                                     None => money(self.spent_cents),
                                 },
                                 over,
@@ -418,18 +478,35 @@ impl RenderOnce for RunMonitorCard {
                                 .pt_1()
                                 .border_t_1()
                                 .border_color(line)
-                                .child(div().pt_2().text_xs().font_medium().text_color(quiet).child("Finished"))
+                                .child(
+                                    div()
+                                        .pt_2()
+                                        .text_xs()
+                                        .font_medium()
+                                        .text_color(quiet)
+                                        .child("Finished"),
+                                )
                                 .children(self.steps.iter().rev().take(5).map(|step| {
                                     let tone = if step.ok { Tone::Success } else { Tone::Danger };
                                     h_flex()
                                         .gap_2()
                                         .text_xs()
                                         .child(
-                                            Icon::new(if step.ok { IconName::Check } else { IconName::Close })
-                                                .xsmall()
-                                                .text_color(tone.color(cx)),
+                                            Icon::new(if step.ok {
+                                                IconName::Check
+                                            } else {
+                                                IconName::Close
+                                            })
+                                            .xsmall()
+                                            .text_color(tone.color(cx)),
                                         )
-                                        .child(div().flex_1().min_w_0().truncate().child(step.label.clone()))
+                                        .child(
+                                            div()
+                                                .flex_1()
+                                                .min_w_0()
+                                                .truncate()
+                                                .child(step.label.clone()),
+                                        )
                                         .child(div().text_color(quiet).child(clock(step.secs)))
                                 }))
                                 .when(self.steps.len() > 5, |this| {

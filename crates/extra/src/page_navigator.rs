@@ -14,9 +14,8 @@ use isonomic_ui::component::{
     menu::{DropdownMenu as _, PopupMenuItem},
 };
 use isonomic_ui::{
-    Role,
-    App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
 };
 
 /// How many pages hold `total` rows, never fewer than one.
@@ -36,7 +35,11 @@ pub fn page_window(current: usize, pages: usize, siblings: usize) -> Vec<Option<
     let mut prev = 0;
     for page in shown {
         if prev != 0 && page > prev + 1 {
-            out.push(if page == prev + 2 { Some(prev + 1) } else { None });
+            out.push(if page == prev + 2 {
+                Some(prev + 1)
+            } else {
+                None
+            });
         }
         out.push(Some(page));
         prev = page;
@@ -125,7 +128,10 @@ impl Styled for PageNavigator {
     }
 }
 
-fn go(handler: &Option<PickHandler>, page: usize) -> impl Fn(&ClickEvent, &mut Window, &mut App) + 'static {
+fn go(
+    handler: &Option<PickHandler>,
+    page: usize,
+) -> impl Fn(&ClickEvent, &mut Window, &mut App) + 'static {
     let handler = handler.clone();
     move |_, window, cx| {
         if let Some(handler) = &handler {
@@ -152,14 +158,24 @@ impl RenderOnce for PageNavigator {
                 .on_click(go(&self.on_page, page.saturating_sub(1).max(1)))
                 .into_any_element(),
         );
-        for (n, slot) in page_window(page, pages, self.siblings).into_iter().enumerate() {
+        for (n, slot) in page_window(page, pages, self.siblings)
+            .into_iter()
+            .enumerate()
+        {
             match slot {
                 Some(p) => {
-                    let button = Button::new(child(format!("page-{p}"))).xsmall().label(p.to_string());
+                    let button = Button::new(child(format!("page-{p}")))
+                        .xsmall()
+                        .label(p.to_string());
                     let button = if p == page {
-                        button.primary().accessibility_label(format!("Page {p}, current"))
+                        button
+                            .primary()
+                            .accessibility_label(format!("Page {p}, current"))
                     } else {
-                        button.ghost().accessibility_label(format!("Page {p}")).on_click(go(&self.on_page, p))
+                        button
+                            .ghost()
+                            .accessibility_label(format!("Page {p}"))
+                            .on_click(go(&self.on_page, p))
                     };
                     buttons.push(button.into_any_element());
                 }
@@ -200,13 +216,15 @@ impl RenderOnce for PageNavigator {
                     sizes.iter().fold(menu, |menu, size| {
                         let pick = pick.clone();
                         let size = *size;
-                        menu.item(PopupMenuItem::new(format!("{size} per page")).checked(size == current).on_click(
-                            move |_, window, cx| {
-                                if let Some(pick) = &pick {
-                                    pick(size, window, cx);
-                                }
-                            },
-                        ))
+                        menu.item(
+                            PopupMenuItem::new(format!("{size} per page"))
+                                .checked(size == current)
+                                .on_click(move |_, window, cx| {
+                                    if let Some(pick) = &pick {
+                                        pick(size, window, cx);
+                                    }
+                                }),
+                        )
                     })
                 })
         });
@@ -238,8 +256,14 @@ mod tests {
     #[test]
     fn windows_fold_long_gaps_only() {
         assert_eq!(page_window(1, 1, 1), [Some(1)]);
-        assert_eq!(page_window(5, 10, 1), [Some(1), None, Some(4), Some(5), Some(6), None, Some(10)]);
-        assert_eq!(page_window(4, 10, 1), [Some(1), Some(2), Some(3), Some(4), Some(5), None, Some(10)]);
+        assert_eq!(
+            page_window(5, 10, 1),
+            [Some(1), None, Some(4), Some(5), Some(6), None, Some(10)]
+        );
+        assert_eq!(
+            page_window(4, 10, 1),
+            [Some(1), Some(2), Some(3), Some(4), Some(5), None, Some(10)]
+        );
         assert_eq!(page_window(99, 3, 1), [Some(1), Some(2), Some(3)]);
     }
 

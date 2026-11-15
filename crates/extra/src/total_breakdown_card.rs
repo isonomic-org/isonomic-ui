@@ -10,9 +10,8 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -366,7 +365,12 @@ impl RenderOnce for TotalBreakdownCard {
             h_flex()
                 .id(("row", ix))
                 .role(Role::ListItem)
-                .aria_label(format!("{}: {}, {}% of the total", part.label, format(values[ix]), share(values[ix], total)))
+                .aria_label(format!(
+                    "{}: {}, {}% of the total",
+                    part.label,
+                    format(values[ix]),
+                    share(values[ix], total)
+                ))
                 .gap_2()
                 .h(px(30.))
                 .px_1()
@@ -466,7 +470,13 @@ impl RenderOnce for TotalBreakdownCard {
                             .child(div().truncate().text_xs().text_color(quiet).child(caption)),
                     )
                     .child(bar)
-                    .child(v_flex().id("parts").role(Role::List).aria_label("Parts").children(rows)),
+                    .child(
+                        v_flex()
+                            .id("parts")
+                            .role(Role::List)
+                            .aria_label("Parts")
+                            .children(rows),
+                    ),
             )
             .children(footer.map(|footer| {
                 footer

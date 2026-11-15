@@ -12,8 +12,8 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, FocusHandle, Focusable, IntoElement, ParentElement as _, Render,
-    SharedString, Styled as _, Subscription, Window, div, prelude::FluentBuilder as _,
+    App, AppContext as _, Context, Entity, FocusHandle, Focusable, IntoElement, ParentElement as _,
+    Render, SharedString, Styled as _, Subscription, Window, div, prelude::FluentBuilder as _,
 };
 
 /// The shape a value must have.
@@ -44,12 +44,19 @@ pub struct FieldRules {
 
 impl Default for FieldRules {
     fn default() -> Self {
-        Self { required: false, min_len: None, max_len: None, shape: ValueShape::Any }
+        Self {
+            required: false,
+            min_len: None,
+            max_len: None,
+            shape: ValueShape::Any,
+        }
     }
 }
 
 fn looks_like_email(value: &str) -> bool {
-    let Some((name, domain)) = value.split_once('@') else { return false };
+    let Some((name, domain)) = value.split_once('@') else {
+        return false;
+    };
     !name.is_empty()
         && !domain.contains('@')
         && domain.split('.').count() >= 2
@@ -76,15 +83,20 @@ pub fn check_value(value: &str, rules: &FieldRules) -> Option<String> {
     }
     match rules.shape {
         ValueShape::Any => None,
-        ValueShape::Email => (!looks_like_email(value)).then(|| "Enter an email address, like name@example.com.".into()),
+        ValueShape::Email => (!looks_like_email(value))
+            .then(|| "Enter an email address, like name@example.com.".into()),
         ValueShape::WebAddress => {
-            let rest = value.strip_prefix("https://").or_else(|| value.strip_prefix("http://"));
+            let rest = value
+                .strip_prefix("https://")
+                .or_else(|| value.strip_prefix("http://"));
             match rest {
                 Some(rest) if rest.contains('.') && !rest.contains(char::is_whitespace) => None,
                 _ => Some("Enter a web address starting with https://.".into()),
             }
         }
-        ValueShape::Digits => (!value.chars().all(|c| c.is_ascii_digit())).then(|| "Use digits only.".into()),
+        ValueShape::Digits => {
+            (!value.chars().all(|c| c.is_ascii_digit())).then(|| "Use digits only.".into())
+        }
     }
 }
 
@@ -106,17 +118,32 @@ impl Focusable for CheckedTextField {
 
 impl CheckedTextField {
     /// Create a field with a label above it and the rules it checks.
-    pub fn new(label: impl Into<SharedString>, rules: FieldRules, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        label: impl Into<SharedString>,
+        rules: FieldRules,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let field = cx.new(|cx| InputState::new(window, cx));
-        let events = cx.subscribe(&field, |this: &mut Self, _, event: &InputEvent, cx| match event {
-            InputEvent::Blur => {
-                this.touched = true;
-                cx.notify();
-            }
-            InputEvent::Change => cx.notify(),
-            _ => {}
-        });
-        Self { field, label: label.into(), hint: None, rules, touched: false, _events: events }
+        let events = cx.subscribe(
+            &field,
+            |this: &mut Self, _, event: &InputEvent, cx| match event {
+                InputEvent::Blur => {
+                    this.touched = true;
+                    cx.notify();
+                }
+                InputEvent::Change => cx.notify(),
+                _ => {}
+            },
+        );
+        Self {
+            field,
+            label: label.into(),
+            hint: None,
+            rules,
+            touched: false,
+            _events: events,
+        }
     }
 
     /// Show a hint under the field while nothing is wrong.
@@ -126,9 +153,15 @@ impl CheckedTextField {
     }
 
     /// Show placeholder text in the empty field.
-    pub fn placeholder(self, text: impl Into<SharedString>, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn placeholder(
+        self,
+        text: impl Into<SharedString>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let text = text.into();
-        self.field.update(cx, |field, cx| field.set_placeholder(text, window, cx));
+        self.field
+            .update(cx, |field, cx| field.set_placeholder(text, window, cx));
         self
     }
 
@@ -157,29 +190,53 @@ impl Render for CheckedTextField {
         let danger = theme.danger;
         let success = theme.success;
         let value = self.value(cx);
-        let problem = if self.touched { check_value(&value, &self.rules) } else { None };
+        let problem = if self.touched {
+            check_value(&value, &self.rules)
+        } else {
+            None
+        };
         let good = self.touched && problem.is_none() && !value.trim().is_empty();
-        let count = self.rules.max_len.map(|max| format!("{}/{max}", value.chars().count()));
-        let label = if self.rules.required { format!("{} (required)", self.label) } else { self.label.to_string() };
+        let count = self
+            .rules
+            .max_len
+            .map(|max| format!("{}/{max}", value.chars().count()));
+        let label = if self.rules.required {
+            format!("{} (required)", self.label)
+        } else {
+            self.label.to_string()
+        };
         v_flex()
             .gap_1()
             .child(
                 h_flex()
                     .justify_between()
-                    .child(div().text_sm().font_medium().child(self.label.clone()).when(self.rules.required, |this| {
-                        this.child(div().text_color(danger).child(" *"))
-                    }))
+                    .child(
+                        div()
+                            .text_sm()
+                            .font_medium()
+                            .child(self.label.clone())
+                            .when(self.rules.required, |this| {
+                                this.child(div().text_color(danger).child(" *"))
+                            }),
+                    )
                     .children(count.map(|c| div().text_xs().text_color(quiet).child(c))),
             )
             .child(
                 Input::new(&self.field)
                     .aria_label(label)
                     .when(problem.is_some(), |this| this.border_color(danger))
-                    .when(good, |this| this.suffix(Icon::new(IconName::Check).small().text_color(success))),
+                    .when(good, |this| {
+                        this.suffix(Icon::new(IconName::Check).small().text_color(success))
+                    }),
             )
             .map(|this| match (problem, self.hint.clone()) {
                 (Some(problem), _) => this.child(
-                    h_flex().gap_1().text_xs().text_color(danger).child(Icon::new(IconName::CircleAlert).xsmall()).child(problem),
+                    h_flex()
+                        .gap_1()
+                        .text_xs()
+                        .text_color(danger)
+                        .child(Icon::new(IconName::CircleAlert).xsmall())
+                        .child(problem),
                 ),
                 (None, Some(hint)) => this.child(div().text_xs().text_color(quiet).child(hint)),
                 (None, None) => this,
@@ -193,19 +250,40 @@ mod tests {
 
     #[test]
     fn rules_report_the_first_problem() {
-        let email = FieldRules { required: true, shape: ValueShape::Email, ..FieldRules::default() };
+        let email = FieldRules {
+            required: true,
+            shape: ValueShape::Email,
+            ..FieldRules::default()
+        };
         assert_eq!(check_value("  ", &email).as_deref(), Some("Fill this in."));
         assert!(check_value("ana@harbor.dental", &email).is_none());
         assert!(check_value("ana@harbor", &email).is_some());
         assert!(check_value("ana harbor@x.com", &email).is_some());
-        let site = FieldRules { shape: ValueShape::WebAddress, ..FieldRules::default() };
+        let site = FieldRules {
+            shape: ValueShape::WebAddress,
+            ..FieldRules::default()
+        };
         assert!(check_value("", &site).is_none());
         assert!(check_value("https://harbor.dental", &site).is_none());
         assert!(check_value("harbor.dental", &site).is_some());
-        let tax = FieldRules { min_len: Some(9), max_len: Some(9), shape: ValueShape::Digits, ..FieldRules::default() };
-        assert_eq!(check_value("1234", &tax).as_deref(), Some("Use at least 9 characters."));
-        assert_eq!(check_value("1234567890", &tax).as_deref(), Some("Use 9 characters or fewer."));
-        assert_eq!(check_value("12345678a", &tax).as_deref(), Some("Use digits only."));
+        let tax = FieldRules {
+            min_len: Some(9),
+            max_len: Some(9),
+            shape: ValueShape::Digits,
+            ..FieldRules::default()
+        };
+        assert_eq!(
+            check_value("1234", &tax).as_deref(),
+            Some("Use at least 9 characters.")
+        );
+        assert_eq!(
+            check_value("1234567890", &tax).as_deref(),
+            Some("Use 9 characters or fewer.")
+        );
+        assert_eq!(
+            check_value("12345678a", &tax).as_deref(),
+            Some("Use digits only.")
+        );
         assert!(check_value("123456789", &tax).is_none());
     }
 }

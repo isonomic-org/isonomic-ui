@@ -13,8 +13,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, Render, SharedString, Styled as _, Subscription, Task, Window, div, px,
+    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
+    Styled as _, Subscription, Task, Window, div, px,
 };
 
 /// Where the notes stand.
@@ -48,7 +49,11 @@ pub fn word_count(text: &str) -> usize {
 /// The count shown in the footer, such as "42 words" or "42 words · 18 left".
 pub fn count_label(text: &str, limit: Option<usize>) -> String {
     let words = word_count(text);
-    let words = if words == 1 { "1 word".to_string() } else { format!("{words} words") };
+    let words = if words == 1 {
+        "1 word".to_string()
+    } else {
+        format!("{words} words")
+    };
     match limit {
         Some(limit) => {
             let used = text.chars().count();
@@ -90,7 +95,12 @@ impl Focusable for AutosaveNotes {
 
 impl AutosaveNotes {
     /// Create notes holding `text`, named `label` for screen readers.
-    pub fn new(label: impl Into<SharedString>, text: impl Into<SharedString>, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        label: impl Into<SharedString>,
+        text: impl Into<SharedString>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let text: SharedString = text.into();
         let field = cx.new(|cx| {
             let mut field = TextareaState::new(window, cx).auto_grow(3, 12);
@@ -152,15 +162,18 @@ impl AutosaveNotes {
     }
 
     fn over_limit(&self, cx: &App) -> bool {
-        self.limit.is_some_and(|limit| self.text(cx).chars().count() > limit)
+        self.limit
+            .is_some_and(|limit| self.text(cx).chars().count() > limit)
     }
 
     fn schedule(&mut self, cx: &mut Context<Self>) {
         let pause = self.pause;
-        self._pending = Some(cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-            cx.background_executor().timer(pause).await;
-            this.update(cx, |this, cx| this.save_now(cx)).ok();
-        }));
+        self._pending = Some(cx.spawn(
+            async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                cx.background_executor().timer(pause).await;
+                this.update(cx, |this, cx| this.save_now(cx)).ok();
+            },
+        ));
     }
 
     fn save_now(&mut self, cx: &mut Context<Self>) {
@@ -190,7 +203,9 @@ impl Render for AutosaveNotes {
             .on_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
                 let keys = &event.keystroke;
                 if (keys.modifiers.platform || keys.modifiers.control) && keys.key == "s" {
-                    if this.status == SaveStatus::Unsaved || matches!(this.status, SaveStatus::Failed(_)) {
+                    if this.status == SaveStatus::Unsaved
+                        || matches!(this.status, SaveStatus::Failed(_))
+                    {
                         if matches!(this.status, SaveStatus::Failed(_)) {
                             this.status = SaveStatus::Unsaved;
                         }
@@ -205,8 +220,19 @@ impl Render for AutosaveNotes {
                     .justify_between()
                     .gap_3()
                     .text_xs()
-                    .child(div().text_color(status_color).child(status_label(&self.status)))
-                    .child(div().text_color(if over { danger } else { quiet }).font_medium().min_w(px(80.)).text_right().child(count_label(&text, self.limit))),
+                    .child(
+                        div()
+                            .text_color(status_color)
+                            .child(status_label(&self.status)),
+                    )
+                    .child(
+                        div()
+                            .text_color(if over { danger } else { quiet })
+                            .font_medium()
+                            .min_w(px(80.))
+                            .text_right()
+                            .child(count_label(&text, self.limit)),
+                    ),
             )
     }
 }
@@ -218,7 +244,10 @@ mod tests {
     #[test]
     fn footers_read_status_and_counts() {
         assert_eq!(status_label(&SaveStatus::Saving), "Saving\u{2026}");
-        assert_eq!(status_label(&SaveStatus::Failed("offline".into())), "Not saved: offline");
+        assert_eq!(
+            status_label(&SaveStatus::Failed("offline".into())),
+            "Not saved: offline"
+        );
         assert_eq!(word_count("  paid in full,  thanks "), 4);
         assert_eq!(count_label("one", None), "1 word");
         assert_eq!(count_label("two words", Some(12)), "2 words \u{b7} 3 left");

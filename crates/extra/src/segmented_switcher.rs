@@ -6,12 +6,13 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+};
 use isonomic_ui::{
-    KeyDownEvent,
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
@@ -28,7 +29,12 @@ pub struct Segment {
 impl Segment {
     /// Create a choice with a label.
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), icon: None, count: None, disabled: false }
+        Self {
+            label: label.into(),
+            icon: None,
+            count: None,
+            disabled: false,
+        }
     }
 
     /// Lead with an icon.
@@ -80,7 +86,11 @@ pub fn step_segment(selected: usize, enabled: &[bool], key: &str) -> Option<usiz
     let walk = |forward: bool| {
         let mut ix = selected.min(count - 1);
         for _ in 0..count {
-            ix = if forward { (ix + 1) % count } else { (ix + count - 1) % count };
+            ix = if forward {
+                (ix + 1) % count
+            } else {
+                (ix + count - 1) % count
+            };
             if enabled[ix] {
                 return Some(ix);
             }
@@ -152,9 +162,11 @@ impl Styled for SegmentedSwitcher {
 impl RenderOnce for SegmentedSwitcher {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focus = window
-            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
-                cx.focus_handle().tab_stop(true)
-            })
+            .use_keyed_state(
+                ElementId::NamedChild(self.id.clone().into(), "focus".into()),
+                cx,
+                |_, cx| cx.focus_handle().tab_stop(true),
+            )
             .read(cx)
             .clone();
         let focused = focus.is_focused(window);
@@ -173,7 +185,10 @@ impl RenderOnce for SegmentedSwitcher {
             let on = ix == self.selected;
             let pick = self.on_select.clone();
             div()
-                .id(ElementId::NamedChild(self.id.clone().into(), format!("segment-{ix}").into()))
+                .id(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("segment-{ix}").into(),
+                ))
                 .flex()
                 .items_center()
                 .justify_center()
@@ -186,17 +201,27 @@ impl RenderOnce for SegmentedSwitcher {
                 .role(Role::RadioButton)
                 .aria_label(segment_label(&segment.label, segment.count))
                 .aria_selected(on)
-                .when(on, |this| this.bg(raised).shadow(shadow.clone()).text_color(ink).font_medium())
+                .when(on, |this| {
+                    this.bg(raised)
+                        .shadow(shadow.clone())
+                        .text_color(ink)
+                        .font_medium()
+                })
                 .when(on && focused, |this| this.border_1().border_color(ring))
                 .when(!on && !segment.disabled, |this| {
-                    this.text_color(quiet).cursor_pointer().hover(|s| s.text_color(ink)).on_click(move |_, window, cx| {
-                        if let Some(pick) = &pick {
-                            pick(ix, window, cx);
-                        }
-                    })
+                    this.text_color(quiet)
+                        .cursor_pointer()
+                        .hover(|s| s.text_color(ink))
+                        .on_click(move |_, window, cx| {
+                            if let Some(pick) = &pick {
+                                pick(ix, window, cx);
+                            }
+                        })
                 })
                 .when(segment.disabled, |this| this.text_color(quiet.opacity(0.5)))
-                .when_some(segment.icon, |this, icon| this.child(Icon::new(icon).small()))
+                .when_some(segment.icon, |this, icon| {
+                    this.child(Icon::new(icon).small())
+                })
                 .child(segment.label.clone())
                 .when_some(segment.count, |this, count| {
                     this.child(
@@ -249,14 +274,29 @@ mod tests {
         assert_eq!(short_count(1250), "1.2k");
         assert_eq!(short_count(48_200), "48k");
         assert_eq!(short_count(3_400_000), "3m");
-        assert_eq!(step_segment(0, &[true, true, false, true], "right"), Some(1));
-        assert_eq!(step_segment(1, &[true, true, false, true], "right"), Some(3));
-        assert_eq!(step_segment(3, &[true, true, false, true], "right"), Some(0));
+        assert_eq!(
+            step_segment(0, &[true, true, false, true], "right"),
+            Some(1)
+        );
+        assert_eq!(
+            step_segment(1, &[true, true, false, true], "right"),
+            Some(3)
+        );
+        assert_eq!(
+            step_segment(3, &[true, true, false, true], "right"),
+            Some(0)
+        );
         assert_eq!(step_segment(0, &[true, true, false, true], "left"), Some(3));
-        assert_eq!(step_segment(2, &[false, true, true, false], "home"), Some(1));
+        assert_eq!(
+            step_segment(2, &[false, true, true, false], "home"),
+            Some(1)
+        );
         assert_eq!(step_segment(0, &[true, true], "end"), Some(1));
         assert_eq!(step_segment(0, &[false, false], "right"), None);
-        let segment = Segment::new("Draft").icon(IconName::File).count(2).disabled(true);
+        let segment = Segment::new("Draft")
+            .icon(IconName::File)
+            .count(2)
+            .disabled(true);
         assert!(segment.disabled && segment.count == Some(2));
     }
 }

@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div,
+};
 use isonomic_ui_extra::toggle_button_set::{PressMode, ToggleButtonSet, ToggleItem};
 
 /// Columns to show in a ledger (any number), a sort direction (at most
@@ -16,7 +19,11 @@ pub struct ToggleButtonSetStory {
 impl ToggleButtonSetStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { columns: vec![true, true, false, false], sort: vec![false, true], view: vec![true, false, false] })
+        cx.new(|_| Self {
+            columns: vec![true, true, false, false],
+            sort: vec![false, true],
+            view: vec![true, false, false],
+        })
     }
 }
 
@@ -47,7 +54,12 @@ impl Render for ToggleButtonSetStory {
             .child(
                 ToggleButtonSet::new(
                     "columns",
-                    vec![ToggleItem::text("Date"), ToggleItem::text("Payee"), ToggleItem::text("Category"), ToggleItem::text("Memo")],
+                    vec![
+                        ToggleItem::text("Date"),
+                        ToggleItem::text("Payee"),
+                        ToggleItem::text("Category"),
+                        ToggleItem::text("Memo"),
+                    ],
                     self.columns.clone(),
                 )
                 .label("Ledger columns")

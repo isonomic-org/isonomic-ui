@@ -16,8 +16,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
 };
@@ -83,7 +82,10 @@ impl MatrixFile {
 /// Conflicts and how many are resolved.
 pub fn conflict_counts(files: &[MatrixFile]) -> (usize, usize) {
     let conflicts: Vec<_> = files.iter().filter(|f| f.conflicts()).collect();
-    (conflicts.len(), conflicts.iter().filter(|f| f.resolution.is_some()).count())
+    (
+        conflicts.len(),
+        conflicts.iter().filter(|f| f.resolution.is_some()).count(),
+    )
 }
 
 type ResolveHandler = Rc<dyn Fn(&SharedString, Resolution, &mut Window, &mut App)>;
@@ -100,7 +102,11 @@ pub struct MergeConflictMatrix {
 
 impl MergeConflictMatrix {
     /// Create a matrix for branches, each given as id and name.
-    pub fn new(id: impl Into<ElementId>, branches: Vec<(SharedString, SharedString)>, files: Vec<MatrixFile>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        branches: Vec<(SharedString, SharedString)>,
+        files: Vec<MatrixFile>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -111,7 +117,10 @@ impl MergeConflictMatrix {
     }
 
     /// Run with a file's path and the resolution chosen.
-    pub fn on_resolve(mut self, handler: impl Fn(&SharedString, Resolution, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_resolve(
+        mut self,
+        handler: impl Fn(&SharedString, Resolution, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_resolve = Some(Rc::new(handler));
         self
     }
@@ -151,7 +160,13 @@ impl RenderOnce for MergeConflictMatrix {
             .text_color(quiet)
             .child(div().w(path_w).flex_none().px_3().child("File"))
             .children(self.branches.iter().map(|(_, name)| {
-                div().w(cell_w).flex_none().px_2().truncate().font_family(mono.clone()).child(name.clone())
+                div()
+                    .w(cell_w)
+                    .flex_none()
+                    .px_2()
+                    .truncate()
+                    .font_family(mono.clone())
+                    .child(name.clone())
             }))
             .child(div().w(choice_w).flex_none().px_2().child("Resolution"));
 
@@ -171,10 +186,18 @@ impl RenderOnce for MergeConflictMatrix {
                                 .gap_1()
                                 .px_1p5()
                                 .rounded(px(4.))
-                                .bg(if conflict { warning.opacity(0.16) } else { accent.opacity(0.1) })
+                                .bg(if conflict {
+                                    warning.opacity(0.16)
+                                } else {
+                                    accent.opacity(0.1)
+                                })
                                 .text_xs()
                                 .child(div().text_color(success).child(format!("+{}", t.added)))
-                                .child(div().text_color(danger).child(format!("\u{2212}{}", t.removed)))
+                                .child(
+                                    div()
+                                        .text_color(danger)
+                                        .child(format!("\u{2212}{}", t.removed)),
+                                )
                                 .into_any_element(),
                             None => div()
                                 .h(px(22.))
@@ -192,7 +215,11 @@ impl RenderOnce for MergeConflictMatrix {
                     let current = match &file.resolution {
                         Some(Resolution::Keep(b)) => format!(
                             "Keep {}",
-                            self.branches.iter().find(|(id, _)| id == b).map(|(_, n)| n.clone()).unwrap_or_else(|| b.clone())
+                            self.branches
+                                .iter()
+                                .find(|(id, _)| id == b)
+                                .map(|(_, n)| n.clone())
+                                .unwrap_or_else(|| b.clone())
                         ),
                         Some(Resolution::Combine) => "Combine".to_string(),
                         Some(Resolution::Manual) => "Leave for a person".to_string(),
@@ -205,42 +232,63 @@ impl RenderOnce for MergeConflictMatrix {
                         .filter(|(_, t)| t.is_some())
                         .filter_map(|(bx, _)| self.branches.get(bx))
                         .map(|(id, name)| (format!("Keep {name}"), Resolution::Keep(id.clone())))
-                        .chain([("Combine".to_string(), Resolution::Combine), ("Leave for a person".to_string(), Resolution::Manual)])
+                        .chain([
+                            ("Combine".to_string(), Resolution::Combine),
+                            ("Leave for a person".to_string(), Resolution::Manual),
+                        ])
                         .collect();
                     let on_resolve = self.on_resolve.clone();
                     let path = file.path.clone();
                     let chosen = file.resolution.clone();
-                    Button::new(ElementId::NamedChild(self.id.clone().into(), format!("resolve-{ix}").into()))
-                        .xsmall()
-                        .map(|b| if chosen.is_some() { b.ghost() } else { b.outline() })
-                        .label(current)
-                        .dropdown_caret(true)
-                        .accessibility_label(format!("Resolve {}", file.path))
-                        .dropdown_menu(move |menu, _, _| {
-                            options.iter().fold(menu, |menu, (label, resolution)| {
-                                let on_resolve = on_resolve.clone();
-                                let path = path.clone();
-                                let pick = resolution.clone();
-                                menu.item(
-                                    PopupMenuItem::new(label.clone())
-                                        .checked(chosen.as_ref() == Some(resolution))
-                                        .on_click(move |_, window, cx| {
-                                            if let Some(on_resolve) = &on_resolve {
-                                                on_resolve(&path, pick.clone(), window, cx);
-                                            }
-                                        }),
-                                )
-                            })
+                    Button::new(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("resolve-{ix}").into(),
+                    ))
+                    .xsmall()
+                    .map(|b| {
+                        if chosen.is_some() {
+                            b.ghost()
+                        } else {
+                            b.outline()
+                        }
+                    })
+                    .label(current)
+                    .dropdown_caret(true)
+                    .accessibility_label(format!("Resolve {}", file.path))
+                    .dropdown_menu(move |menu, _, _| {
+                        options.iter().fold(menu, |menu, (label, resolution)| {
+                            let on_resolve = on_resolve.clone();
+                            let path = path.clone();
+                            let pick = resolution.clone();
+                            menu.item(
+                                PopupMenuItem::new(label.clone())
+                                    .checked(chosen.as_ref() == Some(resolution))
+                                    .on_click(move |_, window, cx| {
+                                        if let Some(on_resolve) = &on_resolve {
+                                            on_resolve(&path, pick.clone(), window, cx);
+                                        }
+                                    }),
+                            )
                         })
-                        .into_any_element()
+                    })
+                    .into_any_element()
                 } else {
-                    div().text_xs().text_color(quiet).child("No conflict").into_any_element()
+                    div()
+                        .text_xs()
+                        .text_color(quiet)
+                        .child("No conflict")
+                        .into_any_element()
                 };
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("file-{ix}").into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("file-{ix}").into(),
+                    ))
                     .h(px(36.))
                     .when(ix > 0, |this| this.border_t_1().border_color(line))
-                    .when(conflict && file.resolution.is_none(), |this| this.bg(warning.opacity(0.05)))
+                    .when(conflict && file.resolution.is_none(), |this| {
+                        this.bg(warning.opacity(0.05))
+                    })
                     .role(Role::Row)
                     .aria_label(format!(
                         "{}, changed on {} branches{}",
@@ -255,14 +303,29 @@ impl RenderOnce for MergeConflictMatrix {
                             .gap_1p5()
                             .px_3()
                             .child(if conflict {
-                                Icon::new(if file.resolution.is_some() { IconName::CircleCheck } else { IconName::TriangleAlert })
-                                    .xsmall()
-                                    .text_color(if file.resolution.is_some() { success } else { warning })
-                                    .into_any_element()
+                                Icon::new(if file.resolution.is_some() {
+                                    IconName::CircleCheck
+                                } else {
+                                    IconName::TriangleAlert
+                                })
+                                .xsmall()
+                                .text_color(if file.resolution.is_some() {
+                                    success
+                                } else {
+                                    warning
+                                })
+                                .into_any_element()
                             } else {
                                 div().w(px(12.)).into_any_element()
                             })
-                            .child(div().min_w_0().truncate().text_xs().font_family(mono.clone()).child(file.path.clone())),
+                            .child(
+                                div()
+                                    .min_w_0()
+                                    .truncate()
+                                    .text_xs()
+                                    .font_family(mono.clone())
+                                    .child(file.path.clone()),
+                            ),
                     )
                     .children(cells)
                     .child(div().w(choice_w).flex_none().px_2().child(choice))
@@ -296,7 +359,11 @@ impl RenderOnce for MergeConflictMatrix {
                         div()
                             .px_1p5()
                             .rounded(px(4.))
-                            .bg(if resolved == conflicts { success.opacity(0.14) } else { chip })
+                            .bg(if resolved == conflicts {
+                                success.opacity(0.14)
+                            } else {
+                                chip
+                            })
                             .text_xs()
                             .text_color(if resolved == conflicts { success } else { ink })
                             .child(if conflicts == 0 {
@@ -308,9 +375,17 @@ impl RenderOnce for MergeConflictMatrix {
             )
             .child(
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "scroll".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "scroll".into(),
+                    ))
                     .overflow_x_scroll()
-                    .child(v_flex().min_w(px(220. + 160. + 92. * self.branches.len() as f32)).child(header).children(rows)),
+                    .child(
+                        v_flex()
+                            .min_w(px(220. + 160. + 92. * self.branches.len() as f32))
+                            .child(header)
+                            .children(rows),
+                    ),
             )
             .refine_style(&self.style)
     }

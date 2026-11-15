@@ -5,7 +5,8 @@ use std::time::Duration;
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Subscription, Window, div, px,
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Subscription, Window, div, px,
 };
 use isonomic_ui_extra::quick_edit_popover::{QuickEditEvent, QuickEditPopover};
 
@@ -17,11 +18,17 @@ pub struct QuickEditPopoverStory {
     _events: Vec<Subscription>,
 }
 
-fn saves(cx: &mut Context<QuickEditPopoverStory>, field: &Entity<QuickEditPopover>, refuse_spaces: bool) -> Subscription {
+fn saves(
+    cx: &mut Context<QuickEditPopoverStory>,
+    field: &Entity<QuickEditPopover>,
+    refuse_spaces: bool,
+) -> Subscription {
     cx.subscribe(field, move |_, field, event: &QuickEditEvent, cx| {
         let QuickEditEvent::Save(text) = event.clone();
         cx.spawn(async move |_, cx: &mut isonomic_ui::AsyncApp| {
-            cx.background_executor().timer(Duration::from_millis(600)).await;
+            cx.background_executor()
+                .timer(Duration::from_millis(600))
+                .await;
             field.update(cx, |field, cx| {
                 if refuse_spaces && text.contains(' ') {
                     field.save_failed("References can't contain spaces.", cx);
@@ -38,10 +45,19 @@ impl QuickEditPopoverStory {
     /// Create the story view.
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let title = cx.new(|cx| QuickEditPopover::new("title", "Invoice title", "March retainer", window, cx));
-            let reference = cx.new(|cx| QuickEditPopover::new("reference", "Client reference", "PO-4471", window, cx).allow_blank());
+            let title = cx.new(|cx| {
+                QuickEditPopover::new("title", "Invoice title", "March retainer", window, cx)
+            });
+            let reference = cx.new(|cx| {
+                QuickEditPopover::new("reference", "Client reference", "PO-4471", window, cx)
+                    .allow_blank()
+            });
             let events = vec![saves(cx, &title, false), saves(cx, &reference, true)];
-            Self { title, reference, _events: events }
+            Self {
+                title,
+                reference,
+                _events: events,
+            }
         })
     }
 }
@@ -67,8 +83,23 @@ impl Render for QuickEditPopoverStory {
         v_flex()
             .gap_2()
             .child(div().text_lg().child("INV-2041 \u{b7} Harbor Dental"))
-            .child(h_flex().gap_2().child(row("Title")).child(self.title.clone()))
-            .child(h_flex().gap_2().child(row("Reference")).child(self.reference.clone()))
-            .child(div().text_xs().text_color(quiet).child("Try a reference with a space to see a refused save."))
+            .child(
+                h_flex()
+                    .gap_2()
+                    .child(row("Title"))
+                    .child(self.title.clone()),
+            )
+            .child(
+                h_flex()
+                    .gap_2()
+                    .child(row("Reference"))
+                    .child(self.reference.clone()),
+            )
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("Try a reference with a space to see a refused save."),
+            )
     }
 }

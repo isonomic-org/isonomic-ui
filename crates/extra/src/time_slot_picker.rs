@@ -13,12 +13,17 @@ use isonomic_ui::component::{
     h_flex,
     menu::{DropdownMenu as _, PopupMenuItem},
 };
-use isonomic_ui::{App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, StyleRefinement, Styled, Window, div, px};
+use isonomic_ui::{
+    App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, StyleRefinement,
+    Styled, Window, div, px,
+};
 
 /// Start times from `first` up to but not past `last`, `step` minutes apart, all in minutes after midnight.
 pub fn day_slots(first: u32, last: u32, step: u32) -> Vec<u32> {
     let step = step.max(1);
-    (first..=last.min(24 * 60 - 1)).step_by(step as usize).collect()
+    (first..=last.min(24 * 60 - 1))
+        .step_by(step as usize)
+        .collect()
 }
 
 /// A time in minutes after midnight, written "9:30 am" or "09:30".
@@ -138,7 +143,10 @@ impl RenderOnce for TimeSlotPicker {
             Some(len) => write_span(start, len, twelve),
             None => write_time(start, twelve),
         };
-        let shown = self.picked.map(write).unwrap_or_else(|| "Pick a time".into());
+        let shown = self
+            .picked
+            .map(write)
+            .unwrap_or_else(|| "Pick a time".into());
         let slots = day_slots(self.first, self.last, self.step);
         let booked = self.booked.clone();
         let picked = self.picked;
@@ -153,20 +161,35 @@ impl RenderOnce for TimeSlotPicker {
                     .child(Icon::new(IconName::Time).xsmall().text_color(quiet))
                     .child(div().min_w(px(110.)).child(shown.clone())),
             )
-            .accessibility_label(format!("{}: {}", self.label, if picked.is_some() { shown.as_str() } else { "none picked" }))
+            .accessibility_label(format!(
+                "{}: {}",
+                self.label,
+                if picked.is_some() {
+                    shown.as_str()
+                } else {
+                    "none picked"
+                }
+            ))
             .dropdown_menu(move |mut menu, _, _| {
                 for start in &slots {
                     let start = *start;
                     let taken = booked.contains(&start);
                     let pick = pick.clone();
-                    let text = if taken { format!("{}  \u{b7}  booked", write(start)) } else { write(start) };
-                    menu = menu.item(PopupMenuItem::new(text).checked(picked == Some(start)).disabled(taken).on_click(
-                        move |_, window, cx| {
-                            if let Some(pick) = &pick {
-                                pick(start, window, cx);
-                            }
-                        },
-                    ));
+                    let text = if taken {
+                        format!("{}  \u{b7}  booked", write(start))
+                    } else {
+                        write(start)
+                    };
+                    menu = menu.item(
+                        PopupMenuItem::new(text)
+                            .checked(picked == Some(start))
+                            .disabled(taken)
+                            .on_click(move |_, window, cx| {
+                                if let Some(pick) = &pick {
+                                    pick(start, window, cx);
+                                }
+                            }),
+                    );
                 }
                 menu.min_w(px(200.)).max_h(px(280.)).scrollable(true)
             })

@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div, px,
+};
 use isonomic_ui_extra::shortcut_keys::{KeyPlatform, ShortcutKeys};
 
 /// A bookkeeping app's shortcuts, written for a Mac and for other systems.
@@ -42,15 +45,33 @@ impl Render for ShortcutKeysStory {
         let table = |platform: KeyPlatform, key: &str| {
             v_flex()
                 .gap_2()
-                .child(div().text_xs().font_medium().text_color(quiet).child(if platform == KeyPlatform::Mac { "On a Mac" } else { "On Windows and Linux" }))
+                .child(div().text_xs().font_medium().text_color(quiet).child(
+                    if platform == KeyPlatform::Mac {
+                        "On a Mac"
+                    } else {
+                        "On Windows and Linux"
+                    },
+                ))
                 .children(rows.iter().enumerate().map(|(ix, (what, keys, alt))| {
-                    let mut shortcut = ShortcutKeys::new(isonomic_ui::ElementId::Name(format!("{key}-{ix}").into()), *keys).platform(platform);
+                    let mut shortcut = ShortcutKeys::new(
+                        isonomic_ui::ElementId::Name(format!("{key}-{ix}").into()),
+                        *keys,
+                    )
+                    .platform(platform);
                     if let Some(alt) = alt {
                         shortcut = shortcut.or(*alt);
                     }
-                    h_flex().gap_3().child(div().w(px(200.)).text_sm().child(*what)).child(shortcut)
+                    h_flex()
+                        .gap_3()
+                        .child(div().w(px(200.)).text_sm().child(*what))
+                        .child(shortcut)
                 }))
         };
-        h_flex().items_start().flex_wrap().gap_8().child(table(KeyPlatform::Mac, "mac")).child(table(KeyPlatform::Other, "other"))
+        h_flex()
+            .items_start()
+            .flex_wrap()
+            .gap_8()
+            .child(table(KeyPlatform::Mac, "mac"))
+            .child(table(KeyPlatform::Other, "other"))
     }
 }

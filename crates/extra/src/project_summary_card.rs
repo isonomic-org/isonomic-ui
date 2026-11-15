@@ -15,8 +15,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -128,7 +127,11 @@ pub struct ProjectSummaryCard {
 
 impl ProjectSummaryCard {
     /// Create a card.
-    pub fn new(id: impl Into<ElementId>, name: impl Into<SharedString>, status: ProjectStatus) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        name: impl Into<SharedString>,
+        status: ProjectStatus,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -167,7 +170,10 @@ impl ProjectSummaryCard {
     }
 
     /// Run with each edit.
-    pub fn on_edit(mut self, handler: impl Fn(ProjectEdit, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_edit(
+        mut self,
+        handler: impl Fn(ProjectEdit, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_edit = Some(Rc::new(handler));
         self
     }
@@ -193,7 +199,11 @@ impl RenderOnce for ProjectSummaryCard {
         let tint = tone.tint(cx);
         let done = self.subtasks.iter().filter(|s| s.done).count();
         let total = self.subtasks.len();
-        let share = if total == 0 { 0. } else { done as f32 / total as f32 };
+        let share = if total == 0 {
+            0.
+        } else {
+            done as f32 / total as f32
+        };
         let edit = self.on_edit.clone();
         let emit = move |e: ProjectEdit, window: &mut Window, cx: &mut App| {
             if let Some(edit) = &edit {
@@ -238,10 +248,21 @@ impl RenderOnce for ProjectSummaryCard {
                 .py_3()
                 .cursor_pointer()
                 .role(Role::Button)
-                .aria_label(format!("{}, {}, {done} of {total} subtasks done", self.name, self.status.word()))
+                .aria_label(format!(
+                    "{}, {}, {done} of {total} subtasks done",
+                    self.name,
+                    self.status.word()
+                ))
                 .aria_expanded(self.open)
                 .on_click(move |_, window, cx| emit(ProjectEdit::Toggle, window, cx))
-                .child(div().w(px(3.)).h(px(34.)).flex_none().rounded_full().bg(tone_color))
+                .child(
+                    div()
+                        .w(px(3.))
+                        .h(px(34.))
+                        .flex_none()
+                        .rounded_full()
+                        .bg(tone_color),
+                )
                 .child(
                     v_flex()
                         .flex_1()
@@ -254,35 +275,50 @@ impl RenderOnce for ProjectSummaryCard {
                                 .text_xs()
                                 .text_color(quiet)
                                 .when(!self.open, |this| this.child(status_chip))
-                                .when(!self.due.is_empty(), |this| this.child(format!("Due {}", self.due)))
+                                .when(!self.due.is_empty(), |this| {
+                                    this.child(format!("Due {}", self.due))
+                                })
                                 .when(total > 0, |this| this.child(format!("{done}/{total} done"))),
                         ),
                 )
                 .child(faces)
-                .child(Icon::new(if self.open { IconName::ChevronUp } else { IconName::ChevronDown }).xsmall().text_color(quiet))
+                .child(
+                    Icon::new(if self.open {
+                        IconName::ChevronUp
+                    } else {
+                        IconName::ChevronDown
+                    })
+                    .xsmall()
+                    .text_color(quiet),
+                )
         };
 
         let body = self.open.then(|| {
             let status_menu = {
                 let emit = emit.clone();
                 let current = self.status;
-                Button::new(ElementId::NamedChild(self.id.clone().into(), "status".into()))
-                    .xsmall()
-                    .outline()
-                    .label(self.status.word())
-                    .dropdown_caret(true)
-                    .accessibility_label(format!("Status: {}", self.status.word()))
-                    .dropdown_menu(move |menu, _, _| {
-                        ProjectStatus::ALL.iter().fold(menu, |menu, status| {
-                            let emit = emit.clone();
-                            let status = *status;
-                            menu.item(
-                                PopupMenuItem::new(status.word())
-                                    .checked(status == current)
-                                    .on_click(move |_, window, cx| emit(ProjectEdit::Status(status), window, cx)),
-                            )
-                        })
+                Button::new(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    "status".into(),
+                ))
+                .xsmall()
+                .outline()
+                .label(self.status.word())
+                .dropdown_caret(true)
+                .accessibility_label(format!("Status: {}", self.status.word()))
+                .dropdown_menu(move |menu, _, _| {
+                    ProjectStatus::ALL.iter().fold(menu, |menu, status| {
+                        let emit = emit.clone();
+                        let status = *status;
+                        menu.item(
+                            PopupMenuItem::new(status.word())
+                                .checked(status == current)
+                                .on_click(move |_, window, cx| {
+                                    emit(ProjectEdit::Status(status), window, cx)
+                                }),
+                        )
                     })
+                })
             };
             let people: Vec<_> = self
                 .people
@@ -310,12 +346,17 @@ impl RenderOnce for ProjectSummaryCard {
                         )
                         .child(name.clone())
                         .child(
-                            Button::new(ElementId::NamedChild(self.id.clone().into(), format!("off-{name}").into()))
-                                .xsmall()
-                                .ghost()
-                                .icon(IconName::Close)
-                                .accessibility_label(format!("Take {name} off the project"))
-                                .on_click(move |_, window, cx| emit(ProjectEdit::RemovePerson(who.clone()), window, cx)),
+                            Button::new(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("off-{name}").into(),
+                            ))
+                            .xsmall()
+                            .ghost()
+                            .icon(IconName::Close)
+                            .accessibility_label(format!("Take {name} off the project"))
+                            .on_click(move |_, window, cx| {
+                                emit(ProjectEdit::RemovePerson(who.clone()), window, cx)
+                            }),
                         )
                 })
                 .collect();
@@ -327,14 +368,23 @@ impl RenderOnce for ProjectSummaryCard {
                     let id = task.id.clone();
                     let done = task.done;
                     h_flex()
-                        .id(ElementId::NamedChild(self.id.clone().into(), format!("task-{}", task.id).into()))
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("task-{}", task.id).into(),
+                        ))
                         .gap_2()
                         .py_1()
                         .cursor_pointer()
                         .role(Role::CheckBox)
-                        .aria_label(format!("{}, {}", task.label, if done { "done" } else { "open" }))
+                        .aria_label(format!(
+                            "{}, {}",
+                            task.label,
+                            if done { "done" } else { "open" }
+                        ))
                         .aria_selected(done)
-                        .on_click(move |_, window, cx| emit(ProjectEdit::Subtask(id.clone(), !done), window, cx))
+                        .on_click(move |_, window, cx| {
+                            emit(ProjectEdit::Subtask(id.clone(), !done), window, cx)
+                        })
                         .child(
                             div()
                                 .size(px(16.))
@@ -346,7 +396,9 @@ impl RenderOnce for ProjectSummaryCard {
                                 .border_1()
                                 .border_color(if done { tone_color } else { line })
                                 .when(done, |this| this.bg(tone_color))
-                                .when(done, |this| this.child(Icon::new(IconName::Check).xsmall().text_color(fill))),
+                                .when(done, |this| {
+                                    this.child(Icon::new(IconName::Check).xsmall().text_color(fill))
+                                }),
                         )
                         .child(
                             div()
@@ -374,7 +426,14 @@ impl RenderOnce for ProjectSummaryCard {
                     h_flex()
                         .items_start()
                         .gap_2()
-                        .child(div().w(px(64.)).pt_0p5().text_xs().text_color(quiet).child("People"))
+                        .child(
+                            div()
+                                .w(px(64.))
+                                .pt_0p5()
+                                .text_xs()
+                                .text_color(quiet)
+                                .child("People"),
+                        )
                         .child(h_flex().flex_1().flex_wrap().gap_1p5().children(people)),
                 )
                 .child(
@@ -383,11 +442,28 @@ impl RenderOnce for ProjectSummaryCard {
                         .child(
                             h_flex()
                                 .gap_2()
-                                .child(div().w(px(64.)).text_xs().text_color(quiet).child("Subtasks"))
-                                .child(div().flex_1().h(px(4.)).rounded_full().bg(chip).child(
-                                    div().h_full().rounded_full().bg(tone_color).w(relative(share)),
-                                ))
-                                .child(div().text_xs().text_color(quiet).child(format!("{done}/{total}"))),
+                                .child(
+                                    div()
+                                        .w(px(64.))
+                                        .text_xs()
+                                        .text_color(quiet)
+                                        .child("Subtasks"),
+                                )
+                                .child(
+                                    div().flex_1().h(px(4.)).rounded_full().bg(chip).child(
+                                        div()
+                                            .h_full()
+                                            .rounded_full()
+                                            .bg(tone_color)
+                                            .w(relative(share)),
+                                    ),
+                                )
+                                .child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(quiet)
+                                        .child(format!("{done}/{total}")),
+                                ),
                         )
                         .child(v_flex().pl(px(72.)).children(tasks)),
                 )

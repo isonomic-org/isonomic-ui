@@ -1,7 +1,10 @@
 //! Gallery story for the memory manager panel.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Subscription, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Subscription, Window, div,
+};
 use isonomic_ui_extra::memory_manager_panel::{MemoryEvent, MemoryItem, MemoryManagerPanel};
 
 /// What a bookkeeping assistant remembers about one business. The story
@@ -15,12 +18,34 @@ pub struct MemoryManagerPanelStory {
 
 fn items() -> Vec<MemoryItem> {
     vec![
-        MemoryItem::new("m1", "Suppliers are paid on Fridays, from the operating account.", "Payables setup").updated("2 weeks ago"),
-        MemoryItem::new("m2", "Fuel receipts go under Vehicle costs, not Office supplies.", "Receipt filing").updated("5 days ago"),
-        MemoryItem::new("m3", "Maya approves anything over $1,000.", "Approvals").updated("1 month ago"),
-        MemoryItem::new("m4", "Northwind Dental pays late but always pays; send gentle reminders.", "Collections").updated("yesterday"),
+        MemoryItem::new(
+            "m1",
+            "Suppliers are paid on Fridays, from the operating account.",
+            "Payables setup",
+        )
+        .updated("2 weeks ago"),
+        MemoryItem::new(
+            "m2",
+            "Fuel receipts go under Vehicle costs, not Office supplies.",
+            "Receipt filing",
+        )
+        .updated("5 days ago"),
+        MemoryItem::new("m3", "Maya approves anything over $1,000.", "Approvals")
+            .updated("1 month ago"),
+        MemoryItem::new(
+            "m4",
+            "Northwind Dental pays late but always pays; send gentle reminders.",
+            "Collections",
+        )
+        .updated("yesterday"),
         MemoryItem::new("m5", "The year end is 31 December.", "Onboarding").updated("3 months ago"),
-        MemoryItem::new("m6", "Round card matches to three days either side.", "March close").updated("today").paused(true),
+        MemoryItem::new(
+            "m6",
+            "Round card matches to three days either side.",
+            "March close",
+        )
+        .updated("today")
+        .paused(true),
     ]
 }
 

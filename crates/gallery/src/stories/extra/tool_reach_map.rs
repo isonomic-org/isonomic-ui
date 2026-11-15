@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Window, div,
+};
 use isonomic_ui_extra::tool_reach_map::{ReachStanding, ReachTool, ToolCall, ToolReachMap};
 
 /// What a reconciler can reach during a close. The story keeps the
@@ -25,12 +28,28 @@ fn tools() -> Vec<ReachTool> {
         ]),
         ReachTool::new("l-unlock", "Ledger", "unlock_period").blocked(),
         ReachTool::new("l-journal", "Ledger", "create_journal"),
-        ReachTool::new("b-stmt", "Bank feed", "statement").calls(vec![ToolCall::ok("c5", "1:39 pm", "operating, March \u{2192} 61 lines")]),
+        ReachTool::new("b-stmt", "Bank feed", "statement").calls(vec![ToolCall::ok(
+            "c5",
+            "1:39 pm",
+            "operating, March \u{2192} 61 lines",
+        )]),
         ReachTool::new("b-pay", "Bank feed", "send_payment").blocked(),
-        ReachTool::new("m-draft", "Mail", "draft").calls(vec![ToolCall::ok("c6", "1:57 pm", "to Maya \u{2192} draft saved")]),
+        ReachTool::new("m-draft", "Mail", "draft").calls(vec![ToolCall::ok(
+            "c6",
+            "1:57 pm",
+            "to Maya \u{2192} draft saved",
+        )]),
         ReachTool::new("m-send", "Mail", "send"),
-        ReachTool::new("f-read", "Files", "read").calls(vec![ToolCall::ok("c7", "1:02 pm", "matching-rules.toml")]),
-        ReachTool::new("f-write", "Files", "write").calls(vec![ToolCall::failed("c8", "1:58 pm", "close-note.md \u{2192} file is open elsewhere")]),
+        ReachTool::new("f-read", "Files", "read").calls(vec![ToolCall::ok(
+            "c7",
+            "1:02 pm",
+            "matching-rules.toml",
+        )]),
+        ReachTool::new("f-write", "Files", "write").calls(vec![ToolCall::failed(
+            "c8",
+            "1:58 pm",
+            "close-note.md \u{2192} file is open elsewhere",
+        )]),
     ]
 }
 
@@ -94,7 +113,11 @@ impl Render for ToolReachMapStory {
                 div()
                     .text_xs()
                     .text_color(cx.theme().muted_foreground)
-                    .child(self.replayed.clone().unwrap_or_else(|| "Pick a tool to see its calls.".into())),
+                    .child(
+                        self.replayed
+                            .clone()
+                            .unwrap_or_else(|| "Pick a tool to see its calls.".into()),
+                    ),
             )
     }
 }

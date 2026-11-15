@@ -7,10 +7,10 @@
 
 use isonomic_ui::component::{ActiveTheme as _, h_flex};
 use isonomic_ui::{
-    Role,
-    AnyView, App, Bounds, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement,
-    KeyDownEvent, MouseButton, MouseDownEvent, MouseMoveEvent, ParentElement as _, Pixels, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Window, canvas, div, prelude::FluentBuilder as _, px,
+    AnyView, App, Bounds, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement as _,
+    IntoElement, KeyDownEvent, MouseButton, MouseDownEvent, MouseMoveEvent, ParentElement as _,
+    Pixels, Render, Role, SharedString, StatefulInteractiveElement as _, Styled as _, Window,
+    canvas, div, prelude::FluentBuilder as _, px,
 };
 
 /// Keep a split share so each pane keeps its smallest width; when both can't fit, split by their smallest widths.
@@ -58,7 +58,12 @@ impl Focusable for SplitView {
 
 impl SplitView {
     /// Create a split with the first pane taking `share` of the width.
-    pub fn new(start: impl Into<AnyView>, end: impl Into<AnyView>, share: f32, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        start: impl Into<AnyView>,
+        end: impl Into<AnyView>,
+        share: f32,
+        cx: &mut Context<Self>,
+    ) -> Self {
         Self {
             start: start.into(),
             end: end.into(),
@@ -111,7 +116,11 @@ impl SplitView {
     }
 
     fn key_down(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
-        let step = if event.keystroke.modifiers.shift { 0.1 } else { 0.02 };
+        let step = if event.keystroke.modifiers.shift {
+            0.1
+        } else {
+            0.02
+        };
         match event.keystroke.key.as_str() {
             "left" => self.set_share(self.share - step, cx),
             "right" => self.set_share(self.share + step, cx),
@@ -167,7 +176,14 @@ impl Render for SplitView {
                 .size_full(),
             )
             .when(!self.folded, |this| {
-                this.child(div().h_full().min_w_0().overflow_hidden().w(isonomic_ui::relative(share)).child(self.start.clone()))
+                this.child(
+                    div()
+                        .h_full()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .w(isonomic_ui::relative(share))
+                        .child(self.start.clone()),
+                )
             })
             .child(
                 div()
@@ -183,7 +199,15 @@ impl Render for SplitView {
                     .aria_numeric_value(f64::from(percent))
                     .aria_min_numeric_value(0.0)
                     .aria_max_numeric_value(100.0)
-                    .aria_label(format!("{}, first pane {}", self.label, if self.folded { "folded".to_string() } else { format!("{percent}%") }))
+                    .aria_label(format!(
+                        "{}, first pane {}",
+                        self.label,
+                        if self.folded {
+                            "folded".to_string()
+                        } else {
+                            format!("{percent}%")
+                        }
+                    ))
                     .on_mouse_down(
                         MouseButton::Left,
                         cx.listener(|this, event: &MouseDownEvent, window, cx| {
@@ -200,9 +224,21 @@ impl Render for SplitView {
                         }),
                     )
                     .on_key_down(cx.listener(Self::key_down))
-                    .child(div().w(px(if active { 2. } else { 1. })).h_full().bg(if active { ring } else { line })),
+                    .child(
+                        div()
+                            .w(px(if active { 2. } else { 1. }))
+                            .h_full()
+                            .bg(if active { ring } else { line }),
+                    ),
             )
-            .child(div().h_full().min_w_0().flex_1().overflow_hidden().child(self.end.clone()))
+            .child(
+                div()
+                    .h_full()
+                    .min_w_0()
+                    .flex_1()
+                    .overflow_hidden()
+                    .child(self.end.clone()),
+            )
     }
 }
 

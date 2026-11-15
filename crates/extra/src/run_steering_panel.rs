@@ -519,7 +519,9 @@ impl Render for RunSteeringPanel {
         let run_words = format!(
             "{}{}, {state_words}, {}",
             self.title,
-            position_words(&self.steps).map(|p| format!(", {p}")).unwrap_or_default(),
+            position_words(&self.steps)
+                .map(|p| format!(", {p}"))
+                .unwrap_or_default(),
             clock(self.run_time())
         );
         let header = h_flex()
@@ -635,7 +637,11 @@ impl Render for RunSteeringPanel {
                     words.push_str(&format!(", {}", clock(time)));
                 }
                 for note in &step.notes {
-                    words.push_str(&format!(". Note: {}, {}", note.text, timing_words(note.timing)));
+                    words.push_str(&format!(
+                        ". Note: {}, {}",
+                        note.text,
+                        timing_words(note.timing)
+                    ));
                 }
                 words
             };
@@ -761,7 +767,13 @@ impl Render for RunSteeringPanel {
                     h_flex()
                         .items_end()
                         .gap_2()
-                        .child(div().flex_1().child(Input::new(&self.input).small().aria_label("Note for the agent")))
+                        .child(
+                            div().flex_1().child(
+                                Input::new(&self.input)
+                                    .small()
+                                    .aria_label("Note for the agent"),
+                            ),
+                        )
                         .child(
                             Button::new("steer-send")
                                 .primary()
@@ -806,7 +818,16 @@ impl Render for RunSteeringPanel {
             .line_height(relative(1.4))
             .shadow(resting_shadow(cx))
             .child(header)
-            .child(v_flex().id("steer-steps").role(Role::List).aria_label("Steps").px_4().pt_3().pb_1().children(steps))
+            .child(
+                v_flex()
+                    .id("steer-steps")
+                    .role(Role::List)
+                    .aria_label("Steps")
+                    .px_4()
+                    .pt_3()
+                    .pb_1()
+                    .children(steps),
+            )
             .children(queue)
             .children(composer)
     }

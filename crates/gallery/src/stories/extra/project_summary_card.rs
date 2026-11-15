@@ -2,8 +2,13 @@
 
 use crate::Story;
 use isonomic_ui::component::v_flex;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Window};
-use isonomic_ui_extra::project_summary_card::{ProjectEdit, ProjectStatus, ProjectSummaryCard, Subtask};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Window,
+};
+use isonomic_ui_extra::project_summary_card::{
+    ProjectEdit, ProjectStatus, ProjectSummaryCard, Subtask,
+};
 
 /// Two bookkeeping projects; the first is open. The story applies every edit.
 pub struct ProjectSummaryCardStory {
@@ -19,7 +24,11 @@ impl ProjectSummaryCardStory {
         cx.new(|_| Self {
             open: true,
             status: ProjectStatus::AtRisk,
-            people: vec!["Maya Okafor".into(), "Tom Brandt".into(), "Reconciler".into()],
+            people: vec![
+                "Maya Okafor".into(),
+                "Tom Brandt".into(),
+                "Reconciler".into(),
+            ],
             subtasks: vec![
                 Subtask::new("s1", "Match bank lines").done(true),
                 Subtask::new("s2", "Match card payouts").done(true),
@@ -62,9 +71,13 @@ impl Render for ProjectSummaryCardStory {
                             match change {
                                 ProjectEdit::Toggle => this.open = !this.open,
                                 ProjectEdit::Status(status) => this.status = status,
-                                ProjectEdit::RemovePerson(name) => this.people.retain(|p| p != &name),
+                                ProjectEdit::RemovePerson(name) => {
+                                    this.people.retain(|p| p != &name)
+                                }
                                 ProjectEdit::Subtask(id, done) => {
-                                    if let Some(task) = this.subtasks.iter_mut().find(|t| t.id == id) {
+                                    if let Some(task) =
+                                        this.subtasks.iter_mut().find(|t| t.id == id)
+                                    {
                                         task.done = done;
                                     }
                                 }
@@ -74,13 +87,17 @@ impl Render for ProjectSummaryCardStory {
                     }),
             )
             .child(
-                ProjectSummaryCard::new("year-end", "Year-end packet for the accountant", ProjectStatus::OnTrack)
-                    .people(vec!["Maya Okafor".into(), "Report writer".into()])
-                    .due("15 January")
-                    .subtasks(vec![
-                        Subtask::new("y1", "Collect 1099 details").done(true),
-                        Subtask::new("y2", "Export the trial balance"),
-                    ]),
+                ProjectSummaryCard::new(
+                    "year-end",
+                    "Year-end packet for the accountant",
+                    ProjectStatus::OnTrack,
+                )
+                .people(vec!["Maya Okafor".into(), "Report writer".into()])
+                .due("15 January")
+                .subtasks(vec![
+                    Subtask::new("y1", "Collect 1099 details").done(true),
+                    Subtask::new("y2", "Export the trial balance"),
+                ]),
             )
     }
 }

@@ -33,21 +33,41 @@ fn people() -> Vec<Participant> {
 fn history() -> Vec<StreamMessage> {
     vec![
         StreamMessage::status("s1", "Run started at 1:02 pm"),
-        StreamMessage::new("m1", "lead", "@Reconciler please match March, cards first, then the operating account.")
-            .to("recon")
-            .when("1:02 pm"),
-        StreamMessage::new("m2", "recon", "On it. Handing the card payouts to @CardMatcher.")
-            .to("lead")
-            .when("1:03 pm"),
-        StreamMessage::new("m3", "cards", "201 of 214 matched. Posting failed: the March period is locked.")
-            .to("recon")
-            .when("1:55 pm"),
-        StreamMessage::new("m4", "recon", "@Coordinator we need the ledger unlocked, or I post to April.")
-            .to("lead")
-            .when("1:56 pm"),
-        StreamMessage::new("m5", "lead", "@Maya can you unlock March, or should we post to April?")
-            .to("maya")
-            .when("1:57 pm"),
+        StreamMessage::new(
+            "m1",
+            "lead",
+            "@Reconciler please match March, cards first, then the operating account.",
+        )
+        .to("recon")
+        .when("1:02 pm"),
+        StreamMessage::new(
+            "m2",
+            "recon",
+            "On it. Handing the card payouts to @CardMatcher.",
+        )
+        .to("lead")
+        .when("1:03 pm"),
+        StreamMessage::new(
+            "m3",
+            "cards",
+            "201 of 214 matched. Posting failed: the March period is locked.",
+        )
+        .to("recon")
+        .when("1:55 pm"),
+        StreamMessage::new(
+            "m4",
+            "recon",
+            "@Coordinator we need the ledger unlocked, or I post to April.",
+        )
+        .to("lead")
+        .when("1:56 pm"),
+        StreamMessage::new(
+            "m5",
+            "lead",
+            "@Maya can you unlock March, or should we post to April?",
+        )
+        .to("maya")
+        .when("1:57 pm"),
         StreamMessage::status("s2", "Payables is waiting for an approval"),
     ]
 }
@@ -67,20 +87,27 @@ impl AgentMessageStreamStory {
                     let n = this.sent;
                     stream.update(cx, |stream, cx| {
                         stream.push(
-                            StreamMessage::new(format!("you-{n}"), "maya", text.clone()).when("now"),
+                            StreamMessage::new(format!("you-{n}"), "maya", text.clone())
+                                .when("now"),
                             cx,
                         );
                     });
                     let reply_from = mentions.first().cloned().unwrap_or_else(|| "lead".into());
                     let stream = stream.downgrade();
                     cx.spawn(async move |_, cx| {
-                        cx.background_executor().timer(Duration::from_millis(900)).await;
+                        cx.background_executor()
+                            .timer(Duration::from_millis(900))
+                            .await;
                         stream
                             .update(cx, |stream, cx| {
                                 stream.push(
-                                    StreamMessage::new(format!("reply-{n}"), reply_from, "Got it, I'll take that into the next step.")
-                                        .to("maya")
-                                        .when("now"),
+                                    StreamMessage::new(
+                                        format!("reply-{n}"),
+                                        reply_from,
+                                        "Got it, I'll take that into the next step.",
+                                    )
+                                    .to("maya")
+                                    .when("now"),
                                     cx,
                                 );
                             })

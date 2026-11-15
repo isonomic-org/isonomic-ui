@@ -35,30 +35,32 @@ impl RunMonitorCardStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let tick = cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-                loop {
-                    cx.background_executor().timer(Duration::from_secs(1)).await;
-                    let alive = this.update(cx, |this, cx| {
-                        if this.paused || this.stopped {
-                            return;
-                        }
-                        this.elapsed += 1;
-                        if this.elapsed % 2 == 0 {
-                            if this.done.len() == PLAN.len() {
-                                this.done.clear();
-                                this.elapsed = 0;
-                            } else {
-                                let label = PLAN[this.done.len()];
-                                this.done.push(FinishedStep::new(label, 2));
+            let tick = cx.spawn(
+                async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                    loop {
+                        cx.background_executor().timer(Duration::from_secs(1)).await;
+                        let alive = this.update(cx, |this, cx| {
+                            if this.paused || this.stopped {
+                                return;
                             }
+                            this.elapsed += 1;
+                            if this.elapsed % 2 == 0 {
+                                if this.done.len() == PLAN.len() {
+                                    this.done.clear();
+                                    this.elapsed = 0;
+                                } else {
+                                    let label = PLAN[this.done.len()];
+                                    this.done.push(FinishedStep::new(label, 2));
+                                }
+                            }
+                            cx.notify();
+                        });
+                        if alive.is_err() {
+                            break;
                         }
-                        cx.notify();
-                    });
-                    if alive.is_err() {
-                        break;
                     }
-                }
-            });
+                },
+            );
             Self {
                 done: Vec::new(),
                 elapsed: 0,
@@ -135,7 +137,10 @@ impl Render for RunMonitorCardStory {
             )
             .child(
                 RunMonitorCard::new("done-run", "Chase overdue invoices")
-                    .state(MonitorState::Failed, "Sending the third reminder: the mail service refused it")
+                    .state(
+                        MonitorState::Failed,
+                        "Sending the third reminder: the mail service refused it",
+                    )
                     .usage(4_380, 61)
                     .budget(50)
                     .steps(

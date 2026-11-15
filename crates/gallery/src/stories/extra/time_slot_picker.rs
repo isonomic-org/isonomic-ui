@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div, px,
+};
 use isonomic_ui_extra::time_slot_picker::{TimeSlotPicker, write_span};
 
 /// Booking a 30-minute review call with a client, with some slots taken,
@@ -15,7 +18,10 @@ pub struct TimeSlotPickerStory {
 impl TimeSlotPickerStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { call: None, payroll: Some(14 * 60) })
+        cx.new(|_| Self {
+            call: None,
+            payroll: Some(14 * 60),
+        })
     }
 }
 
@@ -42,18 +48,21 @@ impl Render for TimeSlotPickerStory {
         v_flex()
             .gap_3()
             .child(
-                h_flex().gap_3().child(row("Review call, Tue 18 Nov")).child(
-                    TimeSlotPicker::new("call", self.call)
-                        .length(30)
-                        .booked([9 * 60, 10 * 60 + 30, 11 * 60, 15 * 60])
-                        .label("Review call start")
-                        .on_pick(move |start, _, cx| {
-                            call.update(cx, |this, cx| {
-                                this.call = Some(start);
-                                cx.notify();
-                            })
-                        }),
-                ),
+                h_flex()
+                    .gap_3()
+                    .child(row("Review call, Tue 18 Nov"))
+                    .child(
+                        TimeSlotPicker::new("call", self.call)
+                            .length(30)
+                            .booked([9 * 60, 10 * 60 + 30, 11 * 60, 15 * 60])
+                            .label("Review call start")
+                            .on_pick(move |start, _, cx| {
+                                call.update(cx, |this, cx| {
+                                    this.call = Some(start);
+                                    cx.notify();
+                                })
+                            }),
+                    ),
             )
             .child(
                 h_flex().gap_3().child(row("Payroll run cut-off")).child(

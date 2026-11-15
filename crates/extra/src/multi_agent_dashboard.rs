@@ -13,9 +13,8 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -134,7 +133,12 @@ impl FleetAgent {
     }
 
     /// Set its steps, spend and when it last reported.
-    pub fn usage(mut self, steps: u32, spent_cents: u32, last_seen: impl Into<SharedString>) -> Self {
+    pub fn usage(
+        mut self,
+        steps: u32,
+        spent_cents: u32,
+        last_seen: impl Into<SharedString>,
+    ) -> Self {
         self.steps = steps;
         self.spent_cents = spent_cents;
         self.last_seen = last_seen.into();
@@ -155,7 +159,9 @@ pub fn dollars(cents: u32) -> String {
 /// The actions a tile offers in a state.
 pub fn actions_for(state: FleetState) -> &'static [FleetAction] {
     match state {
-        FleetState::Working | FleetState::Waiting => &[FleetAction::Pause, FleetAction::Stop, FleetAction::Open],
+        FleetState::Working | FleetState::Waiting => {
+            &[FleetAction::Pause, FleetAction::Stop, FleetAction::Open]
+        }
         FleetState::Paused => &[FleetAction::Resume, FleetAction::Stop, FleetAction::Open],
         FleetState::Failed => &[FleetAction::Resume, FleetAction::Open],
         FleetState::Done => &[FleetAction::Open],
@@ -212,7 +218,10 @@ impl MultiAgentDashboard {
     }
 
     /// Run when a filter chip is clicked; `None` shows everyone.
-    pub fn on_filter(mut self, handler: impl Fn(Option<FleetState>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_filter(
+        mut self,
+        handler: impl Fn(Option<FleetState>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_filter = Some(Rc::new(handler));
         self
     }
@@ -347,7 +356,10 @@ impl RenderOnce for MultiAgentDashboard {
                     })
                     .collect();
                 v_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("tile-{}", agent.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("tile-{}", agent.id).into(),
+                    ))
                     .w(px(232.))
                     .flex_grow(1.)
                     .max_w(px(320.))
@@ -359,7 +371,12 @@ impl RenderOnce for MultiAgentDashboard {
                     .bg(paint.fill)
                     .shadow(resting_shadow(cx))
                     .role(Role::Group)
-                    .aria_label(format!("{}, {}, {}", agent.name, agent.state.word(), agent.task))
+                    .aria_label(format!(
+                        "{}, {}, {}",
+                        agent.name,
+                        agent.state.word(),
+                        agent.task
+                    ))
                     .child(
                         h_flex()
                             .gap_2()
@@ -374,7 +391,14 @@ impl RenderOnce for MultiAgentDashboard {
                                     .bg(tint)
                                     .child(Icon::new(IconName::Bot).xsmall().text_color(color)),
                             )
-                            .child(div().flex_1().min_w_0().truncate().font_medium().child(agent.name.clone()))
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .font_medium()
+                                    .child(agent.name.clone()),
+                            )
                             .child(
                                 div()
                                     .flex_none()
@@ -390,23 +414,23 @@ impl RenderOnce for MultiAgentDashboard {
                         div()
                             .h(px(36.))
                             .overflow_hidden()
-                            .text_color(if agent.state == FleetState::Failed { color } else { paint.ink })
+                            .text_color(if agent.state == FleetState::Failed {
+                                color
+                            } else {
+                                paint.ink
+                            })
                             .line_height(relative(1.35))
                             .child(agent.task.clone()),
                     )
-                    .child(
-                        div().h(px(4.)).rounded_full().bg(paint.chip).child(
-                            div()
-                                .h_full()
-                                .rounded_full()
-                                .bg(color)
-                                .w(relative(match (agent.state, agent.progress) {
-                                    (FleetState::Done, _) => 1.,
-                                    (_, Some(p)) => p,
-                                    (_, None) => 0.,
-                                })),
-                        ),
-                    )
+                    .child(div().h(px(4.)).rounded_full().bg(paint.chip).child(
+                        div().h_full().rounded_full().bg(color).w(relative(
+                            match (agent.state, agent.progress) {
+                                (FleetState::Done, _) => 1.,
+                                (_, Some(p)) => p,
+                                (_, None) => 0.,
+                            },
+                        )),
+                    ))
                     .child(
                         h_flex()
                             .gap_2()
@@ -414,7 +438,14 @@ impl RenderOnce for MultiAgentDashboard {
                             .text_color(paint.quiet)
                             .child(format!("{} steps", agent.steps))
                             .child(dollars(agent.spent_cents))
-                            .child(div().flex_1().min_w_0().truncate().text_right().child(agent.last_seen.clone())),
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .text_right()
+                                    .child(agent.last_seen.clone()),
+                            ),
                     )
                     .child(h_flex().gap_0p5().justify_end().children(buttons))
             })
@@ -424,7 +455,13 @@ impl RenderOnce for MultiAgentDashboard {
             v_flex()
                 .gap_0p5()
                 .child(div().text_xs().text_color(paint.quiet).child(label))
-                .child(div().text_lg().font_semibold().text_color(color).child(value))
+                .child(
+                    div()
+                        .text_lg()
+                        .font_semibold()
+                        .text_color(color)
+                        .child(value),
+                )
         };
 
         v_flex()
@@ -453,9 +490,21 @@ impl RenderOnce for MultiAgentDashboard {
                                 count_in(&self.agents, FleetState::Working)
                             ))),
                     )
-                    .child(stat("Working", count_in(&self.agents, FleetState::Working).to_string(), tone_of(FleetState::Working).0))
-                    .child(stat("Need you", count_in(&self.agents, FleetState::Waiting).to_string(), tone_of(FleetState::Waiting).0))
-                    .child(stat("Failed", count_in(&self.agents, FleetState::Failed).to_string(), tone_of(FleetState::Failed).0))
+                    .child(stat(
+                        "Working",
+                        count_in(&self.agents, FleetState::Working).to_string(),
+                        tone_of(FleetState::Working).0,
+                    ))
+                    .child(stat(
+                        "Need you",
+                        count_in(&self.agents, FleetState::Waiting).to_string(),
+                        tone_of(FleetState::Waiting).0,
+                    ))
+                    .child(stat(
+                        "Failed",
+                        count_in(&self.agents, FleetState::Failed).to_string(),
+                        tone_of(FleetState::Failed).0,
+                    ))
                     .child(stat(
                         "Spent",
                         match self.budget_cents {
@@ -499,7 +548,9 @@ mod tests {
     fn counts_and_money_add_up() {
         let agents = vec![
             FleetAgent::new("a", "A", "x").usage(3, 125, "now"),
-            FleetAgent::new("b", "B", "y").state(FleetState::Failed).usage(1, 5, "now"),
+            FleetAgent::new("b", "B", "y")
+                .state(FleetState::Failed)
+                .usage(1, 5, "now"),
             FleetAgent::new("c", "C", "z"),
         ];
         assert_eq!(count_in(&agents, FleetState::Working), 2);

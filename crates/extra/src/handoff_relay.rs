@@ -409,12 +409,20 @@ impl RenderOnce for HandoffRelay {
                 let worker_words = format!(
                     "{}{}, {}{}",
                     worker.name,
-                    worker.model.as_ref().map(|m| format!(", {m}")).unwrap_or_default(),
+                    worker
+                        .model
+                        .as_ref()
+                        .map(|m| format!(", {m}"))
+                        .unwrap_or_default(),
                     match working {
                         Some(task) => format!("working on {}", task.title),
                         None => "idle".to_string(),
                     },
-                    if ix == 0 && !waiting.is_empty() { format!(", {} waiting", waiting.len()) } else { String::new() },
+                    if ix == 0 && !waiting.is_empty() {
+                        format!(", {} waiting", waiting.len())
+                    } else {
+                        String::new()
+                    },
                 );
                 let current = match (working, ix == 0 && !waiting.is_empty()) {
                     (Some(task), _) => h_flex()
@@ -618,7 +626,11 @@ impl RenderOnce for HandoffRelay {
                             };
                             h_flex()
                                 .id(("relay-item", ix))
-                                .role(if is_lost { Role::Button } else { Role::ListItem })
+                                .role(if is_lost {
+                                    Role::Button
+                                } else {
+                                    Role::ListItem
+                                })
                                 .aria_label(item_words)
                                 .when(is_lost, |this| this.tab_index(0))
                                 .gap_1()
@@ -709,8 +721,16 @@ impl RenderOnce for HandoffRelay {
                     from.name,
                     name_of(&handoff.to),
                     state_words,
-                    if lost > 0 { format!(", {lost} lost") } else { String::new() },
-                    if is_open { "" } else { ". Press Enter for details" },
+                    if lost > 0 {
+                        format!(", {lost} lost")
+                    } else {
+                        String::new()
+                    },
+                    if is_open {
+                        ""
+                    } else {
+                        ". Press Enter for details"
+                    },
                 );
                 v_flex()
                     .id(("relay-handoff", column * 1000 + row))

@@ -11,9 +11,8 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
-    Role,
     Animation, AnimationExt as _, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, PathBuilder, Pixels, Point, RenderOnce, SharedString,
+    ParentElement as _, PathBuilder, Pixels, Point, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -35,7 +34,11 @@ pub struct SequenceMessage {
 
 impl SequenceMessage {
     /// Create a message.
-    pub fn new(from: impl Into<SharedString>, to: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
+    pub fn new(
+        from: impl Into<SharedString>,
+        to: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+    ) -> Self {
         Self {
             from: from.into(),
             to: to.into(),
@@ -75,7 +78,11 @@ pub struct SequenceDiagram {
 
 impl SequenceDiagram {
     /// Create a diagram for participants given as id and name.
-    pub fn new(id: impl Into<ElementId>, participants: Vec<(SharedString, SharedString)>, messages: Vec<SequenceMessage>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        participants: Vec<(SharedString, SharedString)>,
+        messages: Vec<SequenceMessage>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -196,12 +203,19 @@ impl RenderOnce for SequenceDiagram {
             .enumerate()
             .filter_map(|(row, m)| {
                 let (a, b) = (at(&m.from)?, at(&m.to)?);
-                let mid = if (a - b).abs() < f32::EPSILON { a + 0.04 } else { (a + b) / 2. };
+                let mid = if (a - b).abs() < f32::EPSILON {
+                    a + 0.04
+                } else {
+                    (a + b) / 2.
+                };
                 let is_new = Some(row) == newest;
                 let is_selected = Some(row) == self.selected;
                 let select = self.on_select.clone();
                 let label = div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("msg-{row}").into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("msg-{row}").into(),
+                    ))
                     .absolute()
                     .top(px(HEAD + ROW * row as f32 + 4.))
                     .left(relative(mid))
@@ -222,7 +236,11 @@ impl RenderOnce for SequenceDiagram {
                         div()
                             .px_1p5()
                             .rounded(px(4.))
-                            .bg(if is_selected { accent.opacity(0.12) } else { fill.opacity(0.9) })
+                            .bg(if is_selected {
+                                accent.opacity(0.12)
+                            } else {
+                                fill.opacity(0.9)
+                            })
                             .truncate()
                             .text_xs()
                             .text_color(if is_new || is_selected { ink } else { quiet })
@@ -232,7 +250,10 @@ impl RenderOnce for SequenceDiagram {
                 Some(if is_new {
                     label
                         .with_animation(
-                            ElementId::NamedChild(self.id.clone().into(), format!("arrive-{row}").into()),
+                            ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("arrive-{row}").into(),
+                            ),
                             Animation::new(std::time::Duration::from_millis(400)),
                             |el, delta| el.opacity(delta),
                         )
@@ -255,7 +276,10 @@ impl RenderOnce for SequenceDiagram {
             .text_sm()
             .shadow(resting_shadow(cx))
             .role(Role::Group)
-            .aria_label(format!("Sequence of {} messages between {count}", self.messages.len()))
+            .aria_label(format!(
+                "Sequence of {} messages between {count}",
+                self.messages.len()
+            ))
             .child(
                 h_flex()
                     .px_4()
@@ -264,12 +288,19 @@ impl RenderOnce for SequenceDiagram {
                     .border_color(line)
                     .text_xs()
                     .text_color(quiet)
-                    .child(div().flex_1().child(format!("{} messages", self.messages.len())))
+                    .child(
+                        div()
+                            .flex_1()
+                            .child(format!("{} messages", self.messages.len())),
+                    )
                     .child("Dashed arrows are replies"),
             )
             .child(
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "scroll".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "scroll".into(),
+                    ))
                     .overflow_x_scroll()
                     .child(
                         div()
@@ -282,11 +313,14 @@ impl RenderOnce for SequenceDiagram {
                                 canvas(
                                     |_, _, _| {},
                                     move |bounds, _, window, _| {
-                                        let x = |share: f32| bounds.origin.x + bounds.size.width * share;
+                                        let x = |share: f32| {
+                                            bounds.origin.x + bounds.size.width * share
+                                        };
                                         let top = bounds.origin.y + px(28.);
                                         let bottom = bounds.origin.y + bounds.size.height;
                                         for share in &lifelines {
-                                            let mut path = PathBuilder::stroke(px(1.)).dash_array(&[px(4.), px(4.)]);
+                                            let mut path = PathBuilder::stroke(px(1.))
+                                                .dash_array(&[px(4.), px(4.)]);
                                             path.move_to(point(x(*share), top));
                                             path.line_to(point(x(*share), bottom));
                                             if let Ok(path) = path.build() {
@@ -294,7 +328,8 @@ impl RenderOnce for SequenceDiagram {
                                             }
                                         }
                                         for arrow in &arrows {
-                                            let y = bounds.origin.y + px(HEAD + ROW * arrow.row as f32 + 26.);
+                                            let y = bounds.origin.y
+                                                + px(HEAD + ROW * arrow.row as f32 + 26.);
                                             let mut path = PathBuilder::stroke(px(1.5));
                                             if arrow.reply {
                                                 path = path.dash_array(&[px(5.), px(3.)]);
@@ -309,7 +344,10 @@ impl RenderOnce for SequenceDiagram {
                                                 if let Ok(path) = path.build() {
                                                     window.paint_path(path, arrow.color);
                                                 }
-                                                if let Ok(head) = arrowhead(point(a + px(1.), y + px(6.)), true).build() {
+                                                if let Ok(head) =
+                                                    arrowhead(point(a + px(1.), y + px(6.)), true)
+                                                        .build()
+                                                {
                                                     window.paint_path(head, arrow.color);
                                                 }
                                                 continue;
@@ -320,7 +358,9 @@ impl RenderOnce for SequenceDiagram {
                                             if let Ok(path) = path.build() {
                                                 window.paint_path(path, arrow.color);
                                             }
-                                            if let Ok(head) = arrowhead(point(tip, y), b < a).build() {
+                                            if let Ok(head) =
+                                                arrowhead(point(tip, y), b < a).build()
+                                            {
                                                 window.paint_path(head, arrow.color);
                                             }
                                         }
@@ -335,7 +375,13 @@ impl RenderOnce for SequenceDiagram {
                     ),
             )
             .when(self.messages.is_empty(), |this| {
-                this.child(div().px_4().pb_3().text_color(quiet).child("No messages yet."))
+                this.child(
+                    div()
+                        .px_4()
+                        .pb_3()
+                        .text_color(quiet)
+                        .child("No messages yet."),
+                )
             })
             .refine_style(&self.style)
     }

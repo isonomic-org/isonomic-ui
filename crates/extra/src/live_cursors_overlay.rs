@@ -16,8 +16,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -106,7 +106,11 @@ pub fn word_marks(
             continue;
         };
         if let Some((a, b)) = p.selection {
-            for mark in marks.iter_mut().take(b.min(words.saturating_sub(1)) + 1).skip(a) {
+            for mark in marks
+                .iter_mut()
+                .take(b.min(words.saturating_sub(1)) + 1)
+                .skip(a)
+            {
                 mark.selected_by = Some(who);
             }
         }
@@ -114,8 +118,16 @@ pub fn word_marks(
             mark.cursors_after.push(who);
         }
     }
-    for (ix, s) in suggestions.iter().enumerate().filter(|(_, s)| s.paragraph == paragraph) {
-        for mark in marks.iter_mut().take(s.words.1.min(words.saturating_sub(1)) + 1).skip(s.words.0) {
+    for (ix, s) in suggestions
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.paragraph == paragraph)
+    {
+        for mark in marks
+            .iter_mut()
+            .take(s.words.1.min(words.saturating_sub(1)) + 1)
+            .skip(s.words.0)
+        {
             mark.suggested = Some(ix);
         }
     }
@@ -139,7 +151,11 @@ pub struct LiveCursorsOverlay {
 
 impl LiveCursorsOverlay {
     /// Create an overlay on a document's paragraphs.
-    pub fn new(id: impl Into<ElementId>, title: impl Into<SharedString>, paragraphs: Vec<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        title: impl Into<SharedString>,
+        paragraphs: Vec<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -166,7 +182,10 @@ impl LiveCursorsOverlay {
     }
 
     /// Run when a suggestion is accepted (`true`) or rejected.
-    pub fn on_resolve(mut self, handler: impl Fn(&SharedString, bool, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_resolve(
+        mut self,
+        handler: impl Fn(&SharedString, bool, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_resolve = Some(Rc::new(handler));
         self
     }
@@ -187,7 +206,13 @@ impl RenderOnce for LiveCursorsOverlay {
         let line = theme.border;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
-        let palette: [Hsla; 5] = [theme.primary, theme.success, theme.warning, theme.info, theme.danger];
+        let palette: [Hsla; 5] = [
+            theme.primary,
+            theme.success,
+            theme.warning,
+            theme.info,
+            theme.danger,
+        ];
         let color = |who: usize| palette[who % palette.len()];
 
         let paragraphs: Vec<AnyElement> = self
@@ -196,13 +221,23 @@ impl RenderOnce for LiveCursorsOverlay {
             .enumerate()
             .map(|(px_ix, text)| {
                 let words: Vec<&str> = text.split_whitespace().collect();
-                let marks = word_marks(words.len(), px_ix, &self.people, &self.presence, &self.suggestions);
+                let marks = word_marks(
+                    words.len(),
+                    px_ix,
+                    &self.people,
+                    &self.presence,
+                    &self.suggestions,
+                );
                 let mut pieces: Vec<AnyElement> = Vec::new();
                 let mut ix = 0;
                 while ix < words.len() {
                     if let Some(s) = marks[ix].suggested {
                         let suggestion = &self.suggestions[s];
-                        let who = self.people.iter().position(|c| c.id == suggestion.who).unwrap_or(0);
+                        let who = self
+                            .people
+                            .iter()
+                            .position(|c| c.id == suggestion.who)
+                            .unwrap_or(0);
                         let end = suggestion.words.1.min(words.len() - 1);
                         let old = words[ix..=end].join(" ");
                         pieces.push(
@@ -214,7 +249,11 @@ impl RenderOnce for LiveCursorsOverlay {
                                 .border_b_1()
                                 .border_color(color(who))
                                 .child(div().line_through().text_color(quiet).child(old))
-                                .child(div().text_color(color(who)).child(suggestion.replacement.clone()))
+                                .child(
+                                    div()
+                                        .text_color(color(who))
+                                        .child(suggestion.replacement.clone()),
+                                )
                                 .into_any_element(),
                         );
                         for after in marks[ix..=end].iter().flat_map(|m| m.cursors_after.iter()) {
@@ -228,7 +267,9 @@ impl RenderOnce for LiveCursorsOverlay {
                         div()
                             .px_px()
                             .rounded(px(2.))
-                            .when_some(mark.selected_by, |this, who| this.bg(color(who).opacity(0.22)))
+                            .when_some(mark.selected_by, |this, who| {
+                                this.bg(color(who).opacity(0.22))
+                            })
                             .child(words[ix].to_string())
                             .into_any_element(),
                     );
@@ -258,7 +299,11 @@ impl RenderOnce for LiveCursorsOverlay {
                     .iter()
                     .find(|p| p.who == person.id)
                     .map(|p| match p.selection {
-                        Some((a, b)) => format!("selecting {} words in paragraph {}", b + 1 - a, p.paragraph + 1),
+                        Some((a, b)) => format!(
+                            "selecting {} words in paragraph {}",
+                            b + 1 - a,
+                            p.paragraph + 1
+                        ),
                         None => format!("in paragraph {}", p.paragraph + 1),
                     })
                     .unwrap_or_else(|| "away".into());
@@ -274,7 +319,15 @@ impl RenderOnce for LiveCursorsOverlay {
                             .justify_center()
                             .rounded_full()
                             .bg(color(ix))
-                            .child(Icon::new(if person.agent { IconName::Bot } else { IconName::User }).xsmall().text_color(fill)),
+                            .child(
+                                Icon::new(if person.agent {
+                                    IconName::Bot
+                                } else {
+                                    IconName::User
+                                })
+                                .xsmall()
+                                .text_color(fill),
+                            ),
                     )
                     .child(
                         v_flex()
@@ -290,8 +343,16 @@ impl RenderOnce for LiveCursorsOverlay {
             .iter()
             .map(|s| {
                 let who = self.people.iter().position(|c| c.id == s.who).unwrap_or(0);
-                let name = self.people.get(who).map(|p| p.name.clone()).unwrap_or_default();
-                let words: Vec<&str> = self.paragraphs.get(s.paragraph).map(|p| p.split_whitespace().collect()).unwrap_or_default();
+                let name = self
+                    .people
+                    .get(who)
+                    .map(|p| p.name.clone())
+                    .unwrap_or_default();
+                let words: Vec<&str> = self
+                    .paragraphs
+                    .get(s.paragraph)
+                    .map(|p| p.split_whitespace().collect())
+                    .unwrap_or_default();
                 let old = words
                     .get(s.words.0..=s.words.1.min(words.len().saturating_sub(1)))
                     .map(|w| w.join(" "))
@@ -321,26 +382,32 @@ impl RenderOnce for LiveCursorsOverlay {
                             .gap_1()
                             .justify_end()
                             .child(
-                                Button::new(ElementId::NamedChild(self.id.clone().into(), format!("reject-{}", s.id).into()))
-                                    .xsmall()
-                                    .ghost()
-                                    .label("Reject")
-                                    .on_click(move |_, window, cx| {
-                                        if let Some(reject) = &reject {
-                                            reject(&r_id, false, window, cx);
-                                        }
-                                    }),
+                                Button::new(ElementId::NamedChild(
+                                    self.id.clone().into(),
+                                    format!("reject-{}", s.id).into(),
+                                ))
+                                .xsmall()
+                                .ghost()
+                                .label("Reject")
+                                .on_click(move |_, window, cx| {
+                                    if let Some(reject) = &reject {
+                                        reject(&r_id, false, window, cx);
+                                    }
+                                }),
                             )
                             .child(
-                                Button::new(ElementId::NamedChild(self.id.clone().into(), format!("accept-{}", s.id).into()))
-                                    .xsmall()
-                                    .primary()
-                                    .label("Accept")
-                                    .on_click(move |_, window, cx| {
-                                        if let Some(accept) = &accept {
-                                            accept(&a_id, true, window, cx);
-                                        }
-                                    }),
+                                Button::new(ElementId::NamedChild(
+                                    self.id.clone().into(),
+                                    format!("accept-{}", s.id).into(),
+                                ))
+                                .xsmall()
+                                .primary()
+                                .label("Accept")
+                                .on_click(move |_, window, cx| {
+                                    if let Some(accept) = &accept {
+                                        accept(&a_id, true, window, cx);
+                                    }
+                                }),
                             ),
                     )
             })
@@ -378,11 +445,24 @@ impl RenderOnce for LiveCursorsOverlay {
                     .p_4()
                     .border_l_1()
                     .border_color(line)
-                    .child(div().text_xs().font_medium().text_color(quiet).child(format!("{} here", self.people.len())))
+                    .child(
+                        div()
+                            .text_xs()
+                            .font_medium()
+                            .text_color(quiet)
+                            .child(format!("{} here", self.people.len())),
+                    )
                     .children(people_rows)
                     .when(!self.suggestions.is_empty(), |this| {
-                        this.child(div().pt_2().text_xs().font_medium().text_color(quiet).child(format!("{} suggestions", self.suggestions.len())))
-                            .children(suggestion_rows)
+                        this.child(
+                            div()
+                                .pt_2()
+                                .text_xs()
+                                .font_medium()
+                                .text_color(quiet)
+                                .child(format!("{} suggestions", self.suggestions.len())),
+                        )
+                        .children(suggestion_rows)
                     }),
             )
             .refine_style(&self.style)
@@ -419,10 +499,23 @@ mod tests {
 
     #[test]
     fn marks_cover_selections_suggestions_and_cursors() {
-        let people = vec![Collaborator::person("m", "Maya"), Collaborator::agent("r", "Reconciler")];
+        let people = vec![
+            Collaborator::person("m", "Maya"),
+            Collaborator::agent("r", "Reconciler"),
+        ];
         let presence = vec![
-            Presence { who: "m".into(), paragraph: 0, after_word: 3, selection: Some((1, 3)) },
-            Presence { who: "r".into(), paragraph: 1, after_word: 0, selection: None },
+            Presence {
+                who: "m".into(),
+                paragraph: 0,
+                after_word: 3,
+                selection: Some((1, 3)),
+            },
+            Presence {
+                who: "r".into(),
+                paragraph: 1,
+                after_word: 0,
+                selection: None,
+            },
         ];
         let suggestions = vec![WordSuggestion {
             id: "s".into(),

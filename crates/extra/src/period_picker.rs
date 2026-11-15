@@ -13,15 +13,27 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
 
-const MONTHS: [&str; 12] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
 
 /// A calendar day as year, month (1 to 12) and day.
 pub type Ymd = (i32, u32, u32);
@@ -37,7 +49,11 @@ fn days_in(y: i32, m: u32) -> u32 {
 
 /// Days since 1 January 1970.
 pub fn day_number((y, m, d): Ymd) -> i64 {
-    let (y, m) = if m <= 2 { (y as i64 - 1, m as i64 + 9) } else { (y as i64, m as i64 - 3) };
+    let (y, m) = if m <= 2 {
+        (y as i64 - 1, m as i64 + 9)
+    } else {
+        (y as i64, m as i64 - 3)
+    };
     let era = y.div_euclid(400);
     let yoe = y - era * 400;
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + (153 * m + 2) / 5 + d as i64 - 1;
@@ -75,21 +91,42 @@ pub fn presets(today: Ymd) -> Vec<(&'static str, Ymd, Ymd)> {
         ("This month", (y, m, 1), (y, m, days_in(y, m))),
         ("Last month", (py, pm, 1), (py, pm, days_in(py, pm))),
         ("This quarter", (qy, qm, 1), (qey, qem, days_in(qey, qem))),
-        ("Last quarter", (lqy, lqm, 1), (lqey, lqem, days_in(lqey, lqem))),
+        (
+            "Last quarter",
+            (lqy, lqm, 1),
+            (lqey, lqem, days_in(lqey, lqem)),
+        ),
         ("Year to date", (y, 1, 1), today),
-        ("Last 30 days", from_day_number(day_number(today) - 29), today),
+        (
+            "Last 30 days",
+            from_day_number(day_number(today) - 29),
+            today,
+        ),
     ]
 }
 
 /// Write a span short, such as "1 Mar – 31 Mar 2026, 31 days".
 pub fn span_words(a: Ymd, b: Ymd) -> String {
-    let (a, b) = if day_number(a) <= day_number(b) { (a, b) } else { (b, a) };
+    let (a, b) = if day_number(a) <= day_number(b) {
+        (a, b)
+    } else {
+        (b, a)
+    };
     let days = day_number(b) - day_number(a) + 1;
     let short = |(y, m, d): Ymd, year: bool| {
         let name = &MONTHS[m as usize - 1][..3];
-        if year { format!("{d} {name} {y}") } else { format!("{d} {name}") }
+        if year {
+            format!("{d} {name} {y}")
+        } else {
+            format!("{d} {name}")
+        }
     };
-    format!("{} \u{2013} {}, {days} day{}", short(a, a.0 != b.0), short(b, true), if days == 1 { "" } else { "s" })
+    format!(
+        "{} \u{2013} {}, {days} day{}",
+        short(a, a.0 != b.0),
+        short(b, true),
+        if days == 1 { "" } else { "s" }
+    )
 }
 
 type SpanHandler = Rc<dyn Fn(Option<Ymd>, Option<Ymd>, &mut Window, &mut App)>;
@@ -148,13 +185,19 @@ impl PeriodPicker {
     }
 
     /// Run with the new span: a start alone while picking, then both.
-    pub fn on_span(mut self, handler: impl Fn(Option<Ymd>, Option<Ymd>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_span(
+        mut self,
+        handler: impl Fn(Option<Ymd>, Option<Ymd>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_span = Some(Rc::new(handler));
         self
     }
 
     /// Run as the pointer moves over days.
-    pub fn on_hover(mut self, handler: impl Fn(Option<Ymd>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_hover(
+        mut self,
+        handler: impl Fn(Option<Ymd>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_hover = Some(Rc::new(handler));
         self
     }
@@ -182,7 +225,9 @@ impl RenderOnce for PeriodPicker {
         let chip = theme.muted;
         let accent = theme.primary;
         let radius_lg = theme.radius_lg;
-        let reach = self.end.or(self.hover.filter(|_| self.start.is_some() && self.end.is_none()));
+        let reach = self.end.or(self
+            .hover
+            .filter(|_| self.start.is_some() && self.end.is_none()));
         let (lo, hi) = match (self.start, reach) {
             (Some(a), Some(b)) => {
                 let (a, b) = (day_number(a), day_number(b));
@@ -207,7 +252,10 @@ impl RenderOnce for PeriodPicker {
                     let hover = self.on_hover.clone();
                     let (start, end) = (self.start, self.end);
                     div()
-                        .id(ElementId::NamedChild(self.id.clone().into(), format!("d-{n}").into()))
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("d-{n}").into(),
+                        ))
                         .size(px(32.))
                         .flex()
                         .items_center()
@@ -215,8 +263,15 @@ impl RenderOnce for PeriodPicker {
                         .text_sm()
                         .cursor_pointer()
                         .when(inside && !edge, |this| this.bg(accent.opacity(0.14)))
-                        .when(edge, |this| this.bg(accent).text_color(fill).rounded(px(8.)).font_semibold())
-                        .when(is_today && !edge, |this| this.border_1().border_color(accent).rounded(px(8.)))
+                        .when(edge, |this| {
+                            this.bg(accent)
+                                .text_color(fill)
+                                .rounded(px(8.))
+                                .font_semibold()
+                        })
+                        .when(is_today && !edge, |this| {
+                            this.border_1().border_color(accent).rounded(px(8.))
+                        })
                         .when(!inside, |this| this.rounded(px(8.)).hover(|s| s.bg(chip)))
                         .role(Role::GridCell)
                         .aria_label(format!("{d} {} {y}", MONTHS[m as usize - 1]))
@@ -240,8 +295,22 @@ impl RenderOnce for PeriodPicker {
                 .collect();
             v_flex()
                 .gap_1()
-                .child(div().text_center().font_medium().child(format!("{} {y}", MONTHS[m as usize - 1])))
-                .child(h_flex().children(["M", "T", "W", "T", "F", "S", "S"].iter().map(|d| div().w(px(32.)).text_center().text_xs().text_color(quiet).child(*d))))
+                .child(
+                    div()
+                        .text_center()
+                        .font_medium()
+                        .child(format!("{} {y}", MONTHS[m as usize - 1])),
+                )
+                .child(
+                    h_flex().children(["M", "T", "W", "T", "F", "S", "S"].iter().map(|d| {
+                        div()
+                            .w(px(32.))
+                            .text_center()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(*d)
+                    })),
+                )
                 .child(h_flex().flex_wrap().w(px(224.)).children(cells))
         };
 
@@ -250,25 +319,36 @@ impl RenderOnce for PeriodPicker {
             .map(|(label, a, b)| {
                 let span = self.on_span.clone();
                 let active = self.start == Some(a) && self.end == Some(b);
-                Button::new(ElementId::NamedChild(self.id.clone().into(), format!("preset-{label}").into()))
-                    .xsmall()
-                    .map(|btn| if active { btn.primary() } else { btn.ghost() })
-                    .label(label)
-                    .on_click(move |_, window, cx| {
-                        if let Some(span) = &span {
-                            span(Some(a), Some(b), window, cx);
-                        }
-                    })
+                Button::new(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("preset-{label}").into(),
+                ))
+                .xsmall()
+                .map(|btn| if active { btn.primary() } else { btn.ghost() })
+                .label(label)
+                .on_click(move |_, window, cx| {
+                    if let Some(span) = &span {
+                        span(Some(a), Some(b), window, cx);
+                    }
+                })
             })
             .collect();
 
         let step = |n: i32| {
             let on_month = self.on_month.clone();
-            let label = if n < 0 { "Earlier months" } else { "Later months" };
+            let label = if n < 0 {
+                "Earlier months"
+            } else {
+                "Later months"
+            };
             Button::new(ElementId::NamedChild(self.id.clone().into(), label.into()))
                 .xsmall()
                 .ghost()
-                .icon(if n < 0 { IconName::ChevronLeft } else { IconName::ChevronRight })
+                .icon(if n < 0 {
+                    IconName::ChevronLeft
+                } else {
+                    IconName::ChevronRight
+                })
                 .accessibility_label(label)
                 .on_click(move |_, window, cx| {
                     if let Some(on_month) = &on_month {
@@ -293,7 +373,14 @@ impl RenderOnce for PeriodPicker {
             .bg(fill)
             .text_color(ink)
             .shadow(resting_shadow(cx))
-            .child(v_flex().gap_0p5().p_2().border_r_1().border_color(line).children(preset_buttons))
+            .child(
+                v_flex()
+                    .gap_0p5()
+                    .p_2()
+                    .border_r_1()
+                    .border_color(line)
+                    .children(preset_buttons),
+            )
             .child(
                 v_flex()
                     .gap_2()
@@ -332,7 +419,13 @@ mod tests {
 
     #[test]
     fn spans_read_in_words() {
-        assert_eq!(span_words((2026, 3, 1), (2026, 3, 31)), "1 Mar \u{2013} 31 Mar 2026, 31 days");
-        assert_eq!(span_words((2026, 4, 2), (2025, 12, 30)), "30 Dec 2025 \u{2013} 2 Apr 2026, 94 days");
+        assert_eq!(
+            span_words((2026, 3, 1), (2026, 3, 31)),
+            "1 Mar \u{2013} 31 Mar 2026, 31 days"
+        );
+        assert_eq!(
+            span_words((2026, 4, 2), (2025, 12, 30)),
+            "30 Dec 2025 \u{2013} 2 Apr 2026, 94 days"
+        );
     }
 }

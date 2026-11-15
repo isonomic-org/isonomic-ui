@@ -15,10 +15,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -92,7 +91,11 @@ pub struct RunStep {
 
 impl RunStep {
     /// Create a step that finished well and has nothing inside.
-    pub fn new(id: impl Into<SharedString>, kind: RunStepKind, label: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        kind: RunStepKind,
+        label: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             kind,
@@ -195,18 +198,29 @@ pub enum RunTreeMove {
 }
 
 /// Where a key takes the outline from the selected row.
-pub fn key_move(rows: &[RunRow], open: &[SharedString], selected: Option<&SharedString>, key: &str) -> Option<RunTreeMove> {
+pub fn key_move(
+    rows: &[RunRow],
+    open: &[SharedString],
+    selected: Option<&SharedString>,
+    key: &str,
+) -> Option<RunTreeMove> {
     let at = selected.and_then(|id| rows.iter().position(|r| &r.id == id));
     let Some(at) = at else {
         return rows.first().map(|r| RunTreeMove::Select(r.id.clone()));
     };
     let row = &rows[at];
     match key {
-        "up" => at.checked_sub(1).map(|ix| RunTreeMove::Select(rows[ix].id.clone())),
+        "up" => at
+            .checked_sub(1)
+            .map(|ix| RunTreeMove::Select(rows[ix].id.clone())),
         "down" => rows.get(at + 1).map(|r| RunTreeMove::Select(r.id.clone())),
-        "right" if row.has_children && !open.contains(&row.id) => Some(RunTreeMove::Toggle(row.id.clone())),
+        "right" if row.has_children && !open.contains(&row.id) => {
+            Some(RunTreeMove::Toggle(row.id.clone()))
+        }
         "right" if row.has_children => rows.get(at + 1).map(|r| RunTreeMove::Select(r.id.clone())),
-        "left" if row.has_children && open.contains(&row.id) => Some(RunTreeMove::Toggle(row.id.clone())),
+        "left" if row.has_children && open.contains(&row.id) => {
+            Some(RunTreeMove::Toggle(row.id.clone()))
+        }
         "left" => row.parent.clone().map(RunTreeMove::Select),
         _ => None,
     }
@@ -261,13 +275,19 @@ impl AgentRunTree {
     }
 
     /// Run when a step is selected.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
 
     /// Run when a step is folded or unfolded.
-    pub fn on_toggle(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_toggle(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_toggle = Some(Rc::new(handler));
         self
     }
@@ -314,7 +334,9 @@ impl RenderOnce for AgentRunTree {
         let mono = theme.mono_font_family.clone();
 
         let focus = window
-            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| cx.focus_handle().tab_stop(true))
+            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
             .read(cx)
             .clone();
         let is_focused = focus.is_focused(window);
@@ -342,7 +364,12 @@ impl RenderOnce for AgentRunTree {
                 if event.keystroke.modifiers.modified() {
                     return;
                 }
-                match key_move(&rows, &open, selected.as_ref(), event.keystroke.key.as_str()) {
+                match key_move(
+                    &rows,
+                    &open,
+                    selected.as_ref(),
+                    event.keystroke.key.as_str(),
+                ) {
                     Some(RunTreeMove::Select(id)) => {
                         if let Some(select) = &select {
                             select(&id, window, cx);
@@ -373,7 +400,10 @@ impl RenderOnce for AgentRunTree {
                 let toggle_id = step.id.clone();
                 let share = step.millis as f32 / longest as f32;
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("row-{}", step.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-{}", step.id).into(),
+                    ))
                     .h(px(30.))
                     .gap_1p5()
                     .pr_2()
@@ -408,7 +438,10 @@ impl RenderOnce for AgentRunTree {
                     })
                     .child(
                         div()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("fold-{}", step.id).into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("fold-{}", step.id).into(),
+                            ))
                             .size(px(16.))
                             .flex_none()
                             .flex()
@@ -424,20 +457,34 @@ impl RenderOnce for AgentRunTree {
                                         }
                                     })
                                     .child(
-                                        Icon::new(if is_open { IconName::ChevronDown } else { IconName::ChevronRight })
-                                            .xsmall()
-                                            .text_color(quiet),
+                                        Icon::new(if is_open {
+                                            IconName::ChevronDown
+                                        } else {
+                                            IconName::ChevronRight
+                                        })
+                                        .xsmall()
+                                        .text_color(quiet),
                                     )
                             }),
                     )
-                    .child(Icon::new(step.kind.icon()).xsmall().text_color(if step.outcome == RunStepOutcome::Failed { tone_color } else { quiet }))
+                    .child(Icon::new(step.kind.icon()).xsmall().text_color(
+                        if step.outcome == RunStepOutcome::Failed {
+                            tone_color
+                        } else {
+                            quiet
+                        },
+                    ))
                     .child(
                         div()
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .when(step.kind == RunStepKind::Tool, |this| this.font_family(mono.clone()).text_xs())
-                            .when(step.outcome == RunStepOutcome::Skipped, |this| this.text_color(quiet).line_through())
+                            .when(step.kind == RunStepKind::Tool, |this| {
+                                this.font_family(mono.clone()).text_xs()
+                            })
+                            .when(step.outcome == RunStepOutcome::Skipped, |this| {
+                                this.text_color(quiet).line_through()
+                            })
                             .child(step.label.clone()),
                     )
                     .child(
@@ -447,7 +494,13 @@ impl RenderOnce for AgentRunTree {
                             .h(px(4.))
                             .rounded_full()
                             .bg(chip)
-                            .child(div().h_full().rounded_full().bg(tone_color.opacity(0.7)).w(relative(share))),
+                            .child(
+                                div()
+                                    .h_full()
+                                    .rounded_full()
+                                    .bg(tone_color.opacity(0.7))
+                                    .w(relative(share)),
+                            ),
                     )
                     .child(
                         div()
@@ -492,7 +545,13 @@ impl RenderOnce for AgentRunTree {
                         h_flex()
                             .gap_2()
                             .child(Icon::new(step.kind.icon()).small().text_color(quiet))
-                            .child(div().flex_1().min_w_0().font_medium().child(step.label.clone())),
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .font_medium()
+                                    .child(step.label.clone()),
+                            ),
                     )
                     .child(
                         h_flex()
@@ -513,14 +572,29 @@ impl RenderOnce for AgentRunTree {
                             )
                             .child(div().text_color(quiet).child(step.kind.word()))
                             .when(step.millis > 0, |this| {
-                                this.child(div().text_color(quiet).child(duration_words(step.millis)))
+                                this.child(
+                                    div().text_color(quiet).child(duration_words(step.millis)),
+                                )
                             })
                             .when(!step.children.is_empty(), |this| {
-                                this.child(div().text_color(quiet).child(format!("{} inside", step.children.len())))
+                                this.child(
+                                    div()
+                                        .text_color(quiet)
+                                        .child(format!("{} inside", step.children.len())),
+                                )
                             }),
                     )
                     .children(step.input.as_ref().map(|text| block("In", text)))
-                    .children(step.output.as_ref().map(|text| block(if step.outcome == RunStepOutcome::Failed { "Problem" } else { "Out" }, text)))
+                    .children(step.output.as_ref().map(|text| {
+                        block(
+                            if step.outcome == RunStepOutcome::Failed {
+                                "Problem"
+                            } else {
+                                "Out"
+                            },
+                            text,
+                        )
+                    }))
             });
 
         v_flex()
@@ -542,12 +616,27 @@ impl RenderOnce for AgentRunTree {
                     .border_b_1()
                     .border_color(line)
                     .child(Icon::new(IconName::Network).small().text_color(quiet))
-                    .child(div().flex_1().min_w_0().truncate().font_medium().child(self.title))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .font_medium()
+                            .child(self.title),
+                    )
                     .child(div().text_xs().text_color(quiet).child(format!(
                         "{total} steps, {}{}{}",
                         duration_words(run_millis),
-                        if tally[0] > 0 { format!(", {} failed", tally[0]) } else { String::new() },
-                        if tally[1] > 0 { format!(", {} running", tally[1]) } else { String::new() },
+                        if tally[0] > 0 {
+                            format!(", {} failed", tally[0])
+                        } else {
+                            String::new()
+                        },
+                        if tally[1] > 0 {
+                            format!(", {} running", tally[1])
+                        } else {
+                            String::new()
+                        },
                     ))),
             )
             .child(
@@ -556,7 +645,10 @@ impl RenderOnce for AgentRunTree {
                     .flex_wrap()
                     .child(
                         v_flex()
-                            .id(ElementId::NamedChild(self.id.clone().into(), "outline".into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                "outline".into(),
+                            ))
                             .track_focus(&focus)
                             .on_key_down(key_down)
                             .role(Role::Tree)
@@ -581,7 +673,11 @@ impl RenderOnce for AgentRunTree {
                             .border_color(line)
                             .map(|this| match detail {
                                 Some(detail) => this.child(detail),
-                                None => this.child(div().text_color(quiet).child("Select a step to see what went in and out.")),
+                                None => this.child(
+                                    div()
+                                        .text_color(quiet)
+                                        .child("Select a step to see what went in and out."),
+                                ),
                             }),
                     ),
             )
@@ -620,11 +716,23 @@ mod tests {
         let rows = visible_rows(&steps(), &open);
         let b: SharedString = "b".into();
         let b1: SharedString = "b1".into();
-        assert_eq!(key_move(&rows, &open, Some(&b), "left"), Some(RunTreeMove::Toggle(b.clone())));
-        assert_eq!(key_move(&rows, &open, Some(&b), "right"), Some(RunTreeMove::Select(b1.clone())));
-        assert_eq!(key_move(&rows, &open, Some(&b1), "left"), Some(RunTreeMove::Select(b.clone())));
+        assert_eq!(
+            key_move(&rows, &open, Some(&b), "left"),
+            Some(RunTreeMove::Toggle(b.clone()))
+        );
+        assert_eq!(
+            key_move(&rows, &open, Some(&b), "right"),
+            Some(RunTreeMove::Select(b1.clone()))
+        );
+        assert_eq!(
+            key_move(&rows, &open, Some(&b1), "left"),
+            Some(RunTreeMove::Select(b.clone()))
+        );
         let closed = visible_rows(&steps(), &[]);
-        assert_eq!(key_move(&closed, &[], Some(&b), "right"), Some(RunTreeMove::Toggle(b)));
+        assert_eq!(
+            key_move(&closed, &[], Some(&b), "right"),
+            Some(RunTreeMove::Toggle(b))
+        );
     }
 
     #[test]

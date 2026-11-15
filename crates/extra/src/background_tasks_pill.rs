@@ -15,9 +15,8 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _,
-    IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, SharedString,
+    Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _, IntoElement,
+    KeyDownEvent, ParentElement as _, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Transformation, Window, div,
     percentage, prelude::FluentBuilder as _, px, relative,
 };
@@ -95,7 +94,11 @@ impl BackgroundTask {
 /// The pill's words and tone for a set of tasks.
 pub fn pill_summary(tasks: &[BackgroundTask]) -> (String, Tone) {
     let n = |s| tasks.iter().filter(|t| t.state == s).count();
-    let (running, waiting, failed) = (n(BackgroundState::Running), n(BackgroundState::Waiting), n(BackgroundState::Failed));
+    let (running, waiting, failed) = (
+        n(BackgroundState::Running),
+        n(BackgroundState::Waiting),
+        n(BackgroundState::Failed),
+    );
     let words = match (running, waiting, failed) {
         (0, 0, 0) if tasks.is_empty() => "No tasks".to_string(),
         (0, 0, 0) if tasks.len() == 1 => "1 task".to_string(),
@@ -168,13 +171,19 @@ impl BackgroundTasksPill {
     }
 
     /// Run when a task's pause or resume button is clicked.
-    pub fn on_pause(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_pause(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_pause = Some(Rc::new(handler));
         self
     }
 
     /// Run when a task's row is clicked.
-    pub fn on_open_task(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_open_task(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_open_task = Some(Rc::new(handler));
         self
     }
@@ -198,10 +207,15 @@ impl RenderOnce for BackgroundTasksPill {
         let radius_lg = theme.radius_lg;
         let (words, tone) = pill_summary(&self.tasks);
         let tone_color = tone.color(cx);
-        let running = self.tasks.iter().any(|t| t.state == BackgroundState::Running);
+        let running = self
+            .tasks
+            .iter()
+            .any(|t| t.state == BackgroundState::Running);
 
         let focus = window
-            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| cx.focus_handle().tab_stop(true))
+            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
             .read(cx)
             .clone();
         let is_focused = focus.is_focused(window);
@@ -229,7 +243,11 @@ impl RenderOnce for BackgroundTasksPill {
             .px_2p5()
             .rounded_full()
             .border_1()
-            .border_color(if tone == Tone::Neutral { line } else { tone_color.opacity(0.5) })
+            .border_color(if tone == Tone::Neutral {
+                line
+            } else {
+                tone_color.opacity(0.5)
+            })
             .bg(if open { chip } else { fill })
             .hover(|style| style.bg(chip))
             .cursor_pointer()
@@ -255,79 +273,128 @@ impl RenderOnce for BackgroundTasksPill {
             .child(if running {
                 spinner("pill")
             } else {
-                div().size(px(7.)).rounded_full().bg(tone_color).into_any_element()
+                div()
+                    .size(px(7.))
+                    .rounded_full()
+                    .bg(tone_color)
+                    .into_any_element()
             })
             .child(words)
-            .child(Icon::new(if open { IconName::ChevronUp } else { IconName::ChevronDown }).xsmall().text_color(quiet));
+            .child(
+                Icon::new(if open {
+                    IconName::ChevronUp
+                } else {
+                    IconName::ChevronDown
+                })
+                .xsmall()
+                .text_color(quiet),
+            );
 
         let panel = open.then(|| {
-            let rows: Vec<_> = self
-                .tasks
-                .iter()
-                .map(|task| {
-                    let tone = task.state.tone();
-                    let color = tone.color(cx);
-                    let pause = self.on_pause.clone();
-                    let open_task = self.on_open_task.clone();
-                    let id = task.id.clone();
-                    let open_id = task.id.clone();
-                    let can_pause = matches!(task.state, BackgroundState::Running | BackgroundState::Paused);
-                    v_flex()
-                        .id(ElementId::NamedChild(self.id.clone().into(), format!("task-{}", task.id).into()))
-                        .gap_1()
-                        .px_3()
-                        .py_2()
-                        .rounded(radius)
-                        .cursor_pointer()
-                        .hover(|style| style.bg(chip.opacity(0.6)))
-                        .role(Role::Button)
-                        .aria_label(format!("{}, {}", task.label, task.note))
-                        .on_click(move |_, window, cx| {
-                            if let Some(open_task) = &open_task {
-                                open_task(&open_id, window, cx);
-                            }
-                        })
-                        .child(
-                            h_flex()
-                                .gap_2()
-                                .child(match task.state {
-                                    BackgroundState::Running => spinner(&task.id),
-                                    _ => div().size(px(7.)).rounded_full().bg(color).into_any_element(),
-                                })
-                                .child(div().flex_1().min_w_0().truncate().font_medium().child(task.label.clone()))
-                                .when(can_pause, |this| {
-                                    let paused = task.state == BackgroundState::Paused;
-                                    this.child(
-                                        Button::new(ElementId::NamedChild(self.id.clone().into(), format!("pause-{}", task.id).into()))
+            let rows: Vec<_> =
+                self.tasks
+                    .iter()
+                    .map(|task| {
+                        let tone = task.state.tone();
+                        let color = tone.color(cx);
+                        let pause = self.on_pause.clone();
+                        let open_task = self.on_open_task.clone();
+                        let id = task.id.clone();
+                        let open_id = task.id.clone();
+                        let can_pause = matches!(
+                            task.state,
+                            BackgroundState::Running | BackgroundState::Paused
+                        );
+                        v_flex()
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("task-{}", task.id).into(),
+                            ))
+                            .gap_1()
+                            .px_3()
+                            .py_2()
+                            .rounded(radius)
+                            .cursor_pointer()
+                            .hover(|style| style.bg(chip.opacity(0.6)))
+                            .role(Role::Button)
+                            .aria_label(format!("{}, {}", task.label, task.note))
+                            .on_click(move |_, window, cx| {
+                                if let Some(open_task) = &open_task {
+                                    open_task(&open_id, window, cx);
+                                }
+                            })
+                            .child(
+                                h_flex()
+                                    .gap_2()
+                                    .child(match task.state {
+                                        BackgroundState::Running => spinner(&task.id),
+                                        _ => div()
+                                            .size(px(7.))
+                                            .rounded_full()
+                                            .bg(color)
+                                            .into_any_element(),
+                                    })
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .min_w_0()
+                                            .truncate()
+                                            .font_medium()
+                                            .child(task.label.clone()),
+                                    )
+                                    .when(can_pause, |this| {
+                                        let paused = task.state == BackgroundState::Paused;
+                                        this.child(
+                                            Button::new(ElementId::NamedChild(
+                                                self.id.clone().into(),
+                                                format!("pause-{}", task.id).into(),
+                                            ))
                                             .xsmall()
                                             .ghost()
-                                            .icon(if paused { IconName::Play } else { IconName::Pause })
-                                            .accessibility_label(format!("{} {}", if paused { "Resume" } else { "Pause" }, task.label))
+                                            .icon(if paused {
+                                                IconName::Play
+                                            } else {
+                                                IconName::Pause
+                                            })
+                                            .accessibility_label(format!(
+                                                "{} {}",
+                                                if paused { "Resume" } else { "Pause" },
+                                                task.label
+                                            ))
                                             .on_click(move |_, window, cx| {
                                                 cx.stop_propagation();
                                                 if let Some(pause) = &pause {
                                                     pause(&id, window, cx);
                                                 }
                                             }),
-                                    )
-                                }),
-                        )
-                        .when(!task.note.is_empty(), |this| {
-                            this.child(
-                                div()
-                                    .pl(px(15.))
-                                    .text_xs()
-                                    .text_color(if matches!(task.state, BackgroundState::Failed | BackgroundState::Waiting) { color } else { quiet })
-                                    .child(task.note.clone()),
+                                        )
+                                    }),
                             )
-                        })
-                        .children(task.progress.map(|share| {
-                            div().ml(px(15.)).h(px(3.)).rounded_full().bg(chip).child(
-                                div().h_full().rounded_full().bg(color).w(relative(share)),
-                            )
-                        }))
-                })
-                .collect();
+                            .when(!task.note.is_empty(), |this| {
+                                this.child(
+                                    div()
+                                        .pl(px(15.))
+                                        .text_xs()
+                                        .text_color(
+                                            if matches!(
+                                                task.state,
+                                                BackgroundState::Failed | BackgroundState::Waiting
+                                            ) {
+                                                color
+                                            } else {
+                                                quiet
+                                            },
+                                        )
+                                        .child(task.note.clone()),
+                                )
+                            })
+                            .children(task.progress.map(|share| {
+                                div().ml(px(15.)).h(px(3.)).rounded_full().bg(chip).child(
+                                    div().h_full().rounded_full().bg(color).w(relative(share)),
+                                )
+                            }))
+                    })
+                    .collect();
             v_flex()
                 .absolute()
                 .top(px(34.))
@@ -354,7 +421,13 @@ impl RenderOnce for BackgroundTasksPill {
                 )
                 .children(rows)
                 .when(self.tasks.is_empty(), |this| {
-                    this.child(div().px_3().py_3().text_color(quiet).child("Nothing is running."))
+                    this.child(
+                        div()
+                            .px_3()
+                            .py_3()
+                            .text_color(quiet)
+                            .child("Nothing is running."),
+                    )
                 })
         });
 
@@ -379,7 +452,10 @@ mod tests {
             BackgroundTask::new("b", "B"),
             BackgroundTask::new("c", "C").state(BackgroundState::Waiting, "your approval"),
         ];
-        assert_eq!(pill_summary(&tasks), ("2 running, 1 waiting".to_string(), Tone::Warning));
+        assert_eq!(
+            pill_summary(&tasks),
+            ("2 running, 1 waiting".to_string(), Tone::Warning)
+        );
         let done = vec![BackgroundTask::new("a", "A").state(BackgroundState::Done, "")];
         assert_eq!(pill_summary(&done), ("1 task".to_string(), Tone::Neutral));
         assert_eq!(pill_summary(&[]).0, "No tasks");

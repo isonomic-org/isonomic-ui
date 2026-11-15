@@ -9,8 +9,8 @@ use isonomic_ui::{
     Styled as _, Task, Window, div,
 };
 use isonomic_ui_extra::flow_builder::{
-    FlowBuilder, FlowStep, FlowStepKind, InsertAt, StepRun, insert_step, move_step,
-    reading_order, remove_step,
+    FlowBuilder, FlowStep, FlowStepKind, InsertAt, StepRun, insert_step, move_step, reading_order,
+    remove_step,
 };
 
 /// Shows a collections flow for overdue invoices. The story plays the
@@ -26,12 +26,20 @@ pub struct FlowBuilderStory {
 
 fn starting_flow() -> Vec<FlowStep> {
     vec![
-        FlowStep::new("overdue", FlowStepKind::Trigger, "An invoice is 7 days overdue")
-            .detail("Checked every morning at 8:00"),
+        FlowStep::new(
+            "overdue",
+            FlowStepKind::Trigger,
+            "An invoice is 7 days overdue",
+        )
+        .detail("Checked every morning at 8:00"),
         FlowStep::new("big", FlowStepKind::Branch, "Is it over 1,000?").lanes(
             vec![
-                FlowStep::new("call", FlowStepKind::Action, "Ask the account owner to call")
-                    .detail("Creates a task for the owner"),
+                FlowStep::new(
+                    "call",
+                    FlowStepKind::Action,
+                    "Ask the account owner to call",
+                )
+                .detail("Creates a task for the owner"),
             ],
             vec![
                 FlowStep::new("remind", FlowStepKind::Action, "Send the friendly reminder")

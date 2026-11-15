@@ -19,9 +19,8 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
@@ -182,8 +181,7 @@ pub fn next_open(proposals: &[Proposal], from: Option<&str>) -> Option<SharedStr
         (0..order.len())
             .map(|step| &proposals[order[(start + step) % order.len()]])
             .find(|p| {
-                p.decision.is_none()
-                    || skipped_too && p.decision == Some(ReviewDecision::Skip)
+                p.decision.is_none() || skipped_too && p.decision == Some(ReviewDecision::Skip)
             })
             .map(|p| p.id.clone())
     };
@@ -305,7 +303,12 @@ impl RenderOnce for ReviewQueueWorkspace {
         let decided = self
             .proposals
             .iter()
-            .filter(|p| matches!(p.decision, Some(ReviewDecision::Approve | ReviewDecision::Reject)))
+            .filter(|p| {
+                matches!(
+                    p.decision,
+                    Some(ReviewDecision::Approve | ReviewDecision::Reject)
+                )
+            })
             .count();
         let count = |decision| {
             self.proposals
@@ -395,7 +398,9 @@ impl RenderOnce for ReviewQueueWorkspace {
                     .rounded(radius)
                     .cursor_pointer()
                     .when(is_current, |this| this.bg(chip))
-                    .when(!is_current, |this| this.hover(|style| style.bg(chip.opacity(0.5))))
+                    .when(!is_current, |this| {
+                        this.hover(|style| style.bg(chip.opacity(0.5)))
+                    })
                     .role(Role::ListItem)
                     .aria_label(format!(
                         "{}, {}{}",
@@ -458,7 +463,13 @@ impl RenderOnce for ReviewQueueWorkspace {
                     format!("decide-{label}").into(),
                 ))
                 .small()
-                .map(|this| if primary { this.primary() } else { this.outline() })
+                .map(|this| {
+                    if primary {
+                        this.primary()
+                    } else {
+                        this.outline()
+                    }
+                })
                 .child(
                     h_flex()
                         .gap_1p5()
@@ -570,21 +581,17 @@ impl RenderOnce for ReviewQueueWorkspace {
                             })),
                     )
                 })
-                .child(
-                    h_flex()
-                        .flex_wrap()
-                        .gap_2()
-                        .pt_1()
-                        .map(|this| match state {
-                            Some((word, color)) => this
-                                .child(div().text_color(color).font_medium().child(word))
-                                .child(button("Reopen", "u", None, false)),
-                            None => this
-                                .child(button("Approve", "a", Some(ReviewDecision::Approve), true))
-                                .child(button("Reject", "r", Some(ReviewDecision::Reject), false))
-                                .child(button("Skip", "s", Some(ReviewDecision::Skip), false)),
-                        }),
-                )
+                .child(h_flex().flex_wrap().gap_2().pt_1().map(|this| {
+                    match state {
+                        Some((word, color)) => this
+                            .child(div().text_color(color).font_medium().child(word))
+                            .child(button("Reopen", "u", None, false)),
+                        None => this
+                            .child(button("Approve", "a", Some(ReviewDecision::Approve), true))
+                            .child(button("Reject", "r", Some(ReviewDecision::Reject), false))
+                            .child(button("Skip", "s", Some(ReviewDecision::Skip), false)),
+                    }
+                }))
         });
 
         let done = total > 0 && decided == total;
@@ -664,10 +671,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                             .map(|this| match detail {
                                 Some(detail) => this.child(detail),
                                 None => this.child(
-                                    div()
-                                        .p_4()
-                                        .text_color(quiet)
-                                        .child("Nothing to review"),
+                                    div().p_4().text_color(quiet).child("Nothing to review"),
                                 ),
                             }),
                     ),
@@ -682,7 +686,11 @@ impl RenderOnce for ReviewQueueWorkspace {
                         .border_color(line)
                         .text_xs()
                         .text_color(quiet)
-                        .child(Icon::new(IconName::CircleCheck).xsmall().text_color(success))
+                        .child(
+                            Icon::new(IconName::CircleCheck)
+                                .xsmall()
+                                .text_color(success),
+                        )
                         .child(format!(
                             "{approved} approved, {rejected} rejected{}",
                             if skipped > 0 {

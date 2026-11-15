@@ -14,9 +14,8 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
 };
 
@@ -37,7 +36,11 @@ pub struct ToolCall {
 
 impl ToolCall {
     /// Create a call that worked.
-    pub fn ok(id: impl Into<SharedString>, when: impl Into<SharedString>, summary: impl Into<SharedString>) -> Self {
+    pub fn ok(
+        id: impl Into<SharedString>,
+        when: impl Into<SharedString>,
+        summary: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             when: when.into(),
@@ -47,7 +50,11 @@ impl ToolCall {
     }
 
     /// Create a call that failed.
-    pub fn failed(id: impl Into<SharedString>, when: impl Into<SharedString>, summary: impl Into<SharedString>) -> Self {
+    pub fn failed(
+        id: impl Into<SharedString>,
+        when: impl Into<SharedString>,
+        summary: impl Into<SharedString>,
+    ) -> Self {
         Self {
             ok: false,
             ..Self::ok(id, when, summary)
@@ -72,7 +79,11 @@ pub struct ReachTool {
 
 impl ReachTool {
     /// Create an allowed tool with no calls.
-    pub fn new(id: impl Into<SharedString>, service: impl Into<SharedString>, name: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        service: impl Into<SharedString>,
+        name: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             service: service.into(),
@@ -152,7 +163,11 @@ pub struct ToolReachMap {
 
 impl ToolReachMap {
     /// Create a map of an assistant's tools.
-    pub fn new(id: impl Into<ElementId>, worker: impl Into<SharedString>, tools: Vec<ReachTool>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        worker: impl Into<SharedString>,
+        tools: Vec<ReachTool>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -179,19 +194,28 @@ impl ToolReachMap {
     }
 
     /// Run when a chip is clicked; `None` when the selected one is clicked again.
-    pub fn on_select(mut self, handler: impl Fn(Option<&SharedString>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(Option<&SharedString>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
 
     /// Run when a filter is picked.
-    pub fn on_filter(mut self, handler: impl Fn(Option<ReachStanding>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_filter(
+        mut self,
+        handler: impl Fn(Option<ReachStanding>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_filter = Some(Rc::new(handler));
         self
     }
 
     /// Run with a tool and one of its calls to replay.
-    pub fn on_replay(mut self, handler: impl Fn(&SharedString, &SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_replay(
+        mut self,
+        handler: impl Fn(&SharedString, &SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_replay = Some(Rc::new(handler));
         self
     }
@@ -221,7 +245,10 @@ impl RenderOnce for ToolReachMap {
             let on_filter = self.on_filter.clone();
             let active = self.filter == want;
             h_flex()
-                .id(ElementId::NamedChild(self.id.clone().into(), format!("filter-{label}").into()))
+                .id(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("filter-{label}").into(),
+                ))
                 .gap_1()
                 .h(px(24.))
                 .px_2()
@@ -247,7 +274,9 @@ impl RenderOnce for ToolReachMap {
                 let tools: Vec<&ReachTool> = self
                     .tools
                     .iter()
-                    .filter(|t| t.service == service && self.filter.is_none_or(|f| t.standing() == f))
+                    .filter(|t| {
+                        t.service == service && self.filter.is_none_or(|f| t.standing() == f)
+                    })
                     .collect();
                 if tools.is_empty() {
                     return None;
@@ -267,14 +296,19 @@ impl RenderOnce for ToolReachMap {
                         let select = self.on_select.clone();
                         let id = tool.id.clone();
                         h_flex()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("tool-{}", tool.id).into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("tool-{}", tool.id).into(),
+                            ))
                             .gap_1p5()
                             .h(px(28.))
                             .px_2()
                             .rounded(px(6.))
                             .border_1()
                             .border_color(if is_selected { ink } else { border })
-                            .when(standing == ReachStanding::Blocked, |this| this.border_dashed())
+                            .when(standing == ReachStanding::Blocked, |this| {
+                                this.border_dashed()
+                            })
                             .bg(tint)
                             .cursor_pointer()
                             .role(Role::Button)
@@ -283,8 +317,10 @@ impl RenderOnce for ToolReachMap {
                                 tool.name,
                                 match standing {
                                     ReachStanding::Unused => "never called".to_string(),
-                                    ReachStanding::Used => format!("called {} times", tool.calls.len()),
-                                    ReachStanding::Failed => format!("{fails} of {} calls failed", tool.calls.len()),
+                                    ReachStanding::Used =>
+                                        format!("called {} times", tool.calls.len()),
+                                    ReachStanding::Failed =>
+                                        format!("{fails} of {} calls failed", tool.calls.len()),
                                     ReachStanding::Blocked => "not allowed".to_string(),
                                 }
                             ))
@@ -301,7 +337,15 @@ impl RenderOnce for ToolReachMap {
                                 div()
                                     .text_xs()
                                     .font_family(mono.clone())
-                                    .text_color(if standing == ReachStanding::Unused || standing == ReachStanding::Blocked { quiet } else { ink })
+                                    .text_color(
+                                        if standing == ReachStanding::Unused
+                                            || standing == ReachStanding::Blocked
+                                        {
+                                            quiet
+                                        } else {
+                                            ink
+                                        },
+                                    )
                                     .child(tool.name.clone()),
                             )
                             .when(!tool.calls.is_empty(), |this| {
@@ -322,67 +366,119 @@ impl RenderOnce for ToolReachMap {
                 Some(
                     v_flex()
                         .gap_1p5()
-                        .child(div().text_xs().font_medium().text_color(quiet).child(service))
+                        .child(
+                            div()
+                                .text_xs()
+                                .font_medium()
+                                .text_color(quiet)
+                                .child(service),
+                        )
                         .child(h_flex().flex_wrap().gap_1p5().children(chips)),
                 )
             })
             .collect();
 
-        let calls = self.selected.as_ref().and_then(|id| self.tools.iter().find(|t| &t.id == id)).map(|tool| {
-            let rows: Vec<_> = tool
-                .calls
-                .iter()
-                .rev()
-                .map(|call| {
-                    let replay = self.on_replay.clone();
-                    let (tool_id, call_id) = (tool.id.clone(), call.id.clone());
-                    h_flex()
-                        .gap_2()
-                        .py_1p5()
-                        .border_t_1()
-                        .border_color(line)
-                        .child(
-                            Icon::new(if call.ok { IconName::Check } else { IconName::Close })
-                                .xsmall()
-                                .text_color(if call.ok { ok_c } else { bad_c }),
+        let calls = self
+            .selected
+            .as_ref()
+            .and_then(|id| self.tools.iter().find(|t| &t.id == id))
+            .map(|tool| {
+                let rows: Vec<_> =
+                    tool.calls
+                        .iter()
+                        .rev()
+                        .map(|call| {
+                            let replay = self.on_replay.clone();
+                            let (tool_id, call_id) = (tool.id.clone(), call.id.clone());
+                            h_flex()
+                                .gap_2()
+                                .py_1p5()
+                                .border_t_1()
+                                .border_color(line)
+                                .child(
+                                    Icon::new(if call.ok {
+                                        IconName::Check
+                                    } else {
+                                        IconName::Close
+                                    })
+                                    .xsmall()
+                                    .text_color(if call.ok { ok_c } else { bad_c }),
+                                )
+                                .child(
+                                    div()
+                                        .w(px(64.))
+                                        .flex_none()
+                                        .text_xs()
+                                        .text_color(quiet)
+                                        .child(call.when.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .min_w_0()
+                                        .truncate()
+                                        .text_xs()
+                                        .font_family(mono.clone())
+                                        .child(call.summary.clone()),
+                                )
+                                .child(
+                                    Button::new(ElementId::NamedChild(
+                                        self.id.clone().into(),
+                                        format!("replay-{}", call.id).into(),
+                                    ))
+                                    .xsmall()
+                                    .ghost()
+                                    .icon(IconName::RotateCw)
+                                    .label("Replay")
+                                    .accessibility_label(format!(
+                                        "Replay the {} call to {}",
+                                        call.when, tool.name
+                                    ))
+                                    .on_click(
+                                        move |_, window, cx| {
+                                            if let Some(replay) = &replay {
+                                                replay(&tool_id, &call_id, window, cx);
+                                            }
+                                        },
+                                    ),
+                                )
+                        })
+                        .collect();
+                v_flex()
+                    .gap_1()
+                    .px_4()
+                    .py_3()
+                    .border_t_1()
+                    .border_color(line)
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .child(
+                                div()
+                                    .font_medium()
+                                    .font_family(mono.clone())
+                                    .child(tool.name.clone()),
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child(tool.service.clone()),
+                            ),
+                    )
+                    .when(!tool.allowed, |this| {
+                        this.child(
+                            div()
+                                .text_xs()
+                                .text_color(quiet)
+                                .child("This assistant isn't allowed to use this tool."),
                         )
-                        .child(div().w(px(64.)).flex_none().text_xs().text_color(quiet).child(call.when.clone()))
-                        .child(div().flex_1().min_w_0().truncate().text_xs().font_family(mono.clone()).child(call.summary.clone()))
-                        .child(
-                            Button::new(ElementId::NamedChild(self.id.clone().into(), format!("replay-{}", call.id).into()))
-                                .xsmall()
-                                .ghost()
-                                .icon(IconName::RotateCw)
-                                .label("Replay")
-                                .accessibility_label(format!("Replay the {} call to {}", call.when, tool.name))
-                                .on_click(move |_, window, cx| {
-                                    if let Some(replay) = &replay {
-                                        replay(&tool_id, &call_id, window, cx);
-                                    }
-                                }),
-                        )
-                })
-                .collect();
-            v_flex()
-                .gap_1()
-                .px_4()
-                .py_3()
-                .border_t_1()
-                .border_color(line)
-                .child(
-                    h_flex()
-                        .gap_2()
-                        .child(div().font_medium().font_family(mono.clone()).child(tool.name.clone()))
-                        .child(div().text_xs().text_color(quiet).child(tool.service.clone())),
-                )
-                .when(!tool.allowed, |this| {
-                    this.child(div().text_xs().text_color(quiet).child("This assistant isn't allowed to use this tool."))
-                })
-                .when(tool.allowed && tool.calls.is_empty(), |this| {
-                    this.child(div().text_xs().text_color(quiet).child("Never called."))
-                })
-                .children(rows)
-        });
+                    })
+                    .when(tool.allowed && tool.calls.is_empty(), |this| {
+                        this.child(div().text_xs().text_color(quiet).child("Never called."))
+                    })
+                    .children(rows)
+            });
 
         v_flex()
             .id(self.id.clone())
@@ -406,18 +502,44 @@ impl RenderOnce for ToolReachMap {
                         h_flex()
                             .gap_2()
                             .child(Icon::new(IconName::Bot).small().text_color(quiet))
-                            .child(div().flex_1().font_medium().child(format!("What {} can reach", self.worker)))
-                            .child(div().text_xs().text_color(quiet).child(format!("{} tools", self.tools.len()))),
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .font_medium()
+                                    .child(format!("What {} can reach", self.worker)),
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child(format!("{} tools", self.tools.len())),
+                            ),
                     )
                     .child(
                         h_flex()
                             .flex_wrap()
                             .gap_1p5()
                             .child(filter_chip("All", None, self.tools.len()))
-                            .child(filter_chip("Used", Some(ReachStanding::Used), count(ReachStanding::Used)))
-                            .child(filter_chip("Failed", Some(ReachStanding::Failed), count(ReachStanding::Failed)))
-                            .child(filter_chip("Never called", Some(ReachStanding::Unused), count(ReachStanding::Unused)))
-                            .child(filter_chip("Not allowed", Some(ReachStanding::Blocked), count(ReachStanding::Blocked))),
+                            .child(filter_chip(
+                                "Used",
+                                Some(ReachStanding::Used),
+                                count(ReachStanding::Used),
+                            ))
+                            .child(filter_chip(
+                                "Failed",
+                                Some(ReachStanding::Failed),
+                                count(ReachStanding::Failed),
+                            ))
+                            .child(filter_chip(
+                                "Never called",
+                                Some(ReachStanding::Unused),
+                                count(ReachStanding::Unused),
+                            ))
+                            .child(filter_chip(
+                                "Not allowed",
+                                Some(ReachStanding::Blocked),
+                                count(ReachStanding::Blocked),
+                            )),
                     ),
             )
             .child(v_flex().gap_3().p_4().children(groups))
@@ -433,11 +555,20 @@ mod tests {
     #[test]
     fn standing_follows_permission_and_calls() {
         let used = ReachTool::new("a", "Ledger", "read").calls(vec![ToolCall::ok("1", "now", "x")]);
-        let failed = ReachTool::new("b", "Ledger", "post").calls(vec![ToolCall::ok("1", "now", "x"), ToolCall::failed("2", "now", "y")]);
+        let failed = ReachTool::new("b", "Ledger", "post").calls(vec![
+            ToolCall::ok("1", "now", "x"),
+            ToolCall::failed("2", "now", "y"),
+        ]);
         assert_eq!(used.standing(), ReachStanding::Used);
         assert_eq!(failed.standing(), ReachStanding::Failed);
-        assert_eq!(ReachTool::new("c", "Mail", "send").blocked().standing(), ReachStanding::Blocked);
-        assert_eq!(ReachTool::new("d", "Mail", "read").standing(), ReachStanding::Unused);
+        assert_eq!(
+            ReachTool::new("c", "Mail", "send").blocked().standing(),
+            ReachStanding::Blocked
+        );
+        assert_eq!(
+            ReachTool::new("d", "Mail", "read").standing(),
+            ReachStanding::Unused
+        );
         assert_eq!(services(&[used, failed]), ["Ledger"]);
     }
 }

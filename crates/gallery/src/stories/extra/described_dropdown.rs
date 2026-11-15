@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Window, div,
+};
 use isonomic_ui_extra::described_dropdown::{DescribedChoice, DescribedDropdown};
 
 /// How often the profit and loss report is emailed, and who sees it. The
@@ -52,8 +55,17 @@ impl Render for DescribedDropdownStory {
                             vec![
                                 DescribedChoice::new("daily", "Daily", "Every weekday at 8 am"),
                                 DescribedChoice::new("weekly", "Weekly", "Every Monday at 9 am"),
-                                DescribedChoice::new("monthly", "Monthly", "On the 1st, after the close"),
-                                DescribedChoice::new("off", "Stop sending", "Nobody gets it any more").destructive(),
+                                DescribedChoice::new(
+                                    "monthly",
+                                    "Monthly",
+                                    "On the 1st, after the close",
+                                ),
+                                DescribedChoice::new(
+                                    "off",
+                                    "Stop sending",
+                                    "Nobody gets it any more",
+                                )
+                                .destructive(),
                             ],
                         )
                         .current(self.schedule.clone())
@@ -70,8 +82,16 @@ impl Render for DescribedDropdownStory {
                             "Share with",
                             vec![
                                 DescribedChoice::new("me", "Just me", "Only you see it"),
-                                DescribedChoice::new("team", "The team", "Everyone in the workspace"),
-                                DescribedChoice::new("accountant", "The accountant", "Read-only, by email link"),
+                                DescribedChoice::new(
+                                    "team",
+                                    "The team",
+                                    "Everyone in the workspace",
+                                ),
+                                DescribedChoice::new(
+                                    "accountant",
+                                    "The accountant",
+                                    "Read-only, by email link",
+                                ),
                             ],
                         )
                         .current(self.audience.clone())
@@ -83,6 +103,11 @@ impl Render for DescribedDropdownStory {
                         }),
                     ),
             )
-            .child(div().text_xs().text_color(cx.theme().muted_foreground).child("The profit and loss report, emailed."))
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child("The profit and loss report, emailed."),
+            )
     }
 }

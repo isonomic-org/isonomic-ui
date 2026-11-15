@@ -12,11 +12,24 @@ pub struct MergeConflictMatrixStory {
 
 fn files() -> Vec<MatrixFile> {
     vec![
-        MatrixFile::new("ledger/march.csv", vec![Some((201, 201)), Some((61, 61)), None]),
-        MatrixFile::new("rules/matching.toml", vec![Some((18, 0)), Some((2, 2)), None]),
+        MatrixFile::new(
+            "ledger/march.csv",
+            vec![Some((201, 201)), Some((61, 61)), None],
+        ),
+        MatrixFile::new(
+            "rules/matching.toml",
+            vec![Some((18, 0)), Some((2, 2)), None],
+        ),
         MatrixFile::new("payables/friday-run.json", vec![None, None, Some((9, 0))]),
-        MatrixFile::new("notes/close-march.md", vec![Some((24, 0)), None, Some((6, 11))]),
-        MatrixFile::new("vendors/balances.csv", vec![None, Some((40, 38)), Some((3, 3))]).resolved(Resolution::Keep("bank".into())),
+        MatrixFile::new(
+            "notes/close-march.md",
+            vec![Some((24, 0)), None, Some((6, 11))],
+        ),
+        MatrixFile::new(
+            "vendors/balances.csv",
+            vec![None, Some((40, 38)), Some((3, 3))],
+        )
+        .resolved(Resolution::Keep("bank".into())),
         MatrixFile::new("receipts/index.json", vec![None, None, Some((43, 0))]),
     ]
 }

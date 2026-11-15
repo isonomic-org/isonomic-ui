@@ -13,10 +13,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, TestSupportExt as _, Window, div,
-    prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, TestSupportExt as _,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
@@ -84,7 +83,10 @@ impl TableRow {
         let values = cells.iter().map(|c| read_number(c)).collect();
         Self {
             id: id.into(),
-            cells: cells.into_iter().map(|c| SharedString::from(c.to_string())).collect(),
+            cells: cells
+                .into_iter()
+                .map(|c| SharedString::from(c.to_string()))
+                .collect(),
             values,
         }
     }
@@ -93,7 +95,10 @@ impl TableRow {
 /// Read a number from text such as "$1,240.50", "-12%" or "(80)".
 pub fn read_number(text: &str) -> Option<f64> {
     let negative = text.trim().starts_with('(') && text.trim().ends_with(')');
-    let cleaned: String = text.chars().filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-').collect();
+    let cleaned: String = text
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
+        .collect();
     let value: f64 = cleaned.parse().ok()?;
     Some(if negative { -value } else { value })
 }
@@ -103,9 +108,16 @@ pub fn sorted_order(rows: &[TableRow], col: usize, ascending: bool) -> Vec<usize
     let mut order: Vec<usize> = (0..rows.len()).collect();
     order.sort_by(|a, b| {
         let (ra, rb) = (&rows[*a], &rows[*b]);
-        let by = match (ra.values.get(col).copied().flatten(), rb.values.get(col).copied().flatten()) {
+        let by = match (
+            ra.values.get(col).copied().flatten(),
+            rb.values.get(col).copied().flatten(),
+        ) {
             (Some(x), Some(y)) => x.partial_cmp(&y).unwrap_or(Ordering::Equal),
-            _ => ra.cells.get(col).map(|c| c.to_lowercase()).cmp(&rb.cells.get(col).map(|c| c.to_lowercase())),
+            _ => ra
+                .cells
+                .get(col)
+                .map(|c| c.to_lowercase())
+                .cmp(&rb.cells.get(col).map(|c| c.to_lowercase())),
         };
         if ascending { by } else { by.reverse() }
     });
@@ -170,7 +182,10 @@ impl SortableTable {
     }
 
     /// Run with the new selection.
-    pub fn on_select(mut self, handler: impl Fn(Vec<SharedString>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(Vec<SharedString>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
@@ -184,7 +199,11 @@ impl Styled for SortableTable {
 
 fn money(value: f64) -> String {
     let cents = (value * 100.).round() as i64;
-    let (sign, cents) = if cents < 0 { ("-", -cents) } else { ("", cents) };
+    let (sign, cents) = if cents < 0 {
+        ("-", -cents)
+    } else {
+        ("", cents)
+    };
     let whole = (cents / 100).to_string();
     let mut grouped = String::new();
     for (ix, c) in whole.chars().enumerate() {
@@ -242,7 +261,11 @@ impl RenderOnce for SortableTable {
                             .accessibility_label("Select every row")
                             .on_click(move |checked, window, cx| {
                                 if let Some(select) = &select_all {
-                                    select(if *checked { ids.clone() } else { Vec::new() }, window, cx);
+                                    select(
+                                        if *checked { ids.clone() } else { Vec::new() },
+                                        window,
+                                        cx,
+                                    );
                                 }
                             }),
                     ),
@@ -252,14 +275,20 @@ impl RenderOnce for SortableTable {
                     let here = self.sort.filter(|(s, _)| *s == col).map(|(_, asc)| asc);
                     let focus = window
                         .use_keyed_state(
-                            ElementId::NamedChild(self.id.clone().into(), format!("head-focus-{col}").into()),
+                            ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("head-focus-{col}").into(),
+                            ),
                             cx,
                             |_, cx| cx.focus_handle().tab_stop(true),
                         )
                         .read(cx)
                         .clone();
                     h_flex()
-                        .id(ElementId::NamedChild(self.id.clone().into(), format!("head-{col}").into()))
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("head-{col}").into(),
+                        ))
                         .test_support()
                         .gap_1()
                         .px_3()
@@ -272,7 +301,8 @@ impl RenderOnce for SortableTable {
                         .when(here.is_some(), |this| this.text_color(ink))
                         // A Tab stop: Enter or Space on the focused header is a click, so it sorts.
                         .when(self.on_sort.is_some(), |this| {
-                            this.track_focus(&focus).focus_visible(|s| s.text_color(ink).bg(chip))
+                            this.track_focus(&focus)
+                                .focus_visible(|s| s.text_color(ink).bg(chip))
                         })
                         .role(Role::ColumnHeader)
                         .aria_label(format!(
@@ -290,7 +320,14 @@ impl RenderOnce for SortableTable {
                             }
                         })
                         .child(c.title.clone())
-                        .children(here.map(|asc| Icon::new(if asc { IconName::ArrowUp } else { IconName::ArrowDown }).xsmall()))
+                        .children(here.map(|asc| {
+                            Icon::new(if asc {
+                                IconName::ArrowUp
+                            } else {
+                                IconName::ArrowDown
+                            })
+                            .xsmall()
+                        }))
                 }))
         };
 
@@ -303,7 +340,10 @@ impl RenderOnce for SortableTable {
                 let current = self.selected.clone();
                 let id = row.id.clone();
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("row-{}", row.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-{}", row.id).into(),
+                    ))
                     .h(px(34.))
                     .border_b_1()
                     .border_color(line.opacity(0.6))
@@ -312,36 +352,62 @@ impl RenderOnce for SortableTable {
                     .aria_selected(picked)
                     .child(
                         div().w(px(36.)).flex_none().pl_3().child(
-                            Checkbox::new(ElementId::NamedChild(self.id.clone().into(), format!("pick-{}", row.id).into()))
-                                .checked(picked)
-                                .accessibility_label(format!("Select {}", row.cells.first().cloned().unwrap_or_default()))
-                                .on_click(move |checked, window, cx| {
-                                    let mut next = current.clone();
-                                    next.retain(|r| r != &id);
-                                    if *checked {
-                                        next.push(id.clone());
-                                    }
-                                    if let Some(select) = &select {
-                                        select(next, window, cx);
-                                    }
-                                }),
+                            Checkbox::new(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("pick-{}", row.id).into(),
+                            ))
+                            .checked(picked)
+                            .accessibility_label(format!(
+                                "Select {}",
+                                row.cells.first().cloned().unwrap_or_default()
+                            ))
+                            .on_click(move |checked, window, cx| {
+                                let mut next = current.clone();
+                                next.retain(|r| r != &id);
+                                if *checked {
+                                    next.push(id.clone());
+                                }
+                                if let Some(select) = &select {
+                                    select(next, window, cx);
+                                }
+                            }),
                         ),
                     )
-                    .children(row.cells.iter().enumerate().map(|(col, text)| cell(col, text.clone(), false)))
+                    .children(
+                        row.cells
+                            .iter()
+                            .enumerate()
+                            .map(|(col, text)| cell(col, text.clone(), false)),
+                    )
             })
             .collect();
 
         let totals = self.columns.iter().any(|c| c.total).then(|| {
-            let counted: Vec<&TableRow> = self.rows.iter().filter(|r| !over_selection || self.selected.contains(&r.id)).collect();
+            let counted: Vec<&TableRow> = self
+                .rows
+                .iter()
+                .filter(|r| !over_selection || self.selected.contains(&r.id))
+                .collect();
             h_flex()
                 .h(px(34.))
                 .bg(chip.opacity(0.4))
                 .child(div().w(px(36.)).flex_none())
                 .children(self.columns.iter().enumerate().map(|(col, c)| {
                     let text: SharedString = if c.total {
-                        money(counted.iter().filter_map(|r| r.values.get(col).copied().flatten()).sum()).into()
+                        money(
+                            counted
+                                .iter()
+                                .filter_map(|r| r.values.get(col).copied().flatten())
+                                .sum(),
+                        )
+                        .into()
                     } else if col == 0 {
-                        (if over_selection { format!("Total of {} selected", counted.len()) } else { "Total".to_string() }).into()
+                        (if over_selection {
+                            format!("Total of {} selected", counted.len())
+                        } else {
+                            "Total".to_string()
+                        })
+                        .into()
                     } else {
                         SharedString::default()
                     };
@@ -362,7 +428,16 @@ impl RenderOnce for SortableTable {
             .shadow(resting_shadow(cx))
             .child(header)
             .children(rows)
-            .when(self.rows.is_empty(), |this| this.child(div().px_4().py_6().text_center().text_color(quiet).child(self.empty.clone())))
+            .when(self.rows.is_empty(), |this| {
+                this.child(
+                    div()
+                        .px_4()
+                        .py_6()
+                        .text_center()
+                        .text_color(quiet)
+                        .child(self.empty.clone()),
+                )
+            })
             .children(totals)
             .refine_style(&self.style)
     }

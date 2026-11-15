@@ -64,15 +64,19 @@ impl TypedConfirmDialog {
         let word = word.into();
         let placeholder = format!("Type {word}");
         let field = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
-        let events = cx.subscribe(&field, |this: &mut Self, field, event: &InputEvent, cx| match event {
-            InputEvent::Change => cx.notify(),
-            InputEvent::PressEnter { .. } => {
-                if typed_matches(&field.read(cx).value(), &this.word) {
-                    cx.emit(ConfirmEvent::Confirm);
-                }
-            }
-            _ => {}
-        });
+        let events =
+            cx.subscribe(
+                &field,
+                |this: &mut Self, field, event: &InputEvent, cx| match event {
+                    InputEvent::Change => cx.notify(),
+                    InputEvent::PressEnter { .. } => {
+                        if typed_matches(&field.read(cx).value(), &this.word) {
+                            cx.emit(ConfirmEvent::Confirm);
+                        }
+                    }
+                    _ => {}
+                },
+            );
         Self {
             title: title.into(),
             consequences: Vec::new(),
@@ -134,7 +138,11 @@ impl Render for TypedConfirmDialog {
                             .justify_center()
                             .rounded_full()
                             .bg(danger.opacity(0.12))
-                            .child(Icon::new(IconName::TriangleAlert).small().text_color(danger)),
+                            .child(
+                                Icon::new(IconName::TriangleAlert)
+                                    .small()
+                                    .text_color(danger),
+                            ),
                     )
                     .child(
                         v_flex()
@@ -144,25 +152,48 @@ impl Render for TypedConfirmDialog {
                     ),
             )
             .when(!self.consequences.is_empty(), |this| {
-                this.child(v_flex().gap_1p5().pl(px(44.)).children(self.consequences.iter().map(|c| {
-                    h_flex()
-                        .items_start()
-                        .gap_2()
-                        .child(div().mt(px(7.)).size(px(4.)).flex_none().rounded_full().bg(quiet))
-                        .child(div().line_height(relative(1.4)).child(c.clone()))
-                })))
+                this.child(
+                    v_flex()
+                        .gap_1p5()
+                        .pl(px(44.))
+                        .children(self.consequences.iter().map(|c| {
+                            h_flex()
+                                .items_start()
+                                .gap_2()
+                                .child(
+                                    div()
+                                        .mt(px(7.))
+                                        .size(px(4.))
+                                        .flex_none()
+                                        .rounded_full()
+                                        .bg(quiet),
+                                )
+                                .child(div().line_height(relative(1.4)).child(c.clone()))
+                        })),
+                )
             })
             .child(
                 v_flex()
                     .gap_1p5()
-                    .child(div().text_xs().text_color(quiet).child(format!("To confirm, type {} below.", self.word)))
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(format!("To confirm, type {} below.", self.word)),
+                    )
                     .child(Input::new(&self.field)),
             )
             .child(
                 h_flex()
                     .gap_2()
                     .justify_end()
-                    .child(Button::new("confirm-cancel").small().ghost().label("Cancel").on_click(cx.listener(|_, _, _, cx| cx.emit(ConfirmEvent::Cancel))))
+                    .child(
+                        Button::new("confirm-cancel")
+                            .small()
+                            .ghost()
+                            .label("Cancel")
+                            .on_click(cx.listener(|_, _, _, cx| cx.emit(ConfirmEvent::Cancel))),
+                    )
                     .child(
                         Button::new("confirm-go")
                             .small()

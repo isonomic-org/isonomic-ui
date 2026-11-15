@@ -14,8 +14,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    AppContext as _, Context, ElementId, Entity, EventEmitter, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div, prelude::FluentBuilder as _, px,
+    AppContext as _, Context, ElementId, Entity, EventEmitter, InteractiveElement as _,
+    IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString, Styled as _, Subscription,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// Whether a save is worth reporting: the text changed and isn't blank when blanks aren't allowed.
@@ -56,11 +57,15 @@ impl QuickEditPopover {
         cx: &mut Context<Self>,
     ) -> Self {
         let field = cx.new(|cx| InputState::new(window, cx));
-        let events = cx.subscribe_in(&field, window, |this: &mut Self, _, event: &InputEvent, window, cx| {
-            if let InputEvent::PressEnter { .. } = event {
-                this.save(window, cx);
-            }
-        });
+        let events = cx.subscribe_in(
+            &field,
+            window,
+            |this: &mut Self, _, event: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = event {
+                    this.save(window, cx);
+                }
+            },
+        );
         Self {
             id: id.into(),
             label: label.into(),
@@ -142,19 +147,28 @@ impl Render for QuickEditPopover {
         let label = self.label.clone();
         let saving = self.saving;
         let error = self.error.clone();
-        let shown = if self.value.is_empty() { SharedString::from("Add\u{2026}") } else { self.value.clone() };
+        let shown = if self.value.is_empty() {
+            SharedString::from("Add\u{2026}")
+        } else {
+            self.value.clone()
+        };
         let toggle = cx.entity();
 
         Popover::new(self.id.clone())
             .open(self.open)
-            .on_open_change(move |open, window, cx| toggle.update(cx, |this, cx| this.set_open(*open, window, cx)))
+            .on_open_change(move |open, window, cx| {
+                toggle.update(cx, |this, cx| this.set_open(*open, window, cx))
+            })
             .trigger(
-                Button::new(ElementId::NamedChild(self.id.clone().into(), "value".into()))
-                    .small()
-                    .ghost()
-                    .label(shown)
-                    .icon(Icon::new(IconName::ChevronDown).xsmall().text_color(quiet))
-                    .accessibility_label(format!("{}: {}. Edit", self.label, self.value)),
+                Button::new(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    "value".into(),
+                ))
+                .small()
+                .ghost()
+                .label(shown)
+                .icon(Icon::new(IconName::ChevronDown).xsmall().text_color(quiet))
+                .accessibility_label(format!("{}: {}. Edit", self.label, self.value)),
             )
             .content(move |_, _, _| {
                 let save = this.clone();
@@ -168,11 +182,27 @@ impl Render for QuickEditPopover {
                             keys.update(cx, |this, cx| this.set_open(false, window, cx));
                         }
                     })
-                    .child(div().text_xs().font_medium().text_color(quiet).child(label.clone()))
-                    .child(Input::new(&field).small().disabled(saving).aria_label(label.clone()))
+                    .child(
+                        div()
+                            .text_xs()
+                            .font_medium()
+                            .text_color(quiet)
+                            .child(label.clone()),
+                    )
+                    .child(
+                        Input::new(&field)
+                            .small()
+                            .disabled(saving)
+                            .aria_label(label.clone()),
+                    )
                     .when_some(error.clone(), |this, error| {
                         this.child(
-                            h_flex().gap_1().text_xs().text_color(danger).child(Icon::new(IconName::CircleAlert).xsmall()).child(error),
+                            h_flex()
+                                .gap_1()
+                                .text_xs()
+                                .text_color(danger)
+                                .child(Icon::new(IconName::CircleAlert).xsmall())
+                                .child(error),
                         )
                     })
                     .child(
@@ -185,7 +215,10 @@ impl Render for QuickEditPopover {
                                     .ghost()
                                     .label("Cancel")
                                     .disabled(saving)
-                                    .on_click(move |_, window, cx| cancel.update(cx, |this, cx| this.set_open(false, window, cx))),
+                                    .on_click(move |_, window, cx| {
+                                        cancel
+                                            .update(cx, |this, cx| this.set_open(false, window, cx))
+                                    }),
                             )
                             .child(
                                 Button::new("quick-edit-save")
@@ -193,7 +226,9 @@ impl Render for QuickEditPopover {
                                     .primary()
                                     .label(if saving { "Saving\u{2026}" } else { "Save" })
                                     .disabled(saving)
-                                    .on_click(move |_, window, cx| save.update(cx, |this, cx| this.save(window, cx))),
+                                    .on_click(move |_, window, cx| {
+                                        save.update(cx, |this, cx| this.save(window, cx))
+                                    }),
                             ),
                     )
             })

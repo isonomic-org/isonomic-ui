@@ -17,9 +17,8 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, AppContext as _, BoxShadow, Context, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, Render, RenderOnce, SharedString,
+    App, AppContext as _, BoxShadow, Context, ElementId, Hsla, InteractiveElement as _,
+    IntoElement, KeyDownEvent, ParentElement as _, Render, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -65,7 +64,11 @@ pub struct AssigneeLane {
 
 impl AssigneeLane {
     /// Create a column with no limit.
-    pub fn new(id: impl Into<SharedString>, name: impl Into<SharedString>, kind: AssigneeKind) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        name: impl Into<SharedString>,
+        kind: AssigneeKind,
+    ) -> Self {
         Self {
             id: id.into(),
             name: name.into(),
@@ -227,8 +230,19 @@ impl Render for DraggedWork {
             .text_color(self.ink)
             .text_sm()
             .shadow_lg()
-            .child(div().flex_1().min_w_0().truncate().child(self.title.clone()))
-            .child(div().text_xs().opacity(0.7).child(format!("{} pt", self.points)))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .truncate()
+                    .child(self.title.clone()),
+            )
+            .child(
+                div()
+                    .text_xs()
+                    .opacity(0.7)
+                    .child(format!("{} pt", self.points)),
+            )
     }
 }
 
@@ -279,13 +293,19 @@ impl AssignmentBoard {
     }
 
     /// Run when a card is selected.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
 
     /// Run when a card is opened with a double click or Enter.
-    pub fn on_open(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_open(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_open = Some(Rc::new(handler));
         self
     }
@@ -309,13 +329,17 @@ fn step(
     let Some(selected) = selected else {
         return first();
     };
-    let Some((col, row)) = columns.iter().enumerate().find_map(|(c, cards)| {
-        cards.iter().position(|i| &i.id == selected).map(|r| (c, r))
-    }) else {
+    let Some((col, row)) = columns
+        .iter()
+        .enumerate()
+        .find_map(|(c, cards)| cards.iter().position(|i| &i.id == selected).map(|r| (c, r)))
+    else {
         return first();
     };
     match key {
-        "up" => columns[col].get(row.saturating_sub(1)).map(|i| i.id.clone()),
+        "up" => columns[col]
+            .get(row.saturating_sub(1))
+            .map(|i| i.id.clone()),
         "down" => columns[col]
             .get((row + 1).min(columns[col].len() - 1))
             .map(|i| i.id.clone()),
@@ -579,7 +603,12 @@ impl RenderOnce for AssignmentBoard {
                                     .text_xs()
                                     .text_color(warning)
                                     .child(Icon::new(IconName::Ban).xsmall())
-                                    .child(div().min_w_0().truncate().child(format!("Waiting on {reason}")))
+                                    .child(
+                                        div()
+                                            .min_w_0()
+                                            .truncate()
+                                            .child(format!("Waiting on {reason}")),
+                                    )
                             }))
                     })
                     .collect();
@@ -621,34 +650,37 @@ impl RenderOnce for AssignmentBoard {
                         }
                     })
                     .child(
-                        h_flex()
-                            .gap_2()
-                            .child(badge)
-                            .child(
-                                v_flex()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .child(
-                                        div()
-                                            .truncate()
-                                            .font_medium()
-                                            .when(away, |this| this.text_color(quiet))
-                                            .child(lane.name.clone()),
-                                    )
-                                    .child(
-                                        h_flex()
-                                            .gap_1()
-                                            .text_xs()
-                                            .text_color(quiet)
-                                            .when(lane.kind != AssigneeKind::Unassigned, |this| {
-                                                this.child(div().size(px(6.)).flex_none().rounded_full().bg(dot))
-                                                    .child(div().min_w_0().truncate().child(note))
-                                            })
-                                            .when(lane.kind == AssigneeKind::Unassigned, |this| {
-                                                this.child(format!("{} waiting", cards.len()))
-                                            }),
-                                    ),
-                            ),
+                        h_flex().gap_2().child(badge).child(
+                            v_flex()
+                                .flex_1()
+                                .min_w_0()
+                                .child(
+                                    div()
+                                        .truncate()
+                                        .font_medium()
+                                        .when(away, |this| this.text_color(quiet))
+                                        .child(lane.name.clone()),
+                                )
+                                .child(
+                                    h_flex()
+                                        .gap_1()
+                                        .text_xs()
+                                        .text_color(quiet)
+                                        .when(lane.kind != AssigneeKind::Unassigned, |this| {
+                                            this.child(
+                                                div()
+                                                    .size(px(6.))
+                                                    .flex_none()
+                                                    .rounded_full()
+                                                    .bg(dot),
+                                            )
+                                            .child(div().min_w_0().truncate().child(note))
+                                        })
+                                        .when(lane.kind == AssigneeKind::Unassigned, |this| {
+                                            this.child(format!("{} waiting", cards.len()))
+                                        }),
+                                ),
+                        ),
                     )
                     .children(meter)
                     .children(card_views)
@@ -702,7 +734,10 @@ impl RenderOnce for AssignmentBoard {
             )
             .child(
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "scroll".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "scroll".into(),
+                    ))
                     .items_start()
                     .gap_2()
                     .overflow_x_scroll()
@@ -753,14 +788,29 @@ mod tests {
     #[test]
     fn urgent_cards_lead_and_arrows_walk_the_board() {
         let (lanes, items) = board();
-        let ids: Vec<_> = lane_cards(&items, "ana").iter().map(|i| i.id.to_string()).collect();
+        let ids: Vec<_> = lane_cards(&items, "ana")
+            .iter()
+            .map(|i| i.id.to_string())
+            .collect();
         assert_eq!(ids, ["c", "d"]);
         let at = |id: &str| SharedString::from(id.to_string());
         assert_eq!(step(&lanes, &items, None, "down").as_deref(), Some("b"));
-        assert_eq!(step(&lanes, &items, Some(&at("b")), "right").as_deref(), Some("a"));
-        assert_eq!(step(&lanes, &items, Some(&at("c")), "down").as_deref(), Some("d"));
-        assert_eq!(step(&lanes, &items, Some(&at("d")), "left").as_deref(), Some("a"));
-        assert_eq!(step(&lanes, &items, Some(&at("c")), "right").as_deref(), Some("c"));
+        assert_eq!(
+            step(&lanes, &items, Some(&at("b")), "right").as_deref(),
+            Some("a")
+        );
+        assert_eq!(
+            step(&lanes, &items, Some(&at("c")), "down").as_deref(),
+            Some("d")
+        );
+        assert_eq!(
+            step(&lanes, &items, Some(&at("d")), "left").as_deref(),
+            Some("a")
+        );
+        assert_eq!(
+            step(&lanes, &items, Some(&at("c")), "right").as_deref(),
+            Some("c")
+        );
     }
 
     #[test]

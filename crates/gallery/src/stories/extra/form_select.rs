@@ -1,8 +1,15 @@
 //! Gallery story for the form select.
 
 use crate::Story;
-use isonomic_ui::component::{ActiveTheme as _, Sizable as _, button::{Button, ButtonVariants as _}, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Window, div, px};
+use isonomic_ui::component::{
+    ActiveTheme as _, Sizable as _,
+    button::{Button, ButtonVariants as _},
+    v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Window, div, px,
+};
 use isonomic_ui_extra::form_select::{FormSelect, SelectGroup, SelectOption};
 
 /// Coding a bank transaction to an account, grouped by type, with a
@@ -17,13 +24,24 @@ pub struct FormSelectStory {
 impl FormSelectStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { account: None, tax: Some("standard".into()), error: None, saved: false })
+        cx.new(|_| Self {
+            account: None,
+            tax: Some("standard".into()),
+            error: None,
+            saved: false,
+        })
     }
 }
 
 fn accounts() -> Vec<SelectGroup> {
     vec![
-        SelectGroup::new("Income", vec![SelectOption::new("4000", "Sales"), SelectOption::new("4100", "Interest earned")]),
+        SelectGroup::new(
+            "Income",
+            vec![
+                SelectOption::new("4000", "Sales"),
+                SelectOption::new("4100", "Interest earned"),
+            ],
+        ),
         SelectGroup::new(
             "Expenses",
             vec![
@@ -33,7 +51,10 @@ fn accounts() -> Vec<SelectGroup> {
                 SelectOption::new("6900", "Miscellaneous (closed)").disabled(),
             ],
         ),
-        SelectGroup::new("Transfers", vec![SelectOption::new("1100", "Savings account")]),
+        SelectGroup::new(
+            "Transfers",
+            vec![SelectOption::new("1100", "Savings account")],
+        ),
     ]
 }
 
@@ -59,7 +80,11 @@ impl Render for FormSelectStory {
         v_flex()
             .w(px(320.))
             .gap_4()
-            .child(div().text_sm().child("Shell #4412 \u{b7} $86.40 \u{b7} 12 Nov"))
+            .child(
+                div()
+                    .text_sm()
+                    .child("Shell #4412 \u{b7} $86.40 \u{b7} 12 Nov"),
+            )
             .child(
                 FormSelect::new("account", "Account", accounts())
                     .placeholder("Pick an account")
@@ -82,7 +107,11 @@ impl Render for FormSelectStory {
                     "Tax rate",
                     vec![SelectGroup::new(
                         "",
-                        vec![SelectOption::new("standard", "Standard 20%"), SelectOption::new("reduced", "Reduced 5%"), SelectOption::new("none", "No tax")],
+                        vec![
+                            SelectOption::new("standard", "Standard 20%"),
+                            SelectOption::new("reduced", "Reduced 5%"),
+                            SelectOption::new("none", "No tax"),
+                        ],
                     )],
                 )
                 .value(self.tax.clone())
@@ -93,14 +122,23 @@ impl Render for FormSelectStory {
                     })
                 }),
             )
-            .child(Button::new("code-it").small().primary().label("Save coding").on_click(cx.listener(|this, _, _, cx| {
-                if this.account.is_none() {
-                    this.error = Some("Pick an account to code this to.".into());
-                } else {
-                    this.saved = true;
-                }
-                cx.notify();
-            })))
-            .children(self.saved.then(|| div().text_sm().text_color(success).child("Coded.")))
+            .child(
+                Button::new("code-it")
+                    .small()
+                    .primary()
+                    .label("Save coding")
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        if this.account.is_none() {
+                            this.error = Some("Pick an account to code this to.".into());
+                        } else {
+                            this.saved = true;
+                        }
+                        cx.notify();
+                    })),
+            )
+            .children(
+                self.saved
+                    .then(|| div().text_sm().text_color(success).child("Coded.")),
+            )
     }
 }

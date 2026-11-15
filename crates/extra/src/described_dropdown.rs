@@ -14,7 +14,10 @@ use isonomic_ui::component::{
     menu::{DropdownMenu as _, PopupMenuItem},
     v_flex,
 };
-use isonomic_ui::{App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, Styled as _, Window,
+    div, px,
+};
 
 /// One choice.
 #[derive(Debug, Clone, PartialEq)]
@@ -31,7 +34,11 @@ pub struct DescribedChoice {
 
 impl DescribedChoice {
     /// Create a choice.
-    pub fn new(id: impl Into<SharedString>, title: impl Into<SharedString>, description: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        title: impl Into<SharedString>,
+        description: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             title: title.into(),
@@ -48,7 +55,9 @@ impl DescribedChoice {
 }
 
 /// The choices split into ordinary and destructive, each in order.
-pub fn split_choices(choices: &[DescribedChoice]) -> (Vec<&DescribedChoice>, Vec<&DescribedChoice>) {
+pub fn split_choices(
+    choices: &[DescribedChoice],
+) -> (Vec<&DescribedChoice>, Vec<&DescribedChoice>) {
     choices.iter().partition(|c| !c.destructive)
 }
 
@@ -66,7 +75,11 @@ pub struct DescribedDropdown {
 
 impl DescribedDropdown {
     /// Create a dropdown with a label for the button.
-    pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>, choices: Vec<DescribedChoice>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        choices: Vec<DescribedChoice>,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -83,7 +96,10 @@ impl DescribedDropdown {
     }
 
     /// Run with the choice picked.
-    pub fn on_pick(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_pick(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_pick = Some(Rc::new(handler));
         self
     }
@@ -111,10 +127,15 @@ impl RenderOnce for DescribedDropdown {
             .accessibility_label(button_label)
             .dropdown_menu(move |menu, _, _| {
                 let (plain, risky) = split_choices(&choices);
-                let entry = |menu: isonomic_ui::component::menu::PopupMenu, choice: &DescribedChoice| {
+                let entry = |menu: isonomic_ui::component::menu::PopupMenu,
+                             choice: &DescribedChoice| {
                     let pick = pick.clone();
                     let id = choice.id.clone();
-                    let (title, description, destructive) = (choice.title.clone(), choice.description.clone(), choice.destructive);
+                    let (title, description, destructive) = (
+                        choice.title.clone(),
+                        choice.description.clone(),
+                        choice.destructive,
+                    );
                     let ticked = current.as_ref() == Some(&choice.id);
                     menu.item(
                         PopupMenuItem::element(move |_, cx| {
@@ -123,22 +144,32 @@ impl RenderOnce for DescribedDropdown {
                                 .gap_2()
                                 .min_w(px(220.))
                                 .py_0p5()
-                                .child(
-                                    div().w(px(14.)).child(if ticked {
-                                        Icon::new(IconName::Check).xsmall().text_color(theme.primary).into_any_element()
-                                    } else {
-                                        div().into_any_element()
-                                    }),
-                                )
+                                .child(div().w(px(14.)).child(if ticked {
+                                    Icon::new(IconName::Check)
+                                        .xsmall()
+                                        .text_color(theme.primary)
+                                        .into_any_element()
+                                } else {
+                                    div().into_any_element()
+                                }))
                                 .child(
                                     v_flex()
                                         .child(
                                             div()
                                                 .font_medium()
-                                                .text_color(if destructive { theme.danger } else { theme.foreground })
+                                                .text_color(if destructive {
+                                                    theme.danger
+                                                } else {
+                                                    theme.foreground
+                                                })
                                                 .child(title.clone()),
                                         )
-                                        .child(div().text_xs().text_color(theme.muted_foreground).child(description.clone())),
+                                        .child(
+                                            div()
+                                                .text_xs()
+                                                .text_color(theme.muted_foreground)
+                                                .child(description.clone()),
+                                        ),
                                 )
                         })
                         .on_click(move |_, window, cx| {

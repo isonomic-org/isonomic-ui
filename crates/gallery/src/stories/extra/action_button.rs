@@ -4,7 +4,10 @@ use std::time::Duration;
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div,
+};
 use isonomic_ui_extra::action_button::{ActionButton, ActionState};
 
 /// Three actions the story plays: sending reminders works then finishes,
@@ -29,20 +32,28 @@ impl ActionButtonStory {
 
     fn settle(&mut self, which: &'static str, cx: &mut Context<Self>) {
         cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(Duration::from_millis(1200)).await;
+            cx.background_executor()
+                .timer(Duration::from_millis(1200))
+                .await;
             this.update(cx, |this, cx| {
                 match which {
                     "send" => this.send = ActionState::Done,
                     "post" => {
                         this.post_tries += 1;
-                        this.post = if this.post_tries == 1 { ActionState::Failed } else { ActionState::Done };
+                        this.post = if this.post_tries == 1 {
+                            ActionState::Failed
+                        } else {
+                            ActionState::Done
+                        };
                     }
                     _ => this.void = ActionState::Done,
                 }
                 cx.notify();
             })
             .ok();
-            cx.background_executor().timer(Duration::from_millis(1800)).await;
+            cx.background_executor()
+                .timer(Duration::from_millis(1800))
+                .await;
             this.update(cx, |this, cx| {
                 for state in [&mut this.send, &mut this.post, &mut this.void] {
                     if *state == ActionState::Done {
@@ -122,6 +133,11 @@ impl Render for ActionButtonStory {
                             }),
                     ),
             )
-            .child(div().text_xs().text_color(cx.theme().muted_foreground).child("Posting fails the first time, then works."))
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child("Posting fails the first time, then works."),
+            )
     }
 }

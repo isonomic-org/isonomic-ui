@@ -337,9 +337,14 @@ impl RenderOnce for ChangeLedger {
             let stays = kept.contains(&entry.id);
             // The row is a Tab stop, so the keyboard can bring up its button too.
             let row_focus = window
-                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), format!("ledger-row-focus-{ix}").into()), cx, |_, cx| {
-                    cx.focus_handle().tab_stop(true)
-                })
+                .use_keyed_state(
+                    ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("ledger-row-focus-{ix}").into(),
+                    ),
+                    cx,
+                    |_, cx| cx.focus_handle().tab_stop(true),
+                )
                 .read(cx)
                 .clone();
             let show_button = hovered.as_ref() == Some(&entry.id)
@@ -351,11 +356,17 @@ impl RenderOnce for ChangeLedger {
                     words.push_str(&format!(" {target}"));
                 }
                 match (&entry.change, &entry.detail) {
-                    (Some((before, after)), _) => words.push_str(&format!(", from {before} to {after}")),
+                    (Some((before, after)), _) => {
+                        words.push_str(&format!(", from {before} to {after}"))
+                    }
                     (None, Some(detail)) => words.push_str(&format!(", {detail}")),
                     _ => {}
                 }
-                words.push_str(&format!(", {}, {}", ago_words(now.saturating_duration_since(entry.at)), entry.system));
+                words.push_str(&format!(
+                    ", {}, {}",
+                    ago_words(now.saturating_duration_since(entry.at)),
+                    entry.system
+                ));
                 if is_undone {
                     words.push_str(", undone");
                 } else if !entry.reversible {
