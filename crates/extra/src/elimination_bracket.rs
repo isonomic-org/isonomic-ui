@@ -277,7 +277,7 @@ impl RenderOnce for EliminationBracket {
 
         let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| BracketState {
             opened: None,
-            focus: cx.focus_handle(),
+            focus: cx.focus_handle().tab_stop(true),
         });
         let (opened, focus) = {
             let state = state.read(cx);
