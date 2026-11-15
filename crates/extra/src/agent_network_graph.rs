@@ -519,14 +519,27 @@ impl RenderOnce for AgentNetworkGraph {
                     .rounded(radius_lg)
                     .bg(chip.opacity(0.25))
                     .when(is_focused, |this| this.focus_ring_style(window, cx))
-                    .on_click({
-                        let select = self.on_select.clone();
-                        move |_, window, cx| {
-                            if let Some(select) = &select {
-                                select(None, window, cx);
-                            }
-                        }
-                    })
+                    // A click on empty space clears the selection. It sits on
+                    // its own layer, which has no role, so the group is not
+                    // announced as something to press.
+                    .child(
+                        div()
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                "backdrop".into(),
+                            ))
+                            .absolute()
+                            .inset_0()
+                            .size_full()
+                            .on_click({
+                                let select = self.on_select.clone();
+                                move |_, window, cx| {
+                                    if let Some(select) = &select {
+                                        select(None, window, cx);
+                                    }
+                                }
+                            }),
+                    )
                     .child(
                         canvas(
                             |_, _, _| {},
