@@ -232,6 +232,16 @@ impl SidebarMenuItem {
         (self.collapsed && self.icon.is_some()).then(|| self.label.clone())
     }
 
+    /// The hover tooltip: the label when the item is collapsed to its icon,
+    /// or when the label is long enough that it may end in an ellipsis.
+    fn hover_tooltip(&self) -> Option<SharedString> {
+        const MAY_TRUNCATE: usize = 24;
+        self.collapsed_tooltip().or_else(|| {
+            (!self.collapsed && self.label.chars().count() > MAY_TRUNCATE)
+                .then(|| self.label.clone())
+        })
+    }
+
     /// Accessible name for the submenu caret: the toggle is icon-only,
     /// so assistive tech needs the item it acts on.
     fn caret_accessibility_label(&self) -> SharedString {
@@ -271,7 +281,7 @@ impl SidebarItem for SidebarMenuItem {
         let click_to_open = self.click_to_open;
         let click_to_toggle = self.click_to_toggle;
         let default_open = self.default_open;
-        let collapsed_tooltip = self.collapsed_tooltip();
+        let collapsed_tooltip = self.hover_tooltip();
         let id = id.into();
         let label_text = self.label.clone();
         let accessibility_label = self.accessibility_label.clone();
@@ -334,14 +344,18 @@ impl SidebarItem for SidebarMenuItem {
                                 h_flex()
                                     .flex_row_dir(cx)
                                     .flex_1()
+                                    .min_w_0()
                                     .gap_x_2()
                                     .justify_between()
                                     .overflow_x_hidden()
                                     .child(
-                                        h_flex()
-                                            .flex_row_dir(cx)
+                                        // A block, not a flex row, so the text takes the
+                                        // width that's left and ends in an ellipsis before
+                                        // the suffix instead of being clipped mid-glyph.
+                                        div()
                                             .flex_1()
-                                            .overflow_x_hidden()
+                                            .min_w_0()
+                                            .truncate()
                                             .refine_style(&self.label_style)
                                             .child(self.label.clone()),
                                     )
@@ -479,6 +493,19 @@ mod tests {
 
         assert!(expanded.collapsed_tooltip().is_none());
         assert!(iconless.collapsed_tooltip().is_none());
+    }
+
+    #[test]
+    fn long_expanded_labels_get_a_tooltip() {
+        let long = SidebarMenuItem::new("Getting started with Isonomic Chat");
+        let short = SidebarMenuItem::new("Projects");
+
+        assert_eq!(
+            long.hover_tooltip().as_deref(),
+            Some("Getting started with Isonomic Chat")
+        );
+        assert!(short.hover_tooltip().is_none());
+        assert!(long.collapsed(true).hover_tooltip().is_none());
     }
 
     #[test]

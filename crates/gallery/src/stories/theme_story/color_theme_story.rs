@@ -531,7 +531,11 @@ impl ThemeColorsStory {
                                     let is_last = categories_count > 0
                                         && ix == categories_count.saturating_sub(1);
 
+                                    // The category id scopes the swatches, whose copy
+                                    // buttons are named after colours that can repeat
+                                    // across categories.
                                     v_flex()
+                                        .id(("color-category", ix))
                                         .w_full()
                                         .gap_3()
                                         .pt_4()
