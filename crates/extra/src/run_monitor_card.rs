@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _,
     IntoElement, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Transformation, Window, div, percentage,
@@ -275,6 +276,7 @@ impl RenderOnce for RunMonitorCard {
                 .text_color(ink)
                 .text_sm()
                 .shadow(resting_shadow(cx))
+                .role(Role::Group)
                 .aria_label(format!("{}, {}, {}", self.title, self.state.word(), self.current))
                 .child(mark)
                 .child(
@@ -343,6 +345,7 @@ impl RenderOnce for RunMonitorCard {
             .text_color(ink)
             .text_sm()
             .shadow(resting_shadow(cx))
+            .role(Role::Group)
             .aria_label(format!("{}, {}", self.title, self.state.word()))
             .child(
                 h_flex()
