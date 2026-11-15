@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
 use isonomic_ui::{
+    KeyDownEvent,
     Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
@@ -50,6 +51,26 @@ pub fn spoken_score(score: f32, max: u8) -> String {
     }
     let shown = if score.fract() == 0.0 { format!("{score:.0}") } else { format!("{score:.1}") };
     format!("{shown} out of {max}")
+}
+
+/// The score a key sets from `score`: arrows step by a half or a whole star,
+/// Home clears, End fills, and a digit picks that many stars.
+pub fn keyed_score(score: f32, max: u8, half_steps: bool, key: &str) -> Option<f32> {
+    let step = if half_steps { 0.5 } else { 1.0 };
+    let next = match key {
+        "right" | "up" => score + step,
+        "left" | "down" => score - step,
+        "home" => 0.0,
+        "end" => f32::from(max),
+        digit => {
+            let n: u8 = digit.parse().ok()?;
+            if digit.len() != 1 || n > max {
+                return None;
+            }
+            f32::from(n)
+        }
+    };
+    Some(snap_score(next, max, half_steps))
 }
 
 type ScoreHandler = Rc<dyn Fn(f32, &mut Window, &mut App)>;
@@ -128,8 +149,18 @@ impl Styled for ScoreRating {
 }
 
 impl RenderOnce for ScoreRating {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let focus = self.on_change.is_some().then(|| {
+            window
+                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
+                    cx.focus_handle().tab_stop(true)
+                })
+                .read(cx)
+                .clone()
+        });
+        let focused = focus.as_ref().is_some_and(|f| f.is_focused(window));
         let theme = cx.theme();
+        let ring = theme.ring;
         let lit = theme.warning;
         let unlit = theme.muted_foreground.opacity(0.5);
         let quiet = theme.muted_foreground;
@@ -185,7 +216,24 @@ impl RenderOnce for ScoreRating {
         h_flex()
             .id(self.id.clone())
             .gap_0p5()
-            .role(if interactive { Role::RadioGroup } else { Role::Image })
+            .role(if interactive { Role::Slider } else { Role::Image })
+            .when(interactive, |this| {
+                this.aria_numeric_value(f64::from(score))
+                    .aria_min_numeric_value(0.0)
+                    .aria_max_numeric_value(f64::from(self.max))
+                    .aria_numeric_value_step(if self.half_steps { 0.5 } else { 1.0 })
+            })
+            .when_some(focus, |this, focus| this.track_focus(&focus))
+            .when(focused, |this| this.rounded(px(4.)).border_1().border_color(ring))
+            .when_some(self.on_change.clone(), |this, change| {
+                let (max, half) = (self.max, self.half_steps);
+                this.on_key_down(move |event: &KeyDownEvent, window, cx| {
+                    if let Some(next) = keyed_score(score, max, half, event.keystroke.key.as_str()) {
+                        cx.stop_propagation();
+                        change(next, window, cx);
+                    }
+                })
+            })
             .aria_label(match self.count {
                 Some(count) => format!("{}, from {count} ratings", spoken_score(score, self.max)),
                 None => spoken_score(score, self.max),
@@ -219,5 +267,13 @@ mod tests {
         assert_eq!(spoken_score(3.5, 5), "3.5 out of 5");
         assert_eq!(spoken_score(4.0, 5), "4 out of 5");
         assert_eq!(spoken_score(0.0, 5), "Not rated");
+        assert_eq!(keyed_score(3.0, 5, true, "right"), Some(3.5));
+        assert_eq!(keyed_score(3.0, 5, false, "left"), Some(2.0));
+        assert_eq!(keyed_score(5.0, 5, false, "right"), Some(5.0));
+        assert_eq!(keyed_score(2.0, 5, false, "home"), Some(0.0));
+        assert_eq!(keyed_score(2.0, 5, false, "end"), Some(5.0));
+        assert_eq!(keyed_score(2.0, 5, false, "4"), Some(4.0));
+        assert_eq!(keyed_score(2.0, 5, false, "7"), None);
+        assert_eq!(keyed_score(2.0, 5, false, "x"), None);
     }
 }
