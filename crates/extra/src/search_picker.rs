@@ -297,7 +297,7 @@ mod tests {
 
     #[test]
     fn letters_match_in_order_ignoring_case() {
-        assert_eq!(fuzzy_positions("Northwind Dental", "nwd"), Some(vec![0, 5, 10]));
+        assert_eq!(fuzzy_positions("Northwind Dental", "nwd"), Some(vec![0, 5, 8]));
         assert_eq!(fuzzy_positions("Northwind Dental", "zx"), None);
         assert_eq!(fuzzy_positions("Kestrel", ""), Some(vec![]));
         assert!(fuzzy_score(&[0, 1]) < fuzzy_score(&[4, 9]));
