@@ -9,13 +9,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
+use isonomic_ui::{
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
     prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
 
 use crate::common::resting_shadow;

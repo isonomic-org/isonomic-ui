@@ -2,11 +2,12 @@
 
 use std::time::{Duration, Instant};
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Task, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::findings_feed::{Finding, FindingWorker, FindingsFeed, Severity};
 
 /// How often the pretend workers move on.
@@ -188,6 +189,20 @@ impl FindingsFeedStory {
             );
         }
         cx.notify();
+    }
+}
+
+impl Story for FindingsFeedStory {
+    fn title() -> &'static str {
+        "Findings feed"
+    }
+
+    fn description() -> &'static str {
+        "Several workers checking something at once."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
