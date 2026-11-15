@@ -13,7 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -292,7 +292,10 @@ impl RenderOnce for AutonomyLevelControl {
             .clone();
         let is_focused = focus.is_focused(window);
         let levels = h_flex()
+            .id(child_id("levels".into()))
             .track_focus(&focus)
+            .role(Role::RadioGroup)
+            .aria_label("How much to ask")
             .on_key_down({
                 let set_level = set_level.clone();
                 move |event, window, cx| {
@@ -316,6 +319,9 @@ impl RenderOnce for AutonomyLevelControl {
                     .map(|(ix, option)| {
                         div()
                             .id(child_id(format!("level-{ix}")))
+                            .role(Role::RadioButton)
+                            .aria_label(option.label())
+                            .aria_selected(option == level)
                             .flex()
                             .flex_1()
                             .min_w_0()
