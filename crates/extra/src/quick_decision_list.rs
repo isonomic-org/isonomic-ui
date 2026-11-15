@@ -5,16 +5,16 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px,
-    relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px,
+    relative,
 };
 
 use crate::common::resting_shadow;
@@ -278,7 +278,7 @@ impl RenderOnce for QuickDecisionList {
                         let state = state.clone();
                         let on_decide = on_decide.clone();
                         let id = id.clone();
-                        move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
+                        move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
                             state.update(cx, |state, cx| {
                                 if let Some(row) = state.row(&id) {
                                     row.answered = Some(label.clone());
@@ -309,7 +309,7 @@ impl RenderOnce for QuickDecisionList {
                                 .on_click(pick(DecisionAnswer::Primary, decision.primary)),
                         )
                         .child(
-                            Button::new((row_id.clone(), "secondary"))
+                            Button::new((row_id, "secondary"))
                                 .outline()
                                 .small()
                                 .label(decision.secondary.clone())

@@ -1,10 +1,11 @@
 //! Gallery story for the quick decision list.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::quick_decision_list::{DecisionAnswer, QuickDecision, QuickDecisionList};
 
 /// Shows two open decisions and a folded one, and reports the last answer.
@@ -18,6 +19,20 @@ impl QuickDecisionListStory {
         cx.new(|_| Self {
             last: "No answer yet".into(),
         })
+    }
+}
+
+impl Story for QuickDecisionListStory {
+    fn title() -> &'static str {
+        "Quick decision list"
+    }
+
+    fn description() -> &'static str {
+        "Open questions that each take one of two answers."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
