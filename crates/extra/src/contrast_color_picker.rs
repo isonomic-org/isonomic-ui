@@ -9,8 +9,8 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, RenderOnce,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Toggled, Window, div,
     prelude::FluentBuilder as _, px,
 };
 
@@ -28,6 +28,23 @@ pub fn contrast_ratio(a: Hsla, b: Hsla) -> f32 {
     let (la, lb) = (luminance(a), luminance(b));
     let (hi, lo) = if la > lb { (la, lb) } else { (lb, la) };
     (hi + 0.05) / (lo + 0.05)
+}
+
+/// The swatch an arrow key moves to from `picked`, wrapping at the ends.
+pub fn step_swatch(picked: Option<usize>, count: usize, key: &str) -> Option<usize> {
+    if count == 0 {
+        return None;
+    }
+    let last = count - 1;
+    Some(match (key, picked) {
+        ("home", _) => 0,
+        ("end", _) => last,
+        ("right" | "down", None) => 0,
+        ("left" | "up", None) => last,
+        ("right" | "down", Some(ix)) => if ix >= last { 0 } else { ix + 1 },
+        ("left" | "up", Some(ix)) => if ix == 0 { last } else { ix - 1 },
+        _ => return None,
+    })
 }
 
 /// Whether a ratio passes for normal text (4.5) and for large text (3).
@@ -95,8 +112,16 @@ impl Styled for ContrastColorPicker {
 }
 
 impl RenderOnce for ContrastColorPicker {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let focus = window
+            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
+            .read(cx)
+            .clone();
+        let focused = focus.is_focused(window);
         let theme = cx.theme();
+        let ring = theme.ring;
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
@@ -114,18 +139,24 @@ impl RenderOnce for ContrastColorPicker {
             let (normal, large) = passes(ratio);
             let picked = self.picked == Some(ix);
             let pick = self.on_pick.clone();
+            let main = key == "swatch";
             div()
                 .id(ElementId::NamedChild(self.id.clone().into(), format!("{key}-{ix}").into()))
+                .role(if main { Role::RadioButton } else { Role::Button })
                 .relative()
                 .size(px(size))
                 .rounded(px(6.))
                 .bg(color)
                 .border_1()
                 .border_color(line)
-                .when(picked, |this| this.border_2().border_color(ink))
+                .when(picked, |this| this.border_2().border_color(if focused && main { ring } else { ink }))
                 .cursor_pointer()
-                .aria_label(format!("{name}, contrast {ratio:.1} to 1{}", if normal { ", readable" } else { "" }))
-                .aria_selected(picked)
+                .aria_label(format!(
+                    "{}{name}, contrast {ratio:.1} to 1, {}",
+                    if main { "" } else { "Use again: " },
+                    if normal { "readable" } else if large { "large text only" } else { "not readable" }
+                ))
+                .when(main, |this| this.aria_toggled(if picked { Toggled::True } else { Toggled::False }))
                 .on_click(move |_, window, cx| {
                     if let Some(pick) = &pick {
                         pick(ix, window, cx);
@@ -164,6 +195,13 @@ impl RenderOnce for ContrastColorPicker {
                     .child(label)
             };
             v_flex()
+                .id(ElementId::NamedChild(self.id.clone().into(), "verdict".into()))
+                .role(Role::Status)
+                .aria_label(format!(
+                    "{name}: {ratio:.2} to 1. Normal text {}, large text {}",
+                    if normal { "passes" } else { "fails" },
+                    if large { "passes" } else { "fails" }
+                ))
                 .gap_2()
                 .p_3()
                 .rounded(radius)
@@ -208,7 +246,27 @@ impl RenderOnce for ContrastColorPicker {
                     .child(div().flex_1().font_medium().child("Text colour"))
                     .child(div().text_xs().text_color(quiet).child("Ticks pass for normal text")),
             )
-            .child(h_flex().flex_wrap().gap_2p5().children((0..self.palette.len()).map(|ix| swatch(ix, 28., "swatch"))))
+            .child({
+                let pick = self.on_pick.clone();
+                let picked = self.picked;
+                let count = self.palette.len();
+                h_flex()
+                    .id(ElementId::NamedChild(self.id.clone().into(), "swatches".into()))
+                    .role(Role::RadioGroup)
+                    .aria_label("Text colour")
+                    .track_focus(&focus)
+                    .on_key_down(move |event: &KeyDownEvent, window, cx| {
+                        if let Some(next) = step_swatch(picked, count, event.keystroke.key.as_str()) {
+                            cx.stop_propagation();
+                            if let Some(pick) = &pick {
+                                pick(next, window, cx);
+                            }
+                        }
+                    })
+                    .flex_wrap()
+                    .gap_2p5()
+                    .children((0..count).map(|ix| swatch(ix, 28., "swatch")))
+            })
             .when(!self.recent.is_empty(), |this| {
                 this.child(
                     h_flex()
@@ -234,5 +292,11 @@ mod tests {
         assert!((contrast_ratio(hsla(0., 0., 0.5, 1.), hsla(0., 0., 0.5, 1.)) - 1.).abs() < 0.001);
         assert_eq!(passes(4.6), (true, true));
         assert_eq!(passes(3.2), (false, true));
+        assert_eq!(step_swatch(None, 4, "right"), Some(0));
+        assert_eq!(step_swatch(Some(3), 4, "right"), Some(0));
+        assert_eq!(step_swatch(Some(0), 4, "up"), Some(3));
+        assert_eq!(step_swatch(Some(1), 4, "end"), Some(3));
+        assert_eq!(step_swatch(Some(1), 4, "x"), None);
+        assert_eq!(step_swatch(None, 0, "right"), None);
     }
 }
