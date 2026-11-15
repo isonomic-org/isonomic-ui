@@ -10,13 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, HighlightStyle,
-    Hsla, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, StyledText, Subscription, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
@@ -24,6 +18,12 @@ use gpui_component::{
     menu::{DropdownMenu as _, PopupMenuItem},
     spinner::Spinner,
     v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, HighlightStyle,
+    Hsla, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, StyledText, Subscription, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -375,7 +375,7 @@ impl Render for CommentsPanel {
 
         let sort = {
             let (newest, show_resolved) = (self.newest_first, self.show_resolved);
-            let (a, b, c) = (this.clone(), this.clone(), this.clone());
+            let (a, b, c) = (this.clone(), this.clone(), this);
             Button::new("comments-sort")
                 .ghost()
                 .small()

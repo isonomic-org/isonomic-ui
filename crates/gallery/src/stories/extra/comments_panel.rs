@@ -2,11 +2,12 @@
 
 use std::time::{Duration, Instant};
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Task, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::comments_panel::{
     CommentAuthor, CommentsPanel, CommentsPanelEvent, PanelComment,
 };
@@ -78,7 +79,6 @@ impl CommentsPanelStory {
                     CommentsPanelEvent::Close => "Close pressed".to_string(),
                     CommentsPanelEvent::RunEdit(comment) => {
                         let id = comment.id().clone();
-                        let panel = panel.clone();
                         this._edit = Some(cx.spawn(async move |_, cx| {
                             cx.background_executor().timer(EDIT_FOR).await;
                             panel.update(cx, |panel, cx| panel.finish_edit(&id, cx));
@@ -96,6 +96,20 @@ impl CommentsPanelStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for CommentsPanelStory {
+    fn title() -> &'static str {
+        "Comments panel"
+    }
+
+    fn description() -> &'static str {
+        "A sidebar feed of comments on one piece of work."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
