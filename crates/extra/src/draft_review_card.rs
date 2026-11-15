@@ -445,13 +445,30 @@ impl Render for DraftReviewCard {
             Button::new("recipient")
                 .outline()
                 .small()
+                .max_w_full()
+                .min_w_0()
                 .disabled(sending)
+                .accessibility_label(format!("To {}, {}", to.name, to.address))
                 .child(
+                    // A long address is cut short instead of running under
+                    // the attachment.
                     h_flex()
+                        .min_w_0()
                         .gap_2()
-                        .child(div().font_medium().child(to.name))
-                        .child(div().text_color(quiet).child(to.address))
-                        .child(Icon::new(IconName::ChevronDown).xsmall().text_color(quiet)),
+                        .child(div().flex_none().font_medium().child(to.name))
+                        .child(
+                            div()
+                                .min_w_0()
+                                .truncate()
+                                .text_color(quiet)
+                                .child(to.address),
+                        )
+                        .child(
+                            Icon::new(IconName::ChevronDown)
+                                .xsmall()
+                                .flex_none()
+                                .text_color(quiet),
+                        ),
                 )
                 .dropdown_menu(move |mut menu, _, _| {
                     for (ix, contact) in contacts.iter().enumerate() {
@@ -547,11 +564,15 @@ impl Render for DraftReviewCard {
                 .border_t_1()
                 .border_color(line)
                 .child(div().text_color(quiet).child("To"))
+                // The recipient keeps its full width while it fits; when it
+                // doesn't, the attachment wraps onto its own line.
                 .child(
                     div()
-                        .flex_1()
+                        .flex_grow(1.)
+                        .max_w_full()
                         .min_w_0()
-                        .children(recipient.map(|recipient| h_flex().child(recipient))),
+                        .overflow_hidden()
+                        .children(recipient.map(|recipient| h_flex().min_w_0().child(recipient))),
                 )
                 .children(attachment),
         )
@@ -575,6 +596,7 @@ impl Render for DraftReviewCard {
                                     .icon(IconName::CaseSensitive)
                                     .disabled(sending)
                                     .tooltip("Edit the text")
+                                    .accessibility_label("Edit message")
                                     .on_click(
                                         cx.listener(|this, _, window, cx| this.edit(window, cx)),
                                     ),
