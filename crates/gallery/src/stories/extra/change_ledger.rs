@@ -2,11 +2,12 @@
 
 use std::time::{Duration, Instant};
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::change_ledger::{ChangeLedger, LedgerEntry};
 
 /// What a pricing update agent changed across a small firm's systems. The
@@ -23,6 +24,20 @@ impl ChangeLedgerStory {
             started: Instant::now(),
             last: "Nothing undone yet".into(),
         })
+    }
+}
+
+impl Story for ChangeLedgerStory {
+    fn title() -> &'static str {
+        "Change ledger"
+    }
+
+    fn description() -> &'static str {
+        "Everything an agent changed, each with an undo."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
