@@ -6,7 +6,7 @@ steps:
   - name: press 1
     check: C4
     key: "1"
-    expect: [{text: "1 of 1"}]
+    expect: [{changed: true}, {text: "approved"}, {focused: "question-card"}]
     shot: answered-by-key
   - name: Not now folds the card to one line
     check: C4
@@ -16,11 +16,11 @@ steps:
   - name: Ask both again restores
     check: C5
     click: Ask both again
-    expect: [{text: "1 of 2"}]
+    expect: [{changed: true}, {no_text: "approved"}]
   - name: Down moves the selected row, Enter answers
     check: C6
     click: {at: [300, 140]}
   - name: down and enter
     check: C6
     key: [Down, Return]
-    expect: [{text: "1 of 1"}]
+    expect: [{changed: true}, {no_text: "1 of 2"}]

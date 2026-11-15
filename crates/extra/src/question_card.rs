@@ -16,7 +16,7 @@ use isonomic_ui::component::{
 use isonomic_ui::{
     AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
     InteractiveElement as _, IntoElement, KeyDownEvent, MouseButton, ParentElement as _, Render,
-    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -397,6 +397,7 @@ impl Render for QuestionCard {
             return div().into_any_element();
         };
         let card = v_flex()
+            .id("question-card")
             .w_full()
             .max_w(px(600.))
             .rounded(radius_lg)
@@ -456,6 +457,15 @@ impl Render for QuestionCard {
             let answer = row.answer.clone();
             h_flex()
                 .id(("row", ix))
+                .role(Role::Button)
+                .aria_label(match (&row.summary, row.recommended) {
+                    (Some(summary), true) => {
+                        format!("{}. {}, recommended. {summary}", ix + 1, row.title)
+                    }
+                    (Some(summary), false) => format!("{}. {}. {summary}", ix + 1, row.title),
+                    (None, true) => format!("{}. {}, recommended", ix + 1, row.title),
+                    (None, false) => format!("{}. {}", ix + 1, row.title),
+                })
                 .gap_3()
                 .min_h(px(36.))
                 .px_2()
@@ -525,6 +535,9 @@ impl Render for QuestionCard {
         });
 
         card.track_focus(&self.focus)
+            .role(Role::Group)
+            .aria_label(format!("Question: {}", question.text))
+            .aria_description("Press a number to answer, or Up and Down then Enter.")
             .on_key_down(cx.listener(Self::key_down))
             // A click anywhere but in the field puts the keyboard on the card.
             .on_mouse_down(
