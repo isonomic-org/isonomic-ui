@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
@@ -150,6 +151,7 @@ impl RenderOnce for ScoreRating {
                     .when(left, |this| this.left_0())
                     .when(!left, |this| this.right_0())
                     .cursor_pointer()
+                    .role(Role::RadioButton)
                     .aria_label(format!("Rate {}", spoken_score(value, self.max)))
                     .on_click(move |_, window, cx| {
                         if let Some(change) = &change {
@@ -183,6 +185,7 @@ impl RenderOnce for ScoreRating {
         h_flex()
             .id(self.id.clone())
             .gap_0p5()
+            .role(if interactive { Role::RadioGroup } else { Role::Image })
             .aria_label(match self.count {
                 Some(count) => format!("{}, from {count} ratings", spoken_score(score, self.max)),
                 None => spoken_score(score, self.max),
