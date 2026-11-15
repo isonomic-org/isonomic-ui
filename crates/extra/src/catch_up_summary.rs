@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -202,6 +203,7 @@ impl RenderOnce for CatchUpSummary {
                 .cursor_pointer()
                 .text_xs()
                 .text_color(quiet)
+                .role(Role::Button)
                 .aria_label(format!("While you were away, {}. {needs} need you. Show summary", self.away))
                 .aria_expanded(false)
                 .on_click(toggle)
@@ -284,6 +286,7 @@ impl RenderOnce for CatchUpSummary {
             .text_color(ink)
             .text_sm()
             .shadow(resting_shadow(cx))
+            .role(Role::Region)
             .aria_label(format!("While you were away, {}", self.away))
             .child(
                 h_flex()
@@ -294,6 +297,7 @@ impl RenderOnce for CatchUpSummary {
                     .cursor_pointer()
                     .border_b_1()
                     .border_color(line)
+                    .role(Role::Button)
                     .aria_label("Fold the summary")
                     .aria_expanded(true)
                     .on_click(toggle)
