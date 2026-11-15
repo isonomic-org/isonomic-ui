@@ -9,8 +9,8 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
 use isonomic_ui::{
-    Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 
@@ -90,8 +90,17 @@ impl Styled for StatusBadge {
 }
 
 impl RenderOnce for StatusBadge {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let remove_focus = self.on_remove.is_some().then(|| {
+            window
+                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "remove-focus".into()), cx, |_, cx| {
+                    cx.focus_handle().tab_stop(true)
+                })
+                .read(cx)
+                .clone()
+        });
         let theme = cx.theme();
+        let ring = theme.ring;
         let color = match self.tone {
             Tone::Neutral => theme.foreground,
             tone => tone.color(cx),
@@ -114,6 +123,7 @@ impl RenderOnce for StatusBadge {
             .text_color(fg)
             .text_xs()
             .font_medium()
+            .role(Role::Status)
             .aria_label(match self.count {
                 Some(n) => format!("{}, {n}{}", self.label, if self.live { ", in progress" } else { "" }),
                 None => format!("{}{}", self.label, if self.live { ", in progress" } else { "" }),
@@ -139,9 +149,20 @@ impl RenderOnce for StatusBadge {
                     .bg(fg.opacity(0.15))
                     .child(capped(n, self.max))
             }))
-            .children(self.on_remove.map(|remove| {
+            .children(self.on_remove.zip(remove_focus).map(|(remove, focus)| {
+                let on_key = remove.clone();
+                let focused = focus.is_focused(window);
                 div()
                     .id(ElementId::NamedChild(self.id.clone().into(), "remove".into()))
+                    .role(Role::Button)
+                    .track_focus(&focus)
+                    .when(focused, |this| this.border_1().border_color(ring))
+                    .on_key_down(move |event: &KeyDownEvent, window, cx| {
+                        if matches!(event.keystroke.key.as_str(), "enter" | "space" | "backspace" | "delete") {
+                            cx.stop_propagation();
+                            on_key(window, cx);
+                        }
+                    })
                     .size(px(16.))
                     .flex()
                     .items_center()
