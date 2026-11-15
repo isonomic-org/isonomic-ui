@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
@@ -142,6 +143,7 @@ impl RenderOnce for SegmentedSwitcher {
                 .rounded(px(6.))
                 .text_sm()
                 .when(self.fill, |this| this.flex_1())
+                .role(Role::RadioButton)
                 .aria_label(segment_label(&segment.label, segment.count))
                 .aria_selected(on)
                 .when(on, |this| this.bg(raised).shadow(shadow.clone()).text_color(ink).font_medium())
@@ -177,6 +179,7 @@ impl RenderOnce for SegmentedSwitcher {
             .bg(track)
             .when(!self.fill, |this| this.flex_none())
             .when(self.fill, |this| this.w_full())
+            .role(Role::RadioGroup)
             .aria_label(self.label.clone())
             .children(segments)
             .refine_style(&self.style)
