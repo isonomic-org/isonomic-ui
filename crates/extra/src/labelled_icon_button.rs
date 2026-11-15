@@ -11,9 +11,9 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, StyledExt as _, kbd::Kbd, tooltip::Tooltip,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Toggled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// The words a screen reader hears for the button.
@@ -98,8 +98,16 @@ impl Styled for LabelledIconButton {
 }
 
 impl RenderOnce for LabelledIconButton {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let focus = window
+            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
+            .read(cx)
+            .clone();
+        let focused = focus.is_focused(window);
         let theme = cx.theme();
+        let ring = theme.ring;
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let chip = theme.muted;
@@ -109,6 +117,7 @@ impl RenderOnce for LabelledIconButton {
         let name = self.name.clone();
         let shortcut = self.shortcut.clone();
         let on_click = self.on_click.clone();
+        let on_key = self.on_click.clone();
         div()
             .id(self.id.clone())
             .relative()
@@ -122,8 +131,21 @@ impl RenderOnce for LabelledIconButton {
             .text_color(if on { accent } else { quiet })
             .when(on, |this| this.bg(accent.opacity(0.12)))
             .hover(|s| s.bg(chip).text_color(ink))
+            .role(Role::Button)
+            .track_focus(&focus)
+            .when(focused, |this| this.border_2().border_color(ring))
             .aria_label(spoken_name(&self.name, self.pressed, self.count))
-            .when_some(self.pressed, |this, pressed| this.aria_selected(pressed))
+            .when_some(self.pressed, |this, pressed| {
+                this.aria_toggled(if pressed { Toggled::True } else { Toggled::False })
+            })
+            .on_key_down(move |event: &KeyDownEvent, window, cx| {
+                if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                    cx.stop_propagation();
+                    if let Some(on_click) = &on_key {
+                        on_click(window, cx);
+                    }
+                }
+            })
             .tooltip(move |window, cx| {
                 Tooltip::new(name.clone())
                     .key_binding(shortcut.clone().map(Kbd::new))
