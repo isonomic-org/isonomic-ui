@@ -17,9 +17,11 @@ jobs:
     uses: isonomic-org/.github/.github/workflows/rust-ci.yml@main
     secrets: inherit
     with:
-      # The toolchain the code is formatted and linted with. Newer rustfmt
-      # lays out some macro arguments differently, so stable would fail fmt.
-      toolchain: "1.97"
+      # The toolchain the code is formatted and linted with. 1.98 is the
+      # oldest that builds the macOS backend; the code is formatted the same
+      # under 1.97 and 1.98, while newer rustfmt lays out some macro
+      # arguments differently.
+      toolchain: "1.98"
       # Default features plus the test hooks. `gpui-fast` swaps in the other
       # GPUI backend, so --all-features would run the suite on the wrong one.
       features: --features isonomic-ui-component/test-support,isonomic-ui-base/test-support
