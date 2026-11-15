@@ -15,7 +15,7 @@ use isonomic_ui::component::{
 use isonomic_ui::{
     Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, TestSupportExt as _, Window, div,
     prelude::FluentBuilder as _, px,
 };
 
@@ -197,7 +197,7 @@ fn money(value: f64) -> String {
 }
 
 impl RenderOnce for SortableTable {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -250,8 +250,17 @@ impl RenderOnce for SortableTable {
                 .children(self.columns.iter().enumerate().map(|(col, c)| {
                     let sort = self.on_sort.clone();
                     let here = self.sort.filter(|(s, _)| *s == col).map(|(_, asc)| asc);
+                    let focus = window
+                        .use_keyed_state(
+                            ElementId::NamedChild(self.id.clone().into(), format!("head-focus-{col}").into()),
+                            cx,
+                            |_, cx| cx.focus_handle().tab_stop(true),
+                        )
+                        .read(cx)
+                        .clone();
                     h_flex()
                         .id(ElementId::NamedChild(self.id.clone().into(), format!("head-{col}").into()))
+                        .test_support()
                         .gap_1()
                         .px_3()
                         .h_full()
@@ -261,6 +270,10 @@ impl RenderOnce for SortableTable {
                         .cursor_pointer()
                         .hover(|s| s.text_color(ink))
                         .when(here.is_some(), |this| this.text_color(ink))
+                        // A Tab stop: Enter or Space on the focused header is a click, so it sorts.
+                        .when(self.on_sort.is_some(), |this| {
+                            this.track_focus(&focus).focus_visible(|s| s.text_color(ink).bg(chip))
+                        })
                         .role(Role::ColumnHeader)
                         .aria_label(format!(
                             "{}, {}",
