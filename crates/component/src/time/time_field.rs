@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use gpui::{
     App, ElementId, Entity, Focusable as _, FontFeatures, IntoElement, ParentElement as _,
-    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    RenderOnce, SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
 };
 
 use crate::{
@@ -36,6 +36,34 @@ fn period_label(pm: bool) -> impl IntoElement {
         .child(label("PM", pm))
 }
 
+/// The base field with the library's segment styling: the selected segment
+/// highlighted, and the AM/PM segment sized for the wider label. Shared by
+/// [`TimeField`] and the time picker, which frame it differently.
+pub(crate) fn styled_base_field(
+    id: impl Into<ElementId>,
+    state: &Entity<TimeFieldState>,
+    disabled: bool,
+    cx: &App,
+) -> BaseTimeField {
+    let segment_radius = cx.theme().radius / 2.;
+    BaseTimeField::new(id, state)
+        .disabled(disabled)
+        .flex()
+        .items_center()
+        .render_segment(move |segment, state, _, cx| {
+            segment
+                .px_0p5()
+                .when(state.segment() == TimeSegment::Period, |this| {
+                    this.ml_1()
+                        .clear_children()
+                        .child(period_label(state.value() == 1))
+                })
+                .rounded(segment_radius)
+                .when(state.is_selected(), |this| this.bg(cx.theme().selection))
+                .into_any_element()
+        })
+}
+
 /// A segmented time editor, e.g. `09:30`, `09:30:15` or `09:30 PM`.
 ///
 /// The value lives in [`TimeFieldState`]; see it for the keyboard model.
@@ -45,6 +73,7 @@ pub struct TimeField {
     state: Entity<TimeFieldState>,
     size: Size,
     style: StyleRefinement,
+    aria_label: Option<SharedString>,
     disabled: bool,
     invalid: bool,
 }
@@ -56,9 +85,17 @@ impl TimeField {
             state: state.clone(),
             size: Size::default(),
             style: StyleRefinement::default(),
+            aria_label: None,
             disabled: false,
             invalid: false,
         }
+    }
+
+    /// Name the field for assistive technology, e.g. "Start time", when no
+    /// visible label is associated with it.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
+        self
     }
 
     pub(crate) fn with_id(mut self, id: impl Into<ElementId>) -> Self {
@@ -97,7 +134,6 @@ impl RenderOnce for TimeField {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focused = self.state.read(cx).focus_handle(cx).is_focused(window);
         let (bg, fg) = input_style(self.disabled, cx);
-        let segment_radius = cx.theme().radius / 2.;
 
         div()
             .flex()
@@ -117,26 +153,12 @@ impl RenderOnce for TimeField {
             })
             .when(self.invalid, |this| this.border_color(cx.theme().danger))
             .child(
-                BaseTimeField::new(self.id, &self.state)
-                    .disabled(self.disabled)
-                    // The base field fills the frame, so a press anywhere inside it lands on the
-                    // field rather than on the frame around it.
-                    .flex()
+                // The base field fills the frame, so a press anywhere inside it lands on the
+                // field rather than on the frame around it.
+                styled_base_field(self.id, &self.state, self.disabled, cx)
+                    .when_some(self.aria_label, |this, label| this.aria_label(label))
                     .size_full()
-                    .px_1()
-                    .items_center()
-                    .render_segment(move |segment, state, _, cx| {
-                        segment
-                            .px_0p5()
-                            .when(state.segment() == TimeSegment::Period, |this| {
-                                this.ml_1()
-                                    .clear_children()
-                                    .child(period_label(state.value() == 1))
-                            })
-                            .rounded(segment_radius)
-                            .when(state.is_selected(), |this| this.bg(cx.theme().selection))
-                            .into_any_element()
-                    }),
+                    .px_1(),
             )
             .refine_style(&self.style)
     }

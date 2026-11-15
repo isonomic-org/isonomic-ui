@@ -117,7 +117,7 @@ pub use resizable::{
 };
 pub use styled::*;
 pub use theme::*;
-pub use time::{calendar, date_field, date_picker, time_field};
+pub use time::{calendar, date_field, date_picker, time_field, time_picker};
 pub use title_bar::*;
 pub use virtual_list::{VirtualList, VirtualListScrollHandle, h_virtual_list, v_virtual_list};
 pub use window_border::{WindowBorder, window_border, window_corner_radii, window_paddings};
@@ -138,6 +138,7 @@ pub fn init(cx: &mut App) {
     input::init(cx);
     diff::init(cx);
     date_picker::init(cx);
+    time_picker::init(cx);
     dock::init(cx);
     sheet::init(cx);
     list::init(cx);
