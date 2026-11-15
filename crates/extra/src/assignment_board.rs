@@ -17,6 +17,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, AppContext as _, BoxShadow, Context, ElementId, Hsla, InteractiveElement as _, IntoElement,
     KeyDownEvent, ParentElement as _, Render, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
@@ -530,6 +531,7 @@ impl RenderOnce for AssignmentBoard {
                                         .spread_radius(px(2.)),
                                 ])
                             })
+                            .role(Role::ListItem)
                             .aria_label(format!(
                                 "{}, {} pt{}{}",
                                 item.title,
@@ -595,6 +597,7 @@ impl RenderOnce for AssignmentBoard {
                     .bg(chip.opacity(0.45))
                     .border_1()
                     .border_color(line.opacity(0.))
+                    .role(Role::Group)
                     .aria_label(format!(
                         "{}, {}, {} cards",
                         lane.name,
@@ -670,6 +673,7 @@ impl RenderOnce for AssignmentBoard {
             .id(self.id.clone())
             .track_focus(&focus)
             .on_key_down(key_down)
+            .role(Role::Group)
             .aria_label(format!("Assignment board, {} columns", lanes.len()))
             .w_full()
             .gap_3()
