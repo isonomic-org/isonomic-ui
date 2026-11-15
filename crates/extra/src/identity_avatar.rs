@@ -11,7 +11,7 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, Hsla, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, InteractiveElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, InteractiveElement as _,
     StyleRefinement, Styled, Transformation, Window, div, percentage, prelude::FluentBuilder as _,
     px,
 };
@@ -187,6 +187,7 @@ impl RenderOnce for IdentityAvatar {
             .relative()
             .flex_none()
             .size(px(size))
+            .role(Role::Image)
             .aria_label(self.who.spoken())
             .children(ring)
             .child(face)
@@ -257,7 +258,8 @@ impl RenderOnce for IdentityStack {
         let size = self.size;
         h_flex()
             .id(self.id.clone())
-            .aria_label(names)
+            .role(Role::Group)
+            .aria_label(format!("{} {}: {names}", self.people.len(), if self.people.len() == 1 { "person" } else { "people" }))
             .children(self.people.iter().take(shown).enumerate().map(|(ix, who)| {
                 div()
                     .when(ix > 0, |this| this.ml(px(-size * 0.3)))
