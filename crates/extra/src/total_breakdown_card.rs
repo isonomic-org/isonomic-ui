@@ -10,8 +10,9 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
+    div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -273,8 +274,28 @@ impl RenderOnce for TotalBreakdownCard {
                 .children(self.periods.iter().enumerate().map(|(ix, (id, label))| {
                     let id = id.clone();
                     let is_selected = period.as_ref() == Some(&id);
+                    let pick: Rc<dyn Fn(&mut Window, &mut App)> = {
+                        let state = state.clone();
+                        let on_period_change = self.on_period_change.clone();
+                        Rc::new(move |window, cx| {
+                            if is_selected {
+                                return;
+                            }
+                            state.update(cx, |state, cx| {
+                                state.period = Some(id.clone());
+                                cx.notify();
+                            });
+                            if let Some(handler) = &on_period_change {
+                                handler(&id, window, cx);
+                            }
+                        })
+                    };
                     div()
                         .id(("period", ix))
+                        .role(Role::RadioButton)
+                        .aria_label(label.clone())
+                        .aria_selected(is_selected)
+                        .tab_index(0)
                         .flex()
                         .items_center()
                         .h(px(24.))
@@ -289,22 +310,7 @@ impl RenderOnce for TotalBreakdownCard {
                                 this.text_color(quiet)
                             }
                         })
-                        .on_click({
-                            let state = state.clone();
-                            let on_period_change = self.on_period_change.clone();
-                            move |_, window, cx| {
-                                if is_selected {
-                                    return;
-                                }
-                                state.update(cx, |state, cx| {
-                                    state.period = Some(id.clone());
-                                    cx.notify();
-                                });
-                                if let Some(handler) = &on_period_change {
-                                    handler(&id, window, cx);
-                                }
-                            }
-                        })
+                        .on_click(move |_, window, cx| pick(window, cx))
                         .child(label.clone())
                 }))
         });
@@ -359,6 +365,8 @@ impl RenderOnce for TotalBreakdownCard {
             let part = &self.parts[ix];
             h_flex()
                 .id(("row", ix))
+                .role(Role::ListItem)
+                .aria_label(format!("{}: {}, {}% of the total", part.label, format(values[ix]), share(values[ix], total)))
                 .gap_2()
                 .h(px(30.))
                 .px_1()
@@ -399,8 +407,21 @@ impl RenderOnce for TotalBreakdownCard {
             }),
         };
 
+        let card_name = match self.change {
+            Some(percent) => format!(
+                "{}: {} {}, {} {}",
+                self.title,
+                self.total_label,
+                format(total),
+                if percent < 0. { "down" } else { "up" },
+                change_words(percent)
+            ),
+            None => format!("{}: {} {}", self.title, self.total_label, format(total)),
+        };
         v_flex()
             .id(self.id.clone())
+            .role(Role::Group)
+            .aria_label(card_name)
             .w_full()
             .max_w(px(360.))
             .rounded(radius_lg)
@@ -445,7 +466,7 @@ impl RenderOnce for TotalBreakdownCard {
                             .child(div().truncate().text_xs().text_color(quiet).child(caption)),
                     )
                     .child(bar)
-                    .child(v_flex().children(rows)),
+                    .child(v_flex().id("parts").role(Role::List).aria_label("Parts").children(rows)),
             )
             .children(footer.map(|footer| {
                 footer
