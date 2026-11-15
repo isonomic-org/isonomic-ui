@@ -13,8 +13,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px,
-    relative,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -239,6 +239,8 @@ impl RenderOnce for QuickDecisionList {
                 let state = state.clone();
                 return Some(
                     Pressable::new(row_id)
+                        .accessibility_label(decision.title.clone())
+                        .aria_expanded(false)
                         .track_focus(&focus_handle)
                         .on_click(move |_, _, cx| {
                             state.update(cx, |state, cx| {
