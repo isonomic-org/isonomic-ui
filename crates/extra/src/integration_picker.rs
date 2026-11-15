@@ -494,6 +494,7 @@ impl Render for IntegrationPicker {
                         .child(
                             Switch::new("integration-switch")
                                 .checked(service.connected)
+                                .accessibility_label(format!("Connect {}", service.name))
                                 .on_click(
                                     cx.listener(move |this, _, _, cx| this.toggle(&toggle_id, cx)),
                                 ),
