@@ -515,6 +515,10 @@ def keyboard_walk(app: App) -> dict:
         problems.append(f"Tab reaches none of the {stops} tab stops")
     elif stops and len(reached) < stops:
         problems.append(f"Tab reaches {len(reached)} of {stops} tab stops")
+    silent = sum(1 for k in seq[:stops] if k is None)
+    if silent and reached:
+        # Focus moved somewhere with no role: a screen reader announces nothing there.
+        problems.append(f"{silent} Tab stop(s) are not in the accessibility tree")
     if no_ring:
         problems.append("no visible focus change on " + ", ".join(nm(k) for k in no_ring[:4]))
     if stops > 1 and reached and not wraps:
@@ -528,10 +532,27 @@ def keyboard_walk(app: App) -> dict:
     return res
 
 
+def content_name(tree: list[dict], node: dict) -> str:
+    """The text inside a control, which a screen reader reads as its name when it has no label.
+
+    A list row or a tab with a text label inside it is named by that text.
+    """
+    start = next((i for i, n in enumerate(tree) if n is node), None)
+    if start is None:
+        return ""
+    words = []
+    for n in tree[start + 1:]:
+        if n["depth"] <= node["depth"]:
+            break
+        if n.get("role") in ("Label", "StaticText", "Paragraph", "Heading") and n.get("label"):
+            words.append(n["label"])
+    return " ".join(words)
+
+
 def a11y_check(tree: list[dict]) -> dict:
     """C9: every control has a role and a name."""
     clickable = [n for n in tree if "Click" in (n.get("on_action") or [])]
-    unnamed = [n["element_id"] for n in clickable if not n.get("label")]
+    unnamed = [n["element_id"] for n in clickable if not n.get("label") and not content_name(tree, n)]
     roleless = [n["element_id"] for n in clickable if n.get("role") in ("", "GenericContainer", "Group", "Unknown")]
     problems = []
     if unnamed:
@@ -884,7 +905,7 @@ def play_script(app: App, script: dict, result: dict, out: Path, only_step: int 
 
 def a11y_summary(tree: list[dict], atspi: list[dict]) -> dict:
     actionable = [n for n in tree if set(n.get("on_action") or []) - {"Focus"}]
-    unnamed = [n for n in actionable if not n.get("label")]
+    unnamed = [n for n in actionable if not n.get("label") and not content_name(tree, n)]
     return {"nodes": len(tree), "actionable": len(actionable), "unnamed_actionable": len(unnamed),
             "unnamed": [n.get("element_id") or n.get("id") for n in unnamed][:20],
             "atspi_nodes": len(atspi)}

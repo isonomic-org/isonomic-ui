@@ -63,7 +63,7 @@ same tree through the desktop accessibility bus. No test code is compiled into t
 | C6 Keyboard | Tab through the story from the first stop: every stop reached, the focus visibly moves, Tab cycles, and Shift+Tab goes back. Script steps cover arrows, Enter, Space and Escape. |
 | C7 Content stress | Not automated yet. |
 | C8 Motion and time | Does the story come to rest after loading, and after its script? |
-| C9 Accessibility | Every control with a click action has a role and a name. |
+| C9 Accessibility | Every control with a click action has a role and a name: its own label, or the text inside it. An element with no role is not in the tree at all, so C9 cannot see it; C6 shows it as a Tab stop that reports no element. |
 | C10 Performance | 120 back-to-back redraws at 960 × 900, compared with an empty window. The figures come from a dev build under software rendering, so only the difference from the empty window means anything. |
 | C11 Code health | `code_health.py`. |
 
