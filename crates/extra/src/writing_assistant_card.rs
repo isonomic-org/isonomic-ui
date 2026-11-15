@@ -8,18 +8,18 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
-    Animation, AnimationExt as _, App, AppContext as _, Context, Entity, EventEmitter, FocusHandle,
-    Focusable, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div, ease_in_out,
-    linear_color_stop, linear_gradient, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{InputEvent, Textarea, TextareaState},
     v_flex,
+};
+use isonomic_ui::{
+    Animation, AnimationExt as _, App, AppContext as _, Context, Entity, EventEmitter, FocusHandle,
+    Focusable, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div, ease_in_out,
+    linear_color_stop, linear_gradient, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;

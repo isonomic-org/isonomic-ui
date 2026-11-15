@@ -1,10 +1,11 @@
 //! Gallery story for the writing assistant card.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::writing_assistant_card::{WritingAssistantCard, WritingAssistantEvent};
 
 /// Made-up replies for a bookkeeping app's writing helper.
@@ -65,6 +66,20 @@ impl WritingAssistantCardStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for WritingAssistantCardStory {
+    fn title() -> &'static str {
+        "Writing assistant card"
+    }
+
+    fn description() -> &'static str {
+        "A small helper for rewriting and drafting text."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
