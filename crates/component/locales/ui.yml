@@ -14,6 +14,15 @@ Attachment:
     zh-CN: 重试
     zh-HK: 重試
     zh-TW: 重試
+AppBar:
+  more:
+    en: "More actions"
+    pt-BR: "Mais ações"
+    ru: "Другие действия"
+    zh-CN: 更多操作
+    zh-HK: 更多操作
+    zh-TW: 更多動作
+    it: "Altre azioni"
 Calendar:
   week.0:
     en: Su

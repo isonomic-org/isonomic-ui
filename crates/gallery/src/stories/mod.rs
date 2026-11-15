@@ -4,6 +4,7 @@ use isonomic_ui::{AnyView, App, AppContext as _, Entity, Hsla, Pixels, Render, W
 mod accordion_story;
 mod alert_dialog_story;
 mod alert_story;
+mod app_bar_story;
 mod attachment_story;
 mod avatar_story;
 mod badge_story;
@@ -92,6 +93,7 @@ pub(crate) mod extra;
 pub use accordion_story::AccordionStory;
 pub use alert_dialog_story::AlertDialogStory;
 pub use alert_story::AlertStory;
+pub use app_bar_story::AppBarStory;
 pub use attachment_story::AttachmentStory;
 pub use avatar_story::AvatarStory;
 pub use badge_story::BadgeStory;
