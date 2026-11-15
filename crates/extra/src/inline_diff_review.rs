@@ -23,6 +23,7 @@ use isonomic_ui::{
     App, ElementId, FocusHandle, HighlightStyle, Hsla, InteractiveElement as _, InteractiveText,
     IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StrikethroughStyle, StyleRefinement, Styled, StyledText,
+    TestSupportExt as _,
     UnderlineStyle, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
@@ -656,6 +657,7 @@ impl RenderOnce for InlineDiffReview {
             .child(
                 div()
                     .id((self.id.clone(), "paragraph"))
+                    .test_support()
                     .track_focus(&focus)
                     .role(Role::Group)
                     .aria_label(label)

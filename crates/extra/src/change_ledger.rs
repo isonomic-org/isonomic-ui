@@ -16,7 +16,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -335,7 +335,34 @@ impl RenderOnce for ChangeLedger {
             let is_pointed = pointed.as_ref() == Some(&entry.id);
             let goes_too = also.contains(&entry.id);
             let stays = kept.contains(&entry.id);
-            let show_button = hovered.as_ref() == Some(&entry.id) || is_pointed;
+            // The row is a Tab stop, so the keyboard can bring up its button too.
+            let row_focus = window
+                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), format!("ledger-row-focus-{ix}").into()), cx, |_, cx| {
+                    cx.focus_handle().tab_stop(true)
+                })
+                .read(cx)
+                .clone();
+            let show_button = hovered.as_ref() == Some(&entry.id)
+                || is_pointed
+                || row_focus.contains_focused(window, cx);
+            let row_words = {
+                let mut words = entry.action.to_string();
+                if let Some(target) = &entry.target {
+                    words.push_str(&format!(" {target}"));
+                }
+                match (&entry.change, &entry.detail) {
+                    (Some((before, after)), _) => words.push_str(&format!(", from {before} to {after}")),
+                    (None, Some(detail)) => words.push_str(&format!(", {detail}")),
+                    _ => {}
+                }
+                words.push_str(&format!(", {}, {}", ago_words(now.saturating_duration_since(entry.at)), entry.system));
+                if is_undone {
+                    words.push_str(", undone");
+                } else if !entry.reversible {
+                    words.push_str(", can't be undone");
+                }
+                words
+            };
             let hover_row = {
                 let ui = ui.clone();
                 let id = entry.id.clone();
@@ -486,6 +513,9 @@ impl RenderOnce for ChangeLedger {
 
             h_flex()
                 .id(("ledger-row", ix))
+                .role(Role::ListItem)
+                .aria_label(row_words)
+                .track_focus(&row_focus)
                 .gap_3()
                 .h(px(56.))
                 .px_3()
@@ -539,8 +569,11 @@ impl RenderOnce for ChangeLedger {
         let rows: Vec<_> = rows.collect();
         let count = entries.len();
 
+        let ledger_name = format!("{}, {count} changes", self.title);
         v_flex()
             .id(self.id.clone())
+            .role(Role::List)
+            .aria_label(ledger_name)
             .w_full()
             .max_w(px(640.))
             .gap_2()

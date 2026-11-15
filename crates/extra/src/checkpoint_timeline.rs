@@ -11,7 +11,7 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, Bounds, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, PathBuilder, Pixels, RenderOnce, SharedString,
+    ParentElement as _, PathBuilder, Pixels, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, fill, point,
     prelude::FluentBuilder as _, px, relative, size,
 };
@@ -280,7 +280,7 @@ impl RenderOnce for CheckpointTimeline {
         let radius_lg = theme.radius_lg;
 
         let ui = window.use_keyed_state(self.id.clone(), cx, |_, cx| TimelineUi {
-            focus: Some(cx.focus_handle()),
+            focus: Some(cx.focus_handle().tab_stop(true)),
             ..Default::default()
         });
         let (hovered, selected, focus) = {
@@ -397,6 +397,32 @@ impl RenderOnce for CheckpointTimeline {
             }
         };
 
+        // A checkpoint in words: "Wrote the tests, failed, attempt 2, 3 files, at 1:20".
+        let point_words = |ix: usize| -> String {
+            let Some(checkpoint) = points.get(ix) else { return String::new() };
+            let mut words = checkpoint.title.to_string();
+            words.push_str(match checkpoint.status {
+                CheckpointStatus::Running => ", in progress",
+                CheckpointStatus::Done => "",
+                CheckpointStatus::Failed => ", failed",
+                CheckpointStatus::Stopped => ", stopped",
+            });
+            if lane[ix] > 0 {
+                words.push_str(&format!(", attempt {}", lane[ix] + 1));
+            }
+            if let Some(files) = checkpoint.files {
+                words.push_str(&if files == 1 { ", 1 file".to_string() } else { format!(", {files} files") });
+            }
+            if let Some(at) = checkpoint.at {
+                words.push_str(&format!(", at {}", run_clock(at)));
+            }
+            if head.as_ref() == Some(&checkpoint.id) {
+                words.push_str(", current");
+            } else if !way[ix] {
+                words.push_str(", left behind");
+            }
+            words
+        };
         let rows = points.iter().enumerate().map(|(ix, checkpoint)| {
             let is_head = head.as_ref() == Some(&checkpoint.id);
             let left_behind = !way[ix];
@@ -457,6 +483,9 @@ impl RenderOnce for CheckpointTimeline {
             };
             h_flex()
                 .id(("checkpoint", ix))
+                .role(Role::ListItem)
+                .aria_label(point_words(ix))
+                .aria_selected(selected == Some(ix))
                 .h(px(ROW))
                 .gap_2()
                 .pl(px(gutter + 4.))
@@ -568,9 +597,19 @@ impl RenderOnce for CheckpointTimeline {
         .collect::<Vec<_>>()
         .join(", ");
 
+        let at_words = selected
+            .or_else(|| head.as_ref().and_then(|head| index.get(head).copied()))
+            .map(|ix| format!(". {}", point_words(ix)))
+            .unwrap_or_default();
+        let timeline_words = format!(
+            "Checkpoints, {summary}{at_words}. Up and Down move{}",
+            if self.on_rewind.is_some() { ", Enter rewinds" } else { "" }
+        );
         let no_task = self.task.is_none();
         v_flex()
             .id(self.id.clone())
+            .role(Role::List)
+            .aria_label(timeline_words)
             .track_focus(&focus)
             .on_key_down(key_down)
             .w_full()

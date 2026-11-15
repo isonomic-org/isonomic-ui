@@ -14,7 +14,7 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, AppContext as _, Bounds, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, PathBuilder, Pixels, Render, RenderOnce, SharedString,
+    ParentElement as _, PathBuilder, Pixels, Render, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -406,6 +406,16 @@ impl RenderOnce for HandoffRelay {
                     .iter()
                     .filter(|task| task.status == RelayTaskStatus::Todo)
                     .collect();
+                let worker_words = format!(
+                    "{}{}, {}{}",
+                    worker.name,
+                    worker.model.as_ref().map(|m| format!(", {m}")).unwrap_or_default(),
+                    match working {
+                        Some(task) => format!("working on {}", task.title),
+                        None => "idle".to_string(),
+                    },
+                    if ix == 0 && !waiting.is_empty() { format!(", {} waiting", waiting.len()) } else { String::new() },
+                );
                 let current = match (working, ix == 0 && !waiting.is_empty()) {
                     (Some(task), _) => h_flex()
                         .gap_1p5()
@@ -456,6 +466,8 @@ impl RenderOnce for HandoffRelay {
                 let worker_id = worker.id.clone();
                 v_flex()
                     .id(("relay-worker", ix))
+                    .role(Role::Group)
+                    .aria_label(worker_words)
                     .flex_1()
                     .min_w_0()
                     .gap_2()
@@ -600,8 +612,15 @@ impl RenderOnce for HandoffRelay {
                             let is_lost = item.lost.is_some();
                             let ui = ui.clone();
                             let key = (handoff.id.clone(), item.id.clone());
+                            let item_words = match &item.lost {
+                                Some(_) => format!("{}, lost on the way. Show why", item.label),
+                                None => format!("{}, carried", item.label),
+                            };
                             h_flex()
                                 .id(("relay-item", ix))
+                                .role(if is_lost { Role::Button } else { Role::ListItem })
+                                .aria_label(item_words)
+                                .when(is_lost, |this| this.tab_index(0))
                                 .gap_1()
                                 .px_1p5()
                                 .py_0p5()
@@ -685,8 +704,20 @@ impl RenderOnce for HandoffRelay {
                             }),
                     )
                 });
+                let handoff_words = format!(
+                    "{title}, from {} to {}, {}{}{}",
+                    from.name,
+                    name_of(&handoff.to),
+                    state_words,
+                    if lost > 0 { format!(", {lost} lost") } else { String::new() },
+                    if is_open { "" } else { ". Press Enter for details" },
+                );
                 v_flex()
                     .id(("relay-handoff", column * 1000 + row))
+                    .role(Role::Button)
+                    .aria_label(handoff_words)
+                    .aria_expanded(is_open)
+                    .tab_index(0)
                     .gap_0p5()
                     .p_2()
                     .rounded(radius)
@@ -823,6 +854,8 @@ impl RenderOnce for HandoffRelay {
         let slot = relative(1. / count.max(1) as f32);
         v_flex()
             .id(self.id.clone())
+            .role(Role::Group)
+            .aria_label("Handoff relay")
             .w_full()
             .text_color(ink)
             .text_sm()

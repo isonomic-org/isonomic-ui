@@ -16,8 +16,9 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, Hsla,
-    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
-    Styled as _, Subscription, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, Role,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -515,7 +516,16 @@ impl Render for RunSteeringPanel {
                 }))
         });
 
+        let run_words = format!(
+            "{}{}, {state_words}, {}",
+            self.title,
+            position_words(&self.steps).map(|p| format!(", {p}")).unwrap_or_default(),
+            clock(self.run_time())
+        );
         let header = h_flex()
+            .id("steer-header")
+            .role(Role::Status)
+            .aria_label(run_words.clone())
             .gap_3()
             .px_4()
             .py_3()
@@ -611,7 +621,28 @@ impl Render for RunSteeringPanel {
                             .child(timing_words(note.timing)),
                     )
             });
+            let step_words = {
+                let mut words = format!(
+                    "{}, {}",
+                    step.title,
+                    match step.status {
+                        SteerStepStatus::Done => "done",
+                        SteerStepStatus::Active => "in progress",
+                        SteerStepStatus::Pending => "to do",
+                    }
+                );
+                if let Some(time) = time {
+                    words.push_str(&format!(", {}", clock(time)));
+                }
+                for note in &step.notes {
+                    words.push_str(&format!(". Note: {}, {}", note.text, timing_words(note.timing)));
+                }
+                words
+            };
             h_flex()
+                .id(("steer-step", ix))
+                .role(Role::ListItem)
+                .aria_label(step_words)
                 .items_stretch()
                 .gap_2p5()
                 .child(
@@ -687,6 +718,9 @@ impl Render for RunSteeringPanel {
                     let now_id = note.id.clone();
                     let remove_id = note.id.clone();
                     h_flex()
+                        .id(("steer-queued", ix))
+                        .role(Role::ListItem)
+                        .aria_label(format!("Waiting for the next step: {}", note.text))
                         .gap_1()
                         .pl_2()
                         .border_l_2()
@@ -727,7 +761,7 @@ impl Render for RunSteeringPanel {
                     h_flex()
                         .items_end()
                         .gap_2()
-                        .child(div().flex_1().child(Input::new(&self.input).small()))
+                        .child(div().flex_1().child(Input::new(&self.input).small().aria_label("Note for the agent")))
                         .child(
                             Button::new("steer-send")
                                 .primary()
@@ -755,6 +789,9 @@ impl Render for RunSteeringPanel {
         });
 
         v_flex()
+            .id("run-steering")
+            .role(Role::Group)
+            .aria_label(run_words)
             .key_context("RunSteeringPanel")
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_down))
@@ -769,7 +806,7 @@ impl Render for RunSteeringPanel {
             .line_height(relative(1.4))
             .shadow(resting_shadow(cx))
             .child(header)
-            .child(v_flex().px_4().pt_3().pb_1().children(steps))
+            .child(v_flex().id("steer-steps").role(Role::List).aria_label("Steps").px_4().pt_3().pb_1().children(steps))
             .children(queue)
             .children(composer)
     }

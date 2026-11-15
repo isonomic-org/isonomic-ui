@@ -14,7 +14,10 @@ use isonomic_ui::component::{
     hover_card::HoverCard,
     v_flex,
 };
-use isonomic_ui::{App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, Role,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, prelude::FluentBuilder as _, px,
+};
 
 use crate::common::Tone;
 
@@ -82,6 +85,19 @@ impl EntityPreview {
     }
 }
 
+/// Everything a preview shows, in words: "Harbor Dental, Customer since 2021, Active. Owner: Dana".
+pub fn preview_words(preview: &EntityPreview) -> String {
+    let mut out = format!("{}, {}", preview.name, preview.subtitle);
+    if let Some((status, _)) = &preview.status {
+        out.push_str(&format!(", {status}"));
+    }
+    if !preview.facts.is_empty() {
+        let facts = preview.facts.iter().map(|(l, v)| format!("{l}: {v}")).collect::<Vec<_>>().join("; ");
+        out.push_str(&format!(". {facts}"));
+    }
+    out
+}
+
 /// A name that previews its entity on hover.
 #[derive(IntoElement)]
 pub struct EntityPreviewCard {
@@ -110,15 +126,39 @@ impl EntityPreviewCard {
 }
 
 impl RenderOnce for EntityPreviewCard {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let focus = window
+            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
+            .read(cx)
+            .clone();
+        let focused = focus.is_focused(window);
+        let words = preview_words(&self.preview);
+        let key_open = self.on_open.clone();
         let theme = cx.theme();
         let accent = theme.primary;
+        let ring = theme.ring;
         let preview = self.preview.clone();
         let on_open = self.on_open.clone();
         let button_id = ElementId::NamedChild(self.id.clone().into(), "open".into());
         HoverCard::new(self.id.clone())
             .trigger(
                 div()
+                    .id(ElementId::NamedChild(self.id.clone().into(), "trigger".into()))
+                    .role(Role::Link)
+                    .aria_label(self.label.clone())
+                    .aria_description(words.clone())
+                    .track_focus(&focus)
+                    .when(focused, |this| this.rounded(px(2.)).bg(ring.opacity(0.15)))
+                    .on_key_down(move |event: &KeyDownEvent, window, cx| {
+                        if event.keystroke.key == "enter"
+                            && let Some(open) = &key_open
+                        {
+                            cx.stop_propagation();
+                            open(window, cx);
+                        }
+                    })
                     .text_color(accent)
                     .border_b_1()
                     .border_dashed()
@@ -140,6 +180,9 @@ impl RenderOnce for EntityPreviewCard {
                         .child(label)
                 });
                 v_flex()
+                    .id("preview")
+                    .role(Role::Group)
+                    .aria_label(words.clone())
                     .w(px(280.))
                     .gap_3()
                     .text_sm()

@@ -13,7 +13,7 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -359,8 +359,21 @@ impl RenderOnce for FindingsFeed {
             };
             let ui = ui.clone();
             let id = worker.id.clone();
+            let worker_words = format!(
+                "{}, {} of {} done, {} critical, {} warnings{}",
+                worker.name,
+                worker.done.min(worker.total),
+                worker.total,
+                found(Severity::Critical),
+                found(Severity::Warning),
+                if picked { ", showing only theirs" } else { ". Show only theirs" }
+            );
             h_flex()
                 .id(("finding-worker", ix))
+                .role(Role::Button)
+                .aria_label(worker_words)
+                .aria_selected(picked)
+                .tab_index(0)
                 .gap_3()
                 .px_4()
                 .py_2()
@@ -472,8 +485,18 @@ impl RenderOnce for FindingsFeed {
             let color = tones[finding.severity as usize];
             let open = self.on_open.clone();
             let finding_for_click = finding.clone();
+            let finding_words = format!(
+                "{}: {}, by {who}{}, {}",
+                finding.severity.word(),
+                finding.title,
+                finding.location.as_ref().map(|l| format!(" in {l}")).unwrap_or_default(),
+                ago_words(now.saturating_duration_since(finding.found_at))
+            );
             h_flex()
                 .id(("finding", ix))
+                .role(if open.is_some() { Role::Button } else { Role::ListItem })
+                .aria_label(finding_words)
+                .when(open.is_some(), |this| this.tab_index(0))
                 .gap_2()
                 .h(px(32.))
                 .px_4()
@@ -523,6 +546,8 @@ impl RenderOnce for FindingsFeed {
 
         v_flex()
             .id(self.id.clone())
+            .role(Role::Group)
+            .aria_label("Findings")
             .w_full()
             .max_w(px(640.))
             .rounded(radius_lg)
@@ -559,6 +584,9 @@ impl RenderOnce for FindingsFeed {
                                 this.child(
                                     div()
                                         .id("findings-show-all")
+                                        .role(Role::Button)
+                                        .aria_label("Show all findings")
+                                        .tab_index(0)
                                         .text_color(accent)
                                         .cursor_pointer()
                                         .on_click(move |_, _, cx| {

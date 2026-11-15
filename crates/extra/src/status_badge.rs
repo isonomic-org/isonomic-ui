@@ -158,7 +158,8 @@ impl RenderOnce for StatusBadge {
                     .track_focus(&focus)
                     .when(focused, |this| this.border_1().border_color(ring))
                     .on_key_down(move |event: &KeyDownEvent, window, cx| {
-                        if matches!(event.keystroke.key.as_str(), "enter" | "space" | "backspace" | "delete") {
+                        // Enter and Space already click a focused element.
+                        if matches!(event.keystroke.key.as_str(), "backspace" | "delete") {
                             cx.stop_propagation();
                             on_key(window, cx);
                         }

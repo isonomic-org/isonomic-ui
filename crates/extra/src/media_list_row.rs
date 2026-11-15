@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
-    AnyElement, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    AnyElement, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
     RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, img,
     prelude::FluentBuilder as _, px,
 };
@@ -143,7 +143,6 @@ impl RenderOnce for MediaListRow {
         let radius = theme.radius;
         let spoken = spoken_row(&self.title, self.secondary.as_deref(), self.picked, self.disabled);
         let click = self.on_click.clone();
-        let key = self.on_click.clone();
 
         let media = self.media.map(|media| match media {
             RowMedia::Icon(icon) => Icon::new(icon).small().text_color(quiet).into_any_element(),
@@ -172,14 +171,6 @@ impl RenderOnce for MediaListRow {
                     .on_click(move |event, window, cx| {
                         if let Some(click) = &click {
                             click(event, window, cx);
-                        }
-                    })
-                    .on_key_down(move |event: &KeyDownEvent, window, cx| {
-                        if matches!(event.keystroke.key.as_str(), "enter" | "space") {
-                            cx.stop_propagation();
-                            if let Some(key) = &key {
-                                key(&ClickEvent::default(), window, cx);
-                            }
                         }
                     })
             })
