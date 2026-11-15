@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
@@ -217,6 +218,7 @@ impl RenderOnce for PeriodPicker {
                         .when(edge, |this| this.bg(accent).text_color(fill).rounded(px(8.)).font_semibold())
                         .when(is_today && !edge, |this| this.border_1().border_color(accent).rounded(px(8.)))
                         .when(!inside, |this| this.rounded(px(8.)).hover(|s| s.bg(chip)))
+                        .role(Role::GridCell)
                         .aria_label(format!("{d} {} {y}", MONTHS[m as usize - 1]))
                         .aria_selected(inside)
                         .on_hover(move |on, window, cx| {
