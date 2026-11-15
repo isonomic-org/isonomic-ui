@@ -97,6 +97,7 @@ icons/star.svg
 icons/sun.svg
 icons/thumbs-down.svg
 icons/thumbs-up.svg
+icons/time.svg
 icons/triangle-alert.svg
 icons/undo-2.svg
 icons/undo.svg
