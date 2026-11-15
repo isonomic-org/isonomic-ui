@@ -14,6 +14,15 @@ Attachment:
     zh-CN: 重试
     zh-HK: 重試
     zh-TW: 重試
+AppBar:
+  more:
+    en: "More actions"
+    pt-BR: "Mais ações"
+    ru: "Другие действия"
+    zh-CN: 更多操作
+    zh-HK: 更多操作
+    zh-TW: 更多動作
+    it: "Altre azioni"
 Calendar:
   week.0:
     en: Su
@@ -182,6 +191,47 @@ DatePicker:
     ru: "Время"
     zh-CN: 时间
     zh-HK: 時間
+TimePicker:
+  toggle:
+    en: "Choose time"
+    pt-BR: "Escolher horário"
+    ru: "Выбрать время"
+    zh-CN: 选择时间
+    zh-HK: 選擇時間
+    zh-TW: 選取時間
+    it: "Scegli orario"
+  hours:
+    en: Hours
+    pt-BR: "Horas"
+    ru: "Часы"
+    zh-CN: 时
+    zh-HK: 時
+    zh-TW: 時
+    it: Ore
+  minutes:
+    en: Minutes
+    pt-BR: "Minutos"
+    ru: "Минуты"
+    zh-CN: 分
+    zh-HK: 分
+    zh-TW: 分
+    it: Minuti
+  seconds:
+    en: Seconds
+    pt-BR: "Segundos"
+    ru: "Секунды"
+    zh-CN: 秒
+    zh-HK: 秒
+    zh-TW: 秒
+    it: Secondi
+  period:
+    en: "AM/PM"
+    pt-BR: "AM/PM"
+    ru: "AM/PM"
+    zh-CN: 上午/下午
+    zh-HK: 上午/下午
+    zh-TW: 上午/下午
+    it: "AM/PM"
 Select:
   placeholder:
     en: "Please select"

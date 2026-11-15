@@ -617,6 +617,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "automod"
+version = "1.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a273e731a7fb8c2268fd2932c9e9a3469f4fd171d85d070d2687190229653bd3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "av-scenechange"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4511,6 +4522,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "isonomic-ui-extra"
+version = "0.1.0"
+dependencies = [
+ "automod",
+ "isonomic-ui",
+]
+
+[[package]]
 name = "isonomic-ui-fps"
 version = "0.1.0"
 dependencies = [
@@ -4542,6 +4561,7 @@ dependencies = [
  "gpui-pre-reqwest-client",
  "gtk",
  "isonomic-ui",
+ "isonomic-ui-extra",
  "isonomic-ui-fps",
  "itertools 0.14.0",
  "lsp-types",
