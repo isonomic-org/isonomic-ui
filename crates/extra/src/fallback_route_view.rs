@@ -8,13 +8,13 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::Button, h_flex, spinner::Spinner, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -242,28 +242,29 @@ impl RenderOnce for FallbackRouteView {
         };
 
         // Every row hangs on the rail by a marker.
-        let row = |marker: gpui::AnyElement, joined: bool, content: gpui::AnyElement| {
-            h_flex()
-                .items_stretch()
-                .gap_3()
-                .child(
-                    v_flex()
-                        .flex_none()
-                        .w(px(22.))
-                        .items_center()
-                        .child(
-                            div()
-                                .flex()
-                                .flex_none()
-                                .items_center()
-                                .justify_center()
-                                .size(px(22.))
-                                .child(marker),
-                        )
-                        .when(joined, |this| this.child(div().flex_1().w(px(1.)).bg(line))),
-                )
-                .child(div().flex_1().min_w_0().pb_3().child(content))
-        };
+        let row =
+            |marker: isonomic_ui::AnyElement, joined: bool, content: isonomic_ui::AnyElement| {
+                h_flex()
+                    .items_stretch()
+                    .gap_3()
+                    .child(
+                        v_flex()
+                            .flex_none()
+                            .w(px(22.))
+                            .items_center()
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_none()
+                                    .items_center()
+                                    .justify_center()
+                                    .size(px(22.))
+                                    .child(marker),
+                            )
+                            .when(joined, |this| this.child(div().flex_1().w(px(1.)).bg(line))),
+                    )
+                    .child(div().flex_1().min_w_0().pb_3().child(content))
+            };
         let end = |icon: IconName, name: &'static str, detail: SharedString, mono: bool| {
             h_flex()
                 .gap_2()
