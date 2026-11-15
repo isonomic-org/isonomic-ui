@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
@@ -260,6 +261,7 @@ impl RenderOnce for SortableTable {
                         .cursor_pointer()
                         .hover(|s| s.text_color(ink))
                         .when(here.is_some(), |this| this.text_color(ink))
+                        .role(Role::ColumnHeader)
                         .aria_label(format!(
                             "{}, {}",
                             c.title,
