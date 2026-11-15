@@ -1,10 +1,11 @@
 //! Gallery story for the tag input.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::tag_input::{TagInput, TagInputEvent};
 
 /// A loose check, enough for a demo: something before the @ and a dot after it.
@@ -63,6 +64,20 @@ impl TagInputStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for TagInputStory {
+    fn title() -> &'static str {
+        "Tag input"
+    }
+
+    fn description() -> &'static str {
+        "Several short values in one field, as chips."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

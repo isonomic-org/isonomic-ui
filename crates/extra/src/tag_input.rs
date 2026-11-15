@@ -8,17 +8,17 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
-    AppContext as _, Context, Entity, EventEmitter, Focusable as _, InteractiveElement as _,
-    IntoElement, KeyDownEvent, MouseButton, ParentElement as _, Render, SharedString, Styled as _,
-    Subscription, Task, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
     v_flex,
+};
+use isonomic_ui::{
+    AppContext as _, Context, Entity, EventEmitter, Focusable as _, InteractiveElement as _,
+    IntoElement, KeyDownEvent, MouseButton, ParentElement as _, Render, SharedString, Styled as _,
+    Subscription, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 /// How long a repeated chip stays lit.
@@ -473,7 +473,6 @@ impl Render for TagInput {
         let chips: Vec<_> = chips.collect();
 
         let below = trouble
-            .clone()
             .map(|text| (text, danger))
             .or_else(|| self.hint.clone().map(|text| (text, quiet)));
         let counter = self.max.map(|max| format!("{}/{max}", self.tags.len()));
