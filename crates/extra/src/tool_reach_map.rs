@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
@@ -276,6 +277,7 @@ impl RenderOnce for ToolReachMap {
                             .when(standing == ReachStanding::Blocked, |this| this.border_dashed())
                             .bg(tint)
                             .cursor_pointer()
+                            .role(Role::Button)
                             .aria_label(format!(
                                 "{}, {}",
                                 tool.name,
