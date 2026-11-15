@@ -7,17 +7,17 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::{Button as Pressable, Toggle};
-use gpui_component::{
+use isonomic_ui::base::{Button as Pressable, Toggle};
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     progress::Progress,
     v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -393,7 +393,9 @@ impl RenderOnce for GroupedSetupChecklist {
         let groups: Vec<_> = groups.collect();
 
         let press = |handler: Handler| {
-            move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| handler(window, cx)
+            move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
+                handler(window, cx)
+            }
         };
         v_flex()
             .id(self.id.clone())

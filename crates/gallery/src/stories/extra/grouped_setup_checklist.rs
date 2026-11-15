@@ -1,10 +1,11 @@
 //! Gallery story for the grouped setup checklist.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::grouped_setup_checklist::{GroupedSetupChecklist, SetupGroup, SetupTask};
 
 /// Shows three groups, one of them already finished, and reports progress.
@@ -18,6 +19,20 @@ impl GroupedSetupChecklistStory {
         cx.new(|_| Self {
             last: "Nothing changed yet".into(),
         })
+    }
+}
+
+impl Story for GroupedSetupChecklistStory {
+    fn title() -> &'static str {
+        "Grouped setup checklist"
+    }
+
+    fn description() -> &'static str {
+        "Onboarding split into areas, each a few steps that"
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
