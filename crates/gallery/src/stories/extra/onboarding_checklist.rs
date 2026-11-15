@@ -54,6 +54,7 @@ impl Render for OnboardingChecklistStory {
             .child(
                 h_flex()
                     .items_start()
+                    .flex_wrap()
                     .gap_4()
                     .child(
                         OnboardingChecklist::new("by-hand")
