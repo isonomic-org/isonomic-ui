@@ -1,10 +1,11 @@
 //! Gallery story for the onboarding checklist.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, h_flex, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, h_flex, v_flex};
 use isonomic_ui_extra::onboarding_checklist::{ChecklistStep, OnboardingChecklist};
 
 /// Shows a checklist to tick by hand next to one that plays by itself.
@@ -27,6 +28,20 @@ impl OnboardingChecklistStory {
             ChecklistStep::new("team", "Invite the finance team").icon(IconName::User),
             ChecklistStep::new("alerts", "Choose which alerts to get").icon(IconName::Bell),
         ]
+    }
+}
+
+impl Story for OnboardingChecklistStory {
+    fn title() -> &'static str {
+        "Onboarding checklist"
+    }
+
+    fn description() -> &'static str {
+        "A short list of first steps with a progress bar."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

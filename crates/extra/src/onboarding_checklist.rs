@@ -6,15 +6,15 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
+use isonomic_ui::base::Checkbox;
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
+    progress::Progress, v_flex,
+};
+use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _,
     RenderOnce, SharedString, StyleRefinement, Styled, Task, Window, div,
     prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Checkbox;
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
-    progress::Progress, v_flex,
 };
 
 use crate::common::resting_shadow;
