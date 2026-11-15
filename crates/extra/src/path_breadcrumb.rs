@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     menu::{DropdownMenu as _, PopupMenuItem},
 };
 use isonomic_ui::{
+    Role,
     App, ClipboardItem, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, prelude::FluentBuilder as _, px,
@@ -119,6 +120,7 @@ impl RenderOnce for PathBreadcrumb {
                                         }
                                     })
                             })
+                            .role(Role::Link)
                             .aria_label(if current {
                                 format!("{}, current", self.places[ix])
                             } else {
@@ -159,6 +161,7 @@ impl RenderOnce for PathBreadcrumb {
             .gap_0p5()
             .min_w_0()
             .text_sm()
+            .role(Role::Navigation)
             .aria_label(format!("Path: {joined}"))
             .children(items)
             .child(
