@@ -15,6 +15,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, prelude::FluentBuilder as _, px, relative,
@@ -201,6 +202,7 @@ fn draw(tree: &FaultTree, paint: &Paint, node: &FaultNode, depth: usize, cx: &mu
         .border_color(if standing == Verdict::Confirmed { color } else { paint.line })
         .bg(if depth == 0 { color.opacity(0.08) } else { paint.fill })
         .when(faded, |this| this.opacity(0.5))
+        .role(Role::TreeItem)
         .aria_label(format!(
             "{}, {word}{}",
             node.label,
