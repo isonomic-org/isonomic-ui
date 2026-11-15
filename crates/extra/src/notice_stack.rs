@@ -5,15 +5,15 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
-    Animation, AnimationExt as _, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    Animation, AnimationExt as _, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement,
+    ParentElement as _, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -188,7 +188,6 @@ impl RenderOnce for NoticeStack {
         let front_id = front.id.clone();
         let on_dismiss = self.on_dismiss;
         let dismiss = {
-            let state = state.clone();
             let id = front.id.clone();
             move |_: &ClickEvent, window: &mut Window, cx: &mut App| {
                 state.update(cx, |state, cx| {

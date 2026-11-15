@@ -1,10 +1,11 @@
 //! Gallery story for the notice stack.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::notice_stack::{Notice, NoticeStack};
 
 /// Shows three notices and reports what was dismissed or opened.
@@ -18,6 +19,20 @@ impl NoticeStackStory {
         cx.new(|_| Self {
             last: "Nothing dismissed yet".into(),
         })
+    }
+}
+
+impl Story for NoticeStackStory {
+    fn title() -> &'static str {
+        "Notice stack"
+    }
+
+    fn description() -> &'static str {
+        "Announcements stacked behind each other, read one at a time."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
