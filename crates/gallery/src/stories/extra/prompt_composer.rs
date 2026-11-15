@@ -10,7 +10,35 @@ use isonomic_ui::{
 };
 use isonomic_ui_extra::prompt_composer::{
     AttachKind, ComposerAttachment, ComposerChoice, PromptComposer, PromptComposerEvent,
+    SuggestTrigger,
 };
+
+/// Commands offered after "/".
+const COMMANDS: [(&str, &str, &str); 4] = [
+    ("close", "close-month", "Close the month"),
+    ("summary", "summary", "Summarise the books"),
+    ("chase", "chase", "Chase unpaid invoices"),
+    ("reconcile", "reconcile", "Match the bank feed"),
+];
+
+/// People offered after "@".
+const PEOPLE: [(&str, &str); 3] = [("dana", "Dana Reyes"), ("omar", "Omar Haddad"), ("li", "Li Chen")];
+
+fn matches(trigger: SuggestTrigger, query: &str) -> Vec<ComposerChoice> {
+    let query = query.to_lowercase();
+    match trigger {
+        SuggestTrigger::Slash => COMMANDS
+            .iter()
+            .filter(|(word, _, _)| word.starts_with(&query))
+            .map(|(word, id, note)| ComposerChoice::new(*id, *word).note(*note))
+            .collect(),
+        SuggestTrigger::Mention => PEOPLE
+            .iter()
+            .filter(|(_, name)| name.to_lowercase().split(' ').any(|part| part.starts_with(&query)))
+            .map(|(id, name)| ComposerChoice::new(*id, name.replace(' ', "")).note(*name))
+            .collect(),
+    }
+}
 
 /// Files the story pretends to attach, in turn.
 const FILES: [(&str, &str); 3] = [
@@ -22,7 +50,7 @@ const FILES: [(&str, &str); 3] = [
 /// Shows a bookkeeping assistant's composer. The story plays the session:
 /// it keeps the attachments, models, folder and apps, answers for two
 /// seconds after each message and pretends to hear a sentence when the
-/// microphone is on.
+/// microphone is on. Type "/" or "@" for suggestions, or drop files on it.
 pub struct PromptComposerStory {
     composer: Entity<PromptComposer>,
     attachments: Vec<ComposerAttachment>,
@@ -41,14 +69,8 @@ impl PromptComposerStory {
             let composer =
                 cx.new(|cx| PromptComposer::new("Ask about your books\u{2026}", window, cx));
             let apps = vec![
-                (
-                    ComposerChoice::new("bank", "Bank feed").note("Read only"),
-                    true,
-                ),
-                (
-                    ComposerChoice::new("mail", "Mail").note("Drafts only"),
-                    true,
-                ),
+                (ComposerChoice::new("bank", "Bank feed").note("Read only"), true),
+                (ComposerChoice::new("mail", "Mail").note("Drafts only"), true),
                 (ComposerChoice::new("payroll", "Payroll"), false),
             ];
             composer.update(cx, |composer, cx| {
@@ -208,7 +230,40 @@ impl PromptComposerStory {
                     self._work = None;
                 }
             }
-            PromptComposerEvent::Changed(_) => {}
+            PromptComposerEvent::Changed(_) | PromptComposerEvent::QueryClosed => {}
+            PromptComposerEvent::Query { trigger, query } => {
+                let found = matches(*trigger, query);
+                composer.update(cx, |composer, cx| composer.set_suggestions(found, cx));
+            }
+            PromptComposerEvent::AcceptSuggestion { trigger, id } => {
+                self.last = match trigger {
+                    SuggestTrigger::Slash => format!("Command: {id}"),
+                    SuggestTrigger::Mention => format!("Mentioned: {id}"),
+                }
+                .into();
+            }
+            PromptComposerEvent::DropFiles(paths) => {
+                for path in paths {
+                    self.next_file += 1;
+                    let name = path
+                        .file_name()
+                        .map(|name| name.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "file".into());
+                    self.attachments
+                        .push(ComposerAttachment::new(format!("file-{}", self.next_file), name));
+                }
+                self.push_attachments(composer, cx);
+            }
+            PromptComposerEvent::PasteImages(images) => {
+                for _ in images {
+                    self.next_file += 1;
+                    self.attachments.push(ComposerAttachment::new(
+                        format!("file-{}", self.next_file),
+                        format!("pasted-{}.png", self.next_file),
+                    ));
+                }
+                self.push_attachments(composer, cx);
+            }
         }
         cx.notify();
     }

@@ -5,9 +5,18 @@
 //! model, a microphone and the send button. Attachments show as chips above
 //! the field. While the assistant answers, send turns into stop.
 //!
+//! Typing "/" at the start of a line or "@" after a space opens a menu of
+//! suggestions the owner supplies; Up and Down move, Enter or Tab picks and
+//! Escape closes. Files dropped on the composer and images pasted into it
+//! are reported, and the owner can put its own controls in slots before the
+//! toolbar, before send, and above the field.
+//!
 //! The composer only shows what it is given and reports what the person
 //! does. Its owner keeps the attachments, the models, the folder, the apps,
-//! whether the assistant is busy and whether dictation is listening.
+//! the suggestions, whether the assistant is busy and whether dictation is
+//! listening.
+
+use std::path::PathBuf;
 
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -18,10 +27,11 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, App, AppContext as _, Context, Entity, EventEmitter, FocusHandle,
-    Focusable, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render,
-    SharedString, Styled as _, Subscription, Window, div, prelude::FluentBuilder as _, px,
-    relative,
+    Animation, AnimationExt as _, AnyView, App, AppContext as _, ClipboardEntry, Context, ElementId,
+    Entity, EventEmitter, ExternalPaths, FocusHandle, Focusable, Image, InteractiveElement as _,
+    IntoElement, KeyDownEvent, ParentElement as _, Render, Role, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -107,6 +117,45 @@ pub enum AttachKind {
     Images,
 }
 
+/// What opened a suggestion menu.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SuggestTrigger {
+    /// "/" at the start of a line, for commands.
+    Slash,
+    /// "@" at the start or after a space, for mentions.
+    Mention,
+}
+
+impl SuggestTrigger {
+    fn mark(self) -> char {
+        match self {
+            Self::Slash => '/',
+            Self::Mention => '@',
+        }
+    }
+}
+
+/// The word being typed after a trigger at the end of `text`: the trigger,
+/// the byte where the word starts, and what follows the trigger.
+pub fn open_token(text: &str) -> Option<(SuggestTrigger, usize, String)> {
+    if text.is_empty() || text.ends_with(char::is_whitespace) {
+        return None;
+    }
+    let start = text
+        .char_indices()
+        .rev()
+        .find(|(_, c)| c.is_whitespace())
+        .map_or(0, |(ix, c)| ix + c.len_utf8());
+    let word = &text[start..];
+    let line_start = start == 0 || text[..start].ends_with('\n');
+    let mut chars = word.chars();
+    match chars.next() {
+        Some('/') if line_start => Some((SuggestTrigger::Slash, start, chars.as_str().to_string())),
+        Some('@') => Some((SuggestTrigger::Mention, start, chars.as_str().to_string())),
+        _ => None,
+    }
+}
+
 /// What happened in the composer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PromptComposerEvent {
@@ -141,6 +190,28 @@ pub enum PromptComposerEvent {
     Dictate(bool),
     /// The text changed.
     Changed(SharedString),
+    /// A suggestion menu opened, or the word after its trigger changed.
+    /// Offer matches with [`PromptComposer::set_suggestions`].
+    Query {
+        /// What opened the menu.
+        trigger: SuggestTrigger,
+        /// What follows the trigger so far.
+        query: SharedString,
+    },
+    /// The suggestion menu closed without a pick.
+    QueryClosed,
+    /// A suggestion was picked. Its word in the field became the trigger and
+    /// the suggestion's label.
+    AcceptSuggestion {
+        /// What opened the menu.
+        trigger: SuggestTrigger,
+        /// The suggestion picked.
+        id: SharedString,
+    },
+    /// Files were dropped on the composer. Upload state stays with the owner.
+    DropFiles(Vec<PathBuf>),
+    /// Images were pasted into the field.
+    PasteImages(Vec<Image>),
 }
 
 /// The field where a person writes to an assistant.
@@ -157,6 +228,13 @@ pub struct PromptComposer {
     disabled: bool,
     dictation: bool,
     max_chars: Option<usize>,
+    readonly: bool,
+    query: Option<(SuggestTrigger, usize)>,
+    suggestions: Vec<ComposerChoice>,
+    highlight: usize,
+    leading: Option<AnyView>,
+    trailing: Option<AnyView>,
+    above: Option<AnyView>,
     _field_events: Subscription,
 }
 
@@ -206,6 +284,7 @@ impl PromptComposer {
                     InputEvent::PressEnter { shift: false, .. } => this.submit(window, cx),
                     InputEvent::Change => {
                         let text = field.read(cx).value();
+                        this.track_query(&text, cx);
                         cx.emit(PromptComposerEvent::Changed(text));
                         cx.notify();
                     }
@@ -225,8 +304,152 @@ impl PromptComposer {
             disabled: false,
             dictation: true,
             max_chars: None,
+            readonly: false,
+            query: None,
+            suggestions: Vec::new(),
+            highlight: 0,
+            leading: None,
+            trailing: None,
+            above: None,
             _field_events: field_events,
         }
+    }
+
+    /// Offer these suggestions in the open menu, best first. An empty list
+    /// hides the menu until the word changes.
+    pub fn set_suggestions(&mut self, suggestions: Vec<ComposerChoice>, cx: &mut Context<Self>) {
+        self.suggestions = if self.query.is_some() { suggestions } else { Vec::new() };
+        self.highlight = 0;
+        cx.notify();
+    }
+
+    /// Change the placeholder in the empty field.
+    pub fn set_placeholder(
+        &mut self,
+        placeholder: impl Into<SharedString>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let placeholder = placeholder.into();
+        self.field
+            .update(cx, |field, cx| field.set_placeholder(placeholder, window, cx));
+    }
+
+    /// Empty the field and close any suggestion menu.
+    pub fn clear(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.field
+            .update(cx, |field, cx| field.set_value("", window, cx));
+        self.close_query(cx);
+        cx.notify();
+    }
+
+    /// Keep the text but stop it being changed or sent.
+    pub fn set_readonly(&mut self, readonly: bool, cx: &mut Context<Self>) {
+        self.readonly = readonly;
+        cx.notify();
+    }
+
+    /// Put the owner's controls after the plus menu, such as a voice button.
+    pub fn set_leading_slot(&mut self, view: Option<AnyView>, cx: &mut Context<Self>) {
+        self.leading = view;
+        cx.notify();
+    }
+
+    /// Put the owner's controls just before send, such as a model picker.
+    pub fn set_trailing_slot(&mut self, view: Option<AnyView>, cx: &mut Context<Self>) {
+        self.trailing = view;
+        cx.notify();
+    }
+
+    /// Put the owner's content above the field, such as file cards.
+    pub fn set_above_slot(&mut self, view: Option<AnyView>, cx: &mut Context<Self>) {
+        self.above = view;
+        cx.notify();
+    }
+
+    fn track_query(&mut self, text: &str, cx: &mut Context<Self>) {
+        match open_token(text) {
+            Some((trigger, start, query)) => {
+                if self.query != Some((trigger, start)) {
+                    self.suggestions.clear();
+                }
+                self.query = Some((trigger, start));
+                self.highlight = 0;
+                cx.emit(PromptComposerEvent::Query {
+                    trigger,
+                    query: query.into(),
+                });
+            }
+            None => self.close_query(cx),
+        }
+    }
+
+    fn close_query(&mut self, cx: &mut Context<Self>) {
+        if self.query.take().is_some() {
+            self.suggestions.clear();
+            cx.emit(PromptComposerEvent::QueryClosed);
+        }
+    }
+
+    fn accept(&mut self, ix: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let (Some((trigger, start)), Some(choice)) = (self.query, self.suggestions.get(ix).cloned())
+        else {
+            return;
+        };
+        let text = self.field.read(cx).value();
+        let head = text.get(..start).unwrap_or(&text);
+        let next = format!("{head}{}{} ", trigger.mark(), choice.label);
+        self.query = None;
+        self.suggestions.clear();
+        self.field
+            .update(cx, |field, cx| field.set_value(next, window, cx));
+        cx.emit(PromptComposerEvent::AcceptSuggestion {
+            trigger,
+            id: choice.id,
+        });
+        cx.notify();
+    }
+
+    fn capture_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        let keys = &event.keystroke;
+        if (keys.modifiers.platform || keys.modifiers.control) && keys.key == "v" {
+            if self.disabled || self.readonly {
+                return;
+            }
+            let images: Vec<Image> = cx
+                .read_from_clipboard()
+                .map(|item| {
+                    item.entries()
+                        .iter()
+                        .filter_map(|entry| match entry {
+                            ClipboardEntry::Image(image) => Some(image.clone()),
+                            _ => None,
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            if !images.is_empty() {
+                cx.emit(PromptComposerEvent::PasteImages(images));
+                cx.stop_propagation();
+            }
+            return;
+        }
+        let count = self.suggestions.len();
+        if self.query.is_none() || count == 0 {
+            return;
+        }
+        match keys.key.as_str() {
+            "down" => self.highlight = (self.highlight + 1) % count,
+            "up" => self.highlight = (self.highlight + count - 1) % count,
+            "enter" | "tab" => {
+                let ix = self.highlight;
+                self.accept(ix, window, cx);
+            }
+            "escape" => self.close_query(cx),
+            _ => return,
+        }
+        cx.notify();
+        cx.stop_propagation();
     }
 
     /// Show these attachments as chips over the field.
@@ -338,7 +561,7 @@ impl PromptComposer {
     }
 
     fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.busy || self.disabled {
+        if self.busy || self.disabled || self.readonly {
             return;
         }
         let text = self.field.read(cx).value();
@@ -441,7 +664,51 @@ impl Render for PromptComposer {
         let sendable = can_send(&text, &self.attachments, over) && !self.disabled;
         let left = chars_left(&text, self.max_chars);
         let disabled = self.disabled;
+        let readonly = self.readonly;
         let entity = cx.entity();
+
+        let menu = (self.query.is_some() && !self.suggestions.is_empty()).then(|| {
+            let highlight = self.highlight;
+            let chip = theme.muted;
+            let trigger = self.query.map(|(trigger, _)| trigger);
+            v_flex()
+                .id("suggestions")
+                .role(Role::ListBox)
+                .aria_label(match trigger {
+                    Some(SuggestTrigger::Slash) => "Commands",
+                    _ => "Mentions",
+                })
+                .mx_1()
+                .p_1()
+                .gap_0p5()
+                .max_h(px(220.))
+                .overflow_y_scroll()
+                .rounded(theme.radius)
+                .border_1()
+                .border_color(line)
+                .children(self.suggestions.iter().enumerate().map(|(ix, choice)| {
+                    let on = ix == highlight;
+                    h_flex()
+                        .id(ElementId::Name(format!("suggestion-{ix}").into()))
+                        .role(Role::ListBoxOption)
+                        .aria_label(choice.menu_label())
+                        .aria_selected(on)
+                        .gap_2()
+                        .px_2()
+                        .py_1()
+                        .rounded(theme.radius)
+                        .cursor_pointer()
+                        .when(on, |this| this.bg(chip))
+                        .on_click(cx.listener(move |this, _, window, cx| this.accept(ix, window, cx)))
+                        .child(div().font_medium().child(choice.label.clone()))
+                        .children(
+                            choice
+                                .note
+                                .clone()
+                                .map(|note| div().text_xs().text_color(quiet).child(note)),
+                        )
+                }))
+        });
 
         let chips: Vec<_> = self
             .attachments
@@ -654,7 +921,14 @@ impl Render for PromptComposer {
         v_flex()
             .id("prompt-composer")
             .key_context("PromptComposer")
+            .capture_key_down(cx.listener(Self::capture_key))
             .on_key_down(cx.listener(Self::key_down))
+            .drag_over::<ExternalPaths>(|style, _, _, cx| style.border_color(cx.theme().ring))
+            .on_drop(cx.listener(|this, paths: &ExternalPaths, _, cx| {
+                if !this.disabled && !this.readonly {
+                    cx.emit(PromptComposerEvent::DropFiles(paths.paths().to_vec()));
+                }
+            }))
             .w_full()
             .gap_2()
             .p_2()
@@ -666,14 +940,16 @@ impl Render for PromptComposer {
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .when(disabled, |this| this.opacity(0.6))
+            .children(self.above.clone())
             .when(!chips.is_empty(), |this| {
                 this.child(h_flex().flex_wrap().gap_1p5().px_1().pt_1().children(chips))
             })
+            .children(menu)
             .child(
                 div().px_1().child(
                     Textarea::new(&self.field)
                         .appearance(false)
-                        .disabled(disabled)
+                        .disabled(disabled || readonly)
                         .aria_label("Message"),
                 ),
             )
@@ -681,6 +957,7 @@ impl Render for PromptComposer {
                 h_flex()
                     .gap_1()
                     .child(plus)
+                    .children(self.leading.clone())
                     .children(folder)
                     .children(apps)
                     .child(div().flex_1())
@@ -692,6 +969,7 @@ impl Render for PromptComposer {
                             .text_color(if left < 0 { danger } else { quiet })
                             .child(left.to_string())
                     }))
+                    .children(self.trailing.clone())
                     .children(model)
                     .children(mic)
                     .child(send),
@@ -728,6 +1006,18 @@ mod tests {
         assert_eq!(chars_left("abc", Some(100)), None);
         assert_eq!(chars_left(&"a".repeat(80), Some(100)), Some(20));
         assert_eq!(chars_left(&"a".repeat(103), Some(100)), Some(-3));
+    }
+
+    #[test]
+    fn triggers_open_only_where_they_belong() {
+        assert_eq!(open_token("/clo"), Some((SuggestTrigger::Slash, 0, "clo".into())));
+        assert_eq!(open_token("Ask \n/sum"), Some((SuggestTrigger::Slash, 5, "sum".into())));
+        assert_eq!(open_token("Ask /sum"), None);
+        assert_eq!(open_token("Ask @Da"), Some((SuggestTrigger::Mention, 4, "Da".into())));
+        assert_eq!(open_token("@"), Some((SuggestTrigger::Mention, 0, String::new())));
+        assert_eq!(open_token("mail@x"), None);
+        assert_eq!(open_token("Ask @Dana "), None);
+        assert_eq!(open_token(""), None);
     }
 
     #[test]
