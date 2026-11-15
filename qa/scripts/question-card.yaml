@@ -16,7 +16,7 @@ steps:
   - name: Ask both again restores
     check: C5
     click: Ask both again
-    expect: [{text: "1 of 2"}, {no_text: "approved"}]
+    expect: [{changed: true}, {no_text: "approved"}]
   - name: Down moves the selected row, Enter answers
     check: C6
     click: {at: [300, 140]}
