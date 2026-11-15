@@ -15,6 +15,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, prelude::FluentBuilder as _, px, relative,
@@ -381,6 +382,7 @@ impl RenderOnce for AgentRunTree {
                     .cursor_pointer()
                     .when(is_selected, |this| this.bg(chip))
                     .when(!is_selected, |this| this.hover(|s| s.bg(chip.opacity(0.5))))
+                    .role(Role::TreeItem)
                     .aria_label(format!(
                         "{}, {}, {}{}",
                         step.kind.word(),
@@ -557,6 +559,7 @@ impl RenderOnce for AgentRunTree {
                             .id(ElementId::NamedChild(self.id.clone().into(), "outline".into()))
                             .track_focus(&focus)
                             .on_key_down(key_down)
+                            .role(Role::Tree)
                             .aria_label(format!("Steps, {} showing", rows.len()))
                             .flex_grow(3.)
                             .w(px(380.))
