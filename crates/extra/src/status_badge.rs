@@ -7,18 +7,25 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+};
 use isonomic_ui::{
-    Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
+    KeyDownEvent, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px,
 };
 
 use crate::common::Tone;
 
 /// Write a count with a cap: 7, 99, "99+".
 pub fn capped(count: u32, max: u32) -> String {
-    if count > max { format!("{max}+") } else { count.to_string() }
+    if count > max {
+        format!("{max}+")
+    } else {
+        count.to_string()
+    }
 }
 
 /// A labelled status pill.
@@ -93,9 +100,11 @@ impl RenderOnce for StatusBadge {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let remove_focus = self.on_remove.is_some().then(|| {
             window
-                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "remove-focus".into()), cx, |_, cx| {
-                    cx.focus_handle().tab_stop(true)
-                })
+                .use_keyed_state(
+                    ElementId::NamedChild(self.id.clone().into(), "remove-focus".into()),
+                    cx,
+                    |_, cx| cx.focus_handle().tab_stop(true),
+                )
                 .read(cx)
                 .clone()
         });
@@ -125,21 +134,23 @@ impl RenderOnce for StatusBadge {
             .font_medium()
             .role(Role::Status)
             .aria_label(match self.count {
-                Some(n) => format!("{}, {n}{}", self.label, if self.live { ", in progress" } else { "" }),
-                None => format!("{}{}", self.label, if self.live { ", in progress" } else { "" }),
+                Some(n) => format!(
+                    "{}, {n}{}",
+                    self.label,
+                    if self.live { ", in progress" } else { "" }
+                ),
+                None => format!(
+                    "{}{}",
+                    self.label,
+                    if self.live { ", in progress" } else { "" }
+                ),
             })
             .when(self.live, |this| {
-                this.child(
-                    div()
-                        .size(px(6.))
-                        .rounded_full()
-                        .bg(fg)
-                        .with_animation(
-                            ElementId::NamedChild(self.id.clone().into(), "pulse".into()),
-                            Animation::new(std::time::Duration::from_millis(1200)).repeat(),
-                            |dot, delta| dot.opacity(0.35 + 0.65 * (1. - (delta * 2. - 1.).abs())),
-                        ),
-                )
+                this.child(div().size(px(6.)).rounded_full().bg(fg).with_animation(
+                    ElementId::NamedChild(self.id.clone().into(), "pulse".into()),
+                    Animation::new(std::time::Duration::from_millis(1200)).repeat(),
+                    |dot, delta| dot.opacity(0.35 + 0.65 * (1. - (delta * 2. - 1.).abs())),
+                ))
             })
             .child(label)
             .children(self.count.map(|n| {
@@ -153,7 +164,10 @@ impl RenderOnce for StatusBadge {
                 let on_key = remove.clone();
                 let focused = focus.is_focused(window);
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "remove".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "remove".into(),
+                    ))
                     .role(Role::Button)
                     .track_focus(&focus)
                     .when(focused, |this| this.border_1().border_color(ring))

@@ -16,9 +16,8 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    PathBuilder, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    PathBuilder, RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement,
     Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px, relative,
 };
 
@@ -62,7 +61,11 @@ pub struct NetworkNode {
 
 impl NetworkNode {
     /// Create a node with no particular state.
-    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>, kind: NetworkNodeKind) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+        kind: NetworkNodeKind,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -119,7 +122,9 @@ impl NetworkLink {
 /// Where each node sits, from 0 to 1. Unplaced nodes go in a ring around
 /// the first node, which goes in the middle when it isn't placed either.
 pub fn place_nodes(nodes: &[NetworkNode]) -> Vec<(f32, f32)> {
-    let ring: Vec<usize> = (1..nodes.len()).filter(|ix| nodes[*ix].at.is_none()).collect();
+    let ring: Vec<usize> = (1..nodes.len())
+        .filter(|ix| nodes[*ix].at.is_none())
+        .collect();
     let mut spots = vec![(0.5, 0.5); nodes.len()];
     for (ix, node) in nodes.iter().enumerate() {
         if let Some(at) = node.at {
@@ -166,8 +171,15 @@ pub fn link_words(nodes: &[NetworkNode], links: &[NetworkLink], id: &str) -> Str
                 .find(|n| &n.id == *other)
                 .map(|n| n.label.to_string())
                 .unwrap_or_else(|| other.to_string());
-            let unit = if *messages == 1 { "message" } else { "messages" };
-            format!("{name}, {messages} {unit}{}", if *live { ", in use now" } else { "" })
+            let unit = if *messages == 1 {
+                "message"
+            } else {
+                "messages"
+            };
+            format!(
+                "{name}, {messages} {unit}{}",
+                if *live { ", in use now" } else { "" }
+            )
         })
         .collect();
     format!("Linked to {}", each.join("; "))
@@ -214,7 +226,10 @@ impl AgentNetworkGraph {
     }
 
     /// Run with the node picked, or `None` when the selection is cleared.
-    pub fn on_select(mut self, handler: impl Fn(Option<&SharedString>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(Option<&SharedString>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
@@ -240,14 +255,22 @@ impl RenderOnce for AgentNetworkGraph {
         let radius_lg = theme.radius_lg;
 
         let focus = window
-            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| cx.focus_handle().tab_stop(true))
+            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
             .read(cx)
             .clone();
         let is_focused = focus.is_focused(window);
 
         let spots = place_nodes(&self.nodes);
         let index = |id: &SharedString| self.nodes.iter().position(|n| &n.id == id);
-        let busiest = self.links.iter().map(|l| l.messages).max().unwrap_or(1).max(1);
+        let busiest = self
+            .links
+            .iter()
+            .map(|l| l.messages)
+            .max()
+            .unwrap_or(1)
+            .max(1);
         let selected = self.selected.clone().filter(|id| index(id).is_some());
 
         // Lines to draw: (from spot, to spot, width, colour).
@@ -260,7 +283,11 @@ impl RenderOnce for AgentNetworkGraph {
                     .as_ref()
                     .is_none_or(|id| &link.from == id || &link.to == id);
                 let base = if link.live { accent } else { quiet };
-                let color = if touches { base.opacity(if link.live { 0.85 } else { 0.45 }) } else { base.opacity(0.1) };
+                let color = if touches {
+                    base.opacity(if link.live { 0.85 } else { 0.45 })
+                } else {
+                    base.opacity(0.1)
+                };
                 let width = 1. + 4. * link.messages as f32 / busiest as f32;
                 Some((spots[a], spots[b], width, color))
             })
@@ -274,7 +301,10 @@ impl RenderOnce for AgentNetworkGraph {
                 let touches = selected
                     .as_ref()
                     .is_none_or(|id| &link.from == id || &link.to == id);
-                let mid = ((spots[a].0 + spots[b].0) / 2., (spots[a].1 + spots[b].1) / 2.);
+                let mid = (
+                    (spots[a].0 + spots[b].0) / 2.,
+                    (spots[a].1 + spots[b].1) / 2.,
+                );
                 Some(
                     div()
                         .absolute()
@@ -307,10 +337,9 @@ impl RenderOnce for AgentNetworkGraph {
                 let is_selected = selected.as_ref() == Some(&node.id);
                 let near = selected.as_ref().is_none_or(|id| {
                     id == &node.id
-                        || self
-                            .links
-                            .iter()
-                            .any(|l| (&l.from == id && l.to == node.id) || (&l.to == id && l.from == node.id))
+                        || self.links.iter().any(|l| {
+                            (&l.from == id && l.to == node.id) || (&l.to == id && l.from == node.id)
+                        })
                 });
                 let tone_color = match node.tone {
                     Tone::Neutral => ink,
@@ -323,7 +352,10 @@ impl RenderOnce for AgentNetworkGraph {
                 let select = self.on_select.clone();
                 let id = node.id.clone();
                 v_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("node-{}", node.id).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("node-{}", node.id).into(),
+                    ))
                     .absolute()
                     .left(relative(spot.0))
                     .top(relative(spot.1))
@@ -335,7 +367,11 @@ impl RenderOnce for AgentNetworkGraph {
                     .cursor_pointer()
                     .when(!near, |this| this.opacity(0.35))
                     .role(Role::Button)
-                    .aria_label(format!("{}, {} links", node.label, neighbours(&self.links, &node.id).len()))
+                    .aria_label(format!(
+                        "{}, {} links",
+                        node.label,
+                        neighbours(&self.links, &node.id).len()
+                    ))
                     .aria_description(link_words(&self.nodes, &self.links, &node.id))
                     .aria_selected(is_selected)
                     .on_click(move |_, window, cx| {
@@ -350,7 +386,11 @@ impl RenderOnce for AgentNetworkGraph {
                             .flex()
                             .items_center()
                             .justify_center()
-                            .rounded(if node.kind == NetworkNodeKind::Tool { px(10.) } else { px(NODE / 2.) })
+                            .rounded(if node.kind == NetworkNodeKind::Tool {
+                                px(10.)
+                            } else {
+                                px(NODE / 2.)
+                            })
                             .bg(fill)
                             .border_2()
                             .border_color(if is_selected { accent } else { ring })
@@ -380,7 +420,9 @@ impl RenderOnce for AgentNetworkGraph {
                 if event.keystroke.modifiers.modified() || ids.is_empty() {
                     return;
                 }
-                let at = selected.as_ref().and_then(|id| ids.iter().position(|i| i == id));
+                let at = selected
+                    .as_ref()
+                    .and_then(|id| ids.iter().position(|i| i == id));
                 let next = match (event.keystroke.key.as_str(), at) {
                     ("right" | "down", None) => Some(0),
                     ("left" | "up", None) => Some(ids.len() - 1),
@@ -415,7 +457,11 @@ impl RenderOnce for AgentNetworkGraph {
                 "{} talks to {}: {}",
                 node.label,
                 talks.len(),
-                if names.is_empty() { "nobody yet".into() } else { names.join(", ") }
+                if names.is_empty() {
+                    "nobody yet".into()
+                } else {
+                    names.join(", ")
+                }
             ))
         });
         let total: u32 = self.links.iter().map(|l| l.messages).sum();
@@ -459,7 +505,10 @@ impl RenderOnce for AgentNetworkGraph {
             )
             .child(
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "canvas".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "canvas".into(),
+                    ))
                     .track_focus(&focus)
                     .on_key_down(key_down)
                     .role(Role::Group)
@@ -513,7 +562,9 @@ impl RenderOnce for AgentNetworkGraph {
                     .border_color(line)
                     .text_xs()
                     .text_color(quiet)
-                    .child(detail.unwrap_or_else(|| "Select a node to see who it talks to.".into())),
+                    .child(
+                        detail.unwrap_or_else(|| "Select a node to see who it talks to.".into()),
+                    ),
             )
             .refine_style(&self.style)
     }
@@ -534,7 +585,10 @@ mod tests {
         let spots = place_nodes(&nodes);
         assert_eq!(spots[0], (0.5, 0.5));
         assert_eq!(spots[2], (0.1, 0.9));
-        assert!((spots[1].1 - 0.14).abs() < 0.01, "the first ring node sits at the top");
+        assert!(
+            (spots[1].1 - 0.14).abs() < 0.01,
+            "the first ring node sits at the top"
+        );
         assert!(spots[3].1 > 0.5, "the second sits opposite");
     }
 
@@ -545,14 +599,26 @@ mod tests {
             NetworkLink::new("hub", "b", 9).live(),
             NetworkLink::new("a", "b", 1),
         ];
-        let found: Vec<_> = neighbours(&links, "hub").into_iter().map(|(id, n, live)| (id.to_string(), n, live)).collect();
-        assert_eq!(found, [("b".to_string(), 9, true), ("a".to_string(), 3, false)]);
+        let found: Vec<_> = neighbours(&links, "hub")
+            .into_iter()
+            .map(|(id, n, live)| (id.to_string(), n, live))
+            .collect();
+        assert_eq!(
+            found,
+            [("b".to_string(), 9, true), ("a".to_string(), 3, false)]
+        );
     }
 
     #[test]
     fn link_words_name_each_line_busiest_first() {
-        let nodes = vec![NetworkNode::new("hub", "Planner", NetworkNodeKind::Agent), NetworkNode::new("a", "Writer", NetworkNodeKind::Agent)];
-        let links = vec![NetworkLink::new("a", "hub", 1), NetworkLink::new("hub", "b", 9).live()];
+        let nodes = vec![
+            NetworkNode::new("hub", "Planner", NetworkNodeKind::Agent),
+            NetworkNode::new("a", "Writer", NetworkNodeKind::Agent),
+        ];
+        let links = vec![
+            NetworkLink::new("a", "hub", 1),
+            NetworkLink::new("hub", "b", 9).live(),
+        ];
         assert_eq!(
             link_words(&nodes, &links, "hub"),
             "Linked to b, 9 messages, in use now; Writer, 1 message"

@@ -8,14 +8,11 @@
 use std::rc::Rc;
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::Button,
-    h_flex, v_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -77,7 +74,12 @@ pub struct RecapItem {
 
 impl RecapItem {
     /// Create an item.
-    pub fn new(id: impl Into<SharedString>, lane: RecapLane, title: impl Into<SharedString>, meta: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        lane: RecapLane,
+        title: impl Into<SharedString>,
+        meta: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             lane,
@@ -89,9 +91,9 @@ impl RecapItem {
 
 /// Totals across buckets: done, failed, review.
 pub fn recap_totals(buckets: &[RecapBucket]) -> (u32, u32, u32) {
-    buckets
-        .iter()
-        .fold((0, 0, 0), |(d, f, r), b| (d + b.done, f + b.failed, r + b.review))
+    buckets.iter().fold((0, 0, 0), |(d, f, r), b| {
+        (d + b.done, f + b.failed, r + b.review)
+    })
 }
 
 type ItemHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
@@ -112,7 +114,12 @@ pub struct ActivityRecap {
 
 impl ActivityRecap {
     /// Create a recap.
-    pub fn new(id: impl Into<ElementId>, title: impl Into<SharedString>, buckets: Vec<RecapBucket>, items: Vec<RecapItem>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        title: impl Into<SharedString>,
+        buckets: Vec<RecapBucket>,
+        items: Vec<RecapItem>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -132,13 +139,19 @@ impl ActivityRecap {
     }
 
     /// Run when the pointer moves onto a bar, or off the chart with `None`.
-    pub fn on_pick(mut self, handler: impl Fn(Option<usize>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_pick(
+        mut self,
+        handler: impl Fn(Option<usize>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_pick = Some(Rc::new(handler));
         self
     }
 
     /// Run when a review item's Open button is clicked.
-    pub fn on_open(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_open(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_open = Some(Rc::new(handler));
         self
     }
@@ -165,7 +178,13 @@ impl RenderOnce for ActivityRecap {
         let review_c = Tone::Warning.color(cx);
 
         let (done, failed, review) = recap_totals(&self.buckets);
-        let peak = self.buckets.iter().map(RecapBucket::total).max().unwrap_or(1).max(1) as f32;
+        let peak = self
+            .buckets
+            .iter()
+            .map(RecapBucket::total)
+            .max()
+            .unwrap_or(1)
+            .max(1) as f32;
 
         let bars: Vec<_> = self
             .buckets
@@ -175,15 +194,22 @@ impl RenderOnce for ActivityRecap {
                 let pick = self.on_pick.clone();
                 let picked = self.picked == Some(ix);
                 let dim = self.picked.is_some() && !picked;
-                let seg = |n: u32, color: Hsla| div().w_full().h(relative(n as f32 / peak)).bg(color);
+                let seg =
+                    |n: u32, color: Hsla| div().w_full().h(relative(n as f32 / peak)).bg(color);
                 v_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("bar-{ix}").into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("bar-{ix}").into(),
+                    ))
                     .flex_1()
                     .min_w(px(14.))
                     .h_full()
                     .gap_1()
                     .role(Role::Image)
-                    .aria_label(format!("{}: {} done, {} failed, {} to review", bucket.label, bucket.done, bucket.failed, bucket.review))
+                    .aria_label(format!(
+                        "{}: {} done, {} failed, {} to review",
+                        bucket.label, bucket.done, bucket.failed, bucket.review
+                    ))
                     .on_hover(move |hovered, window, cx| {
                         if let Some(pick) = &pick {
                             pick(hovered.then_some(ix), window, cx);
@@ -219,32 +245,49 @@ impl RenderOnce for ActivityRecap {
         let picked_line = self
             .picked
             .and_then(|ix| self.buckets.get(ix))
-            .map(|b| format!("{}: {} done, {} failed, {} to review", b.label, b.done, b.failed, b.review))
+            .map(|b| {
+                format!(
+                    "{}: {} done, {} failed, {} to review",
+                    b.label, b.done, b.failed, b.review
+                )
+            })
             .unwrap_or_else(|| "Point at a bar for its counts.".into());
 
         let lane = |which: RecapLane, title: &'static str, color: Hsla, icon: IconName| {
             let items: Vec<_> = self.items.iter().filter(|i| i.lane == which).collect();
             let count = items.len();
-            let cards: Vec<_> = items
-                .into_iter()
-                .map(|item| {
-                    let open = self.on_open.clone();
-                    let id = item.id.clone();
-                    v_flex()
-                        .gap_1()
-                        .p_2()
-                        .rounded(radius)
-                        .border_1()
-                        .border_color(line)
-                        .bg(fill)
-                        .child(div().line_height(relative(1.35)).child(item.title.clone()))
-                        .child(
-                            h_flex()
-                                .gap_2()
-                                .child(div().flex_1().min_w_0().truncate().text_xs().text_color(quiet).child(item.meta.clone()))
-                                .when(which == RecapLane::Review, |this| {
-                                    this.child(
-                                        Button::new(ElementId::NamedChild(self.id.clone().into(), format!("open-{}", item.id).into()))
+            let cards: Vec<_> =
+                items
+                    .into_iter()
+                    .map(|item| {
+                        let open = self.on_open.clone();
+                        let id = item.id.clone();
+                        v_flex()
+                            .gap_1()
+                            .p_2()
+                            .rounded(radius)
+                            .border_1()
+                            .border_color(line)
+                            .bg(fill)
+                            .child(div().line_height(relative(1.35)).child(item.title.clone()))
+                            .child(
+                                h_flex()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .min_w_0()
+                                            .truncate()
+                                            .text_xs()
+                                            .text_color(quiet)
+                                            .child(item.meta.clone()),
+                                    )
+                                    .when(which == RecapLane::Review, |this| {
+                                        this.child(
+                                            Button::new(ElementId::NamedChild(
+                                                self.id.clone().into(),
+                                                format!("open-{}", item.id).into(),
+                                            ))
                                             .xsmall()
                                             .outline()
                                             .label("Open")
@@ -254,11 +297,11 @@ impl RenderOnce for ActivityRecap {
                                                     open(&id, window, cx);
                                                 }
                                             }),
-                                    )
-                                }),
-                        )
-                })
-                .collect();
+                                        )
+                                    }),
+                            )
+                    })
+                    .collect();
             v_flex()
                 .flex_1()
                 .min_w(px(200.))
@@ -277,7 +320,16 @@ impl RenderOnce for ActivityRecap {
                         .child(div().text_color(quiet).child(count.to_string())),
                 )
                 .children(cards)
-                .when(count == 0, |this| this.child(div().px_1().py_2().text_xs().text_color(quiet).child("Nothing here.")))
+                .when(count == 0, |this| {
+                    this.child(
+                        div()
+                            .px_1()
+                            .py_2()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child("Nothing here."),
+                    )
+                })
         };
 
         v_flex()
@@ -300,9 +352,27 @@ impl RenderOnce for ActivityRecap {
                     .border_b_1()
                     .border_color(line)
                     .child(div().flex_1().font_semibold().child(self.title.clone()))
-                    .child(h_flex().gap_1().text_xs().child(div().size(px(8.)).rounded(px(2.)).bg(done_c)).child(format!("{done} done")))
-                    .child(h_flex().gap_1().text_xs().child(div().size(px(8.)).rounded(px(2.)).bg(failed_c)).child(format!("{failed} failed")))
-                    .child(h_flex().gap_1().text_xs().child(div().size(px(8.)).rounded(px(2.)).bg(review_c)).child(format!("{review} to review"))),
+                    .child(
+                        h_flex()
+                            .gap_1()
+                            .text_xs()
+                            .child(div().size(px(8.)).rounded(px(2.)).bg(done_c))
+                            .child(format!("{done} done")),
+                    )
+                    .child(
+                        h_flex()
+                            .gap_1()
+                            .text_xs()
+                            .child(div().size(px(8.)).rounded(px(2.)).bg(failed_c))
+                            .child(format!("{failed} failed")),
+                    )
+                    .child(
+                        h_flex()
+                            .gap_1()
+                            .text_xs()
+                            .child(div().size(px(8.)).rounded(px(2.)).bg(review_c))
+                            .child(format!("{review} to review")),
+                    ),
             )
             .child(
                 v_flex()
@@ -318,8 +388,18 @@ impl RenderOnce for ActivityRecap {
                     .items_start()
                     .gap_3()
                     .p_4()
-                    .child(lane(RecapLane::Review, "Needs review", review_c, IconName::Bell))
-                    .child(lane(RecapLane::Failed, "Failed", failed_c, IconName::CircleX))
+                    .child(lane(
+                        RecapLane::Review,
+                        "Needs review",
+                        review_c,
+                        IconName::Bell,
+                    ))
+                    .child(lane(
+                        RecapLane::Failed,
+                        "Failed",
+                        failed_c,
+                        IconName::CircleX,
+                    ))
                     .child(lane(RecapLane::Done, "Done", done_c, IconName::CircleCheck)),
             )
             .refine_style(&self.style)
@@ -332,7 +412,10 @@ mod tests {
 
     #[test]
     fn totals_add_across_buckets() {
-        let buckets = vec![RecapBucket::new("9", 4, 1, 0), RecapBucket::new("10", 2, 0, 3)];
+        let buckets = vec![
+            RecapBucket::new("9", 4, 1, 0),
+            RecapBucket::new("10", 2, 0, 3),
+        ];
         assert_eq!(recap_totals(&buckets), (6, 1, 3));
         assert_eq!(buckets[1].total(), 5);
     }

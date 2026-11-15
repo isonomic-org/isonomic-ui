@@ -15,11 +15,19 @@ impl SelectAllChecklistStory {
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|_| Self {
             items: vec![
-                ChecklistItem::new("b1", "Harbour Supply, invoice 2291").note("$1,240.50").checked(true),
-                ChecklistItem::new("b2", "Northline Fuel, March").note("$612.08").checked(true),
+                ChecklistItem::new("b1", "Harbour Supply, invoice 2291")
+                    .note("$1,240.50")
+                    .checked(true),
+                ChecklistItem::new("b2", "Northline Fuel, March")
+                    .note("$612.08")
+                    .checked(true),
                 ChecklistItem::new("b3", "Kestrel Print, 400 flyers").note("$289.00"),
-                ChecklistItem::new("b4", "Bayview Rent, April").note("$4,200.00").checked(true),
-                ChecklistItem::new("b5", "Oak & Iron, disputed").note("$980.00").locked(),
+                ChecklistItem::new("b4", "Bayview Rent, April")
+                    .note("$4,200.00")
+                    .checked(true),
+                ChecklistItem::new("b5", "Oak & Iron, disputed")
+                    .note("$980.00")
+                    .locked(),
             ],
         })
     }
@@ -42,15 +50,17 @@ impl Story for SelectAllChecklistStory {
 impl Render for SelectAllChecklistStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let change = cx.entity();
-        SelectAllChecklist::new("friday-run", "Pay on Friday", self.items.clone()).on_change(move |changes, _, cx| {
-            change.update(cx, |this, cx| {
-                for (id, checked) in changes {
-                    if let Some(item) = this.items.iter_mut().find(|i| i.id == id) {
-                        item.checked = checked;
+        SelectAllChecklist::new("friday-run", "Pay on Friday", self.items.clone()).on_change(
+            move |changes, _, cx| {
+                change.update(cx, |this, cx| {
+                    for (id, checked) in changes {
+                        if let Some(item) = this.items.iter_mut().find(|i| i.id == id) {
+                            item.checked = checked;
+                        }
                     }
-                }
-                cx.notify();
-            })
-        })
+                    cx.notify();
+                })
+            },
+        )
     }
 }

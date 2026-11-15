@@ -13,9 +13,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    Context, ElementId, EventEmitter, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Task, Window, div, prelude::FluentBuilder as _, px,
+    Context, ElementId, EventEmitter, InteractiveElement as _, IntoElement, ParentElement as _,
+    Render, Role, SharedString, StatefulInteractiveElement as _, Styled as _, Task, Window, div,
+    prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{Tone, lifted_shadow};
@@ -36,7 +36,12 @@ pub struct Toast {
 impl Toast {
     /// Create a notice with a title.
     pub fn new(tone: Tone, title: impl Into<SharedString>) -> Self {
-        Self { tone, title: title.into(), body: None, action: None }
+        Self {
+            tone,
+            title: title.into(),
+            body: None,
+            action: None,
+        }
     }
 
     /// Add a second line.
@@ -94,7 +99,12 @@ impl EventEmitter<ToastEvent> for ToastQueue {}
 
 impl Default for ToastQueue {
     fn default() -> Self {
-        Self { entries: Vec::new(), next_id: 1, room: 3, resting: None }
+        Self {
+            entries: Vec::new(),
+            next_id: 1,
+            room: 3,
+            resting: None,
+        }
     }
 }
 
@@ -115,7 +125,11 @@ impl ToastQueue {
         let id = self.next_id;
         self.next_id += 1;
         let timer = stay_for(&toast).map(|wait| self.timer(id, wait, cx));
-        self.entries.push(Entry { id, toast, _timer: timer });
+        self.entries.push(Entry {
+            id,
+            toast,
+            _timer: timer,
+        });
         cx.notify();
         id
     }
@@ -141,20 +155,22 @@ impl ToastQueue {
     }
 
     fn timer(&self, id: u64, wait: Duration, cx: &mut Context<Self>) -> Task<()> {
-        cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-            cx.background_executor().timer(wait).await;
-            this.update(cx, |this, cx| {
-                if this.resting == Some(id) {
-                    let again = this.timer(id, Duration::from_secs(2), cx);
-                    if let Some(entry) = this.entries.iter_mut().find(|e| e.id == id) {
-                        entry._timer = Some(again);
+        cx.spawn(
+            async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                cx.background_executor().timer(wait).await;
+                this.update(cx, |this, cx| {
+                    if this.resting == Some(id) {
+                        let again = this.timer(id, Duration::from_secs(2), cx);
+                        if let Some(entry) = this.entries.iter_mut().find(|e| e.id == id) {
+                            entry._timer = Some(again);
+                        }
+                    } else {
+                        this.dismiss(id, cx);
                     }
-                } else {
-                    this.dismiss(id, cx);
-                }
-            })
-            .ok();
-        })
+                })
+                .ok();
+            },
+        )
     }
 }
 
@@ -192,7 +208,11 @@ impl Render for ToastQueue {
                     .border_color(line)
                     .bg(fill)
                     .shadow(shadow.clone())
-                    .role(if toast.tone == Tone::Danger { Role::Alert } else { Role::Status })
+                    .role(if toast.tone == Tone::Danger {
+                        Role::Alert
+                    } else {
+                        Role::Status
+                    })
                     .aria_label(match &toast.body {
                         Some(body) => format!("{}. {body}", toast.title),
                         None => toast.title.to_string(),
@@ -207,7 +227,9 @@ impl Render for ToastQueue {
                             .min_w_0()
                             .gap_0p5()
                             .child(div().text_sm().font_medium().child(toast.title.clone()))
-                            .when_some(toast.body.clone(), |this, body| this.child(div().text_xs().text_color(quiet).child(body))),
+                            .when_some(toast.body.clone(), |this, body| {
+                                this.child(div().text_xs().text_color(quiet).child(body))
+                            }),
                     )
                     .when_some(toast.action.clone(), |this, label| {
                         this.child(
@@ -237,7 +259,14 @@ impl Render for ToastQueue {
             .gap_2()
             .items_end()
             .children(cards)
-            .when(waiting > 0, |this| this.child(div().text_xs().text_color(quiet).child(format!("+{waiting} more"))))
+            .when(waiting > 0, |this| {
+                this.child(
+                    div()
+                        .text_xs()
+                        .text_color(quiet)
+                        .child(format!("+{waiting} more")),
+                )
+            })
     }
 }
 
@@ -248,8 +277,14 @@ mod tests {
     #[test]
     fn notices_stay_by_kind_and_overflow_waits() {
         assert_eq!(stay_for(&Toast::new(Tone::Danger, "Sync failed")), None);
-        assert_eq!(stay_for(&Toast::new(Tone::Success, "Archived").action("Undo")), Some(Duration::from_secs(8)));
-        assert_eq!(stay_for(&Toast::new(Tone::Info, "Saved").body("All changes")), Some(Duration::from_secs(5)));
+        assert_eq!(
+            stay_for(&Toast::new(Tone::Success, "Archived").action("Undo")),
+            Some(Duration::from_secs(8))
+        );
+        assert_eq!(
+            stay_for(&Toast::new(Tone::Info, "Saved").body("All changes")),
+            Some(Duration::from_secs(5))
+        );
         assert_eq!(shown_and_waiting(5, 3), (3, 2));
         assert_eq!(shown_and_waiting(2, 3), (2, 0));
         assert_eq!(shown_and_waiting(1, 0), (1, 0));

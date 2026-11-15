@@ -15,10 +15,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -139,7 +138,10 @@ impl FaultTree {
     }
 
     /// Run when a leaf's verdict is set from its buttons.
-    pub fn on_verdict(mut self, handler: impl Fn(&SharedString, Verdict, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_verdict(
+        mut self,
+        handler: impl Fn(&SharedString, Verdict, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_verdict = Some(Rc::new(handler));
         self
     }
@@ -167,7 +169,13 @@ fn verdict_look(verdict: Verdict, cx: &App) -> (Hsla, &'static str, IconName) {
     }
 }
 
-fn draw(tree: &FaultTree, paint: &Paint, node: &FaultNode, depth: usize, cx: &mut App) -> AnyElement {
+fn draw(
+    tree: &FaultTree,
+    paint: &Paint,
+    node: &FaultNode,
+    depth: usize,
+    cx: &mut App,
+) -> AnyElement {
     let standing = node.standing();
     let (color, word, icon) = verdict_look(standing, cx);
     let faded = standing == Verdict::RuledOut && depth > 0;
@@ -176,16 +184,25 @@ fn draw(tree: &FaultTree, paint: &Paint, node: &FaultNode, depth: usize, cx: &mu
         let make = |label: &'static str, verdict: Verdict| {
             let on_verdict = tree.on_verdict.clone();
             let id = node.id.clone();
-            Button::new(ElementId::NamedChild(tree.id.clone().into(), format!("{label}-{}", node.id).into()))
-                .xsmall()
-                .map(|b| if node.verdict == verdict { b.primary() } else { b.ghost() })
-                .label(label)
-                .accessibility_label(format!("{label}: {}", node.label))
-                .on_click(move |_, window, cx| {
-                    if let Some(on_verdict) = &on_verdict {
-                        on_verdict(&id, verdict, window, cx);
-                    }
-                })
+            Button::new(ElementId::NamedChild(
+                tree.id.clone().into(),
+                format!("{label}-{}", node.id).into(),
+            ))
+            .xsmall()
+            .map(|b| {
+                if node.verdict == verdict {
+                    b.primary()
+                } else {
+                    b.ghost()
+                }
+            })
+            .label(label)
+            .accessibility_label(format!("{label}: {}", node.label))
+            .on_click(move |_, window, cx| {
+                if let Some(on_verdict) = &on_verdict {
+                    on_verdict(&id, verdict, window, cx);
+                }
+            })
         };
         h_flex()
             .gap_0p5()
@@ -194,19 +211,33 @@ fn draw(tree: &FaultTree, paint: &Paint, node: &FaultNode, depth: usize, cx: &mu
             .child(make("Reopen", Verdict::Open))
     });
     let card = v_flex()
-        .id(ElementId::NamedChild(tree.id.clone().into(), format!("node-{}", node.id).into()))
+        .id(ElementId::NamedChild(
+            tree.id.clone().into(),
+            format!("node-{}", node.id).into(),
+        ))
         .gap_1()
         .p_2p5()
         .rounded(px(8.))
         .border_1()
-        .border_color(if standing == Verdict::Confirmed { color } else { paint.line })
-        .bg(if depth == 0 { color.opacity(0.08) } else { paint.fill })
+        .border_color(if standing == Verdict::Confirmed {
+            color
+        } else {
+            paint.line
+        })
+        .bg(if depth == 0 {
+            color.opacity(0.08)
+        } else {
+            paint.fill
+        })
         .when(faded, |this| this.opacity(0.5))
         .role(Role::TreeItem)
         .aria_label(format!(
             "{}, {word}{}",
             node.label,
-            node.evidence.as_ref().map(|e| format!(". {e}")).unwrap_or_default()
+            node.evidence
+                .as_ref()
+                .map(|e| format!(". {e}"))
+                .unwrap_or_default()
         ))
         .child(
             h_flex()
@@ -225,7 +256,12 @@ fn draw(tree: &FaultTree, paint: &Paint, node: &FaultNode, depth: usize, cx: &mu
                 .child(div().flex_none().text_xs().text_color(color).child(word)),
         )
         .children(node.evidence.clone().map(|e| {
-            div().pl(px(20.)).text_xs().text_color(paint.quiet).line_height(relative(1.4)).child(e)
+            div()
+                .pl(px(20.))
+                .text_xs()
+                .text_color(paint.quiet)
+                .line_height(relative(1.4))
+                .child(e)
         }))
         .children(buttons.map(|b| div().pl(px(14.)).child(b)));
 
@@ -245,24 +281,23 @@ fn draw(tree: &FaultTree, paint: &Paint, node: &FaultNode, depth: usize, cx: &mu
                 .border_l_1()
                 .border_color(paint.line)
                 .child(
-                    div()
-                        .py_1()
-                        .child(
-                            div()
-                                .px_1p5()
-                                .rounded(px(4.))
-                                .bg(paint.chip)
-                                .text_xs()
-                                .font_medium()
-                                .text_color(paint.ink)
-                                .child(gate_word),
-                        ),
+                    div().py_1().child(
+                        div()
+                            .px_1p5()
+                            .rounded(px(4.))
+                            .bg(paint.chip)
+                            .text_xs()
+                            .font_medium()
+                            .text_color(paint.ink)
+                            .child(gate_word),
+                    ),
                 )
                 .child(
-                    v_flex()
-                        .gap_2()
-                        .pb_1()
-                        .children(node.causes.iter().map(|child| draw(tree, paint, child, depth + 1, cx))),
+                    v_flex().gap_2().pb_1().children(
+                        node.causes
+                            .iter()
+                            .map(|child| draw(tree, paint, child, depth + 1, cx)),
+                    ),
                 ),
         )
         .into_any_element()
@@ -338,7 +373,10 @@ mod tests {
             ],
         );
         assert_eq!(all.standing(), Verdict::RuledOut);
-        let found = FaultNode::new("r", "R").gate(Gate::Any, vec![FaultNode::new("a", "A").verdict(Verdict::Confirmed, "yes")]);
+        let found = FaultNode::new("r", "R").gate(
+            Gate::Any,
+            vec![FaultNode::new("a", "A").verdict(Verdict::Confirmed, "yes")],
+        );
         assert_eq!(found.standing(), Verdict::Confirmed);
     }
 }

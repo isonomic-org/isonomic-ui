@@ -3,8 +3,12 @@
 use std::time::Duration;
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window};
-use isonomic_ui_extra::live_cursors_overlay::{Collaborator, LiveCursorsOverlay, Presence, WordSuggestion};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window,
+};
+use isonomic_ui_extra::live_cursors_overlay::{
+    Collaborator, LiveCursorsOverlay, Presence, WordSuggestion,
+};
 
 fn paragraphs() -> Vec<SharedString> {
     vec![
@@ -26,18 +30,22 @@ impl LiveCursorsOverlayStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let tick = cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-                loop {
-                    cx.background_executor().timer(Duration::from_millis(700)).await;
-                    let alive = this.update(cx, |this, cx| {
-                        this.step = (this.step + 1) % 14;
-                        cx.notify();
-                    });
-                    if alive.is_err() {
-                        break;
+            let tick = cx.spawn(
+                async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                    loop {
+                        cx.background_executor()
+                            .timer(Duration::from_millis(700))
+                            .await;
+                        let alive = this.update(cx, |this, cx| {
+                            this.step = (this.step + 1) % 14;
+                            cx.notify();
+                        });
+                        if alive.is_err() {
+                            break;
+                        }
                     }
-                }
-            });
+                },
+            );
             Self {
                 step: 0,
                 suggestions: vec![
@@ -87,9 +95,24 @@ impl Render for LiveCursorsOverlayStory {
                     Collaborator::agent("lead", "Coordinator"),
                 ],
                 vec![
-                    Presence { who: "maya".into(), paragraph: 0, after_word: 6, selection: Some((4, 6)) },
-                    Presence { who: "recon".into(), paragraph: 1, after_word: self.step.min(13), selection: None },
-                    Presence { who: "lead".into(), paragraph: 2, after_word: 9, selection: None },
+                    Presence {
+                        who: "maya".into(),
+                        paragraph: 0,
+                        after_word: 6,
+                        selection: Some((4, 6)),
+                    },
+                    Presence {
+                        who: "recon".into(),
+                        paragraph: 1,
+                        after_word: self.step.min(13),
+                        selection: None,
+                    },
+                    Presence {
+                        who: "lead".into(),
+                        paragraph: 2,
+                        after_word: 9,
+                        selection: None,
+                    },
                 ],
             )
             .suggestions(self.suggestions.clone())

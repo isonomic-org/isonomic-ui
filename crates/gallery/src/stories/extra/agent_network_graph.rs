@@ -1,7 +1,9 @@
 //! Gallery story for the agent network graph.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
 use isonomic_ui_extra::agent_network_graph::{
     AgentNetworkGraph, NetworkLink, NetworkNode, NetworkNodeKind,
 };

@@ -14,10 +14,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -54,7 +53,11 @@ pub struct Branch {
 
 impl Branch {
     /// Create a branch with no risk.
-    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>, detail: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+        detail: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -111,7 +114,11 @@ pub struct OptionTree {
 
 impl OptionTree {
     /// Create a tree for a decision.
-    pub fn new(id: impl Into<ElementId>, question: impl Into<SharedString>, options: Vec<Branch>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        question: impl Into<SharedString>,
+        options: Vec<Branch>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -129,7 +136,10 @@ impl OptionTree {
     }
 
     /// Run when an option is picked.
-    pub fn on_pick(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_pick(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_pick = Some(Rc::new(handler));
         self
     }
@@ -159,7 +169,10 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
         BranchRisk::High => Some(paint.danger),
     };
     let card = v_flex()
-        .id(ElementId::NamedChild(tree.id.clone().into(), format!("branch-{}", branch.id).into()))
+        .id(ElementId::NamedChild(
+            tree.id.clone().into(),
+            format!("branch-{}", branch.id).into(),
+        ))
         .w(px(210.))
         .flex_none()
         .gap_1()
@@ -181,19 +194,40 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
             "{}. {}{}{}",
             branch.label,
             branch.detail,
-            branch.risk_note.as_ref().map(|n| format!(". Risk: {n}")).unwrap_or_default(),
-            if branch.recommended { ". Recommended" } else { "" }
+            branch
+                .risk_note
+                .as_ref()
+                .map(|n| format!(". Risk: {n}"))
+                .unwrap_or_default(),
+            if branch.recommended {
+                ". Recommended"
+            } else {
+                ""
+            }
         ))
         .aria_selected(chosen)
         .child(
             h_flex()
                 .gap_1p5()
-                .child(div().flex_1().min_w_0().font_medium().line_height(relative(1.3)).child(branch.label.clone()))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .font_medium()
+                        .line_height(relative(1.3))
+                        .child(branch.label.clone()),
+                )
                 .when(branch.recommended, |this| {
                     this.child(Icon::new(IconName::Star).xsmall().text_color(paint.accent))
                 }),
         )
-        .child(div().text_xs().text_color(paint.quiet).line_height(relative(1.4)).child(branch.detail.clone()))
+        .child(
+            div()
+                .text_xs()
+                .text_color(paint.quiet)
+                .line_height(relative(1.4))
+                .child(branch.detail.clone()),
+        )
         .children(branch.risk_note.clone().zip(flag).map(|(note, color)| {
             h_flex()
                 .gap_1()
@@ -207,16 +241,19 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
             let id = branch.id.clone();
             this.child(
                 div().pt_1().child(
-                    Button::new(ElementId::NamedChild(tree.id.clone().into(), format!("pick-{}", branch.id).into()))
-                        .xsmall()
-                        .map(|b| if chosen { b.primary() } else { b.outline() })
-                        .label(if chosen { "Picked" } else { "Pick this" })
-                        .accessibility_label(format!("Pick {}", branch.label))
-                        .on_click(move |_, window, cx| {
-                            if let Some(pick) = &pick {
-                                pick(&id, window, cx);
-                            }
-                        }),
+                    Button::new(ElementId::NamedChild(
+                        tree.id.clone().into(),
+                        format!("pick-{}", branch.id).into(),
+                    ))
+                    .xsmall()
+                    .map(|b| if chosen { b.primary() } else { b.outline() })
+                    .label(if chosen { "Picked" } else { "Pick this" })
+                    .accessibility_label(format!("Pick {}", branch.label))
+                    .on_click(move |_, window, cx| {
+                        if let Some(pick) = &pick {
+                            pick(&id, window, cx);
+                        }
+                    }),
                 ),
             )
         });
@@ -230,7 +267,11 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
         .iter()
         .enumerate()
         .map(|(ix, child)| {
-            let stroke = if child.recommended { paint.accent } else { paint.line };
+            let stroke = if child.recommended {
+                paint.accent
+            } else {
+                paint.line
+            };
             h_flex()
                 .items_start()
                 .child(
@@ -246,7 +287,9 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
                                 .border_color(stroke)
                                 .when(ix > 0, |this| this.border_l_1().border_color(paint.line)),
                         )
-                        .child(div().flex_1().when(ix + 1 < count, |this| this.border_l_1().border_color(paint.line))),
+                        .child(div().flex_1().when(ix + 1 < count, |this| {
+                            this.border_l_1().border_color(paint.line)
+                        })),
                 )
                 .child(div().pb_2().child(node(tree, paint, child, false, cx)))
         })
@@ -254,7 +297,18 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
     h_flex()
         .items_start()
         .child(card)
-        .child(div().w(px(12.)).h(px(22.)).flex_none().border_b_1().border_color(if branch.children.iter().any(|c| c.recommended) { paint.accent } else { paint.line }))
+        .child(
+            div()
+                .w(px(12.))
+                .h(px(22.))
+                .flex_none()
+                .border_b_1()
+                .border_color(if branch.children.iter().any(|c| c.recommended) {
+                    paint.accent
+                } else {
+                    paint.line
+                }),
+        )
         .child(v_flex().children(children))
         .into_any_element()
 }
@@ -272,7 +326,11 @@ impl RenderOnce for OptionTree {
             danger: Tone::Danger.color(cx),
         };
         let radius_lg = cx.theme().radius_lg;
-        let flagged = self.options.iter().filter(|o| o.worst_risk() == BranchRisk::High).count();
+        let flagged = self
+            .options
+            .iter()
+            .filter(|o| o.worst_risk() == BranchRisk::High)
+            .count();
         let options: Vec<_> = self
             .options
             .iter()
@@ -300,12 +358,19 @@ impl RenderOnce for OptionTree {
                     .child(div().text_xs().text_color(paint.quiet).child(format!(
                         "{} options{}",
                         self.options.len(),
-                        if flagged > 0 { format!(", {flagged} with a high risk on the way") } else { String::new() }
+                        if flagged > 0 {
+                            format!(", {flagged} with a high risk on the way")
+                        } else {
+                            String::new()
+                        }
                     ))),
             )
             .child(
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "scroll".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "scroll".into(),
+                    ))
                     .overflow_x_scroll()
                     .child(v_flex().p_4().children(options)),
             )
@@ -320,7 +385,10 @@ mod tests {
     #[test]
     fn the_worst_risk_rises_from_below() {
         let branch = Branch::new("a", "A", "x")
-            .child(Branch::new("a1", "A1", "y").child(Branch::new("a2", "A2", "z").risk(BranchRisk::High, "locked")))
+            .child(
+                Branch::new("a1", "A1", "y")
+                    .child(Branch::new("a2", "A2", "z").risk(BranchRisk::High, "locked")),
+            )
             .risk(BranchRisk::Some, "slow");
         assert_eq!(branch.worst_risk(), BranchRisk::High);
         assert_eq!(Branch::new("b", "B", "x").worst_risk(), BranchRisk::None);

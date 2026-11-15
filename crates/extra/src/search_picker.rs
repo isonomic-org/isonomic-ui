@@ -6,17 +6,15 @@
 //! the last row offers to create the typed name.
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _,
-    h_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, h_flex,
     input::{Input, InputEvent, InputState},
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, AppContext as _, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
     HighlightStyle, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render,
-    SharedString, StatefulInteractiveElement as _, Styled as _, StyledText, Subscription, Window,
-    div, prelude::FluentBuilder as _, px,
+    Role, SharedString, StatefulInteractiveElement as _, Styled as _, StyledText, Subscription,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
@@ -24,7 +22,11 @@ use crate::common::resting_shadow;
 /// Where the typed letters fall in `text`, in order, ignoring case; `None` if they don't all appear.
 pub fn fuzzy_positions(text: &str, typed: &str) -> Option<Vec<usize>> {
     let mut positions = Vec::new();
-    let mut letters = typed.chars().filter(|c| !c.is_whitespace()).flat_map(char::to_lowercase).peekable();
+    let mut letters = typed
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .peekable();
     for (at, c) in text.char_indices() {
         let Some(want) = letters.peek() else { break };
         if c.to_lowercase().next() == Some(*want) {
@@ -72,7 +74,12 @@ impl Focusable for SearchPicker {
 
 impl SearchPicker {
     /// Create a picker over these options; `multiple` lets it keep more than one.
-    pub fn new(options: Vec<SharedString>, multiple: bool, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        options: Vec<SharedString>,
+        multiple: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let field = cx.new(|cx| InputState::new(window, cx).placeholder("Type to search"));
         let events = cx.subscribe_in(&field, window, |this, _, event, window, cx| match event {
             InputEvent::Change => {
@@ -118,7 +125,8 @@ impl SearchPicker {
 
     fn can_create(&self, cx: &App) -> Option<SharedString> {
         let typed = self.field.read(cx).value().trim().to_string();
-        (!typed.is_empty() && !self.options.iter().any(|o| o.eq_ignore_ascii_case(&typed))).then(|| typed.into())
+        (!typed.is_empty() && !self.options.iter().any(|o| o.eq_ignore_ascii_case(&typed)))
+            .then(|| typed.into())
     }
 
     fn pick(&mut self, option: SharedString, window: &mut Window, cx: &mut Context<Self>) {
@@ -192,7 +200,9 @@ impl Render for SearchPicker {
                                 .hover(|s| s.bg(line))
                                 .role(Role::Button)
                                 .aria_label(format!("Remove {p}"))
-                                .on_click(cx.listener(move |this, _, _, cx| this.unpick(&option, cx)))
+                                .on_click(
+                                    cx.listener(move |this, _, _, cx| this.unpick(&option, cx)),
+                                )
                                 .child(Icon::new(IconName::Close).xsmall()),
                         )
                 })
@@ -209,8 +219,19 @@ impl Render for SearchPicker {
                     positions
                         .iter()
                         .map(|at| {
-                            let len = option[*at..].chars().next().map(char::len_utf8).unwrap_or(1);
-                            (*at..*at + len, HighlightStyle { color: Some(accent), font_weight: Some(isonomic_ui::FontWeight::SEMIBOLD), ..Default::default() })
+                            let len = option[*at..]
+                                .chars()
+                                .next()
+                                .map(char::len_utf8)
+                                .unwrap_or(1);
+                            (
+                                *at..*at + len,
+                                HighlightStyle {
+                                    color: Some(accent),
+                                    font_weight: Some(isonomic_ui::FontWeight::SEMIBOLD),
+                                    ..Default::default()
+                                },
+                            )
                         })
                         .collect::<Vec<_>>(),
                 );
@@ -225,9 +246,13 @@ impl Render for SearchPicker {
                     .cursor_pointer()
                     .when(ix == cursor, |this| this.bg(chip))
                     .aria_selected(ix == cursor)
-                    .on_click(cx.listener(move |this, _, window, cx| this.pick(pick.clone(), window, cx)))
+                    .on_click(
+                        cx.listener(move |this, _, window, cx| this.pick(pick.clone(), window, cx)),
+                    )
                     .child(div().flex_1().min_w_0().truncate().child(text))
-                    .when(is_picked, |this| this.child(Icon::new(IconName::Check).xsmall().text_color(accent)))
+                    .when(is_picked, |this| {
+                        this.child(Icon::new(IconName::Check).xsmall().text_color(accent))
+                    })
             })
             .collect();
 
@@ -263,24 +288,33 @@ impl Render for SearchPicker {
             .text_color(ink)
             .text_sm()
             .shadow(resting_shadow(cx))
-            .on_key_down(cx.listener(move |this, event: &KeyDownEvent, _, cx| match event.keystroke.key.as_str() {
-                "down" if rows > 0 => {
-                    this.cursor = (cursor + 1) % rows;
-                    cx.notify();
-                }
-                "up" if rows > 0 => {
-                    this.cursor = (cursor + rows - 1) % rows;
-                    cx.notify();
-                }
-                "backspace" if this.multiple && this.field.read(cx).value().is_empty() => {
-                    if let Some(last) = this.picked.last().cloned() {
-                        this.unpick(&last, cx);
+            .on_key_down(cx.listener(move |this, event: &KeyDownEvent, _, cx| {
+                match event.keystroke.key.as_str() {
+                    "down" if rows > 0 => {
+                        this.cursor = (cursor + 1) % rows;
+                        cx.notify();
                     }
+                    "up" if rows > 0 => {
+                        this.cursor = (cursor + rows - 1) % rows;
+                        cx.notify();
+                    }
+                    "backspace" if this.multiple && this.field.read(cx).value().is_empty() => {
+                        if let Some(last) = this.picked.last().cloned() {
+                            this.unpick(&last, cx);
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }))
-            .when(!chips.is_empty(), |this| this.child(h_flex().flex_wrap().gap_1().px_0p5().children(chips)))
-            .child(Input::new(&self.field).small().prefix(Icon::new(IconName::Search).xsmall().text_color(quiet)).cleanable(true))
+            .when(!chips.is_empty(), |this| {
+                this.child(h_flex().flex_wrap().gap_1().px_0p5().children(chips))
+            })
+            .child(
+                Input::new(&self.field)
+                    .small()
+                    .prefix(Icon::new(IconName::Search).xsmall().text_color(quiet))
+                    .cleanable(true),
+            )
             .child(
                 v_flex()
                     .id("picker-list")
@@ -288,7 +322,16 @@ impl Render for SearchPicker {
                     .overflow_y_scroll()
                     .children(list)
                     .children(create_row)
-                    .when(rows == 0, |this| this.child(div().px_2().py_2().text_xs().text_color(quiet).child("Nothing left to pick."))),
+                    .when(rows == 0, |this| {
+                        this.child(
+                            div()
+                                .px_2()
+                                .py_2()
+                                .text_xs()
+                                .text_color(quiet)
+                                .child("Nothing left to pick."),
+                        )
+                    }),
             )
     }
 }
@@ -299,7 +342,10 @@ mod tests {
 
     #[test]
     fn letters_match_in_order_ignoring_case() {
-        assert_eq!(fuzzy_positions("Northwind Dental", "nwd"), Some(vec![0, 5, 8]));
+        assert_eq!(
+            fuzzy_positions("Northwind Dental", "nwd"),
+            Some(vec![0, 5, 8])
+        );
         assert_eq!(fuzzy_positions("Northwind Dental", "zx"), None);
         assert_eq!(fuzzy_positions("Kestrel", ""), Some(vec![]));
         assert!(fuzzy_score(&[0, 1]) < fuzzy_score(&[4, 9]));

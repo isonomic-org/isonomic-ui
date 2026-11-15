@@ -22,7 +22,11 @@ const COMMANDS: [(&str, &str, &str); 4] = [
 ];
 
 /// People offered after "@".
-const PEOPLE: [(&str, &str); 3] = [("dana", "Dana Reyes"), ("omar", "Omar Haddad"), ("li", "Li Chen")];
+const PEOPLE: [(&str, &str); 3] = [
+    ("dana", "Dana Reyes"),
+    ("omar", "Omar Haddad"),
+    ("li", "Li Chen"),
+];
 
 fn matches(trigger: SuggestTrigger, query: &str) -> Vec<ComposerChoice> {
     let query = query.to_lowercase();
@@ -34,7 +38,11 @@ fn matches(trigger: SuggestTrigger, query: &str) -> Vec<ComposerChoice> {
             .collect(),
         SuggestTrigger::Mention => PEOPLE
             .iter()
-            .filter(|(_, name)| name.to_lowercase().split(' ').any(|part| part.starts_with(&query)))
+            .filter(|(_, name)| {
+                name.to_lowercase()
+                    .split(' ')
+                    .any(|part| part.starts_with(&query))
+            })
             .map(|(id, name)| ComposerChoice::new(*id, name.replace(' ', "")).note(*name))
             .collect(),
     }
@@ -69,8 +77,14 @@ impl PromptComposerStory {
             let composer =
                 cx.new(|cx| PromptComposer::new("Ask about your books\u{2026}", window, cx));
             let apps = vec![
-                (ComposerChoice::new("bank", "Bank feed").note("Read only"), true),
-                (ComposerChoice::new("mail", "Mail").note("Drafts only"), true),
+                (
+                    ComposerChoice::new("bank", "Bank feed").note("Read only"),
+                    true,
+                ),
+                (
+                    ComposerChoice::new("mail", "Mail").note("Drafts only"),
+                    true,
+                ),
                 (ComposerChoice::new("payroll", "Payroll"), false),
             ];
             composer.update(cx, |composer, cx| {
@@ -249,8 +263,10 @@ impl PromptComposerStory {
                         .file_name()
                         .map(|name| name.to_string_lossy().to_string())
                         .unwrap_or_else(|| "file".into());
-                    self.attachments
-                        .push(ComposerAttachment::new(format!("file-{}", self.next_file), name));
+                    self.attachments.push(ComposerAttachment::new(
+                        format!("file-{}", self.next_file),
+                        name,
+                    ));
                 }
                 self.push_attachments(composer, cx);
             }

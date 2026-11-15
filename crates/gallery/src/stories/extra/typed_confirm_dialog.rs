@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, Sizable as _, button::Button, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div, prelude::FluentBuilder as _};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Subscription, Window, div, prelude::FluentBuilder as _,
+};
 use isonomic_ui_extra::typed_confirm_dialog::{ConfirmEvent, TypedConfirmDialog};
 
 /// Voiding an invoice. The story shows and hides the dialog and says what
@@ -19,7 +22,13 @@ impl TypedConfirmDialogStory {
     pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
             let dialog = cx.new(|cx| {
-                let mut dialog = TypedConfirmDialog::new("Void invoice INV-2240?", "INV-2240", "Void invoice", window, cx);
+                let mut dialog = TypedConfirmDialog::new(
+                    "Void invoice INV-2240?",
+                    "INV-2240",
+                    "Void invoice",
+                    window,
+                    cx,
+                );
                 dialog.set_consequences(
                     vec![
                         SharedString::from("Harbour Supply's balance drops by $1,240.50."),
@@ -70,13 +79,20 @@ impl Render for TypedConfirmDialogStory {
             .when(self.open, |this| this.child(self.dialog.clone()))
             .when(!self.open, |this| {
                 this.child(
-                    Button::new("reopen").small().outline().label("Void invoice INV-2240\u{2026}").on_click(cx.listener(|this, _, window, cx| {
-                        this.dialog.update(cx, |d, cx| d.reset(window, cx));
-                        this.open = true;
-                        cx.notify();
-                    })),
+                    Button::new("reopen")
+                        .small()
+                        .outline()
+                        .label("Void invoice INV-2240\u{2026}")
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.dialog.update(cx, |d, cx| d.reset(window, cx));
+                            this.open = true;
+                            cx.notify();
+                        })),
                 )
             })
-            .children(self.result.map(|r| div().text_xs().text_color(quiet).child(r)))
+            .children(
+                self.result
+                    .map(|r| div().text_xs().text_color(quiet).child(r)),
+            )
     }
 }

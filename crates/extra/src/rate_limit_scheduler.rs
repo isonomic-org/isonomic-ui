@@ -19,10 +19,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -254,7 +253,10 @@ impl RateLimitScheduler {
     }
 
     /// Run when a call is dropped from the queue.
-    pub fn on_drop(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_drop(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_drop = Some(Rc::new(handler));
         self
     }
@@ -324,13 +326,7 @@ impl RenderOnce for RateLimitScheduler {
                 h_flex()
                     .gap_3()
                     .py_1p5()
-                    .child(
-                        div()
-                            .size(px(8.))
-                            .flex_none()
-                            .rounded_full()
-                            .bg(colors[ix]),
-                    )
+                    .child(div().size(px(8.)).flex_none().rounded_full().bg(colors[ix]))
                     .child(
                         v_flex()
                             .w(px(150.))
@@ -371,7 +367,10 @@ impl RenderOnce for RateLimitScheduler {
                                         div()
                                             .flex_1()
                                             .when(full, |this| this.text_color(danger))
-                                            .child(format!("{} of {} used", limit.used, limit.limit)),
+                                            .child(format!(
+                                                "{} of {} used",
+                                                limit.used, limit.limit
+                                            )),
                                     )
                                     .child(format!("resets {}", wait_words(limit.resets_in))),
                             ),
@@ -395,7 +394,11 @@ impl RenderOnce for RateLimitScheduler {
                         ))
                         .xsmall()
                         .ghost()
-                        .icon(if paused { IconName::Play } else { IconName::Pause })
+                        .icon(if paused {
+                            IconName::Play
+                        } else {
+                            IconName::Pause
+                        })
                         .accessibility_label(format!(
                             "{} {}",
                             if paused { "Resume" } else { "Pause" },
@@ -501,9 +504,11 @@ impl RenderOnce for RateLimitScheduler {
                     CallTiming::Never => ("Won't fit".to_string(), danger),
                 };
                 let focus = window
-                    .use_keyed_state((self.id.clone(), format!("call-{}", call.id)), cx, |_, cx| {
-                        cx.focus_handle().tab_stop(true)
-                    })
+                    .use_keyed_state(
+                        (self.id.clone(), format!("call-{}", call.id)),
+                        cx,
+                        |_, cx| cx.focus_handle().tab_stop(true),
+                    )
                     .read(cx)
                     .clone();
                 let is_focused = focus.is_focused(window);
@@ -545,12 +550,17 @@ impl RenderOnce for RateLimitScheduler {
                 let up = {
                     let on_move = self.on_move.clone();
                     let id = call.id.clone();
-                    button("up", IconName::ArrowUp, format!("Move {} up", call.label), first)
-                        .on_click(move |_, window, cx| {
-                            if let Some(on_move) = &on_move {
-                                on_move(&id, true, window, cx);
-                            }
-                        })
+                    button(
+                        "up",
+                        IconName::ArrowUp,
+                        format!("Move {} up", call.label),
+                        first,
+                    )
+                    .on_click(move |_, window, cx| {
+                        if let Some(on_move) = &on_move {
+                            on_move(&id, true, window, cx);
+                        }
+                    })
                 };
                 let down = {
                     let on_move = self.on_move.clone();
@@ -570,13 +580,17 @@ impl RenderOnce for RateLimitScheduler {
                 let remove = {
                     let on_drop = self.on_drop.clone();
                     let id = call.id.clone();
-                    button("drop", IconName::Close, format!("Drop {}", call.label), false).on_click(
-                        move |_, window, cx| {
-                            if let Some(on_drop) = &on_drop {
-                                on_drop(&id, window, cx);
-                            }
-                        },
+                    button(
+                        "drop",
+                        IconName::Close,
+                        format!("Drop {}", call.label),
+                        false,
                     )
+                    .on_click(move |_, window, cx| {
+                        if let Some(on_drop) = &on_drop {
+                            on_drop(&id, window, cx);
+                        }
+                    })
                 };
                 h_flex()
                     .id(ElementId::NamedChild(
@@ -617,18 +631,16 @@ impl RenderOnce for RateLimitScheduler {
                             .flex_1()
                             .min_w_0()
                             .child(div().truncate().child(call.label.clone()))
-                            .child(
-                                div().truncate().text_xs().text_color(quiet).child(
-                                    match (&call.source, call.cost) {
-                                        (Some(source), 1) => format!("{limit_name} \u{b7} {source}"),
-                                        (Some(source), cost) => {
-                                            format!("{limit_name} \u{b7} {source} \u{b7} costs {cost}")
-                                        }
-                                        (None, 1) => limit_name.to_string(),
-                                        (None, cost) => format!("{limit_name} \u{b7} costs {cost}"),
-                                    },
-                                ),
-                            ),
+                            .child(div().truncate().text_xs().text_color(quiet).child(
+                                match (&call.source, call.cost) {
+                                    (Some(source), 1) => format!("{limit_name} \u{b7} {source}"),
+                                    (Some(source), cost) => {
+                                        format!("{limit_name} \u{b7} {source} \u{b7} costs {cost}")
+                                    }
+                                    (None, 1) => limit_name.to_string(),
+                                    (None, cost) => format!("{limit_name} \u{b7} costs {cost}"),
+                                },
+                            )),
                     )
                     .child(
                         div()
@@ -780,8 +792,14 @@ mod tests {
     #[test]
     fn paused_and_unknown_limits_hold_calls() {
         let limits = vec![RateLimit::new("a", "A", 5, 60).paused(true)];
-        let calls = vec![QueuedCall::new("x", "X", "a"), QueuedCall::new("y", "Y", "b")];
-        assert_eq!(schedule(&limits, &calls), [CallTiming::Held, CallTiming::Never]);
+        let calls = vec![
+            QueuedCall::new("x", "X", "a"),
+            QueuedCall::new("y", "Y", "b"),
+        ];
+        assert_eq!(
+            schedule(&limits, &calls),
+            [CallTiming::Held, CallTiming::Never]
+        );
     }
 
     #[test]

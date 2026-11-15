@@ -15,27 +15,51 @@ pub struct MultiAgentDashboardStory {
 
 fn agents() -> Vec<FleetAgent> {
     vec![
-        FleetAgent::new("recon", "Reconciler", "Matching 214 card payouts against the ledger")
-            .progress(0.62)
-            .usage(38, 27, "4s ago"),
-        FleetAgent::new("payables", "Payables assistant", "Waiting for Maya to approve Friday's supplier run")
-            .state(FleetState::Waiting)
-            .progress(0.8)
-            .usage(11, 8, "6 min ago"),
-        FleetAgent::new("cards", "Card matcher", "The March ledger is locked, so 201 matches couldn't post")
-            .state(FleetState::Failed)
-            .progress(0.94)
-            .usage(9, 4, "12 min ago"),
-        FleetAgent::new("collections", "Collections", "Drafting reminders for 7 overdue invoices")
-            .progress(0.35)
-            .usage(16, 12, "18s ago"),
-        FleetAgent::new("receipts", "Receipt filer", "Filing 43 receipts from the shared inbox")
-            .state(FleetState::Paused)
-            .progress(0.5)
-            .usage(21, 6, "1 h ago"),
-        FleetAgent::new("bank", "Bank matcher", "Matched all 61 operating account lines")
-            .state(FleetState::Done)
-            .usage(22, 9, "25 min ago"),
+        FleetAgent::new(
+            "recon",
+            "Reconciler",
+            "Matching 214 card payouts against the ledger",
+        )
+        .progress(0.62)
+        .usage(38, 27, "4s ago"),
+        FleetAgent::new(
+            "payables",
+            "Payables assistant",
+            "Waiting for Maya to approve Friday's supplier run",
+        )
+        .state(FleetState::Waiting)
+        .progress(0.8)
+        .usage(11, 8, "6 min ago"),
+        FleetAgent::new(
+            "cards",
+            "Card matcher",
+            "The March ledger is locked, so 201 matches couldn't post",
+        )
+        .state(FleetState::Failed)
+        .progress(0.94)
+        .usage(9, 4, "12 min ago"),
+        FleetAgent::new(
+            "collections",
+            "Collections",
+            "Drafting reminders for 7 overdue invoices",
+        )
+        .progress(0.35)
+        .usage(16, 12, "18s ago"),
+        FleetAgent::new(
+            "receipts",
+            "Receipt filer",
+            "Filing 43 receipts from the shared inbox",
+        )
+        .state(FleetState::Paused)
+        .progress(0.5)
+        .usage(21, 6, "1 h ago"),
+        FleetAgent::new(
+            "bank",
+            "Bank matcher",
+            "Matched all 61 operating account lines",
+        )
+        .state(FleetState::Done)
+        .usage(22, 9, "25 min ago"),
     ]
 }
 

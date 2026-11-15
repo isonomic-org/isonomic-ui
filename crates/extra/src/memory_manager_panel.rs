@@ -14,10 +14,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
-    AppContext as _, Context, ElementId, Entity, EventEmitter, Focusable as _, InteractiveElement as _,
-    IntoElement, ParentElement as _, Render, SharedString, StatefulInteractiveElement as _,
-    Styled as _, Subscription, Window, div, prelude::FluentBuilder as _, px, relative,
+    AppContext as _, Context, ElementId, Entity, EventEmitter, Focusable as _,
+    InteractiveElement as _, IntoElement, ParentElement as _, Render, Role, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -39,7 +39,11 @@ pub struct MemoryItem {
 
 impl MemoryItem {
     /// Create an item in use.
-    pub fn new(id: impl Into<SharedString>, text: impl Into<SharedString>, source: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        text: impl Into<SharedString>,
+        source: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             text: text.into(),
@@ -107,7 +111,8 @@ impl EventEmitter<MemoryEvent> for MemoryManagerPanel {}
 impl MemoryManagerPanel {
     /// Create a panel for these items.
     pub fn new(items: Vec<MemoryItem>, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search what's remembered"));
+        let search =
+            cx.new(|cx| InputState::new(window, cx).placeholder("Search what's remembered"));
         let search_events = cx.subscribe(&search, |_, _, event: &InputEvent, cx| {
             if matches!(event, InputEvent::Change) {
                 cx.notify();
@@ -148,7 +153,10 @@ impl MemoryManagerPanel {
             let text = field.read(cx).value();
             let text = text.trim().to_string();
             if !text.is_empty() {
-                cx.emit(MemoryEvent::Edited { id, text: text.into() });
+                cx.emit(MemoryEvent::Edited {
+                    id,
+                    text: text.into(),
+                });
             }
         }
         cx.notify();
@@ -172,14 +180,23 @@ impl Render for MemoryManagerPanel {
         let radius_lg = theme.radius_lg;
         let warning = Tone::Warning.color(cx);
         let query = self.search.read(cx).value().to_string();
-        let shown: Vec<MemoryItem> = self.items.iter().filter(|i| matches_search(i, &query)).cloned().collect();
+        let shown: Vec<MemoryItem> = self
+            .items
+            .iter()
+            .filter(|i| matches_search(i, &query))
+            .cloned()
+            .collect();
         let paused = self.items.iter().filter(|i| i.paused).count();
 
         let rows: Vec<_> = shown
             .iter()
             .enumerate()
             .map(|(ix, item)| {
-                let editing = self.editing.as_ref().filter(|(id, _)| id == &item.id).map(|(_, f)| f.clone());
+                let editing = self
+                    .editing
+                    .as_ref()
+                    .filter(|(id, _)| id == &item.id)
+                    .map(|(_, f)| f.clone());
                 let id = item.id.clone();
                 let row = v_flex()
                     .id(ElementId::Name(format!("memory-{}", item.id).into()))
@@ -188,7 +205,11 @@ impl Render for MemoryManagerPanel {
                     .py_2p5()
                     .when(ix > 0, |this| this.border_t_1().border_color(line))
                     .role(Role::ListItem)
-                    .aria_label(format!("{}{}", item.text, if item.paused { ", paused" } else { "" }));
+                    .aria_label(format!(
+                        "{}{}",
+                        item.text,
+                        if item.paused { ", paused" } else { "" }
+                    ));
                 match editing {
                     Some(field) => row
                         .child(Textarea::new(&field).aria_label("Edit what's remembered"))
@@ -197,21 +218,27 @@ impl Render for MemoryManagerPanel {
                                 .gap_2()
                                 .justify_end()
                                 .child(
-                                    Button::new(ElementId::Name(format!("cancel-{}", item.id).into()))
-                                        .xsmall()
-                                        .ghost()
-                                        .label("Cancel")
-                                        .on_click(cx.listener(|this, _, _, cx| {
+                                    Button::new(ElementId::Name(
+                                        format!("cancel-{}", item.id).into(),
+                                    ))
+                                    .xsmall()
+                                    .ghost()
+                                    .label("Cancel")
+                                    .on_click(cx.listener(
+                                        |this, _, _, cx| {
                                             this.editing = None;
                                             cx.notify();
-                                        })),
+                                        },
+                                    )),
                                 )
                                 .child(
-                                    Button::new(ElementId::Name(format!("save-{}", item.id).into()))
-                                        .xsmall()
-                                        .primary()
-                                        .label("Save")
-                                        .on_click(cx.listener(|this, _, _, cx| this.save_edit(cx))),
+                                    Button::new(ElementId::Name(
+                                        format!("save-{}", item.id).into(),
+                                    ))
+                                    .xsmall()
+                                    .primary()
+                                    .label("Save")
+                                    .on_click(cx.listener(|this, _, _, cx| this.save_edit(cx))),
                                 ),
                         ),
                     None => {
@@ -229,41 +256,70 @@ impl Render for MemoryManagerPanel {
                                 .text_xs()
                                 .text_color(quiet)
                                 .when(item.paused, |this| {
-                                    this.child(div().text_color(warning).font_medium().child("Paused \u{b7}"))
+                                    this.child(
+                                        div()
+                                            .text_color(warning)
+                                            .font_medium()
+                                            .child("Paused \u{b7}"),
+                                    )
                                 })
-                                .child(div().flex_1().min_w_0().truncate().child(if item.updated.is_empty() {
-                                    item.source.to_string()
-                                } else {
-                                    format!("{} \u{b7} {}", item.source, item.updated)
-                                }))
+                                .child(div().flex_1().min_w_0().truncate().child(
+                                    if item.updated.is_empty() {
+                                        item.source.to_string()
+                                    } else {
+                                        format!("{} \u{b7} {}", item.source, item.updated)
+                                    },
+                                ))
                                 .child(
-                                    Button::new(ElementId::Name(format!("edit-{}", item.id).into()))
-                                        .xsmall()
-                                        .ghost()
-                                        .icon(IconName::Replace)
-                                        .accessibility_label(format!("Edit: {}", item.text))
-                                        .on_click(cx.listener(move |this, _, window, cx| this.start_edit(&edit_id, window, cx))),
+                                    Button::new(ElementId::Name(
+                                        format!("edit-{}", item.id).into(),
+                                    ))
+                                    .xsmall()
+                                    .ghost()
+                                    .icon(IconName::Replace)
+                                    .accessibility_label(format!("Edit: {}", item.text))
+                                    .on_click(cx.listener(
+                                        move |this, _, window, cx| {
+                                            this.start_edit(&edit_id, window, cx)
+                                        },
+                                    )),
                                 )
                                 .child(
-                                    Button::new(ElementId::Name(format!("pause-{}", item.id).into()))
-                                        .xsmall()
-                                        .ghost()
-                                        .icon(if was_paused { IconName::Play } else { IconName::Pause })
-                                        .accessibility_label(format!("{}: {}", if was_paused { "Use again" } else { "Pause" }, item.text))
-                                        .on_click(cx.listener(move |_, _, _, cx| {
+                                    Button::new(ElementId::Name(
+                                        format!("pause-{}", item.id).into(),
+                                    ))
+                                    .xsmall()
+                                    .ghost()
+                                    .icon(if was_paused {
+                                        IconName::Play
+                                    } else {
+                                        IconName::Pause
+                                    })
+                                    .accessibility_label(format!(
+                                        "{}: {}",
+                                        if was_paused { "Use again" } else { "Pause" },
+                                        item.text
+                                    ))
+                                    .on_click(cx.listener(
+                                        move |_, _, _, cx| {
                                             cx.emit(MemoryEvent::Paused {
                                                 id: pause_id.clone(),
                                                 paused: !was_paused,
                                             });
-                                        })),
+                                        },
+                                    )),
                                 )
                                 .child(
-                                    Button::new(ElementId::Name(format!("remove-{}", item.id).into()))
-                                        .xsmall()
-                                        .ghost()
-                                        .icon(IconName::Delete)
-                                        .accessibility_label(format!("Remove: {}", item.text))
-                                        .on_click(cx.listener(move |this, _, _, cx| this.remove(&remove_id, cx))),
+                                    Button::new(ElementId::Name(
+                                        format!("remove-{}", item.id).into(),
+                                    ))
+                                    .xsmall()
+                                    .ghost()
+                                    .icon(IconName::Delete)
+                                    .accessibility_label(format!("Remove: {}", item.text))
+                                    .on_click(cx.listener(
+                                        move |this, _, _, cx| this.remove(&remove_id, cx),
+                                    )),
                                 ),
                         )
                     }
@@ -271,7 +327,10 @@ impl Render for MemoryManagerPanel {
             })
             .collect();
 
-        let undo = self.removed.clone().filter(|gone| !self.items.iter().any(|i| i.id == gone.id));
+        let undo = self
+            .removed
+            .clone()
+            .filter(|gone| !self.items.iter().any(|i| i.id == gone.id));
 
         v_flex()
             .w_full()
@@ -298,7 +357,11 @@ impl Render for MemoryManagerPanel {
                             .child(div().text_xs().text_color(quiet).child(format!(
                                 "{} items{}",
                                 self.items.len(),
-                                if paused > 0 { format!(", {paused} paused") } else { String::new() }
+                                if paused > 0 {
+                                    format!(", {paused} paused")
+                                } else {
+                                    String::new()
+                                }
                             ))),
                     )
                     .child(Input::new(&self.search).small().cleanable(true)),
@@ -310,11 +373,13 @@ impl Render for MemoryManagerPanel {
                     .overflow_y_scroll()
                     .children(rows)
                     .when(shown.is_empty(), |this| {
-                        this.child(div().px_4().py_4().text_color(quiet).child(if query.is_empty() {
-                            "Nothing remembered yet.".to_string()
-                        } else {
-                            format!("Nothing matches \u{201c}{query}\u{201d}.")
-                        }))
+                        this.child(div().px_4().py_4().text_color(quiet).child(
+                            if query.is_empty() {
+                                "Nothing remembered yet.".to_string()
+                            } else {
+                                format!("Nothing matches \u{201c}{query}\u{201d}.")
+                            },
+                        ))
                     }),
             )
             .children(undo.map(|gone| {
@@ -327,7 +392,13 @@ impl Render for MemoryManagerPanel {
                     .border_color(line)
                     .bg(chip.opacity(0.5))
                     .text_xs()
-                    .child(div().flex_1().min_w_0().truncate().child(format!("Removed \u{201c}{}\u{201d}", gone.text)))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .child(format!("Removed \u{201c}{}\u{201d}", gone.text)),
+                    )
                     .child(
                         Button::new("memory-undo")
                             .xsmall()

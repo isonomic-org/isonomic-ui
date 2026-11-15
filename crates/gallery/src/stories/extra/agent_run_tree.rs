@@ -1,7 +1,9 @@
 //! Gallery story for the agent run tree.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
 use isonomic_ui_extra::agent_run_tree::{AgentRunTree, RunStep, RunStepKind, RunStepOutcome};
 
 /// Shows one reconciliation run. The story keeps what's open and selected.
@@ -16,13 +18,20 @@ fn run() -> Vec<RunStep> {
     vec![
         RunStep::new("plan", Thought, "Work out what's unmatched for March")
             .took(Ok, 1_840)
-            .io("214 card payouts, 61 bank lines", "Match cards first, then bank, then report"),
+            .io(
+                "214 card payouts, 61 bank lines",
+                "Match cards first, then bank, then report",
+            ),
         RunStep::new("cards", Helper, "Card matcher")
             .took(Failed, 38_200)
             .child(
-                RunStep::new("cards-fetch", Tool, "ledger.list_unmatched(account=\"cards\")")
-                    .took(Ok, 920)
-                    .io("account: cards, month: 2026-03", "214 lines, $48,210.55"),
+                RunStep::new(
+                    "cards-fetch",
+                    Tool,
+                    "ledger.list_unmatched(account=\"cards\")",
+                )
+                .took(Ok, 920)
+                .io("account: cards, month: 2026-03", "214 lines, $48,210.55"),
             )
             .child(
                 RunStep::new("cards-match", Tool, "match.by_amount_and_date(window=3d)")
@@ -32,7 +41,10 @@ fn run() -> Vec<RunStep> {
             .child(
                 RunStep::new("cards-post", Tool, "ledger.post_matches(count=201)")
                     .took(Failed, 410)
-                    .io("201 matches", "The March period is locked. Unlock it or post to April."),
+                    .io(
+                        "201 matches",
+                        "The March period is locked. Unlock it or post to April.",
+                    ),
             ),
         RunStep::new("bank", Helper, "Bank matcher")
             .took(Ok, 22_900)
@@ -46,10 +58,8 @@ fn run() -> Vec<RunStep> {
                     .took(Ok, 3_400)
                     .io("61 lines", "61 matched"),
             ),
-        RunStep::new("report", Message, "Tell Maya what's left")
-            .took(Skipped, 0),
-        RunStep::new("retry", Thought, "Decide whether to post to April")
-            .took(Running, 0),
+        RunStep::new("report", Message, "Tell Maya what's left").took(Skipped, 0),
+        RunStep::new("retry", Thought, "Decide whether to post to April").took(Running, 0),
     ]
 }
 

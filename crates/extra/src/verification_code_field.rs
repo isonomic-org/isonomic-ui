@@ -6,22 +6,32 @@
 //! checks the code the boxes lock; a wrong code shows its message and the
 //! boxes clear for another go. A resend link counts down before it opens.
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    Role,
-    App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
-    prelude::FluentBuilder as _, px,
+    App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement,
+    KeyDownEvent, ParentElement as _, Render, Role, SharedString, StatefulInteractiveElement as _,
+    Styled as _, Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// The code after `incoming` is typed or pasted: digits only, at most `len` of them.
 pub fn accept_digits(current: &str, incoming: &str, len: usize) -> String {
-    current.chars().chain(incoming.chars()).filter(|c| c.is_ascii_digit()).take(len).collect()
+    current
+        .chars()
+        .chain(incoming.chars())
+        .filter(|c| c.is_ascii_digit())
+        .take(len)
+        .collect()
 }
 
 /// The resend link's words for `seconds` left.
 pub fn resend_label(seconds: u32) -> String {
-    if seconds == 0 { "Resend code".into() } else { format!("Resend in {}:{:02}", seconds / 60, seconds % 60) }
+    if seconds == 0 {
+        "Resend code".into()
+    } else {
+        format!("Resend in {}:{:02}", seconds / 60, seconds % 60)
+    }
 }
 
 /// What the field reports.
@@ -56,7 +66,15 @@ impl VerificationCodeField {
     /// Create boxes for a code of `len` digits.
     pub fn new(len: usize, cx: &mut Context<Self>) -> Self {
         let len = len.max(1);
-        Self { focus: cx.focus_handle(), code: String::new(), len, groups: vec![len], checking: false, error: None, resend_in: None }
+        Self {
+            focus: cx.focus_handle(),
+            code: String::new(),
+            len,
+            groups: vec![len],
+            checking: false,
+            error: None,
+            resend_in: None,
+        }
     }
 
     /// Split the boxes into groups, such as `[3, 3]`.
@@ -154,31 +172,44 @@ impl Render for VerificationCodeField {
         let error = self.error.clone();
 
         let mut start = 0;
-        let groups = self.groups.clone().into_iter().enumerate().map(|(g, size)| {
-            let boxes = (start..start + size).map(|ix| {
-                let digit = digits.get(ix).copied();
-                let here = focused && !self.checking && ix == active;
-                div()
-                    .size(px(40.))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .rounded(px(8.))
-                    .border_1()
-                    .border_color(if error.is_some() { danger } else if here { ring } else { line })
-                    .when(here, |this| this.border_2())
-                    .bg(fill)
-                    .text_lg()
-                    .font_semibold()
-                    .when(self.checking, |this| this.opacity(0.6))
-                    .children(digit.map(|d| d.to_string()))
+        let groups = self
+            .groups
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(g, size)| {
+                let boxes = (start..start + size).map(|ix| {
+                    let digit = digits.get(ix).copied();
+                    let here = focused && !self.checking && ix == active;
+                    div()
+                        .size(px(40.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(8.))
+                        .border_1()
+                        .border_color(if error.is_some() {
+                            danger
+                        } else if here {
+                            ring
+                        } else {
+                            line
+                        })
+                        .when(here, |this| this.border_2())
+                        .bg(fill)
+                        .text_lg()
+                        .font_semibold()
+                        .when(self.checking, |this| this.opacity(0.6))
+                        .children(digit.map(|d| d.to_string()))
+                });
+                start += size;
+                h_flex()
+                    .gap_1p5()
+                    .children(boxes)
+                    .when(g + 1 < self.groups.len(), |this| {
+                        this.child(div().w(px(10.)).h(px(2.)).mx_1().bg(line))
+                    })
             });
-            start += size;
-            h_flex()
-                .gap_1p5()
-                .children(boxes)
-                .when(g + 1 < self.groups.len(), |this| this.child(div().w(px(10.)).h(px(2.)).mx_1().bg(line)))
-        });
 
         let resend = self.resend_in.map(|seconds| {
             let label = resend_label(seconds);
@@ -196,7 +227,11 @@ impl Render for VerificationCodeField {
                     }))
                     .into_any_element()
             } else {
-                div().text_sm().text_color(quiet).child(label).into_any_element()
+                div()
+                    .text_sm()
+                    .text_color(quiet)
+                    .child(label)
+                    .into_any_element()
             }
         });
 
@@ -209,16 +244,29 @@ impl Render for VerificationCodeField {
                     .gap_1()
                     .cursor_text()
                     .role(Role::TextInput)
-                    .aria_label(format!("Verification code, {} of {} digits", digits.len(), self.len))
+                    .aria_label(format!(
+                        "Verification code, {} of {} digits",
+                        digits.len(),
+                        self.len
+                    ))
                     .on_click(cx.listener(|this, _, window, cx| {
                         window.focus(&this.focus, cx);
                     }))
                     .on_key_down(cx.listener(Self::key_down))
                     .children(groups),
             )
-            .when(self.checking, |this| this.child(div().text_sm().text_color(quiet).child("Checking\u{2026}")))
+            .when(self.checking, |this| {
+                this.child(div().text_sm().text_color(quiet).child("Checking\u{2026}"))
+            })
             .when_some(error, |this, error| {
-                this.child(h_flex().gap_1().text_sm().text_color(danger).child(Icon::new(IconName::CircleAlert).xsmall()).child(error))
+                this.child(
+                    h_flex()
+                        .gap_1()
+                        .text_sm()
+                        .text_color(danger)
+                        .child(Icon::new(IconName::CircleAlert).xsmall())
+                        .child(error),
+                )
             })
             .children(resend)
     }

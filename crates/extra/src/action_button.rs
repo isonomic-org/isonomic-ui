@@ -37,7 +37,9 @@ pub enum ActionState {
 pub fn click_means(state: ActionState, destructive: bool) -> Option<ActionState> {
     match (state, destructive) {
         (ActionState::Idle, true) => Some(ActionState::Confirming),
-        (ActionState::Idle | ActionState::Confirming | ActionState::Failed, _) => Some(ActionState::Working),
+        (ActionState::Idle | ActionState::Confirming | ActionState::Failed, _) => {
+            Some(ActionState::Working)
+        }
         (ActionState::Working | ActionState::Done, _) => None,
     }
 }
@@ -79,7 +81,12 @@ impl ActionButton {
     }
 
     /// Set the words for working, done and failed.
-    pub fn words(mut self, working: impl Into<SharedString>, done: impl Into<SharedString>, failed: impl Into<SharedString>) -> Self {
+    pub fn words(
+        mut self,
+        working: impl Into<SharedString>,
+        done: impl Into<SharedString>,
+        failed: impl Into<SharedString>,
+    ) -> Self {
         self.working = working.into();
         self.done = done.into();
         self.failed = failed.into();
@@ -112,7 +119,10 @@ impl ActionButton {
     }
 
     /// Run with the state a click asks for: confirming, or working.
-    pub fn on_click(mut self, handler: impl Fn(ActionState, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_click(
+        mut self,
+        handler: impl Fn(ActionState, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_click = Some(Rc::new(handler));
         self
     }
@@ -143,16 +153,18 @@ impl RenderOnce for ActionButton {
                 Some(icon) => b.icon(icon),
                 None => b,
             })
-            .when(state == ActionState::Done, |b| b.icon(Icon::new(IconName::Check).text_color(success)))
-            .when(state == ActionState::Failed, |b| b.icon(IconName::RefreshCw))
+            .when(state == ActionState::Done, |b| {
+                b.icon(Icon::new(IconName::Check).text_color(success))
+            })
+            .when(state == ActionState::Failed, |b| {
+                b.icon(IconName::RefreshCw)
+            })
             .when(state == ActionState::Working, |b| {
-                b.child(
-                    Icon::new(IconName::LoaderCircle)
-                        .xsmall()
-                        .with_animation(spinner_id, Animation::new(std::time::Duration::from_secs(1)).repeat(), |icon, delta| {
-                            icon.transform(Transformation::rotate(percentage(delta)))
-                        }),
-                )
+                b.child(Icon::new(IconName::LoaderCircle).xsmall().with_animation(
+                    spinner_id,
+                    Animation::new(std::time::Duration::from_secs(1)).repeat(),
+                    |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
+                ))
             })
             .label(label.clone())
             .disabled(matches!(state, ActionState::Working | ActionState::Done))
@@ -174,10 +186,22 @@ mod tests {
 
     #[test]
     fn destructive_actions_ask_twice() {
-        assert_eq!(click_means(ActionState::Idle, true), Some(ActionState::Confirming));
-        assert_eq!(click_means(ActionState::Confirming, true), Some(ActionState::Working));
-        assert_eq!(click_means(ActionState::Idle, false), Some(ActionState::Working));
+        assert_eq!(
+            click_means(ActionState::Idle, true),
+            Some(ActionState::Confirming)
+        );
+        assert_eq!(
+            click_means(ActionState::Confirming, true),
+            Some(ActionState::Working)
+        );
+        assert_eq!(
+            click_means(ActionState::Idle, false),
+            Some(ActionState::Working)
+        );
         assert_eq!(click_means(ActionState::Working, false), None);
-        assert_eq!(click_means(ActionState::Failed, false), Some(ActionState::Working));
+        assert_eq!(
+            click_means(ActionState::Failed, false),
+            Some(ActionState::Working)
+        );
     }
 }

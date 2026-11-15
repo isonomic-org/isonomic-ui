@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div,
+};
 use isonomic_ui_extra::page_navigator::PageNavigator;
 
 /// A ledger of 312 entries paged twenty at a time, and a short list on one page.
@@ -14,7 +17,10 @@ pub struct PageNavigatorStory {
 impl PageNavigatorStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { page: 5, per_page: 20 })
+        cx.new(|_| Self {
+            page: 5,
+            per_page: 20,
+        })
     }
 }
 
@@ -40,7 +46,11 @@ impl Render for PageNavigatorStory {
         v_flex()
             .gap_6()
             .max_w_full()
-            .child(div().text_sm().child(format!("Ledger entries, page {}", self.page)))
+            .child(
+                div()
+                    .text_sm()
+                    .child(format!("Ledger entries, page {}", self.page)),
+            )
             .child(
                 PageNavigator::new("ledger-pages", self.page, 312)
                     .per_page(self.per_page)
@@ -59,7 +69,12 @@ impl Render for PageNavigatorStory {
                         })
                     }),
             )
-            .child(div().text_xs().text_color(quiet).child("A short list keeps both arrows off."))
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("A short list keeps both arrows off."),
+            )
             .child(PageNavigator::new("receipts-pages", 1, 7))
     }
 }

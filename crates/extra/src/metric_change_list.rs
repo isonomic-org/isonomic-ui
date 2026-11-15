@@ -6,8 +6,7 @@ use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, StyledExt as _, h
 use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, px, relative,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -308,9 +307,14 @@ mod tests {
 
     #[test]
     fn changes_read_in_words() {
-        let churn = MetricChange::new("Churn", "Down to 2.1%").tone(Tone::Success).direction(TrendDirection::Down);
+        let churn = MetricChange::new("Churn", "Down to 2.1%")
+            .tone(Tone::Success)
+            .direction(TrendDirection::Down);
         assert_eq!(spoken_change(&churn), "Churn: Down to 2.1%, falling, good");
-        assert_eq!(spoken_change(&MetricChange::new("Seats", "Same as last week")), "Seats: Same as last week, no change");
+        assert_eq!(
+            spoken_change(&MetricChange::new("Seats", "Same as last week")),
+            "Seats: Same as last week, no change"
+        );
     }
 
     #[test]

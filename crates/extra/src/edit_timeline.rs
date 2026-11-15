@@ -14,10 +14,10 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, MouseButton, MouseDownEvent,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, canvas, div, prelude::FluentBuilder as _, px, relative,
+    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, MouseButton,
+    MouseDownEvent, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -163,7 +163,10 @@ impl EditTimeline {
     }
 
     /// Run when an edit's mark is clicked.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
@@ -206,7 +209,13 @@ impl RenderOnce for EditTimeline {
                 .map(|(_, name)| name.clone())
                 .unwrap_or_else(|| by.clone())
         };
-        let biggest = self.edits.iter().map(|e| e.added + e.removed).max().unwrap_or(1).max(1);
+        let biggest = self
+            .edits
+            .iter()
+            .map(|e| e.added + e.removed)
+            .max()
+            .unwrap_or(1)
+            .max(1);
 
         let lanes: Vec<_> = self
             .files
@@ -217,13 +226,17 @@ impl RenderOnce for EditTimeline {
                     .iter()
                     .filter(|e| &e.file == file_id)
                     .map(|edit| {
-                        let size = 8. + 10. * ((edit.added + edit.removed) as f32 / biggest as f32).sqrt();
+                        let size =
+                            8. + 10. * ((edit.added + edit.removed) as f32 / biggest as f32).sqrt();
                         let future = edit.at > playhead;
                         let is_selected = self.selected.as_ref() == Some(&edit.id);
                         let select = self.on_select.clone();
                         let id = edit.id.clone();
                         div()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("edit-{}", edit.id).into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("edit-{}", edit.id).into(),
+                            ))
                             .absolute()
                             .top(relative(0.5))
                             .left(relative(edit.at as f32 / length))
@@ -236,7 +249,14 @@ impl RenderOnce for EditTimeline {
                             .when(is_selected, |this| this.border_2().border_color(ink))
                             .cursor_pointer()
                             .role(Role::Button)
-                            .aria_label(format!("{} at {}: {}, +{} -{}", author_name(&edit.by), mmss(edit.at), edit.summary, edit.added, edit.removed))
+                            .aria_label(format!(
+                                "{} at {}: {}, +{} -{}",
+                                author_name(&edit.by),
+                                mmss(edit.at),
+                                edit.summary,
+                                edit.added,
+                                edit.removed
+                            ))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
                                 if let Some(select) = &select {
@@ -248,13 +268,29 @@ impl RenderOnce for EditTimeline {
                 h_flex()
                     .h(px(30.))
                     .gap_2()
-                    .child(div().w(px(140.)).flex_none().truncate().text_xs().font_family(cx.theme().mono_font_family.clone()).child(name.clone()))
+                    .child(
+                        div()
+                            .w(px(140.))
+                            .flex_none()
+                            .truncate()
+                            .text_xs()
+                            .font_family(cx.theme().mono_font_family.clone())
+                            .child(name.clone()),
+                    )
                     .child(
                         div()
                             .relative()
                             .flex_1()
                             .h_full()
-                            .child(div().absolute().top(relative(0.5)).left_0().right_0().h(px(1.)).bg(line))
+                            .child(
+                                div()
+                                    .absolute()
+                                    .top(relative(0.5))
+                                    .left_0()
+                                    .right_0()
+                                    .h(px(1.))
+                                    .bg(line),
+                            )
                             .children(marks),
                     )
             })
@@ -265,30 +301,59 @@ impl RenderOnce for EditTimeline {
         let track = Rc::new(Cell::new(Bounds::default()));
         let measured = track.clone();
         let scrubber = div()
-            .id(ElementId::NamedChild(self.id.clone().into(), "scrubber".into()))
+            .id(ElementId::NamedChild(
+                self.id.clone().into(),
+                "scrubber".into(),
+            ))
             .relative()
             .flex_1()
             .h(px(18.))
             .cursor_pointer()
             .role(Role::Slider)
-            .aria_label(format!("Playhead at {} of {}", mmss(playhead), mmss(length_u)))
-            .on_mouse_down(MouseButton::Left, move |event: &MouseDownEvent, window, cx| {
-                let bounds = track.get();
-                if let Some(seek) = &seek
-                    && bounds.size.width > px(0.)
-                {
-                    let share = ((event.position.x - bounds.origin.x) / bounds.size.width).clamp(0., 1.);
-                    seek((share * length_u as f32).round() as u32, window, cx);
-                }
-            })
+            .aria_label(format!(
+                "Playhead at {} of {}",
+                mmss(playhead),
+                mmss(length_u)
+            ))
+            .on_mouse_down(
+                MouseButton::Left,
+                move |event: &MouseDownEvent, window, cx| {
+                    let bounds = track.get();
+                    if let Some(seek) = &seek
+                        && bounds.size.width > px(0.)
+                    {
+                        let share = ((event.position.x - bounds.origin.x) / bounds.size.width)
+                            .clamp(0., 1.);
+                        seek((share * length_u as f32).round() as u32, window, cx);
+                    }
+                },
+            )
             .child(
                 canvas(move |bounds, _, _| measured.set(bounds), |_, _, _, _| {})
                     .absolute()
                     .inset_0()
                     .size_full(),
             )
-            .child(div().absolute().top(px(7.)).left_0().right_0().h(px(4.)).rounded_full().bg(chip))
-            .child(div().absolute().top(px(7.)).left_0().h(px(4.)).rounded_full().bg(accent).w(relative(head_share)))
+            .child(
+                div()
+                    .absolute()
+                    .top(px(7.))
+                    .left_0()
+                    .right_0()
+                    .h(px(4.))
+                    .rounded_full()
+                    .bg(chip),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .top(px(7.))
+                    .left_0()
+                    .h(px(4.))
+                    .rounded_full()
+                    .bg(accent)
+                    .w(relative(head_share)),
+            )
             .child(
                 div()
                     .absolute()
@@ -308,8 +373,16 @@ impl RenderOnce for EditTimeline {
             Button::new(ElementId::NamedChild(self.id.clone().into(), "play".into()))
                 .small()
                 .ghost()
-                .icon(if playing { IconName::Pause } else { IconName::Play })
-                .accessibility_label(if playing { "Pause replay" } else { "Replay edits" })
+                .icon(if playing {
+                    IconName::Pause
+                } else {
+                    IconName::Play
+                })
+                .accessibility_label(if playing {
+                    "Pause replay"
+                } else {
+                    "Replay edits"
+                })
                 .on_click(move |_, window, cx| {
                     if let Some(on_play) = &on_play {
                         on_play(!playing, window, cx);
@@ -344,33 +417,56 @@ impl RenderOnce for EditTimeline {
                     .py_2p5()
                     .border_b_1()
                     .border_color(line)
-                    .child(div().flex_1().font_medium().child(format!("{done} of {} edits", self.edits.len())))
-                    .child(div().text_xs().text_color(added_color).child(format!("+{added}")))
-                    .child(div().text_xs().text_color(removed_color).child(format!("\u{2212}{removed}")))
+                    .child(
+                        div()
+                            .flex_1()
+                            .font_medium()
+                            .child(format!("{done} of {} edits", self.edits.len())),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(added_color)
+                            .child(format!("+{added}")),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(removed_color)
+                            .child(format!("\u{2212}{removed}")),
+                    )
                     .children(self.authors.iter().enumerate().map(|(ix, (_, name))| {
                         h_flex()
                             .gap_1()
                             .text_xs()
                             .text_color(quiet)
-                            .child(div().size(px(8.)).rounded_full().bg(palette[ix % palette.len()]))
+                            .child(
+                                div()
+                                    .size(px(8.))
+                                    .rounded_full()
+                                    .bg(palette[ix % palette.len()]),
+                            )
                             .child(name.clone())
                     })),
             )
             .child(
-                div()
-                    .relative()
-                    .px_4()
-                    .py_2()
-                    .children(lanes)
-                    .child(
-                        div()
-                            .absolute()
-                            .top_0()
-                            .bottom_0()
-                            .left(px(16. + 140. + 8.))
-                            .right(px(16.))
-                            .child(div().absolute().top_0().bottom_0().left(relative(head_share)).w(px(1.)).bg(accent.opacity(0.7))),
-                    ),
+                div().relative().px_4().py_2().children(lanes).child(
+                    div()
+                        .absolute()
+                        .top_0()
+                        .bottom_0()
+                        .left(px(16. + 140. + 8.))
+                        .right(px(16.))
+                        .child(
+                            div()
+                                .absolute()
+                                .top_0()
+                                .bottom_0()
+                                .left(relative(head_share))
+                                .w(px(1.))
+                                .bg(accent.opacity(0.7)),
+                        ),
+                ),
             )
             .child(
                 h_flex()
@@ -380,9 +476,22 @@ impl RenderOnce for EditTimeline {
                     .border_t_1()
                     .border_color(line)
                     .child(play)
-                    .child(div().w(px(40.)).text_xs().text_color(quiet).child(mmss(playhead)))
+                    .child(
+                        div()
+                            .w(px(40.))
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(mmss(playhead)),
+                    )
                     .child(scrubber)
-                    .child(div().w(px(40.)).text_right().text_xs().text_color(quiet).child(mmss(length_u))),
+                    .child(
+                        div()
+                            .w(px(40.))
+                            .text_right()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(mmss(length_u)),
+                    ),
             )
             .child(
                 h_flex()
@@ -397,9 +506,23 @@ impl RenderOnce for EditTimeline {
                             .child(div().size(px(8.)).rounded_full().bg(author_color(&edit.by)))
                             .child(div().font_medium().child(author_name(&edit.by)))
                             .child(div().text_color(quiet).child(mmss(edit.at)))
-                            .child(div().flex_1().min_w_0().truncate().child(edit.summary.clone()))
-                            .child(div().text_color(added_color).child(format!("+{}", edit.added)))
-                            .child(div().text_color(removed_color).child(format!("\u{2212}{}", edit.removed))),
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .child(edit.summary.clone()),
+                            )
+                            .child(
+                                div()
+                                    .text_color(added_color)
+                                    .child(format!("+{}", edit.added)),
+                            )
+                            .child(
+                                div()
+                                    .text_color(removed_color)
+                                    .child(format!("\u{2212}{}", edit.removed)),
+                            ),
                         None => this
                             .text_color(quiet)
                             .child(Icon::new(IconName::Time).xsmall())

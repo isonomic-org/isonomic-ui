@@ -13,10 +13,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
@@ -32,18 +31,39 @@ pub struct Day {
     pub day: u32,
 }
 
-const MONTHS: [&str; 12] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
 
 impl Day {
     /// Create a day; out-of-range parts are pulled into range.
     pub fn new(year: i32, month: u32, day: u32) -> Self {
         let month = month.clamp(1, 12);
-        Self { year, month, day: day.clamp(1, days_in_month(year, month)) }
+        Self {
+            year,
+            month,
+            day: day.clamp(1, days_in_month(year, month)),
+        }
     }
 
     /// Days since 1 January 1970, negative before.
     pub fn number(self) -> i64 {
-        let (y, m) = if self.month <= 2 { (self.year as i64 - 1, self.month as i64 + 9) } else { (self.year as i64, self.month as i64 - 3) };
+        let (y, m) = if self.month <= 2 {
+            (self.year as i64 - 1, self.month as i64 + 9)
+        } else {
+            (self.year as i64, self.month as i64 - 3)
+        };
         let era = y.div_euclid(400);
         let yoe = y - era * 400;
         let doy = (153 * m + 2) / 5 + self.day as i64 - 1;
@@ -73,7 +93,11 @@ impl Day {
     /// The same day `n` months later, kept inside the month.
     pub fn add_months(self, n: i32) -> Self {
         let total = self.year * 12 + self.month as i32 - 1 + n;
-        Self::new(total.div_euclid(12), (total.rem_euclid(12) + 1) as u32, self.day)
+        Self::new(
+            total.div_euclid(12),
+            (total.rem_euclid(12) + 1) as u32,
+            self.day,
+        )
     }
 
     /// Monday is 0, Sunday is 6.
@@ -89,7 +113,13 @@ impl Day {
     /// Written short, such as "Fri 3 April 2026".
     pub fn words(self) -> String {
         const DAYS: [&str; 7] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        format!("{} {} {} {}", DAYS[self.weekday() as usize], self.day, MONTHS[self.month as usize - 1], self.year)
+        format!(
+            "{} {} {} {}",
+            DAYS[self.weekday() as usize],
+            self.day,
+            MONTHS[self.month as usize - 1],
+            self.year
+        )
     }
 }
 
@@ -209,10 +239,15 @@ impl RenderOnce for DueDatePicker {
         let radius_lg = theme.radius_lg;
         let (year, month) = self.shown;
         let (earliest, weekends) = (self.earliest, self.weekends);
-        let cursor = self.cursor.or(self.picked).unwrap_or(Day::new(year, month, 1));
+        let cursor = self
+            .cursor
+            .or(self.picked)
+            .unwrap_or(Day::new(year, month, 1));
 
         let focus = window
-            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| cx.focus_handle().tab_stop(true))
+            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
             .read(cx)
             .clone();
         let is_focused = focus.is_focused(window);
@@ -229,27 +264,44 @@ impl RenderOnce for DueDatePicker {
                 let pick = self.on_pick.clone();
                 let day = *day;
                 let ok = allowed(day, earliest, weekends);
-                Button::new(ElementId::NamedChild(self.id.clone().into(), format!("preset-{label}").into()))
-                    .xsmall()
-                    .map(|b| if self.picked == Some(day) { b.primary() } else { b.outline() })
-                    .label(*label)
-                    .tooltip(day.words())
-                    .disabled(!ok)
-                    .on_click(move |_, window, cx| {
-                        if let Some(pick) = &pick {
-                            pick(day, window, cx);
-                        }
-                    })
+                Button::new(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("preset-{label}").into(),
+                ))
+                .xsmall()
+                .map(|b| {
+                    if self.picked == Some(day) {
+                        b.primary()
+                    } else {
+                        b.outline()
+                    }
+                })
+                .label(*label)
+                .tooltip(day.words())
+                .disabled(!ok)
+                .on_click(move |_, window, cx| {
+                    if let Some(pick) = &pick {
+                        pick(day, window, cx);
+                    }
+                })
             })
             .collect();
 
         let step = |n: i32| {
             let move_to = self.on_cursor.clone();
-            let label = if n < 0 { "Previous month" } else { "Next month" };
+            let label = if n < 0 {
+                "Previous month"
+            } else {
+                "Next month"
+            };
             Button::new(ElementId::NamedChild(self.id.clone().into(), label.into()))
                 .xsmall()
                 .ghost()
-                .icon(if n < 0 { IconName::ChevronLeft } else { IconName::ChevronRight })
+                .icon(if n < 0 {
+                    IconName::ChevronLeft
+                } else {
+                    IconName::ChevronRight
+                })
                 .accessibility_label(label)
                 .on_click(move |_, window, cx| {
                     if let Some(move_to) = &move_to {
@@ -268,7 +320,10 @@ impl RenderOnce for DueDatePicker {
                 let at_cursor = is_focused && day == cursor;
                 let pick = self.on_pick.clone();
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("day-{}", day.number()).into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("day-{}", day.number()).into(),
+                    ))
                     .size(px(34.))
                     .flex()
                     .items_center()
@@ -276,13 +331,26 @@ impl RenderOnce for DueDatePicker {
                     .rounded(px(8.))
                     .text_sm()
                     .when(!in_month, |this| this.text_color(quiet.opacity(0.6)))
-                    .when(!ok, |this| this.text_color(quiet.opacity(0.4)).line_through())
-                    .when(is_today && !picked, |this| this.border_1().border_color(accent))
-                    .when(picked, |this| this.bg(accent).text_color(fill).font_semibold())
+                    .when(!ok, |this| {
+                        this.text_color(quiet.opacity(0.4)).line_through()
+                    })
+                    .when(is_today && !picked, |this| {
+                        this.border_1().border_color(accent)
+                    })
+                    .when(picked, |this| {
+                        this.bg(accent).text_color(fill).font_semibold()
+                    })
                     .when(at_cursor && !picked, |this| this.bg(chip))
-                    .when(ok && !picked, |this| this.cursor_pointer().hover(|s| s.bg(chip)))
+                    .when(ok && !picked, |this| {
+                        this.cursor_pointer().hover(|s| s.bg(chip))
+                    })
                     .role(Role::GridCell)
-                    .aria_label(format!("{}{}{}", day.words(), if is_today { ", today" } else { "" }, if ok { "" } else { ", not available" }))
+                    .aria_label(format!(
+                        "{}{}{}",
+                        day.words(),
+                        if is_today { ", today" } else { "" },
+                        if ok { "" } else { ", not available" }
+                    ))
                     .aria_selected(picked)
                     .when(ok, |this| {
                         this.on_click(move |_, window, cx| {
@@ -348,12 +416,23 @@ impl RenderOnce for DueDatePicker {
                 h_flex()
                     .gap_1()
                     .child(step(-1))
-                    .child(div().flex_1().text_center().font_medium().child(format!("{} {year}", MONTHS[month as usize - 1])))
+                    .child(
+                        div()
+                            .flex_1()
+                            .text_center()
+                            .font_medium()
+                            .child(format!("{} {year}", MONTHS[month as usize - 1])),
+                    )
                     .child(step(1)),
             )
             .child(
                 h_flex().children(["M", "T", "W", "T", "F", "S", "S"].iter().map(|d| {
-                    div().w(px(34.)).text_center().text_xs().text_color(quiet).child(*d)
+                    div()
+                        .w(px(34.))
+                        .text_center()
+                        .text_xs()
+                        .text_color(quiet)
+                        .child(*d)
                 })),
             )
             .child(h_flex().flex_wrap().w(px(238.)).children(days))

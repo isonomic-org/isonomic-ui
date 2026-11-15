@@ -9,10 +9,9 @@ use std::collections::HashSet;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, v_flex};
 use isonomic_ui::{
-    Role,
-    App, Context, ElementId, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
-    prelude::FluentBuilder as _, px,
+    App, Context, ElementId, EventEmitter, FocusHandle, Focusable, InteractiveElement as _,
+    IntoElement, KeyDownEvent, ParentElement as _, Render, Role, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// A folder or a file.
@@ -31,12 +30,26 @@ pub struct TreeNode {
 impl TreeNode {
     /// A file.
     pub fn file(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), children: Vec::new(), count: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            children: Vec::new(),
+            count: None,
+        }
     }
 
     /// A folder holding `children`.
-    pub fn folder(id: impl Into<SharedString>, label: impl Into<SharedString>, children: Vec<TreeNode>) -> Self {
-        Self { id: id.into(), label: label.into(), children, count: None }
+    pub fn folder(
+        id: impl Into<SharedString>,
+        label: impl Into<SharedString>,
+        children: Vec<TreeNode>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            label: label.into(),
+            children,
+            count: None,
+        }
     }
 
     /// Show a count beside it.
@@ -65,9 +78,20 @@ pub struct TreeRow {
 
 /// The rows showing when the folders in `open` are open, top to bottom.
 pub fn visible_rows(nodes: &[TreeNode], open: &HashSet<SharedString>) -> Vec<TreeRow> {
-    fn walk(nodes: &[TreeNode], open: &HashSet<SharedString>, depth: usize, parent: Option<&SharedString>, out: &mut Vec<TreeRow>) {
+    fn walk(
+        nodes: &[TreeNode],
+        open: &HashSet<SharedString>,
+        depth: usize,
+        parent: Option<&SharedString>,
+        out: &mut Vec<TreeRow>,
+    ) {
         for node in nodes {
-            out.push(TreeRow { depth, id: node.id.clone(), parent: parent.cloned(), folder: node.is_folder() });
+            out.push(TreeRow {
+                depth,
+                id: node.id.clone(),
+                parent: parent.cloned(),
+                folder: node.is_folder(),
+            });
             if node.is_folder() && open.contains(&node.id) {
                 walk(&node.children, open, depth + 1, Some(&node.id), out);
             }
@@ -79,7 +103,13 @@ pub fn visible_rows(nodes: &[TreeNode], open: &HashSet<SharedString>) -> Vec<Tre
 }
 
 fn find<'a>(nodes: &'a [TreeNode], id: &str) -> Option<&'a TreeNode> {
-    nodes.iter().find_map(|node| if node.id == id { Some(node) } else { find(&node.children, id) })
+    nodes.iter().find_map(|node| {
+        if node.id == id {
+            Some(node)
+        } else {
+            find(&node.children, id)
+        }
+    })
 }
 
 /// What the tree reports.
@@ -110,8 +140,18 @@ impl Focusable for FolderTree {
 
 impl FolderTree {
     /// Create a tree with nothing open.
-    pub fn new(label: impl Into<SharedString>, nodes: Vec<TreeNode>, cx: &mut Context<Self>) -> Self {
-        Self { nodes, open: HashSet::new(), picked: None, label: label.into(), focus: cx.focus_handle() }
+    pub fn new(
+        label: impl Into<SharedString>,
+        nodes: Vec<TreeNode>,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self {
+            nodes,
+            open: HashSet::new(),
+            picked: None,
+            label: label.into(),
+            focus: cx.focus_handle(),
+        }
     }
 
     /// Open these folders to start.
@@ -145,7 +185,10 @@ impl FolderTree {
         if rows.is_empty() {
             return;
         }
-        let at = self.picked.as_ref().and_then(|id| rows.iter().position(|r| &r.id == id));
+        let at = self
+            .picked
+            .as_ref()
+            .and_then(|id| rows.iter().position(|r| &r.id == id));
         let row = at.map(|ix| rows[ix].clone());
         match event.keystroke.key.as_str() {
             "down" => {
@@ -169,7 +212,10 @@ impl FolderTree {
             }
             "left" => match row {
                 Some(row) if row.folder && self.open.contains(&row.id) => self.toggle(&row.id, cx),
-                Some(TreeRow { parent: Some(parent), .. }) => self.pick(parent, cx),
+                Some(TreeRow {
+                    parent: Some(parent),
+                    ..
+                }) => self.pick(parent, cx),
                 _ => {}
             },
             "enter" => match row {
@@ -221,19 +267,28 @@ impl Render for FolderTree {
                     _ => label.to_string(),
                 })
                 .aria_selected(picked)
-                .on_click(cx.listener(move |this, event: &isonomic_ui::ClickEvent, window, cx| {
-                    window.focus(&this.focus, cx);
-                    this.pick(id.clone(), cx);
-                    if event.click_count() >= 2 {
-                        let is_folder = find(&this.nodes, &id).is_some_and(TreeNode::is_folder);
-                        if is_folder {
-                            this.toggle(&id, cx);
-                        } else {
-                            cx.emit(TreeEvent::Open(id.clone()));
+                .on_click(
+                    cx.listener(move |this, event: &isonomic_ui::ClickEvent, window, cx| {
+                        window.focus(&this.focus, cx);
+                        this.pick(id.clone(), cx);
+                        if event.click_count() >= 2 {
+                            let is_folder = find(&this.nodes, &id).is_some_and(TreeNode::is_folder);
+                            if is_folder {
+                                this.toggle(&id, cx);
+                            } else {
+                                cx.emit(TreeEvent::Open(id.clone()));
+                            }
                         }
-                    }
+                    }),
+                )
+                .children((0..row.depth).map(|_| {
+                    div()
+                        .w(px(16.))
+                        .h_full()
+                        .flex()
+                        .justify_center()
+                        .child(div().w(px(1.)).h_full().bg(line))
                 }))
-                .children((0..row.depth).map(|_| div().w(px(16.)).h_full().flex().justify_center().child(div().w(px(1.)).h_full().bg(line))))
                 .child(
                     div()
                         .id(ElementId::Name(format!("tree-chevron-{}", row.id).into()))
@@ -241,16 +296,37 @@ impl Render for FolderTree {
                         .flex()
                         .justify_center()
                         .when(row.folder, |this| {
-                            this.child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).xsmall().text_color(quiet))
-                                .on_click(cx.listener(move |this, _, _, cx| {
+                            this.child(
+                                Icon::new(if open {
+                                    IconName::ChevronDown
+                                } else {
+                                    IconName::ChevronRight
+                                })
+                                .xsmall()
+                                .text_color(quiet),
+                            )
+                            .on_click(cx.listener(
+                                move |this, _, _, cx| {
                                     cx.stop_propagation();
                                     this.toggle(&toggle_id, cx);
-                                }))
+                                },
+                            ))
                         }),
                 )
-                .child(Icon::new(if row.folder { IconName::Folder } else { IconName::File }).small().text_color(quiet).mr_1p5())
+                .child(
+                    Icon::new(if row.folder {
+                        IconName::Folder
+                    } else {
+                        IconName::File
+                    })
+                    .small()
+                    .text_color(quiet)
+                    .mr_1p5(),
+                )
                 .child(div().flex_1().min_w_0().truncate().child(label))
-                .when_some(count, |this, count| this.child(div().text_xs().text_color(quiet).child(count.to_string())))
+                .when_some(count, |this, count| {
+                    this.child(div().text_xs().text_color(quiet).child(count.to_string()))
+                })
         });
 
         v_flex()
@@ -270,10 +346,18 @@ mod tests {
 
     fn sample() -> Vec<TreeNode> {
         vec![
-            TreeNode::folder("clients", "Clients", vec![
-                TreeNode::folder("harbor", "Harbor Dental", vec![TreeNode::file("harbor-q3", "Q3 report.pdf")]),
-                TreeNode::file("brightline", "Brightline notes.txt"),
-            ]),
+            TreeNode::folder(
+                "clients",
+                "Clients",
+                vec![
+                    TreeNode::folder(
+                        "harbor",
+                        "Harbor Dental",
+                        vec![TreeNode::file("harbor-q3", "Q3 report.pdf")],
+                    ),
+                    TreeNode::file("brightline", "Brightline notes.txt"),
+                ],
+            ),
             TreeNode::file("readme", "Read me.txt"),
         ]
     }
@@ -282,14 +366,23 @@ mod tests {
     fn rows_follow_open_folders() {
         let nodes = sample();
         let closed = visible_rows(&nodes, &HashSet::new());
-        assert_eq!(closed.iter().map(|r| r.id.as_ref()).collect::<Vec<_>>(), ["clients", "readme"]);
+        assert_eq!(
+            closed.iter().map(|r| r.id.as_ref()).collect::<Vec<_>>(),
+            ["clients", "readme"]
+        );
         let open: HashSet<SharedString> = ["clients".into(), "harbor".into()].into_iter().collect();
         let rows = visible_rows(&nodes, &open);
-        assert_eq!(rows.iter().map(|r| r.id.as_ref()).collect::<Vec<_>>(), ["clients", "harbor", "harbor-q3", "brightline", "readme"]);
+        assert_eq!(
+            rows.iter().map(|r| r.id.as_ref()).collect::<Vec<_>>(),
+            ["clients", "harbor", "harbor-q3", "brightline", "readme"]
+        );
         assert_eq!(rows[2].depth, 2);
         assert_eq!(rows[2].parent.as_deref(), Some("harbor"));
         assert!(rows[1].folder && !rows[2].folder);
-        assert_eq!(find(&nodes, "harbor-q3").map(|n| n.label.as_ref()), Some("Q3 report.pdf"));
+        assert_eq!(
+            find(&nodes, "harbor-q3").map(|n| n.label.as_ref()),
+            Some("Q3 report.pdf")
+        );
         assert_eq!(TreeNode::file("a", "A").count(3).count, Some(3));
     }
 }

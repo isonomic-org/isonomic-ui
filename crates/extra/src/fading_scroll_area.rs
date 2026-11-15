@@ -9,10 +9,10 @@ use isonomic_ui::component::{
     button::{Button, ButtonVariants as _},
 };
 use isonomic_ui::{
-    Role,
-    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, Pixels, RenderOnce, ScrollHandle,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, linear_color_stop, linear_gradient,
-    point, prelude::FluentBuilder as _, px,
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, Pixels,
+    RenderOnce, Role, ScrollHandle, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, Window, div, linear_color_stop, linear_gradient, point, prelude::FluentBuilder as _,
+    px,
 };
 
 /// Which edges hide more content, as (top, bottom), from the scroll offset and the most it can scroll (both positive).
@@ -40,7 +40,14 @@ pub struct FadingScrollArea {
 impl FadingScrollArea {
     /// Create a box no taller than `max_height`.
     pub fn new(id: impl Into<ElementId>, max_height: Pixels) -> Self {
-        Self { id: id.into(), style: StyleRefinement::default(), children: Vec::new(), max_height, fade: px(28.), label: None }
+        Self {
+            id: id.into(),
+            style: StyleRefinement::default(),
+            children: Vec::new(),
+            max_height,
+            fade: px(28.),
+            label: None,
+        }
     }
 
     /// Fade this far in from each edge.
@@ -71,7 +78,10 @@ impl Styled for FadingScrollArea {
 impl RenderOnce for FadingScrollArea {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let fill = cx.theme().background;
-        let handle = window.use_keyed_state(self.id.clone(), cx, |_, _| ScrollHandle::new()).read(cx).clone();
+        let handle = window
+            .use_keyed_state(self.id.clone(), cx, |_, _| ScrollHandle::new())
+            .read(cx)
+            .clone();
         let scrolled = -f32::from(handle.offset().y);
         let most = f32::from(handle.max_offset().y);
         let viewport = f32::from(handle.bounds().size.height);
@@ -98,26 +108,42 @@ impl RenderOnce for FadingScrollArea {
             )
             .when(above, |this| {
                 this.child(
-                    div().absolute().top_0().left_0().right_0().h(fade).bg(linear_gradient(
-                        180.,
-                        linear_color_stop(fill, 0.),
-                        linear_color_stop(fill.opacity(0.), 1.),
-                    )),
+                    div()
+                        .absolute()
+                        .top_0()
+                        .left_0()
+                        .right_0()
+                        .h(fade)
+                        .bg(linear_gradient(
+                            180.,
+                            linear_color_stop(fill, 0.),
+                            linear_color_stop(fill.opacity(0.), 1.),
+                        )),
                 )
             })
             .when(below, |this| {
-                this.child(
-                    div().absolute().bottom_0().left_0().right_0().h(fade).bg(linear_gradient(
+                this.child(div().absolute().bottom_0().left_0().right_0().h(fade).bg(
+                    linear_gradient(
                         0.,
                         linear_color_stop(fill, 0.),
                         linear_color_stop(fill.opacity(0.), 1.),
-                    )),
-                )
+                    ),
+                ))
             })
             .when(back, |this| {
                 this.child(
-                    div().absolute().bottom_2().left_0().right_0().flex().justify_center().child(
-                        Button::new(ElementId::NamedChild(self.id.clone().into(), "top".into()))
+                    div()
+                        .absolute()
+                        .bottom_2()
+                        .left_0()
+                        .right_0()
+                        .flex()
+                        .justify_center()
+                        .child(
+                            Button::new(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                "top".into(),
+                            ))
                             .xsmall()
                             .primary()
                             .icon(IconName::ArrowUp)
@@ -126,7 +152,7 @@ impl RenderOnce for FadingScrollArea {
                                 up.set_offset(point(px(0.), px(0.)));
                                 window.refresh();
                             }),
-                    ),
+                        ),
                 )
             })
     }

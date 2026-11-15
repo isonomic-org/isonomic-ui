@@ -1,7 +1,9 @@
 //! Gallery story for the cost breakdown waterfall.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window,
+};
 use isonomic_ui_extra::cost_breakdown_waterfall::{CostBreakdownWaterfall, CostStep};
 
 /// What a March reconciliation run cost, step by step. The story keeps the

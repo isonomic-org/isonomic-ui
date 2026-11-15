@@ -9,14 +9,11 @@
 use std::rc::Rc;
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::Button,
-    h_flex, v_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, AppContext as _, Context, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    ParentElement as _, Render, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 
@@ -66,7 +63,8 @@ pub fn day_load(sessions: &[ScheduledSession], day: usize) -> u32 {
 pub fn clashes(sessions: &[ScheduledSession], id: &str, hours: u32, slot: (usize, u32)) -> bool {
     sessions.iter().any(|s| {
         s.id.as_ref() != id
-            && s.slot.is_some_and(|(d, h)| d == slot.0 && h < slot.1 + hours && slot.1 < h + s.hours)
+            && s.slot
+                .is_some_and(|(d, h)| d == slot.0 && h < slot.1 + hours && slot.1 < h + s.hours)
     })
 }
 
@@ -110,7 +108,12 @@ pub struct RunScheduleBoard {
 
 impl RunScheduleBoard {
     /// Create a board with day names, the first and last hour shown, and a daily cap in hours.
-    pub fn new(id: impl Into<ElementId>, days: Vec<SharedString>, hours: (u32, u32), cap: u32) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        days: Vec<SharedString>,
+        hours: (u32, u32),
+        cap: u32,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -130,7 +133,10 @@ impl RunScheduleBoard {
     }
 
     /// Run when a session is dropped on a slot, or back in the tray with `None`.
-    pub fn on_place(mut self, handler: impl Fn(&SharedString, Option<(usize, u32)>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_place(
+        mut self,
+        handler: impl Fn(&SharedString, Option<(usize, u32)>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_place = Some(Rc::new(handler));
         self
     }
@@ -173,7 +179,10 @@ impl RenderOnce for RunScheduleBoard {
                 ink: fill,
             };
             div()
-                .id(ElementId::NamedChild(self.id.clone().into(), format!("session-{}", s.id).into()))
+                .id(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("session-{}", s.id).into(),
+                ))
                 .px_1p5()
                 .py_0p5()
                 .rounded(px(5.))
@@ -186,9 +195,20 @@ impl RenderOnce for RunScheduleBoard {
                 .role(Role::Group)
                 .aria_label(format!("{}, {} hours", s.label, s.hours))
                 .on_drag(dragged, |d, _, _, cx| cx.new(|_| d.clone()))
-                .child(div().text_xs().truncate().text_color(ink).child(s.label.clone()))
+                .child(
+                    div()
+                        .text_xs()
+                        .truncate()
+                        .text_color(ink)
+                        .child(s.label.clone()),
+                )
                 .when(tall && s.hours > 1, |this| {
-                    this.child(div().text_xs().text_color(quiet).child(format!("{}h", s.hours)))
+                    this.child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(format!("{}h", s.hours)),
+                    )
                 })
         };
 
@@ -205,16 +225,30 @@ impl RenderOnce for RunScheduleBoard {
                 .border_1()
                 .border_dashed()
                 .border_color(line)
-                .drag_over::<DraggedSession>(move |style, _, _, _| style.border_color(accent).bg(accent.opacity(0.05)))
+                .drag_over::<DraggedSession>(move |style, _, _, _| {
+                    style.border_color(accent).bg(accent.opacity(0.05))
+                })
                 .on_drop(move |d: &DraggedSession, window, cx| {
                     if let Some(place) = &place {
                         place(&d.id, None, window, cx);
                     }
                 })
                 .when(waiting.is_empty(), |this| {
-                    this.child(div().text_xs().text_color(quiet).child("Everything is placed. Drag a session here to unschedule it."))
+                    this.child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child("Everything is placed. Drag a session here to unschedule it."),
+                    )
                 })
-                .children(waiting.iter().map(|s| session_chip(s, false).child(div().text_xs().text_color(quiet).child(format!("{}h", s.hours)))))
+                .children(waiting.iter().map(|s| {
+                    session_chip(s, false).child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child(format!("{}h", s.hours)),
+                    )
+                }))
         };
 
         let columns: Vec<_> = self
@@ -231,13 +265,24 @@ impl RenderOnce for RunScheduleBoard {
                         let check_drop = sessions.clone();
                         let cap = self.cap;
                         div()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("slot-{day}-{hour}").into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("slot-{day}-{hour}").into(),
+                            ))
                             .h(px(ROW))
                             .border_t_1()
                             .border_color(line.opacity(0.6))
                             .drag_over::<DraggedSession>(move |style, d, _, _| {
-                                let hours = check.iter().find(|s| s.id == d.id).map(|s| s.hours).unwrap_or(1);
-                                let already = check.iter().find(|s| s.id == d.id).and_then(|s| s.slot).is_some_and(|(sd, _)| sd == day);
+                                let hours = check
+                                    .iter()
+                                    .find(|s| s.id == d.id)
+                                    .map(|s| s.hours)
+                                    .unwrap_or(1);
+                                let already = check
+                                    .iter()
+                                    .find(|s| s.id == d.id)
+                                    .and_then(|s| s.slot)
+                                    .is_some_and(|(sd, _)| sd == day);
                                 let load = day_load(&check, day) + if already { 0 } else { hours };
                                 if clashes(&check, &d.id, hours, (day, hour)) || load > cap {
                                     style.bg(danger.opacity(0.12))
@@ -246,7 +291,11 @@ impl RenderOnce for RunScheduleBoard {
                                 }
                             })
                             .on_drop(move |d: &DraggedSession, window, cx| {
-                                let hours = check_drop.iter().find(|s| s.id == d.id).map(|s| s.hours).unwrap_or(1);
+                                let hours = check_drop
+                                    .iter()
+                                    .find(|s| s.id == d.id)
+                                    .map(|s| s.hours)
+                                    .unwrap_or(1);
                                 if clashes(&check_drop, &d.id, hours, (day, hour)) {
                                     return;
                                 }
@@ -300,11 +349,20 @@ impl RenderOnce for RunScheduleBoard {
                     .text_xs()
                     .text_right()
                     .text_color(quiet)
-                    .child(format!("{}{}", if hour % 12 == 0 { 12 } else { hour % 12 }, if hour < 12 { "am" } else { "pm" }))
+                    .child(format!(
+                        "{}{}",
+                        if hour % 12 == 0 { 12 } else { hour % 12 },
+                        if hour < 12 { "am" } else { "pm" }
+                    ))
             })
             .collect();
 
-        let placed: u32 = self.sessions.iter().filter(|s| s.slot.is_some()).map(|s| s.hours).sum();
+        let placed: u32 = self
+            .sessions
+            .iter()
+            .filter(|s| s.slot.is_some())
+            .map(|s| s.hours)
+            .sum();
         let total: u32 = self.sessions.iter().map(|s| s.hours).sum();
         let auto = self.on_auto.clone();
 
@@ -325,7 +383,12 @@ impl RenderOnce for RunScheduleBoard {
                 h_flex()
                     .gap_2()
                     .child(Icon::new(IconName::Calendar).small().text_color(quiet))
-                    .child(div().flex_1().font_medium().child(format!("{placed} of {total} hours placed")))
+                    .child(
+                        div()
+                            .flex_1()
+                            .font_medium()
+                            .child(format!("{placed} of {total} hours placed")),
+                    )
                     .child(
                         Button::new(ElementId::NamedChild(self.id.clone().into(), "auto".into()))
                             .small()
@@ -342,13 +405,22 @@ impl RenderOnce for RunScheduleBoard {
             .child(tray)
             .child(
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "scroll".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "scroll".into(),
+                    ))
                     .overflow_x_scroll()
                     .child(
                         h_flex()
                             .items_start()
                             .min_w(px(560.))
-                            .child(v_flex().w(px(44.)).flex_none().pt(px(38.)).children(hour_labels))
+                            .child(
+                                v_flex()
+                                    .w(px(44.))
+                                    .flex_none()
+                                    .pt(px(38.))
+                                    .children(hour_labels),
+                            )
                             .children(columns),
                     ),
             )

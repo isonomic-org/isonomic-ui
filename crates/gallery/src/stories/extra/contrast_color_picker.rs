@@ -1,7 +1,9 @@
 //! Gallery story for the contrast colour picker.
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window, hsla};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Window, hsla,
+};
 use isonomic_ui_extra::contrast_color_picker::ContrastColorPicker;
 
 /// A palette for paid, due and overdue amounts, checked against the theme's

@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Subscription, Window, div,
+};
 use isonomic_ui_extra::command_palette::{CommandPalette, PaletteCommand, PaletteEvent};
 
 /// A bookkeeping app's commands. The story moves what's run to the front of
@@ -78,13 +81,15 @@ impl Story for CommandPaletteStory {
 
 impl Render for CommandPaletteStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        v_flex()
-            .gap_3()
-            .child(self.palette.clone())
-            .child(div().text_xs().text_color(cx.theme().muted_foreground).child(if self.note.is_empty() {
-                "Type \u{201c}rec\u{201d}, then Enter.".to_string()
-            } else {
-                self.note.clone()
-            }))
+        v_flex().gap_3().child(self.palette.clone()).child(
+            div()
+                .text_xs()
+                .text_color(cx.theme().muted_foreground)
+                .child(if self.note.is_empty() {
+                    "Type \u{201c}rec\u{201d}, then Enter.".to_string()
+                } else {
+                    self.note.clone()
+                }),
+        )
     }
 }

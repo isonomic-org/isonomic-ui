@@ -3,7 +3,9 @@
 use std::time::Duration;
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window,
+};
 use isonomic_ui_extra::trace_timeline::{TraceSpan, TraceTimeline};
 
 /// A live reconciliation trace whose clock ticks while two spans run. The
@@ -25,11 +27,22 @@ fn spans() -> Vec<TraceSpan> {
             .child(
                 TraceSpan::new("cards", "Card matcher", 3_000, 41_200)
                     .usage(41_800, 11_200)
-                    .child(TraceSpan::new("match", "match.by_amount_and_date", 3_100, 9_400).usage(12_000, 3_100))
-                    .child(TraceSpan::new("post", "ledger.post_matches", 40_800, 41_200).failed().usage(600, 90)),
+                    .child(
+                        TraceSpan::new("match", "match.by_amount_and_date", 3_100, 9_400)
+                            .usage(12_000, 3_100),
+                    )
+                    .child(
+                        TraceSpan::new("post", "ledger.post_matches", 40_800, 41_200)
+                            .failed()
+                            .usage(600, 90),
+                    ),
             )
             .child(TraceSpan::new("bank", "Bank matcher", 3_000, 25_900).usage(22_900, 6_300))
-            .child(TraceSpan::new("decide", "Decide where to post", 41_400, 0).running().usage(2_100, 520)),
+            .child(
+                TraceSpan::new("decide", "Decide where to post", 41_400, 0)
+                    .running()
+                    .usage(2_100, 520),
+            ),
         TraceSpan::new("pay", "Payables assistant", 2_100, 30_400).usage(14_700, 4_100),
     ]
 }
@@ -38,18 +51,26 @@ impl TraceTimelineStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let tick = cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-                loop {
-                    cx.background_executor().timer(Duration::from_millis(500)).await;
-                    let alive = this.update(cx, |this, cx| {
-                        this.now = if this.now > 70_000 { 44_000 } else { this.now + 500 };
-                        cx.notify();
-                    });
-                    if alive.is_err() {
-                        break;
+            let tick = cx.spawn(
+                async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                    loop {
+                        cx.background_executor()
+                            .timer(Duration::from_millis(500))
+                            .await;
+                        let alive = this.update(cx, |this, cx| {
+                            this.now = if this.now > 70_000 {
+                                44_000
+                            } else {
+                                this.now + 500
+                            };
+                            cx.notify();
+                        });
+                        if alive.is_err() {
+                            break;
+                        }
                     }
-                }
-            });
+                },
+            );
             Self {
                 now: 44_000,
                 open: vec!["recon".into(), "cards".into()],

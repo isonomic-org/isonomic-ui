@@ -13,8 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -62,7 +61,12 @@ pub struct EmptyStatePanel {
 
 impl EmptyStatePanel {
     /// Create a panel.
-    pub fn new(id: impl Into<ElementId>, reason: EmptyReason, title: impl Into<SharedString>, body: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        reason: EmptyReason,
+        title: impl Into<SharedString>,
+        body: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -76,13 +80,21 @@ impl EmptyStatePanel {
     }
 
     /// Offer a main action.
-    pub fn primary(mut self, label: impl Into<SharedString>, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+    pub fn primary(
+        mut self,
+        label: impl Into<SharedString>,
+        handler: impl Fn(&mut Window, &mut App) + 'static,
+    ) -> Self {
         self.primary = Some((label.into(), Rc::new(handler)));
         self
     }
 
     /// Offer a second action.
-    pub fn secondary(mut self, label: impl Into<SharedString>, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+    pub fn secondary(
+        mut self,
+        label: impl Into<SharedString>,
+        handler: impl Fn(&mut Window, &mut App) + 'static,
+    ) -> Self {
         self.secondary = Some((label.into(), Rc::new(handler)));
         self
     }
@@ -138,7 +150,13 @@ impl RenderOnce for EmptyStatePanel {
                         .flex_1()
                         .min_w_0()
                         .child(div().font_medium().truncate().child(self.title.clone()))
-                        .child(div().text_xs().text_color(quiet).truncate().child(self.body.clone())),
+                        .child(
+                            div()
+                                .text_xs()
+                                .text_color(quiet)
+                                .truncate()
+                                .child(self.body.clone()),
+                        ),
                 )
                 .children(secondary)
                 .children(primary)
@@ -174,8 +192,20 @@ impl RenderOnce for EmptyStatePanel {
                     .items_center()
                     .gap_1()
                     .max_w(px(340.))
-                    .child(div().text_base().font_semibold().text_center().child(self.title.clone()))
-                    .child(div().text_center().text_color(quiet).line_height(relative(1.45)).child(self.body.clone())),
+                    .child(
+                        div()
+                            .text_base()
+                            .font_semibold()
+                            .text_center()
+                            .child(self.title.clone()),
+                    )
+                    .child(
+                        div()
+                            .text_center()
+                            .text_color(quiet)
+                            .line_height(relative(1.45))
+                            .child(self.body.clone()),
+                    ),
             )
             .when(primary.is_some() || secondary.is_some(), |this| {
                 this.child(h_flex().gap_2().children(secondary).children(primary))
@@ -191,10 +221,18 @@ mod tests {
 
     #[test]
     fn each_reason_has_its_own_look() {
-        let looks: Vec<_> = [EmptyReason::Fresh, EmptyReason::NoMatches, EmptyReason::Failed, EmptyReason::Locked]
-            .iter()
-            .map(|r| r.look().1)
-            .collect();
-        assert_eq!(looks, [Tone::Info, Tone::Neutral, Tone::Danger, Tone::Warning]);
+        let looks: Vec<_> = [
+            EmptyReason::Fresh,
+            EmptyReason::NoMatches,
+            EmptyReason::Failed,
+            EmptyReason::Locked,
+        ]
+        .iter()
+        .map(|r| r.look().1)
+        .collect();
+        assert_eq!(
+            looks,
+            [Tone::Info, Tone::Neutral, Tone::Danger, Tone::Warning]
+        );
     }
 }

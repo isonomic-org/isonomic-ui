@@ -13,10 +13,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, AppContext as _, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
     InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke, ParentElement as _, Render,
-    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
     prelude::FluentBuilder as _, px,
 };
 
@@ -39,7 +38,11 @@ pub struct PaletteCommand {
 
 impl PaletteCommand {
     /// Create a command.
-    pub fn new(id: impl Into<SharedString>, group: impl Into<SharedString>, name: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        group: impl Into<SharedString>,
+        name: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             name: name.into(),
@@ -65,7 +68,11 @@ impl PaletteCommand {
 /// Whether the typed letters appear in order in `name`, and how well: lower is better.
 pub fn match_rank(name: &str, typed: &str) -> Option<usize> {
     let name = name.to_lowercase();
-    let typed: String = typed.to_lowercase().chars().filter(|c| !c.is_whitespace()).collect();
+    let typed: String = typed
+        .to_lowercase()
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
     if typed.is_empty() {
         return Some(0);
     }
@@ -148,12 +155,28 @@ impl CommandPalette {
                 .filter_map(|c| match_rank(&c.name, &typed).map(|r| (r, c.clone())))
                 .collect();
             found.sort_by_key(|(r, _)| *r);
-            return found.into_iter().enumerate().map(|(ix, (_, c))| (if ix == 0 { Some("Best matches".into()) } else { None }, c)).collect();
+            return found
+                .into_iter()
+                .enumerate()
+                .map(|(ix, (_, c))| {
+                    (
+                        if ix == 0 {
+                            Some("Best matches".into())
+                        } else {
+                            None
+                        },
+                        c,
+                    )
+                })
+                .collect();
         }
         let mut rows = Vec::new();
         for (ix, id) in self.recent.iter().enumerate() {
             if let Some(c) = self.commands.iter().find(|c| &c.id == id) {
-                rows.push((if ix == 0 { Some("Recent".into()) } else { None }, c.clone()));
+                rows.push((
+                    if ix == 0 { Some("Recent".into()) } else { None },
+                    c.clone(),
+                ));
             }
         }
         let mut groups: Vec<SharedString> = Vec::new();
@@ -163,7 +186,12 @@ impl CommandPalette {
             }
         }
         for group in groups {
-            for (ix, c) in self.commands.iter().filter(|c| c.group == group).enumerate() {
+            for (ix, c) in self
+                .commands
+                .iter()
+                .filter(|c| c.group == group)
+                .enumerate()
+            {
                 rows.push((if ix == 0 { Some(group.clone()) } else { None }, c.clone()));
             }
         }
@@ -199,10 +227,21 @@ impl Render for CommandPalette {
                 let id = command.id.clone();
                 let off = command.unavailable.is_some();
                 v_flex()
-                    .children(heading.clone().map(|h| div().px_2().pt_2().pb_1().text_xs().font_medium().text_color(quiet).child(h)))
+                    .children(heading.clone().map(|h| {
+                        div()
+                            .px_2()
+                            .pt_2()
+                            .pb_1()
+                            .text_xs()
+                            .font_medium()
+                            .text_color(quiet)
+                            .child(h)
+                    }))
                     .child(
                         h_flex()
-                            .id(ElementId::Name(format!("command-{}-{ix}", command.id).into()))
+                            .id(ElementId::Name(
+                                format!("command-{}-{ix}", command.id).into(),
+                            ))
                             .gap_2()
                             .px_2()
                             .h(px(32.))
@@ -225,8 +264,15 @@ impl Render for CommandPalette {
                                 v_flex()
                                     .flex_1()
                                     .min_w_0()
-                                    .child(div().truncate().when(off, |this| this.text_color(quiet)).child(command.name.clone()))
-                                    .children(command.unavailable.clone().map(|why| div().text_xs().text_color(quiet).truncate().child(why))),
+                                    .child(
+                                        div()
+                                            .truncate()
+                                            .when(off, |this| this.text_color(quiet))
+                                            .child(command.name.clone()),
+                                    )
+                                    .children(command.unavailable.clone().map(|why| {
+                                        div().text_xs().text_color(quiet).truncate().child(why)
+                                    })),
                             )
                             .children(command.keys.clone().map(|keys| Kbd::new(keys))),
                     )
@@ -243,26 +289,28 @@ impl Render for CommandPalette {
             .text_color(ink)
             .text_sm()
             .shadow(lifted_shadow(cx))
-            .on_key_down(cx.listener(move |this, event: &KeyDownEvent, _, cx| match event.keystroke.key.as_str() {
-                "down" if count > 0 => {
-                    this.cursor = (cursor + 1) % count;
-                    cx.notify();
-                    cx.stop_propagation();
+            .on_key_down(cx.listener(move |this, event: &KeyDownEvent, _, cx| {
+                match event.keystroke.key.as_str() {
+                    "down" if count > 0 => {
+                        this.cursor = (cursor + 1) % count;
+                        cx.notify();
+                        cx.stop_propagation();
+                    }
+                    "up" if count > 0 => {
+                        this.cursor = (cursor + count - 1) % count;
+                        cx.notify();
+                        cx.stop_propagation();
+                    }
+                    "escape" => cx.emit(PaletteEvent::Dismiss),
+                    _ => {}
                 }
-                "up" if count > 0 => {
-                    this.cursor = (cursor + count - 1) % count;
-                    cx.notify();
-                    cx.stop_propagation();
-                }
-                "escape" => cx.emit(PaletteEvent::Dismiss),
-                _ => {}
             }))
             .child(
-                div()
-                    .p_2()
-                    .border_b_1()
-                    .border_color(line)
-                    .child(Input::new(&self.field).appearance(false).prefix(Icon::new(IconName::Search).small().text_color(quiet))),
+                div().p_2().border_b_1().border_color(line).child(
+                    Input::new(&self.field)
+                        .appearance(false)
+                        .prefix(Icon::new(IconName::Search).small().text_color(quiet)),
+                ),
             )
             .child(
                 v_flex()
@@ -271,7 +319,15 @@ impl Render for CommandPalette {
                     .overflow_y_scroll()
                     .p_1()
                     .children(list)
-                    .when(count == 0, |this| this.child(div().px_3().py_4().text_color(quiet).child("No commands match."))),
+                    .when(count == 0, |this| {
+                        this.child(
+                            div()
+                                .px_3()
+                                .py_4()
+                                .text_color(quiet)
+                                .child("No commands match."),
+                        )
+                    }),
             )
             .child(
                 h_flex()

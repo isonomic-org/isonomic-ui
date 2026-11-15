@@ -17,10 +17,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, lifted_shadow, resting_shadow};
@@ -72,7 +71,11 @@ impl PendingRequest {
     }
 
     /// Add a detail.
-    pub fn detail(mut self, label: impl Into<SharedString>, value: impl Into<SharedString>) -> Self {
+    pub fn detail(
+        mut self,
+        label: impl Into<SharedString>,
+        value: impl Into<SharedString>,
+    ) -> Self {
         self.details.push((label.into(), value.into()));
         self
     }
@@ -187,7 +190,9 @@ impl RenderOnce for ApprovalStack {
         let radius_lg = theme.radius_lg;
 
         let focus = window
-            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| cx.focus_handle().tab_stop(true))
+            .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| {
+                cx.focus_handle().tab_stop(true)
+            })
             .read(cx)
             .clone();
         let is_focused = focus.is_focused(window);
@@ -232,20 +237,23 @@ impl RenderOnce for ApprovalStack {
                 let button = |label: &'static str, decision: StackDecision| {
                     let decide = self.on_decide.clone();
                     let id = request.id.clone();
-                    Button::new(ElementId::NamedChild(self.id.clone().into(), format!("{label}-{}", request.id).into()))
-                        .small()
-                        .map(|this| match decision {
-                            StackDecision::Approve => this.primary(),
-                            StackDecision::Reject => this.outline().danger(),
-                            StackDecision::Edit => this.outline(),
-                        })
-                        .label(label)
-                        .accessibility_label(format!("{label}: {}", request.action))
-                        .on_click(move |_, window, cx| {
-                            if let Some(decide) = &decide {
-                                decide(&id, decision, window, cx);
-                            }
-                        })
+                    Button::new(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("{label}-{}", request.id).into(),
+                    ))
+                    .small()
+                    .map(|this| match decision {
+                        StackDecision::Approve => this.primary(),
+                        StackDecision::Reject => this.outline().danger(),
+                        StackDecision::Edit => this.outline(),
+                    })
+                    .label(label)
+                    .accessibility_label(format!("{label}: {}", request.action))
+                    .on_click(move |_, window, cx| {
+                        if let Some(decide) = &decide {
+                            decide(&id, decision, window, cx);
+                        }
+                    })
                 };
                 let peeks = (waiting.saturating_sub(1)).min(2);
                 div()
@@ -287,15 +295,23 @@ impl RenderOnce for ApprovalStack {
                                             .justify_center()
                                             .rounded(px(6.))
                                             .bg(chip)
-                                            .child(Icon::new(IconName::Bot).xsmall().text_color(quiet)),
+                                            .child(
+                                                Icon::new(IconName::Bot).xsmall().text_color(quiet),
+                                            ),
                                     )
-                                    .child(div().flex_1().min_w_0().truncate().text_xs().text_color(quiet).child(
-                                        if request.asked.is_empty() {
-                                            request.from.to_string()
-                                        } else {
-                                            format!("{} \u{b7} {}", request.from, request.asked)
-                                        },
-                                    ))
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .min_w_0()
+                                            .truncate()
+                                            .text_xs()
+                                            .text_color(quiet)
+                                            .child(if request.asked.is_empty() {
+                                                request.from.to_string()
+                                            } else {
+                                                format!("{} \u{b7} {}", request.from, request.asked)
+                                            }),
+                                    )
                                     .child(
                                         h_flex()
                                             .flex_none()
@@ -322,15 +338,31 @@ impl RenderOnce for ApprovalStack {
                                         .rounded(radius)
                                         .border_1()
                                         .border_color(line)
-                                        .children(request.details.iter().enumerate().map(|(ix, (label, value))| {
-                                            h_flex()
-                                                .gap_3()
-                                                .px_3()
-                                                .py_1p5()
-                                                .when(ix > 0, |this| this.border_t_1().border_color(line))
-                                                .child(div().w(px(96.)).flex_none().text_xs().text_color(quiet).child(label.clone()))
-                                                .child(div().flex_1().min_w_0().child(value.clone()))
-                                        })),
+                                        .children(request.details.iter().enumerate().map(
+                                            |(ix, (label, value))| {
+                                                h_flex()
+                                                    .gap_3()
+                                                    .px_3()
+                                                    .py_1p5()
+                                                    .when(ix > 0, |this| {
+                                                        this.border_t_1().border_color(line)
+                                                    })
+                                                    .child(
+                                                        div()
+                                                            .w(px(96.))
+                                                            .flex_none()
+                                                            .text_xs()
+                                                            .text_color(quiet)
+                                                            .child(label.clone()),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .min_w_0()
+                                                            .child(value.clone()),
+                                                    )
+                                            },
+                                        )),
                                 )
                             })
                             .child(
@@ -355,7 +387,12 @@ impl RenderOnce for ApprovalStack {
                 .border_color(line)
                 .child(Icon::new(IconName::CircleCheck).text_color(Tone::Success.color(cx)))
                 .child(div().font_medium().child("Nothing waiting"))
-                .child(div().text_xs().text_color(quiet).child(format!("{} decided", self.decided)))
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(quiet)
+                        .child(format!("{} decided", self.decided)),
+                )
                 .into_any_element(),
         };
 
@@ -388,7 +425,9 @@ impl RenderOnce for ApprovalStack {
                     } else {
                         format!("{waiting} waiting")
                     }))
-                    .when(total > 0, |this| this.child(format!("{} of {total} decided", self.decided))),
+                    .when(total > 0, |this| {
+                        this.child(format!("{} of {total} decided", self.decided))
+                    }),
             )
             .child(deck)
             .children(self.last.clone().map(|(action, decision)| {
@@ -398,7 +437,13 @@ impl RenderOnce for ApprovalStack {
                     .px_1()
                     .text_xs()
                     .text_color(quiet)
-                    .child(div().flex_1().min_w_0().truncate().child(format!("{}: {action}", decision_words(decision))))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .child(format!("{}: {action}", decision_words(decision))),
+                    )
                     .child(
                         Button::new(ElementId::NamedChild(self.id.clone().into(), "undo".into()))
                             .xsmall()

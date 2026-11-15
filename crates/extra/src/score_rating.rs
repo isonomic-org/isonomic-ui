@@ -7,12 +7,13 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+};
 use isonomic_ui::{
-    KeyDownEvent,
-    Role,
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    RenderOnce, Role, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px,
 };
 
 /// How much of one star a score fills.
@@ -28,7 +29,11 @@ pub enum StarFill {
 
 /// Round a score to the steps allowed and keep it between zero and `max`.
 pub fn snap_score(raw: f32, max: u8, half_steps: bool) -> f32 {
-    let snapped = if half_steps { (raw * 2.0).round() / 2.0 } else { raw.round() };
+    let snapped = if half_steps {
+        (raw * 2.0).round() / 2.0
+    } else {
+        raw.round()
+    };
     snapped.clamp(0.0, f32::from(max))
 }
 
@@ -49,7 +54,11 @@ pub fn spoken_score(score: f32, max: u8) -> String {
     if score <= 0.0 {
         return "Not rated".into();
     }
-    let shown = if score.fract() == 0.0 { format!("{score:.0}") } else { format!("{score:.1}") };
+    let shown = if score.fract() == 0.0 {
+        format!("{score:.0}")
+    } else {
+        format!("{score:.1}")
+    };
     format!("{shown} out of {max}")
 }
 
@@ -152,9 +161,11 @@ impl RenderOnce for ScoreRating {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focus = self.on_change.is_some().then(|| {
             window
-                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
-                    cx.focus_handle().tab_stop(true)
-                })
+                .use_keyed_state(
+                    ElementId::NamedChild(self.id.clone().into(), "focus".into()),
+                    cx,
+                    |_, cx| cx.focus_handle().tab_stop(true),
+                )
                 .read(cx)
                 .clone()
         });
@@ -172,9 +183,16 @@ impl RenderOnce for ScoreRating {
             let fill = star_fill(score, ix);
             let zone = |part: &str, value: f32, left: bool| {
                 let change = self.on_change.clone();
-                let next = if self.clearable && (value - score).abs() < f32::EPSILON { 0.0 } else { value };
+                let next = if self.clearable && (value - score).abs() < f32::EPSILON {
+                    0.0
+                } else {
+                    value
+                };
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("star-{ix}-{part}").into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("star-{ix}-{part}").into(),
+                    ))
                     .absolute()
                     .top_0()
                     .h_full()
@@ -202,21 +220,39 @@ impl RenderOnce for ScoreRating {
                             .top_0()
                             .left_0()
                             .h_full()
-                            .w(if fill == StarFill::Full { size } else { size / 2. })
+                            .w(if fill == StarFill::Full {
+                                size
+                            } else {
+                                size / 2.
+                            })
                             .overflow_hidden()
-                            .child(Icon::new(IconName::StarFill).with_size(size).text_color(lit)),
+                            .child(
+                                Icon::new(IconName::StarFill)
+                                    .with_size(size)
+                                    .text_color(lit),
+                            ),
                     )
                 })
                 .when(interactive && self.half_steps, |this| {
-                    this.child(zone("half", ix as f32 + 0.5, true)).child(zone("whole", ix as f32 + 1.0, false))
+                    this.child(zone("half", ix as f32 + 0.5, true)).child(zone(
+                        "whole",
+                        ix as f32 + 1.0,
+                        false,
+                    ))
                 })
-                .when(interactive && !self.half_steps, |this| this.child(zone("whole", ix as f32 + 1.0, true)))
+                .when(interactive && !self.half_steps, |this| {
+                    this.child(zone("whole", ix as f32 + 1.0, true))
+                })
         });
 
         h_flex()
             .id(self.id.clone())
             .gap_0p5()
-            .role(if interactive { Role::Slider } else { Role::Image })
+            .role(if interactive {
+                Role::Slider
+            } else {
+                Role::Image
+            })
             .when(interactive, |this| {
                 this.aria_numeric_value(f64::from(score))
                     .aria_min_numeric_value(0.0)
@@ -224,11 +260,14 @@ impl RenderOnce for ScoreRating {
                     .aria_numeric_value_step(if self.half_steps { 0.5 } else { 1.0 })
             })
             .when_some(focus, |this, focus| this.track_focus(&focus))
-            .when(focused, |this| this.rounded(px(4.)).border_1().border_color(ring))
+            .when(focused, |this| {
+                this.rounded(px(4.)).border_1().border_color(ring)
+            })
             .when_some(self.on_change.clone(), |this, change| {
                 let (max, half) = (self.max, self.half_steps);
                 this.on_key_down(move |event: &KeyDownEvent, window, cx| {
-                    if let Some(next) = keyed_score(score, max, half, event.keystroke.key.as_str()) {
+                    if let Some(next) = keyed_score(score, max, half, event.keystroke.key.as_str())
+                    {
                         cx.stop_propagation();
                         change(next, window, cx);
                     }
@@ -240,13 +279,14 @@ impl RenderOnce for ScoreRating {
             })
             .children(stars)
             .when_some(self.count, |this, count| {
-                this.child(
-                    div()
-                        .ml_1()
-                        .text_sm()
-                        .text_color(quiet)
-                        .child(format!("{} ({count})", if score > 0.0 { format!("{score:.1}") } else { "\u{2013}".into() })),
-                )
+                this.child(div().ml_1().text_sm().text_color(quiet).child(format!(
+                    "{} ({count})",
+                    if score > 0.0 {
+                        format!("{score:.1}")
+                    } else {
+                        "\u{2013}".into()
+                    }
+                )))
             })
             .refine_style(&self.style)
     }

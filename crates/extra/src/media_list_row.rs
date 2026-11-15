@@ -8,11 +8,13 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    AnyElement, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, img,
-    prelude::FluentBuilder as _, px,
+    AnyElement, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div, img, prelude::FluentBuilder as _, px,
 };
 
 /// What leads the row.
@@ -111,7 +113,10 @@ impl MediaListRow {
     }
 
     /// Run when the row is clicked, or Enter or Space is pressed on it.
-    pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_click(
+        mut self,
+        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_click = Some(Rc::new(handler));
         self
     }
@@ -128,9 +133,11 @@ impl RenderOnce for MediaListRow {
         let clickable = self.on_click.is_some() && !self.disabled;
         let focus = clickable.then(|| {
             window
-                .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
-                    cx.focus_handle().tab_stop(true)
-                })
+                .use_keyed_state(
+                    ElementId::NamedChild(self.id.clone().into(), "focus".into()),
+                    cx,
+                    |_, cx| cx.focus_handle().tab_stop(true),
+                )
                 .read(cx)
                 .clone()
         });
@@ -141,7 +148,12 @@ impl RenderOnce for MediaListRow {
         let hover = theme.muted.opacity(0.6);
         let ring = theme.ring;
         let radius = theme.radius;
-        let spoken = spoken_row(&self.title, self.secondary.as_deref(), self.picked, self.disabled);
+        let spoken = spoken_row(
+            &self.title,
+            self.secondary.as_deref(),
+            self.picked,
+            self.disabled,
+        );
         let click = self.on_click.clone();
 
         let media = self.media.map(|media| match media {
@@ -161,7 +173,11 @@ impl RenderOnce for MediaListRow {
             .py(px(if self.compact { 4. } else { 6. }))
             .rounded(radius)
             .border_1()
-            .border_color(if focused { ring } else { isonomic_ui::transparent_black() })
+            .border_color(if focused {
+                ring
+            } else {
+                isonomic_ui::transparent_black()
+            })
             .when(self.picked, |this| this.bg(picked_bg))
             .when(self.disabled, |this| this.opacity(0.5))
             .when_some(focus, |this, focus| this.track_focus(&focus))
@@ -174,15 +190,37 @@ impl RenderOnce for MediaListRow {
                         }
                     })
             })
-            .children(media.map(|m| div().size(px(20.)).flex_none().flex().items_center().justify_center().child(m)))
+            .children(media.map(|m| {
+                div()
+                    .size(px(20.))
+                    .flex_none()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(m)
+            }))
             .child(
                 v_flex()
                     .flex_1()
                     .min_w_0()
                     .gap(px(if self.compact { 0. } else { 1. }))
-                    .child(div().w_full().truncate().text_sm().font_medium().child(self.title.clone()))
+                    .child(
+                        div()
+                            .w_full()
+                            .truncate()
+                            .text_sm()
+                            .font_medium()
+                            .child(self.title.clone()),
+                    )
                     .when_some(self.secondary, |this, line| {
-                        this.child(div().w_full().truncate().text_xs().text_color(quiet).child(line))
+                        this.child(
+                            div()
+                                .w_full()
+                                .truncate()
+                                .text_xs()
+                                .text_color(quiet)
+                                .child(line),
+                        )
                     }),
             )
             .children(self.trailing.map(|t| div().flex_none().child(t)))
@@ -196,10 +234,18 @@ mod tests {
 
     #[test]
     fn rows_read_in_full() {
-        assert_eq!(spoken_row("Q3 report.pdf", Some("2.4 MB"), true, false), "Q3 report.pdf, 2.4 MB, picked");
-        assert_eq!(spoken_row("Bank feed", None, false, true), "Bank feed, unavailable");
+        assert_eq!(
+            spoken_row("Q3 report.pdf", Some("2.4 MB"), true, false),
+            "Q3 report.pdf, 2.4 MB, picked"
+        );
+        assert_eq!(
+            spoken_row("Bank feed", None, false, true),
+            "Bank feed, unavailable"
+        );
         assert_eq!(spoken_row("Mail", Some(""), false, false), "Mail");
-        let row = MediaListRow::new("r", "Mail").media(RowMedia::Image("mail.png".into())).compact();
+        let row = MediaListRow::new("r", "Mail")
+            .media(RowMedia::Image("mail.png".into()))
+            .compact();
         assert!(row.compact && row.media.is_some());
     }
 }

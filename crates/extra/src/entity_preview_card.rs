@@ -8,15 +8,13 @@
 use std::rc::Rc;
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::Button,
-    h_flex,
-    hover_card::HoverCard,
-    v_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex,
+    hover_card::HoverCard, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, Role,
-    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
+    prelude::FluentBuilder as _, px,
 };
 
 use crate::common::Tone;
@@ -62,7 +60,11 @@ pub struct EntityPreview {
 
 impl EntityPreview {
     /// Create a preview.
-    pub fn new(kind: EntityKind, name: impl Into<SharedString>, subtitle: impl Into<SharedString>) -> Self {
+    pub fn new(
+        kind: EntityKind,
+        name: impl Into<SharedString>,
+        subtitle: impl Into<SharedString>,
+    ) -> Self {
         Self {
             kind,
             name: name.into(),
@@ -92,7 +94,12 @@ pub fn preview_words(preview: &EntityPreview) -> String {
         out.push_str(&format!(", {status}"));
     }
     if !preview.facts.is_empty() {
-        let facts = preview.facts.iter().map(|(l, v)| format!("{l}: {v}")).collect::<Vec<_>>().join("; ");
+        let facts = preview
+            .facts
+            .iter()
+            .map(|(l, v)| format!("{l}: {v}"))
+            .collect::<Vec<_>>()
+            .join("; ");
         out.push_str(&format!(". {facts}"));
     }
     out
@@ -109,7 +116,11 @@ pub struct EntityPreviewCard {
 
 impl EntityPreviewCard {
     /// Create a trigger with its text and the preview behind it.
-    pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>, preview: EntityPreview) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        preview: EntityPreview,
+    ) -> Self {
         Self {
             id: id.into(),
             label: label.into(),
@@ -128,9 +139,11 @@ impl EntityPreviewCard {
 impl RenderOnce for EntityPreviewCard {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focus = window
-            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
-                cx.focus_handle().tab_stop(true)
-            })
+            .use_keyed_state(
+                ElementId::NamedChild(self.id.clone().into(), "focus".into()),
+                cx,
+                |_, cx| cx.focus_handle().tab_stop(true),
+            )
             .read(cx)
             .clone();
         let focused = focus.is_focused(window);
@@ -145,7 +158,10 @@ impl RenderOnce for EntityPreviewCard {
         HoverCard::new(self.id.clone())
             .trigger(
                 div()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "trigger".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "trigger".into(),
+                    ))
                     .role(Role::Link)
                     .aria_label(self.label.clone())
                     .aria_description(words.clone())
@@ -198,14 +214,27 @@ impl RenderOnce for EntityPreviewCard {
                                     .justify_center()
                                     .rounded(px(8.))
                                     .bg(chip)
-                                    .child(Icon::new(preview.kind.icon()).small().text_color(quiet)),
+                                    .child(
+                                        Icon::new(preview.kind.icon()).small().text_color(quiet),
+                                    ),
                             )
                             .child(
                                 v_flex()
                                     .flex_1()
                                     .min_w_0()
-                                    .child(div().font_semibold().truncate().child(preview.name.clone()))
-                                    .child(div().text_xs().text_color(quiet).truncate().child(preview.subtitle.clone())),
+                                    .child(
+                                        div()
+                                            .font_semibold()
+                                            .truncate()
+                                            .child(preview.name.clone()),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_xs()
+                                            .text_color(quiet)
+                                            .truncate()
+                                            .child(preview.subtitle.clone()),
+                                    ),
                             )
                             .children(status),
                     )
@@ -213,7 +242,13 @@ impl RenderOnce for EntityPreviewCard {
                         h_flex()
                             .gap_3()
                             .text_xs()
-                            .child(div().w(px(84.)).flex_none().text_color(quiet).child(label.clone()))
+                            .child(
+                                div()
+                                    .w(px(84.))
+                                    .flex_none()
+                                    .text_color(quiet)
+                                    .child(label.clone()),
+                            )
                             .child(div().flex_1().min_w_0().truncate().child(value.clone()))
                     }))
                     .children(on_open.clone().map(|open| {

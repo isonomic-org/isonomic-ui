@@ -13,9 +13,9 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window,
+    div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -366,7 +366,11 @@ impl RenderOnce for FindingsFeed {
                 worker.total,
                 found(Severity::Critical),
                 found(Severity::Warning),
-                if picked { ", showing only theirs" } else { ". Show only theirs" }
+                if picked {
+                    ", showing only theirs"
+                } else {
+                    ". Show only theirs"
+                }
             );
             h_flex()
                 .id(("finding-worker", ix))
@@ -489,12 +493,20 @@ impl RenderOnce for FindingsFeed {
                 "{}: {}, by {who}{}, {}",
                 finding.severity.word(),
                 finding.title,
-                finding.location.as_ref().map(|l| format!(" in {l}")).unwrap_or_default(),
+                finding
+                    .location
+                    .as_ref()
+                    .map(|l| format!(" in {l}"))
+                    .unwrap_or_default(),
                 ago_words(now.saturating_duration_since(finding.found_at))
             );
             h_flex()
                 .id(("finding", ix))
-                .role(if open.is_some() { Role::Button } else { Role::ListItem })
+                .role(if open.is_some() {
+                    Role::Button
+                } else {
+                    Role::ListItem
+                })
                 .aria_label(finding_words)
                 .when(open.is_some(), |this| this.tab_index(0))
                 .gap_2()

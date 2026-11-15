@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div, px};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div, px,
+};
 use isonomic_ui_extra::segmented_switcher::{Segment, SegmentedSwitcher};
 
 /// Filtering invoices by status, and switching a report between periods.
@@ -14,7 +17,10 @@ pub struct SegmentedSwitcherStory {
 impl SegmentedSwitcherStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self { status: 1, period: 0 })
+        cx.new(|_| Self {
+            status: 1,
+            period: 0,
+        })
     }
 }
 
@@ -60,7 +66,10 @@ impl Render for SegmentedSwitcherStory {
                     })
                 }),
             )
-            .child(div().text_xs().text_color(quiet).child(format!("Showing {} invoices.", statuses[self.status].to_lowercase())))
+            .child(div().text_xs().text_color(quiet).child(format!(
+                "Showing {} invoices.",
+                statuses[self.status].to_lowercase()
+            )))
             .child(
                 div().w(px(360.)).child(
                     SegmentedSwitcher::new(

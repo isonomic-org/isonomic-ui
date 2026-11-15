@@ -7,11 +7,15 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Sizable as _, StyledExt as _, button::{Button, ButtonVariants as _}, h_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Sizable as _, StyledExt as _,
+    button::{Button, ButtonVariants as _},
+    h_flex,
+};
 use isonomic_ui::{
-    Role,
-    App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// Where the label sits on the rule.
@@ -116,11 +120,14 @@ impl RenderOnce for LabelledDivider {
         let rule = || div().flex_1().h(px(1.)).bg(line);
         let centered = self.placement == LabelPlacement::Center;
         let action = self.action.map(|(label, handler)| {
-            Button::new(ElementId::NamedChild(self.id.clone().into(), "action".into()))
-                .xsmall()
-                .ghost()
-                .label(label)
-                .on_click(move |event, window, cx| handler(event, window, cx))
+            Button::new(ElementId::NamedChild(
+                self.id.clone().into(),
+                "action".into(),
+            ))
+            .xsmall()
+            .ghost()
+            .label(label)
+            .on_click(move |event, window, cx| handler(event, window, cx))
         });
 
         h_flex()
@@ -131,7 +138,14 @@ impl RenderOnce for LabelledDivider {
             .when_some(self.label.clone(), |this, label| this.aria_label(label))
             .when(centered && self.label.is_some(), |this| this.child(rule()))
             .when_some(self.label, |this, label| {
-                this.child(div().flex_none().text_xs().font_medium().text_color(quiet).child(label))
+                this.child(
+                    div()
+                        .flex_none()
+                        .text_xs()
+                        .font_medium()
+                        .text_color(quiet)
+                        .child(label),
+                )
             })
             .child(rule())
             .children(action)

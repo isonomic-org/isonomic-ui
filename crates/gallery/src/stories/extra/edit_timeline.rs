@@ -3,7 +3,9 @@
 use std::time::Duration;
 
 use crate::Story;
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window,
+};
 use isonomic_ui_extra::edit_timeline::{EditTimeline, FileEdit};
 
 fn edits() -> Vec<FileEdit> {
@@ -15,7 +17,14 @@ fn edits() -> Vec<FileEdit> {
         FileEdit::new("e5", "note", 120, "lead", "Draft the close note").lines(24, 0),
         FileEdit::new("e6", "ledger", 150, "card", "Undo 3 matches on refunds").lines(3, 3),
         FileEdit::new("e7", "note", 172, "maya", "Tighten the summary").lines(6, 11),
-        FileEdit::new("e8", "rules", 190, "lead", "Note the locked-period exception").lines(5, 0),
+        FileEdit::new(
+            "e8",
+            "rules",
+            190,
+            "lead",
+            "Note the locked-period exception",
+        )
+        .lines(5, 0),
     ]
 }
 
@@ -32,24 +41,28 @@ impl EditTimelineStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let tick = cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-                loop {
-                    cx.background_executor().timer(Duration::from_millis(100)).await;
-                    let alive = this.update(cx, |this, cx| {
-                        if this.playing {
-                            this.playhead += 2;
-                            if this.playhead >= 190 {
-                                this.playhead = 190;
-                                this.playing = false;
+            let tick = cx.spawn(
+                async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                    loop {
+                        cx.background_executor()
+                            .timer(Duration::from_millis(100))
+                            .await;
+                        let alive = this.update(cx, |this, cx| {
+                            if this.playing {
+                                this.playhead += 2;
+                                if this.playhead >= 190 {
+                                    this.playhead = 190;
+                                    this.playing = false;
+                                }
+                                cx.notify();
                             }
-                            cx.notify();
+                        });
+                        if alive.is_err() {
+                            break;
                         }
-                    });
-                    if alive.is_err() {
-                        break;
                     }
-                }
-            });
+                },
+            );
             Self {
                 playhead: 190,
                 playing: false,

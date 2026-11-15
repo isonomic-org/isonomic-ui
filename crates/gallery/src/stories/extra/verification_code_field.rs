@@ -5,7 +5,8 @@ use std::time::Duration;
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, v_flex};
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Subscription, Task, Window, div,
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Subscription, Task, Window, div,
 };
 use isonomic_ui_extra::verification_code_field::{CodeEvent, VerificationCodeField};
 
@@ -98,12 +99,18 @@ impl Render for VerificationCodeFieldStory {
         let success = cx.theme().success;
         v_flex()
             .gap_3()
-            .child(div().text_sm().child("Enter the 6-digit code sent to your work email."))
+            .child(
+                div()
+                    .text_sm()
+                    .child("Enter the 6-digit code sent to your work email."),
+            )
             .child(self.field.clone())
             .child(if self.signed_in {
                 div().text_sm().text_color(success).child("Signed in.")
             } else {
-                div().text_xs().text_color(quiet).child(format!("Click the boxes and type or paste. The working code is {GOOD}."))
+                div().text_xs().text_color(quiet).child(format!(
+                    "Click the boxes and type or paste. The working code is {GOOD}."
+                ))
             })
     }
 }

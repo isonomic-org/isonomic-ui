@@ -399,7 +399,9 @@ impl RenderOnce for CheckpointTimeline {
 
         // A checkpoint in words: "Wrote the tests, failed, attempt 2, 3 files, at 1:20".
         let point_words = |ix: usize| -> String {
-            let Some(checkpoint) = points.get(ix) else { return String::new() };
+            let Some(checkpoint) = points.get(ix) else {
+                return String::new();
+            };
             let mut words = checkpoint.title.to_string();
             words.push_str(match checkpoint.status {
                 CheckpointStatus::Running => ", in progress",
@@ -411,7 +413,11 @@ impl RenderOnce for CheckpointTimeline {
                 words.push_str(&format!(", attempt {}", lane[ix] + 1));
             }
             if let Some(files) = checkpoint.files {
-                words.push_str(&if files == 1 { ", 1 file".to_string() } else { format!(", {files} files") });
+                words.push_str(&if files == 1 {
+                    ", 1 file".to_string()
+                } else {
+                    format!(", {files} files")
+                });
             }
             if let Some(at) = checkpoint.at {
                 words.push_str(&format!(", at {}", run_clock(at)));
@@ -603,7 +609,11 @@ impl RenderOnce for CheckpointTimeline {
             .unwrap_or_default();
         let timeline_words = format!(
             "Checkpoints, {summary}{at_words}. Up and Down move{}",
-            if self.on_rewind.is_some() { ", Enter rewinds" } else { "" }
+            if self.on_rewind.is_some() {
+                ", Enter rewinds"
+            } else {
+                ""
+            }
         );
         let no_task = self.task.is_none();
         v_flex()

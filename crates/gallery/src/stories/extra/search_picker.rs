@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Subscription, Window, div,
+};
 use isonomic_ui_extra::search_picker::{SearchPicker, SearchPickerEvent};
 
 /// A single customer picker and a multi tag picker that can create tags.
@@ -14,10 +17,18 @@ pub struct SearchPickerStory {
 }
 
 fn customers() -> Vec<SharedString> {
-    ["Northwind Dental", "Harbour Supply", "Kestrel Print", "Bayview Rentals", "Oak & Iron", "Northline Fuel", "Juniper Cafe"]
-        .into_iter()
-        .map(SharedString::from)
-        .collect()
+    [
+        "Northwind Dental",
+        "Harbour Supply",
+        "Kestrel Print",
+        "Bayview Rentals",
+        "Oak & Iron",
+        "Northline Fuel",
+        "Juniper Cafe",
+    ]
+    .into_iter()
+    .map(SharedString::from)
+    .collect()
 }
 
 impl SearchPickerStory {
@@ -27,7 +38,10 @@ impl SearchPickerStory {
             let customer = cx.new(|cx| SearchPicker::new(customers(), false, window, cx));
             let tags = cx.new(|cx| {
                 let mut picker = SearchPicker::new(
-                    ["Fuel", "Rent", "Software", "Travel", "Meals", "Office"].into_iter().map(SharedString::from).collect(),
+                    ["Fuel", "Rent", "Software", "Travel", "Meals", "Office"]
+                        .into_iter()
+                        .map(SharedString::from)
+                        .collect(),
                     true,
                     window,
                     cx,
@@ -37,7 +51,10 @@ impl SearchPickerStory {
             });
             let a = cx.subscribe(&customer, |this: &mut Self, _, event, cx| {
                 if let SearchPickerEvent::Picked(picked) = event {
-                    this.note = format!("Customer: {}", picked.first().map(|p| p.to_string()).unwrap_or_default());
+                    this.note = format!(
+                        "Customer: {}",
+                        picked.first().map(|p| p.to_string()).unwrap_or_default()
+                    );
                     cx.notify();
                 }
             });
@@ -53,7 +70,14 @@ impl SearchPickerStory {
                         this.note = format!("Created the tag {name}");
                     }
                     SearchPickerEvent::Picked(picked) => {
-                        this.note = format!("Tags: {}", picked.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(", "));
+                        this.note = format!(
+                            "Tags: {}",
+                            picked
+                                .iter()
+                                .map(|p| p.to_string())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        );
                     }
                 }
                 cx.notify();
@@ -69,7 +93,10 @@ impl SearchPickerStory {
 }
 
 fn picker_options() -> Vec<SharedString> {
-    ["Fuel", "Rent", "Software", "Travel", "Meals", "Office"].into_iter().map(SharedString::from).collect()
+    ["Fuel", "Rent", "Software", "Travel", "Meals", "Office"]
+        .into_iter()
+        .map(SharedString::from)
+        .collect()
 }
 
 impl Story for SearchPickerStory {
@@ -96,8 +123,28 @@ impl Render for SearchPickerStory {
                     .items_start()
                     .flex_wrap()
                     .gap_4()
-                    .child(v_flex().gap_1().child(div().text_xs().text_color(quiet).child("Customer (try \u{201c}nwd\u{201d})")).child(self.customer.clone()))
-                    .child(v_flex().gap_1().child(div().text_xs().text_color(quiet).child("Tags (type a new one to create it)")).child(self.tags.clone())),
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child("Customer (try \u{201c}nwd\u{201d})"),
+                            )
+                            .child(self.customer.clone()),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child("Tags (type a new one to create it)"),
+                            )
+                            .child(self.tags.clone()),
+                    ),
             )
             .child(div().text_xs().text_color(quiet).child(self.note.clone()))
     }

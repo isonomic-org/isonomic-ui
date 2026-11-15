@@ -36,18 +36,26 @@ impl SequenceDiagramStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| {
-            let tick = cx.spawn(async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
-                loop {
-                    cx.background_executor().timer(Duration::from_millis(1500)).await;
-                    let alive = this.update(cx, |this, cx| {
-                        this.shown = if this.shown >= script().len() + 2 { 1 } else { this.shown + 1 };
-                        cx.notify();
-                    });
-                    if alive.is_err() {
-                        break;
+            let tick = cx.spawn(
+                async move |this: isonomic_ui::WeakEntity<Self>, cx: &mut isonomic_ui::AsyncApp| {
+                    loop {
+                        cx.background_executor()
+                            .timer(Duration::from_millis(1500))
+                            .await;
+                        let alive = this.update(cx, |this, cx| {
+                            this.shown = if this.shown >= script().len() + 2 {
+                                1
+                            } else {
+                                this.shown + 1
+                            };
+                            cx.notify();
+                        });
+                        if alive.is_err() {
+                            break;
+                        }
                     }
-                }
-            });
+                },
+            );
             Self {
                 shown: 1,
                 selected: None,
@@ -84,7 +92,12 @@ impl Render for SequenceDiagramStory {
         let note = self
             .selected
             .and_then(|ix| messages.get(ix))
-            .map(|m| format!("Selected: {} \u{2192} {}, \u{201c}{}\u{201d}", m.from, m.to, m.label))
+            .map(|m| {
+                format!(
+                    "Selected: {} \u{2192} {}, \u{201c}{}\u{201d}",
+                    m.from, m.to, m.label
+                )
+            })
             .unwrap_or_else(|| "Messages arrive one by one. Click one to select it.".into());
         v_flex()
             .w_full()
@@ -99,6 +112,11 @@ impl Render for SequenceDiagramStory {
                         })
                     }),
             )
-            .child(div().text_xs().text_color(cx.theme().muted_foreground).child(note))
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(note),
+            )
     }
 }

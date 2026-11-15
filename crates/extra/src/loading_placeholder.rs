@@ -8,10 +8,9 @@ use std::time::Duration;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
-    Role,
-    Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, px, relative,
+    Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _,
+    IntoElement, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, px, relative,
 };
 
 /// What the content will look like.
@@ -35,7 +34,13 @@ pub enum PlaceholderShape {
 /// Widths for a paragraph's lines, as shares of the full width: uneven, with a short last line.
 pub fn line_widths(count: usize) -> Vec<f32> {
     (0..count)
-        .map(|ix| if count > 1 && ix + 1 == count { 0.6 } else { [1.0, 0.94, 0.97, 0.9][ix % 4] })
+        .map(|ix| {
+            if count > 1 && ix + 1 == count {
+                0.6
+            } else {
+                [1.0, 0.94, 0.97, 0.9][ix % 4]
+            }
+        })
         .collect()
 }
 
@@ -58,7 +63,13 @@ pub struct LoadingPlaceholder {
 impl LoadingPlaceholder {
     /// Create a placeholder of one shape.
     pub fn new(id: impl Into<ElementId>, shape: PlaceholderShape) -> Self {
-        Self { id: id.into(), style: StyleRefinement::default(), shape, repeat: 1, label: "Loading".into() }
+        Self {
+            id: id.into(),
+            style: StyleRefinement::default(),
+            shape,
+            repeat: 1,
+            label: "Loading".into(),
+        }
     }
 
     /// Stack the shape this many times, as for a list.
@@ -81,19 +92,31 @@ impl Styled for LoadingPlaceholder {
 }
 
 fn bar(color: Hsla, width: f32, height: f32) -> isonomic_ui::Div {
-    div().w(relative(width)).h(px(height)).rounded(px(4.)).bg(color)
+    div()
+        .w(relative(width))
+        .h(px(height))
+        .rounded(px(4.))
+        .bg(color)
 }
 
 fn shape(shape: PlaceholderShape, color: Hsla, line: Hsla) -> AnyElement {
     match shape {
-        PlaceholderShape::Lines(count) => {
-            v_flex().w_full().gap_2().children(line_widths(count).into_iter().map(|w| bar(color, w, 10.))).into_any_element()
-        }
+        PlaceholderShape::Lines(count) => v_flex()
+            .w_full()
+            .gap_2()
+            .children(line_widths(count).into_iter().map(|w| bar(color, w, 10.)))
+            .into_any_element(),
         PlaceholderShape::MediaRow => h_flex()
             .w_full()
             .gap_3()
             .child(div().size(px(36.)).flex_none().rounded_full().bg(color))
-            .child(v_flex().flex_1().gap_2().child(bar(color, 0.45, 11.)).child(bar(color, 0.75, 9.)))
+            .child(
+                v_flex()
+                    .flex_1()
+                    .gap_2()
+                    .child(bar(color, 0.45, 11.))
+                    .child(bar(color, 0.75, 9.)),
+            )
             .into_any_element(),
         PlaceholderShape::Card => v_flex()
             .w_full()
@@ -116,9 +139,17 @@ fn shape(shape: PlaceholderShape, color: Hsla, line: Hsla) -> AnyElement {
                     .py_2()
                     .border_b_1()
                     .border_color(line)
-                    .children((0..columns).map(move |c| div().flex_1().child(bar(color, if c == 0 { 0.8 } else { 0.5 }, height))))
+                    .children((0..columns).map(move |c| {
+                        div()
+                            .flex_1()
+                            .child(bar(color, if c == 0 { 0.8 } else { 0.5 }, height))
+                    }))
             };
-            v_flex().w_full().child(row(8.)).children((0..rows).map(|_| row(10.))).into_any_element()
+            v_flex()
+                .w_full()
+                .child(row(8.))
+                .children((0..rows).map(|_| row(10.)))
+                .into_any_element()
         }
     }
 }

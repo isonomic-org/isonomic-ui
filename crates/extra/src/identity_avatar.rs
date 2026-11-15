@@ -10,8 +10,8 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, avatar::Avatar, h_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, App, ElementId, Hsla, IntoElement, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, InteractiveElement as _,
+    Animation, AnimationExt as _, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Transformation, Window, div, percentage, prelude::FluentBuilder as _,
     px,
 };
@@ -160,10 +160,17 @@ impl RenderOnce for IdentityAvatar {
                 .justify_center()
                 .rounded(px(size * 0.28))
                 .bg(accent.opacity(0.14))
-                .child(Icon::new(IconName::Bot).size(px(size * 0.55)).text_color(accent))
+                .child(
+                    Icon::new(IconName::Bot)
+                        .size(px(size * 0.55))
+                        .text_color(accent),
+                )
                 .into_any_element()
         } else {
-            Avatar::new().name(self.who.name.clone()).with_size(px(size)).into_any_element()
+            Avatar::new()
+                .name(self.who.name.clone())
+                .with_size(px(size))
+                .into_any_element()
         };
         let ring = (self.who.agent && self.who.working).then(|| {
             div()
@@ -254,19 +261,41 @@ impl RenderOnce for IdentityStack {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let (shown, rest) = stack_split(self.people.len(), self.limit);
-        let names = self.people.iter().map(|p| p.name.to_string()).collect::<Vec<_>>().join(", ");
+        let names = self
+            .people
+            .iter()
+            .map(|p| p.name.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
         let size = self.size;
         h_flex()
             .id(self.id.clone())
             .role(Role::Group)
-            .aria_label(format!("{} {}: {names}", self.people.len(), if self.people.len() == 1 { "person" } else { "people" }))
+            .aria_label(format!(
+                "{} {}: {names}",
+                self.people.len(),
+                if self.people.len() == 1 {
+                    "person"
+                } else {
+                    "people"
+                }
+            ))
             .children(self.people.iter().take(shown).enumerate().map(|(ix, who)| {
                 div()
                     .when(ix > 0, |this| this.ml(px(-size * 0.3)))
                     .rounded_full()
                     .border_2()
                     .border_color(theme.background)
-                    .child(IdentityAvatar::new(ElementId::NamedChild(self.id.clone().into(), format!("face-{ix}").into()), who.clone()).size(size))
+                    .child(
+                        IdentityAvatar::new(
+                            ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("face-{ix}").into(),
+                            ),
+                            who.clone(),
+                        )
+                        .size(size),
+                    )
             }))
             .when(rest > 0, |this| {
                 this.child(
@@ -301,7 +330,9 @@ mod tests {
 
     #[test]
     fn identities_read_out_in_words() {
-        let who = Identity::agent("Reconciler").working(true).presence(Presence::Busy);
+        let who = Identity::agent("Reconciler")
+            .working(true)
+            .presence(Presence::Busy);
         assert_eq!(who.spoken(), "Reconciler, assistant, working, busy");
         assert_eq!(Identity::person("Maya").spoken(), "Maya");
     }

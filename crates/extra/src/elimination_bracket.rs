@@ -319,7 +319,12 @@ impl RenderOnce for EliminationBracket {
                 None if self.judging == Some(key) => ", being judged".to_string(),
                 None => String::new(),
             };
-            format!("{}: {} against {}{result}", round_name(round, rounds), name(upper), name(lower))
+            format!(
+                "{}: {} against {}{result}",
+                round_name(round, rounds),
+                name(upper),
+                name(lower)
+            )
         };
         let open = |key: MatchKey| {
             let state = state.clone();
@@ -460,7 +465,10 @@ impl RenderOnce for EliminationBracket {
 
         let is_focused = focus.is_focused(window);
         let bracket_name = match shown {
-            Some(key) => format!("Bracket, {decided} of {total} matches decided. {}", match_words(key)),
+            Some(key) => format!(
+                "Bracket, {decided} of {total} matches decided. {}",
+                match_words(key)
+            ),
             None => format!("Bracket, {decided} of {total} matches decided"),
         };
         let bracket = h_flex()

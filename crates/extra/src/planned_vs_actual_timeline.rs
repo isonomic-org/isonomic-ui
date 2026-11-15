@@ -148,7 +148,13 @@ fn signed(late: Duration, early: Duration) -> String {
 }
 
 /// A step in words for screen readers, such as "Draft: done in 2:10, +10s against the plan".
-fn spoken_step(title: &str, s: &Schedule, planned: Duration, now: Duration, format: &dyn Fn(Duration) -> String) -> String {
+fn spoken_step(
+    title: &str,
+    s: &Schedule,
+    planned: Duration,
+    now: Duration,
+    format: &dyn Fn(Duration) -> String,
+) -> String {
     match s.state {
         StepState::Done => format!(
             "{title}: done in {}, {} against the plan",
@@ -356,7 +362,13 @@ impl RenderOnce for PlannedVsActualTimeline {
                 h_flex()
                     .id(("step", ix))
                     .role(Role::ListItem)
-                    .aria_label(spoken_step(&step.title, s, step.planned, self.now, format.as_ref()))
+                    .aria_label(spoken_step(
+                        &step.title,
+                        s,
+                        step.planned,
+                        self.now,
+                        format.as_ref(),
+                    ))
                     .h(px(ROW))
                     .when(faded, |this| this.opacity(0.45))
                     .on_hover({
@@ -543,19 +555,28 @@ impl RenderOnce for PlannedVsActualTimeline {
                     .child(div().relative().flex_1().h_full().children(ticks)),
             )
             .child(
-                div().relative().child(v_flex().id("steps").role(Role::List).aria_label("Steps").children(rows)).child(
-                    div()
-                        .absolute()
-                        .top_0()
-                        .bottom_0()
-                        .left(px(NAME_COLUMN))
-                        .right_0()
-                        .child(marker(planned_finish, quiet.opacity(0.5), 1.))
-                        .when(expected_finish != planned_finish, |this| {
-                            this.child(marker(expected_finish, warning, 1.))
-                        })
-                        .child(marker(self.now, accent, 2.)),
-                ),
+                div()
+                    .relative()
+                    .child(
+                        v_flex()
+                            .id("steps")
+                            .role(Role::List)
+                            .aria_label("Steps")
+                            .children(rows),
+                    )
+                    .child(
+                        div()
+                            .absolute()
+                            .top_0()
+                            .bottom_0()
+                            .left(px(NAME_COLUMN))
+                            .right_0()
+                            .child(marker(planned_finish, quiet.opacity(0.5), 1.))
+                            .when(expected_finish != planned_finish, |this| {
+                                this.child(marker(expected_finish, warning, 1.))
+                            })
+                            .child(marker(self.now, accent, 2.)),
+                    ),
             );
 
         let legend = h_flex()
@@ -655,7 +676,16 @@ mod tests {
             end: Duration::from_secs(130),
             state: StepState::Done,
         };
-        assert_eq!(spoken_step("Draft", &s, Duration::from_secs(120), Duration::ZERO, &clock), "Draft: done in 2:10, +10s against the plan");
+        assert_eq!(
+            spoken_step(
+                "Draft",
+                &s,
+                Duration::from_secs(120),
+                Duration::ZERO,
+                &clock
+            ),
+            "Draft: done in 2:10, +10s against the plan"
+        );
     }
 
     fn secs(seconds: u64) -> Duration {

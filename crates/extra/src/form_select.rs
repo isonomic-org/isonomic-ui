@@ -15,8 +15,8 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// One option.
@@ -33,7 +33,11 @@ pub struct SelectOption {
 impl SelectOption {
     /// Create an option that can be picked.
     pub fn new(value: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { value: value.into(), label: label.into(), enabled: true }
+        Self {
+            value: value.into(),
+            label: label.into(),
+            enabled: true,
+        }
     }
 
     /// Grey it out.
@@ -55,13 +59,20 @@ pub struct SelectGroup {
 impl SelectGroup {
     /// Create a group.
     pub fn new(name: impl Into<SharedString>, options: Vec<SelectOption>) -> Self {
-        Self { name: name.into(), options }
+        Self {
+            name: name.into(),
+            options,
+        }
     }
 }
 
 /// The label of the option holding `value`, searching every group.
 pub fn label_for<'a>(groups: &'a [SelectGroup], value: &str) -> Option<&'a SharedString> {
-    groups.iter().flat_map(|g| &g.options).find(|o| o.value == value).map(|o| &o.label)
+    groups
+        .iter()
+        .flat_map(|g| &g.options)
+        .find(|o| o.value == value)
+        .map(|o| &o.label)
 }
 
 type PickHandler = Rc<dyn Fn(Option<SharedString>, &mut Window, &mut App)>;
@@ -83,7 +94,11 @@ pub struct FormSelect {
 
 impl FormSelect {
     /// Create a field named `label` choosing among `groups`.
-    pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>, groups: Vec<SelectGroup>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        groups: Vec<SelectGroup>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -129,7 +144,10 @@ impl FormSelect {
     }
 
     /// Run with the value picked, or `None` when cleared.
-    pub fn on_pick(mut self, handler: impl Fn(Option<SharedString>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_pick(
+        mut self,
+        handler: impl Fn(Option<SharedString>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_pick = Some(Rc::new(handler));
         self
     }
@@ -146,7 +164,11 @@ impl RenderOnce for FormSelect {
         let theme = cx.theme();
         let quiet = theme.muted_foreground;
         let danger = theme.danger;
-        let picked = self.value.as_ref().and_then(|v| label_for(&self.groups, v)).cloned();
+        let picked = self
+            .value
+            .as_ref()
+            .and_then(|v| label_for(&self.groups, v))
+            .cloned();
         let shown = picked.clone().unwrap_or_else(|| self.placeholder.clone());
         let spoken = format!(
             "{}{}: {}",
@@ -169,58 +191,81 @@ impl RenderOnce for FormSelect {
                     .text_sm()
                     .font_medium()
                     .child(self.label.clone())
-                    .when(self.required, |this| this.child(div().text_color(danger).child("*"))),
+                    .when(self.required, |this| {
+                        this.child(div().text_color(danger).child("*"))
+                    }),
             )
             .child(
-                Button::new(ElementId::NamedChild(self.id.clone().into(), "field".into()))
-                    .outline()
-                    .w_full()
-                    .when(self.error.is_some(), |this| this.border_color(danger))
-                    .child(
-                        h_flex()
-                            .w_full()
-                            .justify_between()
-                            .gap_2()
-                            .child(div().truncate().when(empty, |this| this.text_color(quiet)).child(shown))
-                            .child(Icon::new(IconName::ChevronsUpDown).xsmall().text_color(quiet)),
-                    )
-                    .accessibility_label(spoken)
-                    .dropdown_menu(move |mut menu, _, _| {
-                        for (ix, group) in groups.iter().enumerate() {
-                            if ix > 0 {
-                                menu = menu.separator();
-                            }
-                            if !group.name.is_empty() {
-                                menu = menu.label(group.name.clone());
-                            }
-                            for option in &group.options {
-                                let pick = pick.clone();
-                                let chosen = option.value.clone();
-                                menu = menu.item(
-                                    PopupMenuItem::new(option.label.clone())
-                                        .checked(value.as_ref() == Some(&option.value))
-                                        .disabled(!option.enabled)
-                                        .on_click(move |_, window, cx| {
-                                            if let Some(pick) = &pick {
-                                                pick(Some(chosen.clone()), window, cx);
-                                            }
-                                        }),
-                                );
-                            }
+                Button::new(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    "field".into(),
+                ))
+                .outline()
+                .w_full()
+                .when(self.error.is_some(), |this| this.border_color(danger))
+                .child(
+                    h_flex()
+                        .w_full()
+                        .justify_between()
+                        .gap_2()
+                        .child(
+                            div()
+                                .truncate()
+                                .when(empty, |this| this.text_color(quiet))
+                                .child(shown),
+                        )
+                        .child(
+                            Icon::new(IconName::ChevronsUpDown)
+                                .xsmall()
+                                .text_color(quiet),
+                        ),
+                )
+                .accessibility_label(spoken)
+                .dropdown_menu(move |mut menu, _, _| {
+                    for (ix, group) in groups.iter().enumerate() {
+                        if ix > 0 {
+                            menu = menu.separator();
                         }
-                        if clearable {
+                        if !group.name.is_empty() {
+                            menu = menu.label(group.name.clone());
+                        }
+                        for option in &group.options {
                             let pick = pick.clone();
-                            menu = menu.separator().item(PopupMenuItem::new("Clear").on_click(move |_, window, cx| {
+                            let chosen = option.value.clone();
+                            menu = menu.item(
+                                PopupMenuItem::new(option.label.clone())
+                                    .checked(value.as_ref() == Some(&option.value))
+                                    .disabled(!option.enabled)
+                                    .on_click(move |_, window, cx| {
+                                        if let Some(pick) = &pick {
+                                            pick(Some(chosen.clone()), window, cx);
+                                        }
+                                    }),
+                            );
+                        }
+                    }
+                    if clearable {
+                        let pick = pick.clone();
+                        menu = menu.separator().item(PopupMenuItem::new("Clear").on_click(
+                            move |_, window, cx| {
                                 if let Some(pick) = &pick {
                                     pick(None, window, cx);
                                 }
-                            }));
-                        }
-                        menu.min_w(px(240.)).max_h(px(320.)).scrollable(true)
-                    }),
+                            },
+                        ));
+                    }
+                    menu.min_w(px(240.)).max_h(px(320.)).scrollable(true)
+                }),
             )
             .when_some(self.error, |this, error| {
-                this.child(h_flex().gap_1().text_xs().text_color(danger).child(Icon::new(IconName::CircleAlert).xsmall()).child(error))
+                this.child(
+                    h_flex()
+                        .gap_1()
+                        .text_xs()
+                        .text_color(danger)
+                        .child(Icon::new(IconName::CircleAlert).xsmall())
+                        .child(error),
+                )
             })
             .refine_style(&self.style)
     }
@@ -234,7 +279,13 @@ mod tests {
     fn labels_are_found_across_groups() {
         let groups = vec![
             SelectGroup::new("Income", vec![SelectOption::new("4000", "Sales")]),
-            SelectGroup::new("Expenses", vec![SelectOption::new("6100", "Fuel"), SelectOption::new("6900", "Old").disabled()]),
+            SelectGroup::new(
+                "Expenses",
+                vec![
+                    SelectOption::new("6100", "Fuel"),
+                    SelectOption::new("6900", "Old").disabled(),
+                ],
+            ),
         ];
         assert_eq!(label_for(&groups, "6100").map(|s| s.as_ref()), Some("Fuel"));
         assert_eq!(label_for(&groups, "9999"), None);

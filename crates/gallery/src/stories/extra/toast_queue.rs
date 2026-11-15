@@ -3,7 +3,8 @@
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, Sizable as _, button::Button, h_flex, v_flex};
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Subscription, Window, div, px,
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Subscription, Window, div, px,
 };
 use isonomic_ui_extra::common::Tone;
 use isonomic_ui_extra::toast_queue::{Toast, ToastEvent, ToastQueue};
@@ -29,7 +30,12 @@ impl ToastQueueStory {
                     cx.notify();
                 }
             });
-            Self { queue, archived: 0, undone: 0, _events: events }
+            Self {
+                queue,
+                archived: 0,
+                undone: 0,
+                _events: events,
+            }
         })
     }
 
@@ -61,22 +67,53 @@ impl Render for ToastQueueStory {
             .child(
                 h_flex()
                     .gap_2()
-                    .child(Button::new("archive").small().outline().label("Archive an invoice").on_click(cx.listener(|this, _, _, cx| {
-                        this.archived += 1;
-                        let number = 2040 + this.archived;
-                        this.push(Toast::new(Tone::Success, format!("INV-{number} archived")).action("Undo"), cx);
-                    })))
-                    .child(Button::new("paid").small().outline().label("Record a payment").on_click(cx.listener(|this, _, _, cx| {
-                        this.push(Toast::new(Tone::Info, "Payment recorded").body("$4,200.00 from Harbor Dental"), cx);
-                    })))
-                    .child(Button::new("fail").small().outline().label("Fail a sync").on_click(cx.listener(|this, _, _, cx| {
-                        this.push(
-                            Toast::new(Tone::Danger, "Bank sync failed").body("The bank asked to sign in again. Reconnect in Settings."),
-                            cx,
-                        );
-                    }))),
+                    .child(
+                        Button::new("archive")
+                            .small()
+                            .outline()
+                            .label("Archive an invoice")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.archived += 1;
+                                let number = 2040 + this.archived;
+                                this.push(
+                                    Toast::new(Tone::Success, format!("INV-{number} archived"))
+                                        .action("Undo"),
+                                    cx,
+                                );
+                            })),
+                    )
+                    .child(
+                        Button::new("paid")
+                            .small()
+                            .outline()
+                            .label("Record a payment")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.push(
+                                    Toast::new(Tone::Info, "Payment recorded")
+                                        .body("$4,200.00 from Harbor Dental"),
+                                    cx,
+                                );
+                            })),
+                    )
+                    .child(
+                        Button::new("fail")
+                            .small()
+                            .outline()
+                            .label("Fail a sync")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.push(
+                                    Toast::new(Tone::Danger, "Bank sync failed").body(
+                                        "The bank asked to sign in again. Reconnect in Settings.",
+                                    ),
+                                    cx,
+                                );
+                            })),
+                    ),
             )
-            .child(div().text_xs().text_color(quiet).child(format!("Undone {} of {} archives.", self.undone, self.archived)))
+            .child(div().text_xs().text_color(quiet).child(format!(
+                "Undone {} of {} archives.",
+                self.undone, self.archived
+            )))
             .child(
                 div()
                     .relative()
@@ -85,7 +122,13 @@ impl Render for ToastQueueStory {
                     .rounded(px(8.))
                     .border_1()
                     .border_color(line)
-                    .child(div().absolute().bottom_3().right_3().child(self.queue.clone())),
+                    .child(
+                        div()
+                            .absolute()
+                            .bottom_3()
+                            .right_3()
+                            .child(self.queue.clone()),
+                    ),
             )
     }
 }

@@ -7,11 +7,13 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, RenderOnce,
-    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Toggled, Window, div,
-    prelude::FluentBuilder as _, px,
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Toggled, Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -19,7 +21,13 @@ use crate::common::{Tone, resting_shadow};
 /// Relative luminance of a colour, from 0 for black to 1 for white.
 pub fn luminance(color: Hsla) -> f32 {
     let rgb = color.to_rgb();
-    let channel = |c: f32| if c <= 0.039_28 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) };
+    let channel = |c: f32| {
+        if c <= 0.039_28 {
+            c / 12.92
+        } else {
+            ((c + 0.055) / 1.055).powf(2.4)
+        }
+    };
     0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b)
 }
 
@@ -41,8 +49,20 @@ pub fn step_swatch(picked: Option<usize>, count: usize, key: &str) -> Option<usi
         ("end", _) => last,
         ("right" | "down", None) => 0,
         ("left" | "up", None) => last,
-        ("right" | "down", Some(ix)) => if ix >= last { 0 } else { ix + 1 },
-        ("left" | "up", Some(ix)) => if ix == 0 { last } else { ix - 1 },
+        ("right" | "down", Some(ix)) => {
+            if ix >= last {
+                0
+            } else {
+                ix + 1
+            }
+        }
+        ("left" | "up", Some(ix)) => {
+            if ix == 0 {
+                last
+            } else {
+                ix - 1
+            }
+        }
         _ => return None,
     })
 }
@@ -114,9 +134,11 @@ impl Styled for ContrastColorPicker {
 impl RenderOnce for ContrastColorPicker {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focus = window
-            .use_keyed_state(ElementId::NamedChild(self.id.clone().into(), "focus".into()), cx, |_, cx| {
-                cx.focus_handle().tab_stop(true)
-            })
+            .use_keyed_state(
+                ElementId::NamedChild(self.id.clone().into(), "focus".into()),
+                cx,
+                |_, cx| cx.focus_handle().tab_stop(true),
+            )
             .read(cx)
             .clone();
         let focused = focus.is_focused(window);
@@ -141,22 +163,44 @@ impl RenderOnce for ContrastColorPicker {
             let pick = self.on_pick.clone();
             let main = key == "swatch";
             div()
-                .id(ElementId::NamedChild(self.id.clone().into(), format!("{key}-{ix}").into()))
-                .role(if main { Role::RadioButton } else { Role::Button })
+                .id(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("{key}-{ix}").into(),
+                ))
+                .role(if main {
+                    Role::RadioButton
+                } else {
+                    Role::Button
+                })
                 .relative()
                 .size(px(size))
                 .rounded(px(6.))
                 .bg(color)
                 .border_1()
                 .border_color(line)
-                .when(picked, |this| this.border_2().border_color(if focused && main { ring } else { ink }))
+                .when(picked, |this| {
+                    this.border_2()
+                        .border_color(if focused && main { ring } else { ink })
+                })
                 .cursor_pointer()
                 .aria_label(format!(
                     "{}{name}, contrast {ratio:.1} to 1, {}",
                     if main { "" } else { "Use again: " },
-                    if normal { "readable" } else if large { "large text only" } else { "not readable" }
+                    if normal {
+                        "readable"
+                    } else if large {
+                        "large text only"
+                    } else {
+                        "not readable"
+                    }
                 ))
-                .when(main, |this| this.aria_toggled(if picked { Toggled::True } else { Toggled::False }))
+                .when(main, |this| {
+                    this.aria_toggled(if picked {
+                        Toggled::True
+                    } else {
+                        Toggled::False
+                    })
+                })
                 .on_click(move |_, window, cx| {
                     if let Some(pick) = &pick {
                         pick(ix, window, cx);
@@ -176,56 +220,94 @@ impl RenderOnce for ContrastColorPicker {
                         .border_1()
                         .border_color(line)
                         .child(
-                            Icon::new(if normal { IconName::Check } else { IconName::TriangleAlert })
-                                .size(px(9.))
-                                .text_color(if normal { ok } else if large { warn } else { bad }),
+                            Icon::new(if normal {
+                                IconName::Check
+                            } else {
+                                IconName::TriangleAlert
+                            })
+                            .size(px(9.))
+                            .text_color(if normal {
+                                ok
+                            } else if large {
+                                warn
+                            } else {
+                                bad
+                            }),
                         ),
                 )
         };
 
-        let panel = self.picked.and_then(|ix| self.palette.get(ix)).map(|(name, color)| {
-            let ratio = contrast_ratio(*color, background);
-            let (normal, large) = passes(ratio);
-            let verdict = |label: &'static str, pass: bool| {
-                h_flex()
-                    .gap_1()
-                    .text_xs()
-                    .text_color(if pass { ok } else { bad })
-                    .child(Icon::new(if pass { IconName::Check } else { IconName::Close }).xsmall())
-                    .child(label)
-            };
-            v_flex()
-                .id(ElementId::NamedChild(self.id.clone().into(), "verdict".into()))
-                .role(Role::Status)
-                .aria_label(format!(
-                    "{name}: {ratio:.2} to 1. Normal text {}, large text {}",
-                    if normal { "passes" } else { "fails" },
-                    if large { "passes" } else { "fails" }
-                ))
-                .gap_2()
-                .p_3()
-                .rounded(radius)
-                .border_1()
-                .border_color(line)
-                .child(
+        let panel =
+            self.picked
+                .and_then(|ix| self.palette.get(ix))
+                .map(|(name, color)| {
+                    let ratio = contrast_ratio(*color, background);
+                    let (normal, large) = passes(ratio);
+                    let verdict = |label: &'static str, pass: bool| {
+                        h_flex()
+                            .gap_1()
+                            .text_xs()
+                            .text_color(if pass { ok } else { bad })
+                            .child(
+                                Icon::new(if pass {
+                                    IconName::Check
+                                } else {
+                                    IconName::Close
+                                })
+                                .xsmall(),
+                            )
+                            .child(label)
+                    };
                     v_flex()
-                        .gap_1()
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            "verdict".into(),
+                        ))
+                        .role(Role::Status)
+                        .aria_label(format!(
+                            "{name}: {ratio:.2} to 1. Normal text {}, large text {}",
+                            if normal { "passes" } else { "fails" },
+                            if large { "passes" } else { "fails" }
+                        ))
+                        .gap_2()
                         .p_3()
                         .rounded(radius)
-                        .bg(background)
-                        .child(div().text_color(*color).text_lg().font_semibold().child("Invoice 2291 is overdue"))
-                        .child(div().text_color(*color).text_sm().child("Paid amounts show in this colour on this background.")),
-                )
-                .child(
-                    h_flex()
-                        .gap_3()
-                        .child(div().font_medium().child(name.clone()))
-                        .child(div().text_xs().text_color(quiet).child(format!("{ratio:.2} : 1")))
-                        .child(div().flex_1())
-                        .child(verdict("Normal text", normal))
-                        .child(verdict("Large text", large)),
-                )
-        });
+                        .border_1()
+                        .border_color(line)
+                        .child(
+                            v_flex()
+                                .gap_1()
+                                .p_3()
+                                .rounded(radius)
+                                .bg(background)
+                                .child(
+                                    div()
+                                        .text_color(*color)
+                                        .text_lg()
+                                        .font_semibold()
+                                        .child("Invoice 2291 is overdue"),
+                                )
+                                .child(
+                                    div().text_color(*color).text_sm().child(
+                                        "Paid amounts show in this colour on this background.",
+                                    ),
+                                ),
+                        )
+                        .child(
+                            h_flex()
+                                .gap_3()
+                                .child(div().font_medium().child(name.clone()))
+                                .child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(quiet)
+                                        .child(format!("{ratio:.2} : 1")),
+                                )
+                                .child(div().flex_1())
+                                .child(verdict("Normal text", normal))
+                                .child(verdict("Large text", large)),
+                        )
+                });
 
         v_flex()
             .id(self.id.clone())
@@ -244,19 +326,28 @@ impl RenderOnce for ContrastColorPicker {
                 h_flex()
                     .gap_2()
                     .child(div().flex_1().font_medium().child("Text colour"))
-                    .child(div().text_xs().text_color(quiet).child("Ticks pass for normal text")),
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child("Ticks pass for normal text"),
+                    ),
             )
             .child({
                 let pick = self.on_pick.clone();
                 let picked = self.picked;
                 let count = self.palette.len();
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), "swatches".into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "swatches".into(),
+                    ))
                     .role(Role::RadioGroup)
                     .aria_label("Text colour")
                     .track_focus(&focus)
                     .on_key_down(move |event: &KeyDownEvent, window, cx| {
-                        if let Some(next) = step_swatch(picked, count, event.keystroke.key.as_str()) {
+                        if let Some(next) = step_swatch(picked, count, event.keystroke.key.as_str())
+                        {
                             cx.stop_propagation();
                             if let Some(pick) = &pick {
                                 pick(next, window, cx);
@@ -272,7 +363,13 @@ impl RenderOnce for ContrastColorPicker {
                     h_flex()
                         .gap_2()
                         .child(div().text_xs().text_color(quiet).child("Recent"))
-                        .children(self.recent.iter().filter(|ix| **ix < self.palette.len()).take(6).map(|ix| swatch(*ix, 20., "recent"))),
+                        .children(
+                            self.recent
+                                .iter()
+                                .filter(|ix| **ix < self.palette.len())
+                                .take(6)
+                                .map(|ix| swatch(*ix, 20., "recent")),
+                        ),
                 )
             })
             .children(panel)

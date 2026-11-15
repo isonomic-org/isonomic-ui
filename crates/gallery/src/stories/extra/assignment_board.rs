@@ -91,8 +91,10 @@ impl Render for AssignmentBoardStory {
         let select = cx.entity();
         let open = cx.entity();
         let lanes = lanes();
-        let names: Vec<(SharedString, SharedString)> =
-            lanes.iter().map(|l| (l.id.clone(), l.name.clone())).collect();
+        let names: Vec<(SharedString, SharedString)> = lanes
+            .iter()
+            .map(|l| (l.id.clone(), l.name.clone()))
+            .collect();
         v_flex()
             .w_full()
             .gap_3()
@@ -126,7 +128,8 @@ impl Render for AssignmentBoardStory {
                         assign.update(cx, |this, cx| {
                             if let Some(item) = this.items.iter_mut().find(|i| &i.id == id) {
                                 item.lane = lane.clone();
-                                this.last = Some(format!("Handed \u{201c}{}\u{201d} to {to}", item.title));
+                                this.last =
+                                    Some(format!("Handed \u{201c}{}\u{201d} to {to}", item.title));
                             }
                             this.selected = Some(id.clone());
                             cx.notify();
@@ -138,9 +141,9 @@ impl Render for AssignmentBoardStory {
                     .text_xs()
                     .text_color(cx.theme().muted_foreground)
                     .child(self.last.clone().unwrap_or_else(|| {
-                        "Drag a card to another column, or select one and press Alt with Left or Right."
-                            .into()
-                    })),
+                    "Drag a card to another column, or select one and press Alt with Left or Right."
+                        .into()
+                })),
             )
     }
 }

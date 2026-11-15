@@ -2,7 +2,10 @@
 
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
-use isonomic_ui::{App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _, Window, div};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
+    Window, div,
+};
 use isonomic_ui_extra::identity_avatar::{Identity, IdentityAvatar, IdentityStack, Presence};
 
 /// People and assistants on a bookkeeping team, at three sizes and stacked.
@@ -32,7 +35,9 @@ impl Story for IdentityAvatarStory {
 fn team() -> Vec<Identity> {
     vec![
         Identity::person("Maya Okafor").presence(Presence::Online),
-        Identity::agent("Reconciler").working(true).presence(Presence::Busy),
+        Identity::agent("Reconciler")
+            .working(true)
+            .presence(Presence::Busy),
         Identity::person("Tom Brandt").presence(Presence::Away),
         Identity::agent("Payables").presence(Presence::Online),
         Identity::person("Ana Ruiz"),
@@ -45,14 +50,28 @@ impl Render for IdentityAvatarStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let quiet = cx.theme().muted_foreground;
         let row = |size: f32, key: &str| {
-            h_flex().gap_4().children(team().into_iter().take(4).enumerate().map(move |(ix, who)| {
-                v_flex()
-                    .items_center()
-                    .gap_1()
-                    .w(isonomic_ui::px(84.))
-                    .child(IdentityAvatar::new(isonomic_ui::ElementId::Name(format!("{key}-{ix}").into()), who.clone()).size(size))
-                    .child(div().text_xs().text_color(quiet).truncate().child(who.name))
-            }))
+            h_flex()
+                .gap_4()
+                .children(
+                    team()
+                        .into_iter()
+                        .take(4)
+                        .enumerate()
+                        .map(move |(ix, who)| {
+                            v_flex()
+                                .items_center()
+                                .gap_1()
+                                .w(isonomic_ui::px(84.))
+                                .child(
+                                    IdentityAvatar::new(
+                                        isonomic_ui::ElementId::Name(format!("{key}-{ix}").into()),
+                                        who.clone(),
+                                    )
+                                    .size(size),
+                                )
+                                .child(div().text_xs().text_color(quiet).truncate().child(who.name))
+                        }),
+                )
         };
         v_flex()
             .gap_6()
@@ -62,7 +81,12 @@ impl Render for IdentityAvatarStory {
             .child(
                 v_flex()
                     .gap_2()
-                    .child(div().text_xs().text_color(quiet).child("Everyone on the March close"))
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(quiet)
+                            .child("Everyone on the March close"),
+                    )
                     .child(IdentityStack::new("team-stack", team()).limit(5)),
             )
     }

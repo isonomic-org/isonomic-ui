@@ -8,14 +8,11 @@
 use std::rc::Rc;
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::Button,
-    h_flex, v_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -71,7 +68,11 @@ pub struct CatchUpItem {
 
 impl CatchUpItem {
     /// Create an item.
-    pub fn new(id: impl Into<SharedString>, kind: CatchUpKind, text: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        kind: CatchUpKind,
+        text: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             kind,
@@ -130,7 +131,11 @@ pub struct CatchUpSummary {
 
 impl CatchUpSummary {
     /// Create a summary for an absence, such as "3 hours".
-    pub fn new(id: impl Into<ElementId>, away: impl Into<SharedString>, items: Vec<CatchUpItem>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        away: impl Into<SharedString>,
+        items: Vec<CatchUpItem>,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -162,7 +167,10 @@ impl CatchUpSummary {
     }
 
     /// Run when an item's jump button is clicked.
-    pub fn on_open(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_open(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_open = Some(Rc::new(handler));
         self
     }
@@ -204,7 +212,10 @@ impl RenderOnce for CatchUpSummary {
                 .text_xs()
                 .text_color(quiet)
                 .role(Role::Button)
-                .aria_label(format!("While you were away, {}. {needs} need you. Show summary", self.away))
+                .aria_label(format!(
+                    "While you were away, {}. {needs} need you. Show summary",
+                    self.away
+                ))
                 .aria_expanded(false)
                 .on_click(toggle)
                 .child(rule())
@@ -215,7 +226,12 @@ impl RenderOnce for CatchUpSummary {
                         .child(Icon::new(IconName::Time).xsmall())
                         .child(format!("While you were away \u{b7} {}", self.away))
                         .when(needs > 0, |this| {
-                            this.child(div().text_color(warning).font_medium().child(format!("\u{b7} {needs} need you")))
+                            this.child(
+                                div()
+                                    .text_color(warning)
+                                    .font_medium()
+                                    .child(format!("\u{b7} {needs} need you")),
+                            )
                         })
                         .child(Icon::new(IconName::ChevronDown).xsmall()),
                 )
@@ -227,7 +243,13 @@ impl RenderOnce for CatchUpSummary {
         let stat = |count: usize, label: &'static str, color: Hsla| {
             h_flex()
                 .gap_1p5()
-                .child(div().text_lg().font_semibold().text_color(color).child(count.to_string()))
+                .child(
+                    div()
+                        .text_lg()
+                        .font_semibold()
+                        .text_color(color)
+                        .child(count.to_string()),
+                )
                 .child(div().text_xs().text_color(quiet).child(label))
         };
 
@@ -249,7 +271,11 @@ impl RenderOnce for CatchUpSummary {
                             .justify_center()
                             .rounded_full()
                             .bg(tone.tint(cx))
-                            .child(Icon::new(item.kind.icon()).xsmall().text_color(tone.color(cx))),
+                            .child(
+                                Icon::new(item.kind.icon())
+                                    .xsmall()
+                                    .text_color(tone.color(cx)),
+                            ),
                     )
                     .child(
                         v_flex()
@@ -257,20 +283,25 @@ impl RenderOnce for CatchUpSummary {
                             .min_w_0()
                             .child(div().line_height(relative(1.35)).child(item.text.clone()))
                             .when(!item.when.is_empty(), |this| {
-                                this.child(div().text_xs().text_color(quiet).child(item.when.clone()))
+                                this.child(
+                                    div().text_xs().text_color(quiet).child(item.when.clone()),
+                                )
                             }),
                     )
                     .children(item.action.clone().map(|label| {
-                        Button::new(ElementId::NamedChild(self.id.clone().into(), format!("open-{}", item.id).into()))
-                            .xsmall()
-                            .outline()
-                            .label(label.clone())
-                            .accessibility_label(format!("{label}: {}", item.text))
-                            .on_click(move |_, window, cx| {
-                                if let Some(open) = &open {
-                                    open(&id, window, cx);
-                                }
-                            })
+                        Button::new(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("open-{}", item.id).into(),
+                        ))
+                        .xsmall()
+                        .outline()
+                        .label(label.clone())
+                        .accessibility_label(format!("{label}: {}", item.text))
+                        .on_click(move |_, window, cx| {
+                            if let Some(open) = &open {
+                                open(&id, window, cx);
+                            }
+                        })
                     }))
             })
             .collect();
@@ -302,7 +333,12 @@ impl RenderOnce for CatchUpSummary {
                     .aria_expanded(true)
                     .on_click(toggle)
                     .child(Icon::new(IconName::Time).small().text_color(quiet))
-                    .child(div().flex_1().font_medium().child(format!("While you were away \u{b7} {}", self.away)))
+                    .child(
+                        div()
+                            .flex_1()
+                            .font_medium()
+                            .child(format!("While you were away \u{b7} {}", self.away)),
+                    )
                     .child(Icon::new(IconName::ChevronUp).xsmall().text_color(quiet)),
             )
             .child(
@@ -311,7 +347,11 @@ impl RenderOnce for CatchUpSummary {
                     .px_4()
                     .py_3()
                     .when(!self.summary.is_empty(), |this| {
-                        this.child(div().line_height(relative(1.45)).child(self.summary.clone()))
+                        this.child(
+                            div()
+                                .line_height(relative(1.45))
+                                .child(self.summary.clone()),
+                        )
                     })
                     .child(
                         h_flex()
@@ -321,7 +361,13 @@ impl RenderOnce for CatchUpSummary {
                             .child(stat(failed, "failed", Tone::Danger.color(cx)))
                             .child(stat(done, "done", Tone::Success.color(cx))),
                     )
-                    .child(v_flex().border_t_1().border_color(line).pt_1().children(rows)),
+                    .child(
+                        v_flex()
+                            .border_t_1()
+                            .border_color(line)
+                            .pt_1()
+                            .children(rows),
+                    ),
             )
             .refine_style(&self.style)
             .into_any_element()
@@ -340,7 +386,10 @@ mod tests {
             CatchUpItem::new("c", CatchUpKind::NeedsYou, "z"),
             CatchUpItem::new("d", CatchUpKind::Done, "w"),
         ];
-        let ids: Vec<_> = reading_order(&items).iter().map(|i| i.id.to_string()).collect();
+        let ids: Vec<_> = reading_order(&items)
+            .iter()
+            .map(|i| i.id.to_string())
+            .collect();
         assert_eq!(ids, ["c", "b", "a", "d"]);
         assert_eq!(count_kind(&items, CatchUpKind::Done), 2);
     }

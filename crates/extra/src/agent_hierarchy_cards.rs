@@ -8,15 +8,13 @@
 use std::rc::Rc;
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
-    v_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
 use isonomic_ui::{
-    Role,
-    Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Transformation, Window, div, percentage,
-    prelude::FluentBuilder as _, px,
+    Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _,
+    IntoElement, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Transformation, Window, div,
+    percentage, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -189,13 +187,19 @@ impl AgentHierarchyCards {
     }
 
     /// Run when a card is clicked.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
 
     /// Run when a card's helpers are folded or unfolded.
-    pub fn on_toggle(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_toggle(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_toggle = Some(Rc::new(handler));
         self
     }
@@ -236,9 +240,18 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
     let toggle_id = node.id.clone();
     let working = matches!(node.state, AgentState::Working(_));
     let mark = match &node.state {
-        AgentState::Done => Icon::new(IconName::CircleCheck).xsmall().text_color(tone_color).into_any_element(),
-        AgentState::Failed(_) => Icon::new(IconName::CircleX).xsmall().text_color(tone_color).into_any_element(),
-        AgentState::Waiting(_) => Icon::new(IconName::Time).xsmall().text_color(tone_color).into_any_element(),
+        AgentState::Done => Icon::new(IconName::CircleCheck)
+            .xsmall()
+            .text_color(tone_color)
+            .into_any_element(),
+        AgentState::Failed(_) => Icon::new(IconName::CircleX)
+            .xsmall()
+            .text_color(tone_color)
+            .into_any_element(),
+        AgentState::Waiting(_) => Icon::new(IconName::Time)
+            .xsmall()
+            .text_color(tone_color)
+            .into_any_element(),
         AgentState::Working(_) => Icon::new(IconName::LoaderCircle)
             .xsmall()
             .text_color(tone_color)
@@ -265,18 +278,31 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
     }
 
     v_flex()
-        .id(ElementId::NamedChild(tree.id.clone().into(), format!("card-{}", node.id).into()))
+        .id(ElementId::NamedChild(
+            tree.id.clone().into(),
+            format!("card-{}", node.id).into(),
+        ))
         .w(px(208.))
         .flex_none()
         .gap_1p5()
         .p_2p5()
         .rounded(paint.radius)
         .border_1()
-        .border_color(if is_selected { paint.accent } else { paint.line })
+        .border_color(if is_selected {
+            paint.accent
+        } else {
+            paint.line
+        })
         .bg(paint.fill)
         .cursor_pointer()
         .shadow(resting_shadow(cx))
-        .when(depth == 0, |this| this.border_t_2().border_color(if is_selected { paint.accent } else { tone_color }))
+        .when(depth == 0, |this| {
+            this.border_t_2().border_color(if is_selected {
+                paint.accent
+            } else {
+                tone_color
+            })
+        })
         .role(Role::Group)
         .aria_label(format!(
             "{}, {}, {}{}",
@@ -284,7 +310,10 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
             node.role,
             node.state.words(),
             if helpers > 0 {
-                format!(", {helpers} helpers{}", if is_folded { ", folded" } else { "" })
+                format!(
+                    ", {helpers} helpers{}",
+                    if is_folded { ", folded" } else { "" }
+                )
             } else {
                 String::new()
             }
@@ -315,7 +344,13 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
                         .flex_1()
                         .min_w_0()
                         .child(div().truncate().font_medium().child(node.name.clone()))
-                        .child(div().truncate().text_xs().text_color(paint.quiet).child(node.role.clone())),
+                        .child(
+                            div()
+                                .truncate()
+                                .text_xs()
+                                .text_color(paint.quiet)
+                                .child(node.role.clone()),
+                        ),
                 ),
         )
         .child(
@@ -466,7 +501,9 @@ impl RenderOnce for AgentHierarchyCards {
                     .text_xs()
                     .text_color(quiet)
                     .child(format!("{total} assistants"))
-                    .when(!summary.is_empty(), |this| this.child("\u{b7}").child(summary.clone())),
+                    .when(!summary.is_empty(), |this| {
+                        this.child("\u{b7}").child(summary.clone())
+                    }),
             )
             .child(
                 div()
@@ -489,7 +526,10 @@ mod tests {
             .helper(
                 AgentNode::new("a", "A", "Matches")
                     .state(AgentState::Done)
-                    .helper(AgentNode::new("a1", "A1", "Cards").state(AgentState::Failed("Locked".into()))),
+                    .helper(
+                        AgentNode::new("a1", "A1", "Cards")
+                            .state(AgentState::Failed("Locked".into())),
+                    ),
             )
             .helper(AgentNode::new("b", "B", "Pays").state(AgentState::Waiting("approval".into())))
     }

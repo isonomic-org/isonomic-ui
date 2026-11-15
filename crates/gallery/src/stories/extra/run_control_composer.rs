@@ -34,7 +34,8 @@ impl RunControlComposerStory {
                 let (phase, status) = match event {
                     RunControlEvent::Queue(text) => {
                         this.next += 1;
-                        this.queued.push((format!("q{}", this.next).into(), text.clone()));
+                        this.queued
+                            .push((format!("q{}", this.next).into(), text.clone()));
                         this.log.push(format!("Queued: {text}"));
                         let story = cx.entity().downgrade();
                         cx.spawn(async move |_, cx| {
@@ -62,10 +63,20 @@ impl RunControlComposerStory {
                         this.queued.retain(|(q, _)| q != id);
                         (None, None)
                     }
-                    RunControlEvent::Pause => (Some(RunPhase::Paused), Some("Held after step 3".into())),
-                    RunControlEvent::Resume => (Some(RunPhase::Running), Some("Matching card payouts, step 3 of 7".into())),
-                    RunControlEvent::Stop => (Some(RunPhase::Failed), Some("Stopped by you at step 3".into())),
-                    RunControlEvent::Retry => (Some(RunPhase::Running), Some("Retrying step 3".into())),
+                    RunControlEvent::Pause => {
+                        (Some(RunPhase::Paused), Some("Held after step 3".into()))
+                    }
+                    RunControlEvent::Resume => (
+                        Some(RunPhase::Running),
+                        Some("Matching card payouts, step 3 of 7".into()),
+                    ),
+                    RunControlEvent::Stop => (
+                        Some(RunPhase::Failed),
+                        Some("Stopped by you at step 3".into()),
+                    ),
+                    RunControlEvent::Retry => {
+                        (Some(RunPhase::Running), Some("Retrying step 3".into()))
+                    }
                 };
                 let queued = this.queued.clone();
                 composer.update(cx, |c, cx| {
@@ -109,11 +120,13 @@ impl Render for RunControlComposerStory {
             .gap_3()
             .child(self.composer.clone())
             .child(
-                v_flex()
-                    .gap_0p5()
-                    .text_xs()
-                    .text_color(quiet)
-                    .children(self.log.iter().rev().take(5).map(|line| div().child(line.clone()))),
+                v_flex().gap_0p5().text_xs().text_color(quiet).children(
+                    self.log
+                        .iter()
+                        .rev()
+                        .take(5)
+                        .map(|line| div().child(line.clone())),
+                ),
             )
     }
 }

@@ -8,11 +8,12 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
+};
 use isonomic_ui::{
-    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
     Window, canvas, div, point, prelude::FluentBuilder as _, px, relative,
 };
 
@@ -37,7 +38,13 @@ pub struct LaneTask {
 
 impl LaneTask {
     /// Create a task that finished well.
-    pub fn new(id: impl Into<SharedString>, lane: impl Into<SharedString>, start: u32, end: u32, label: impl Into<SharedString>) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        lane: impl Into<SharedString>,
+        start: u32,
+        end: u32,
+        label: impl Into<SharedString>,
+    ) -> Self {
         Self {
             id: id.into(),
             lane: lane.into(),
@@ -118,7 +125,11 @@ pub struct AgentTimelineLanes {
 
 impl AgentTimelineLanes {
     /// Create lanes, each given as id and name, at a moment `now` in seconds.
-    pub fn new(id: impl Into<ElementId>, lanes: Vec<(SharedString, SharedString)>, now: u32) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        lanes: Vec<(SharedString, SharedString)>,
+        now: u32,
+    ) -> Self {
         Self {
             id: id.into(),
             style: StyleRefinement::default(),
@@ -157,7 +168,10 @@ impl AgentTimelineLanes {
     }
 
     /// Run when a task or decision is clicked.
-    pub fn on_select(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_select(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
@@ -178,9 +192,22 @@ fn clock(secs: u32) -> String {
 
 /// The handoffs at a lane, in time order and in words, so the arrows are not
 /// the only place they show.
-pub fn handoff_words(lanes: &[(SharedString, SharedString)], handoffs: &[LaneHandoff], lane: &str) -> String {
-    let name = |id: &SharedString| lanes.iter().find(|(l, _)| l == id).map(|(_, n)| n.to_string()).unwrap_or_else(|| id.to_string());
-    let mut touching: Vec<&LaneHandoff> = handoffs.iter().filter(|h| h.from.as_ref() == lane || h.to.as_ref() == lane).collect();
+pub fn handoff_words(
+    lanes: &[(SharedString, SharedString)],
+    handoffs: &[LaneHandoff],
+    lane: &str,
+) -> String {
+    let name = |id: &SharedString| {
+        lanes
+            .iter()
+            .find(|(l, _)| l == id)
+            .map(|(_, n)| n.to_string())
+            .unwrap_or_else(|| id.to_string())
+    };
+    let mut touching: Vec<&LaneHandoff> = handoffs
+        .iter()
+        .filter(|h| h.from.as_ref() == lane || h.to.as_ref() == lane)
+        .collect();
     touching.sort_by_key(|h| h.at);
     if touching.is_empty() {
         return "No handoffs".into();
@@ -213,8 +240,17 @@ impl RenderOnce for AgentTimelineLanes {
         let span = (end - start) as f32;
         let share = |t: u32| (t.saturating_sub(start)) as f32 / span;
         let lane_ix = |id: &SharedString| self.lanes.iter().position(|(l, _)| l == id);
-        let tick_every = if span <= 300. { 60 } else if span <= 1200. { 300 } else { 600 };
-        let ticks: Vec<u32> = ((start / tick_every)..=(end / tick_every)).map(|n| n * tick_every).filter(|t| *t >= start && *t <= end).collect();
+        let tick_every = if span <= 300. {
+            60
+        } else if span <= 1200. {
+            300
+        } else {
+            600
+        };
+        let ticks: Vec<u32> = ((start / tick_every)..=(end / tick_every))
+            .map(|n| n * tick_every)
+            .filter(|t| *t >= start && *t <= end)
+            .collect();
 
         let arrows: Vec<(f32, usize, usize)> = self
             .handoffs
@@ -237,7 +273,10 @@ impl RenderOnce for AgentTimelineLanes {
                         let select = self.on_select.clone();
                         let id = task.id.clone();
                         div()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("task-{}", task.id).into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("task-{}", task.id).into(),
+                            ))
                             .absolute()
                             .top(px(8.))
                             .h(px(LANE - 16.))
@@ -251,17 +290,30 @@ impl RenderOnce for AgentTimelineLanes {
                             .bg(color.opacity(if is_selected { 0.4 } else { 0.18 }))
                             .border_1()
                             .border_color(color.opacity(0.6))
-                            .when(task.end.is_none(), |this| this.border_r_2().border_color(color))
+                            .when(task.end.is_none(), |this| {
+                                this.border_r_2().border_color(color)
+                            })
                             .cursor_pointer()
                             .role(Role::Button)
-                            .aria_label(format!("{}, {} to {}", task.label, clock(task.start), task.end.map(clock).unwrap_or_else(|| "now".into())))
+                            .aria_label(format!(
+                                "{}, {} to {}",
+                                task.label,
+                                clock(task.start),
+                                task.end.map(clock).unwrap_or_else(|| "now".into())
+                            ))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
                                 if let Some(select) = &select {
                                     select(&id, window, cx);
                                 }
                             })
-                            .child(div().truncate().text_xs().text_color(ink).child(task.label.clone()))
+                            .child(
+                                div()
+                                    .truncate()
+                                    .text_xs()
+                                    .text_color(ink)
+                                    .child(task.label.clone()),
+                            )
                     })
                     .collect();
                 let diamonds: Vec<_> = self
@@ -273,7 +325,10 @@ impl RenderOnce for AgentTimelineLanes {
                         let select = self.on_select.clone();
                         let id = decision.id.clone();
                         div()
-                            .id(ElementId::NamedChild(self.id.clone().into(), format!("decision-{}", decision.id).into()))
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("decision-{}", decision.id).into(),
+                            ))
                             .absolute()
                             .top(px(LANE / 2. - 7.))
                             .left(relative(share(decision.at)))
@@ -281,7 +336,11 @@ impl RenderOnce for AgentTimelineLanes {
                             .size(px(14.))
                             .cursor_pointer()
                             .role(Role::Button)
-                            .aria_label(format!("Decision at {}: {}", clock(decision.at), decision.label))
+                            .aria_label(format!(
+                                "Decision at {}: {}",
+                                clock(decision.at),
+                                decision.label
+                            ))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
                                 if let Some(select) = &select {
@@ -300,7 +359,10 @@ impl RenderOnce for AgentTimelineLanes {
                     })
                     .collect();
                 h_flex()
-                    .id(ElementId::NamedChild(self.id.clone().into(), format!("lane-{lane_id}").into()))
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("lane-{lane_id}").into(),
+                    ))
                     .role(Role::Group)
                     .aria_label(name.clone())
                     .aria_description(handoff_words(&self.lanes, &self.handoffs, lane_id))
@@ -316,7 +378,15 @@ impl RenderOnce for AgentTimelineLanes {
                             .child(Icon::new(IconName::Bot).xsmall().text_color(quiet))
                             .child(div().truncate().text_xs().font_medium().child(name.clone())),
                     )
-                    .child(div().relative().flex_1().h_full().mr_3().children(blocks).children(diamonds))
+                    .child(
+                        div()
+                            .relative()
+                            .flex_1()
+                            .h_full()
+                            .mr_3()
+                            .children(blocks)
+                            .children(diamonds),
+                    )
             })
             .collect();
 
@@ -328,7 +398,12 @@ impl RenderOnce for AgentTimelineLanes {
                     .iter()
                     .find(|t| &t.id == id)
                     .map(|t| {
-                        let lane = self.lanes.iter().find(|(l, _)| l == &t.lane).map(|(_, n)| n.clone()).unwrap_or_default();
+                        let lane = self
+                            .lanes
+                            .iter()
+                            .find(|(l, _)| l == &t.lane)
+                            .map(|(_, n)| n.clone())
+                            .unwrap_or_default();
                         format!(
                             "{lane}: {} from {} to {}",
                             t.label,
@@ -338,12 +413,24 @@ impl RenderOnce for AgentTimelineLanes {
                     })
                     .or_else(|| {
                         self.decisions.iter().find(|d| &d.id == id).map(|d| {
-                            let lane = self.lanes.iter().find(|(l, _)| l == &d.lane).map(|(_, n)| n.clone()).unwrap_or_default();
+                            let lane = self
+                                .lanes
+                                .iter()
+                                .find(|(l, _)| l == &d.lane)
+                                .map(|(_, n)| n.clone())
+                                .unwrap_or_default();
                             format!("{lane} decided at {}: {}", clock(d.at), d.label)
                         })
                     })
             })
-            .unwrap_or_else(|| format!("{} tasks, {} handoffs, {} decisions", self.tasks.len(), self.handoffs.len(), self.decisions.len()));
+            .unwrap_or_else(|| {
+                format!(
+                    "{} tasks, {} handoffs, {} decisions",
+                    self.tasks.len(),
+                    self.handoffs.len(),
+                    self.decisions.len()
+                )
+            });
 
         let now_share = share(self.now);
         let lanes_count = self.lanes.len();
@@ -364,8 +451,8 @@ impl RenderOnce for AgentTimelineLanes {
                     .border_b_1()
                     .border_color(line)
                     .child(div().w(px(NAME)).flex_none())
-                    .child(
-                        div().relative().flex_1().h_full().mr_3().children(ticks.into_iter().map(|t| {
+                    .child(div().relative().flex_1().h_full().mr_3().children(
+                        ticks.into_iter().map(|t| {
                             div()
                                 .absolute()
                                 .top(px(7.))
@@ -373,65 +460,64 @@ impl RenderOnce for AgentTimelineLanes {
                                 .text_xs()
                                 .text_color(quiet)
                                 .child(clock(t))
-                        })),
-                    ),
+                        }),
+                    )),
             )
             .child(
-                div()
-                    .relative()
-                    .children(lanes)
-                    .child(
-                        div()
-                            .absolute()
-                            .top_0()
-                            .bottom_0()
-                            .left(px(NAME))
-                            .right(px(12.))
-                            .child(
-                                canvas(
-                                    |_, _, _| {},
-                                    move |bounds, _, window, _| {
-                                        for (at, from, to) in &arrows {
-                                            if from == to {
-                                                continue;
-                                            }
-                                            let x = bounds.origin.x + bounds.size.width * *at;
-                                            let y = |lane: usize| bounds.origin.y + px(LANE * lane as f32 + LANE / 2.);
-                                            let (a, b) = (y(*from), y(*to));
-                                            let down = b > a;
-                                            let tip = if down { b - px(10.) } else { b + px(10.) };
-                                            let mut path = PathBuilder::stroke(px(1.5));
-                                            path.move_to(point(x, a));
-                                            path.line_to(point(x, tip));
-                                            if let Ok(path) = path.build() {
-                                                window.paint_path(path, accent);
-                                            }
-                                            let dir = if down { -1. } else { 1. };
-                                            let mut head = PathBuilder::fill();
-                                            head.move_to(point(x, tip));
-                                            head.line_to(point(x - px(4.), tip + px(6. * dir)));
-                                            head.line_to(point(x + px(4.), tip + px(6. * dir)));
-                                            head.close();
-                                            if let Ok(head) = head.build() {
-                                                window.paint_path(head, accent);
-                                            }
+                div().relative().children(lanes).child(
+                    div()
+                        .absolute()
+                        .top_0()
+                        .bottom_0()
+                        .left(px(NAME))
+                        .right(px(12.))
+                        .child(
+                            canvas(
+                                |_, _, _| {},
+                                move |bounds, _, window, _| {
+                                    for (at, from, to) in &arrows {
+                                        if from == to {
+                                            continue;
                                         }
-                                    },
-                                )
-                                .absolute()
-                                .inset_0()
-                                .size_full(),
+                                        let x = bounds.origin.x + bounds.size.width * *at;
+                                        let y = |lane: usize| {
+                                            bounds.origin.y + px(LANE * lane as f32 + LANE / 2.)
+                                        };
+                                        let (a, b) = (y(*from), y(*to));
+                                        let down = b > a;
+                                        let tip = if down { b - px(10.) } else { b + px(10.) };
+                                        let mut path = PathBuilder::stroke(px(1.5));
+                                        path.move_to(point(x, a));
+                                        path.line_to(point(x, tip));
+                                        if let Ok(path) = path.build() {
+                                            window.paint_path(path, accent);
+                                        }
+                                        let dir = if down { -1. } else { 1. };
+                                        let mut head = PathBuilder::fill();
+                                        head.move_to(point(x, tip));
+                                        head.line_to(point(x - px(4.), tip + px(6. * dir)));
+                                        head.line_to(point(x + px(4.), tip + px(6. * dir)));
+                                        head.close();
+                                        if let Ok(head) = head.build() {
+                                            window.paint_path(head, accent);
+                                        }
+                                    }
+                                },
                             )
-                            .child(
-                                div()
-                                    .absolute()
-                                    .top_0()
-                                    .h(px(LANE * lanes_count as f32))
-                                    .left(relative(now_share))
-                                    .w(px(1.))
-                                    .bg(Tone::Danger.color(cx).opacity(0.7)),
-                            ),
-                    ),
+                            .absolute()
+                            .inset_0()
+                            .size_full(),
+                        )
+                        .child(
+                            div()
+                                .absolute()
+                                .top_0()
+                                .h(px(LANE * lanes_count as f32))
+                                .left(relative(now_share))
+                                .w(px(1.))
+                                .bg(Tone::Danger.color(cx).opacity(0.7)),
+                        ),
+                ),
             )
             .child(
                 h_flex()
@@ -454,10 +540,21 @@ mod tests {
 
     #[test]
     fn handoffs_are_told_from_each_lane_in_time_order() {
-        let lanes = vec![("plan".into(), "Planner".into()), ("write".into(), "Writer".into())];
+        let lanes = vec![
+            ("plan".into(), "Planner".into()),
+            ("write".into(), "Writer".into()),
+        ];
         let handoffs = vec![
-            LaneHandoff { at: 130, from: "write".into(), to: "plan".into() },
-            LaneHandoff { at: 65, from: "plan".into(), to: "write".into() },
+            LaneHandoff {
+                at: 130,
+                from: "write".into(),
+                to: "plan".into(),
+            },
+            LaneHandoff {
+                at: 65,
+                from: "plan".into(),
+                to: "write".into(),
+            },
         ];
         assert_eq!(
             handoff_words(&lanes, &handoffs, "plan"),
@@ -472,7 +569,12 @@ mod tests {
             LaneTask::new("a", "x", 30, 90, "A"),
             LaneTask::new("b", "y", 60, 0, "B").running(),
         ];
-        let decisions = vec![LaneDecision { id: "d".into(), lane: "x".into(), at: 200, label: "go".into() }];
+        let decisions = vec![LaneDecision {
+            id: "d".into(),
+            lane: "x".into(),
+            at: 200,
+            label: "go".into(),
+        }];
         assert_eq!(timeline_span(&tasks, &decisions, 150), (30, 200));
         assert_eq!(timeline_span(&tasks, &[], 150), (30, 150));
     }
