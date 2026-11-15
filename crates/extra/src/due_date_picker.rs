@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, prelude::FluentBuilder as _, px,
@@ -280,6 +281,7 @@ impl RenderOnce for DueDatePicker {
                     .when(picked, |this| this.bg(accent).text_color(fill).font_semibold())
                     .when(at_cursor && !picked, |this| this.bg(chip))
                     .when(ok && !picked, |this| this.cursor_pointer().hover(|s| s.bg(chip)))
+                    .role(Role::GridCell)
                     .aria_label(format!("{}{}{}", day.words(), if is_today { ", today" } else { "" }, if ok { "" } else { ", not available" }))
                     .aria_selected(picked)
                     .when(ok, |this| {
@@ -326,6 +328,7 @@ impl RenderOnce for DueDatePicker {
             .id(self.id.clone())
             .track_focus(&focus)
             .on_key_down(key_down)
+            .role(Role::Grid)
             .aria_label(match self.picked {
                 Some(day) => format!("Due date, {}", day.words()),
                 None => "Due date, none picked".to_string(),
