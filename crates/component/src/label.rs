@@ -60,6 +60,7 @@ impl From<SharedString> for HighlightsMatch {
 #[derive(IntoElement)]
 pub struct Label {
     id: ElementId,
+    id_given: bool,
     style: StyleRefinement,
     label: SharedString,
     secondary: Option<SharedString>,
@@ -77,6 +78,7 @@ impl Label {
         let label: SharedString = label.into();
         Self {
             id: ElementId::CodeLocation(*Location::caller()),
+            id_given: false,
             style: Default::default(),
             label,
             secondary: None,
@@ -96,7 +98,20 @@ impl Label {
     /// rows of a `List`, are already distinct.
     pub fn id(mut self, id: impl Into<ElementId>) -> Self {
         self.id = id.into();
+        self.id_given = true;
         self
+    }
+
+    /// The id the label renders with. A default id adds the label's text to
+    /// the call site, so labels built on one line in a loop, such as one per
+    /// row, stay distinct when their text differs. A masked label keeps the
+    /// bare call site, so its text stays out of the id.
+    fn element_id(&self) -> ElementId {
+        if self.id_given || self.masked {
+            self.id.clone()
+        } else {
+            ElementId::NamedChild(self.id.clone().into(), self.full_text())
+        }
     }
 
     /// Set the secondary text for the label,
@@ -238,7 +253,7 @@ impl RenderOnce for Label {
         let accessible_text = (!self.masked && !text.is_empty()).then(|| text.clone());
 
         div()
-            .id(self.id)
+            .id(self.element_id())
             .test_support()
             .when_some(accessible_text, |this, text| {
                 // A `Label` node is named by its value, not its label.
@@ -322,6 +337,16 @@ fn match_len(text: &str, query: &[char]) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_ids_tell_apart_labels_built_on_one_line() {
+        let labels: Vec<Label> = ["Email", "Phone"].into_iter().map(Label::new).collect();
+        assert_ne!(labels[0].element_id(), labels[1].element_id());
+        let named = Label::new("Email").id("email");
+        assert_eq!(named.element_id(), ElementId::from("email"));
+        let secret = Label::new("hunter2").masked(true);
+        assert_eq!(secret.element_id(), secret.id);
+    }
 
     #[test]
     fn match_ranges_find_every_case_insensitive_occurrence() {
