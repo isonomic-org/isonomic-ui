@@ -141,6 +141,7 @@ impl SettingsStory {
                 .icon(Icon::new(IconName::Settings2))
                 .title_suffix(|_, _| {
                     Button::new("help")
+                        .accessibility_label("Help")
                         .icon(IconName::Info)
                         .ghost()
                         .xsmall()

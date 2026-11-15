@@ -235,6 +235,11 @@ impl Render for LabelStory {
                             .child(
                                 Button::new("btn-mask")
                                     .ghost()
+                                    .accessibility_label(if self.masked {
+                                        "Show the value"
+                                    } else {
+                                        "Hide the value"
+                                    })
                                     .icon(if self.masked {
                                         IconName::EyeOff
                                     } else {

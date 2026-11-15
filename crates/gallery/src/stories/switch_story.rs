@@ -103,6 +103,7 @@ impl Render for SwitchStory {
                                     )
                                     .child(
                                         Switch::new("switch1")
+                                            .accessibility_label("Product updates")
                                             .with_size(self.size)
                                             .checked(self.switch1)
                                             .on_click(cx.listener(|this, checked, _, cx| {
@@ -132,6 +133,7 @@ impl Render for SwitchStory {
                                     )
                                     .child(
                                         Switch::new("switch2")
+                                            .accessibility_label("Security alerts")
                                             .with_size(self.size)
                                             .checked(self.switch2)
                                             .on_click(cx.listener(|this, checked, _, cx| {

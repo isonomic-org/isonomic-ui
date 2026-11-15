@@ -288,9 +288,9 @@ impl Render for TabsStory {
                         .on_click(cx.listener(|this, ix: &usize, window, cx| {
                             this.set_active_tab(*ix, window, cx);
                         }))
-                        .child(IconName::Bot)
-                        .child(IconName::Calendar)
-                        .child(IconName::Map)
+                        .child(Tab::from(IconName::Bot).aria_label("Assistant"))
+                        .child(Tab::from(IconName::Calendar).aria_label("Calendar"))
+                        .child(Tab::from(IconName::Map).aria_label("Map"))
                         .children(vec!["Appearance", "Settings", "About", "License"]),
                 ),
             )

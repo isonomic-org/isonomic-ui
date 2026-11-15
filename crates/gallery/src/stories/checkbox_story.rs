@@ -100,6 +100,8 @@ impl Render for CheckboxStory {
                     .description("The label can be supplied by surrounding content.")
                     .child(
                         Checkbox::new("unlabelled")
+                            // Nothing visible labels it, so it is named here.
+                            .accessibility_label("Example without a visible label")
                             .with_size(self.size)
                             .checked(self.check3)
                             .on_click(cx.listener(|this, checked: &bool, _, cx| {

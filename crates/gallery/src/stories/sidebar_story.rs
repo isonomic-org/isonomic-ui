@@ -573,6 +573,9 @@ impl Render for SidebarStory {
                                                         let view = cx.entity();
                                                         move |window, _| {
                                                             Switch::new("switch")
+                                                                .accessibility_label(
+                                                                    "Show in sidebar",
+                                                                )
                                                                 .xsmall()
                                                                 .checked(checked)
                                                                 .on_click(window.listener_for(
@@ -665,6 +668,11 @@ impl Render for SidebarStory {
                                     SidebarToggleButton::new()
                                         .side(self.side)
                                         .collapsed(toggle_collapsed)
+                                        .accessibility_label(if toggle_collapsed {
+                                            "Expand sidebar"
+                                        } else {
+                                            "Collapse sidebar"
+                                        })
                                         .on_click(cx.listener(|this, _, _, cx| {
                                             this.collapsed = !this.collapsed;
                                             cx.notify();
