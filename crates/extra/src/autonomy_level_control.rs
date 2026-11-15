@@ -286,7 +286,7 @@ impl RenderOnce for AutonomyLevelControl {
 
         let focus = window
             .use_keyed_state((self.id.clone(), "levels-focus"), cx, |_, cx| {
-                cx.focus_handle()
+                cx.focus_handle().tab_stop(true)
             })
             .read(cx)
             .clone();
@@ -302,6 +302,8 @@ impl RenderOnce for AutonomyLevelControl {
                     }
                 }
             })
+            .w_full()
+            .items_stretch()
             .gap_1()
             .p_0p5()
             .rounded(radius)
@@ -316,9 +318,12 @@ impl RenderOnce for AutonomyLevelControl {
                             .id(child_id(format!("level-{ix}")))
                             .flex()
                             .flex_1()
+                            .min_w_0()
                             .items_center()
                             .justify_center()
-                            .h(px(28.))
+                            .min_h(px(28.))
+                            .px_1p5()
+                            .py_1()
                             .rounded(radius)
                             .cursor_pointer()
                             .map(|this| {
@@ -336,7 +341,16 @@ impl RenderOnce for AutonomyLevelControl {
                                     set_level(option, window, cx);
                                 }
                             })
-                            .child(option.label())
+                            // In a narrow column the label wraps instead of
+                            // running into its neighbour.
+                            .child(
+                                div()
+                                    .w_full()
+                                    .min_w_0()
+                                    .text_center()
+                                    .line_height(relative(1.25))
+                                    .child(option.label()),
+                            )
                     }),
             );
 
