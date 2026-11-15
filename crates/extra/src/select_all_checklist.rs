@@ -12,6 +12,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
@@ -148,6 +149,7 @@ impl RenderOnce for SelectAllChecklist {
             .gap_2()
             .py_1p5()
             .cursor_pointer()
+            .role(Role::CheckBox)
             .aria_label(format!("{}, {ticked} of {} ticked", self.title, self.items.len()))
             .aria_selected(state == ParentState::All)
             .on_click(move |_, window, cx| {
