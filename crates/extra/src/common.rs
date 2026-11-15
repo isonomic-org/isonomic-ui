@@ -1,7 +1,7 @@
 //! Small pieces shared by the components in this crate.
 
-use gpui::{App, BoxShadow, Hsla, hsla, px};
-use gpui_component::ActiveTheme as _;
+use isonomic_ui::component::ActiveTheme as _;
+use isonomic_ui::{App, BoxShadow, Hsla, hsla, px};
 
 /// The meaning a status carries, resolved to theme colors.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
