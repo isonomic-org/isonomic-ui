@@ -1,0 +1,10 @@
+component: fallback-route-view
+steps:
+  - name: every state is written out in words
+    check: C4
+    expect: [{text: "Trying now"}, {text: "Next in line"}, {text: "Not reached"}, {text: "All 2 failed"}]
+  - name: Try again appears when every target failed and runs on_retry
+    check: C4
+    click: Try again
+    expect: [{text: "Asked to try"}]
+    shot: retried

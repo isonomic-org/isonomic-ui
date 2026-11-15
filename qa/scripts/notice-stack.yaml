@@ -1,0 +1,17 @@
+component: notice-stack
+steps:
+  - name: dismiss removes the front notice and the next rises
+    check: C4
+    click: {contains: "Dismiss"}
+    expect: [{no_text: "Nothing dismissed yet"}, {absent: {contains: "Dismiss Exports now include"}}]
+    shot: next-notice
+  - name: dismiss the rest
+    check: C5
+    click: {contains: "Dismiss"}
+  - name: dismiss the last
+    check: C5
+    click: {contains: "Dismiss"}
+    shot: empty
+  - name: the stack stays alive when empty
+    check: C5
+    expect: [{alive: true}]

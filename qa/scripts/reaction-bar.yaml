@@ -1,0 +1,18 @@
+component: reaction-bar
+steps:
+  - name: pressing Like flips it and counts one more
+    check: C4
+    click: {contains: "Like,"}
+    expect: [{present: {contains: "Like, 1,300"}}]
+    shot: liked
+  - name: pressing again takes it back
+    check: C4
+    click: {contains: "Like,"}
+    expect: [{present: {contains: "Like, 1,299"}}]
+  - name: Enter on a focused toggle flips it
+    check: C6
+    tabstart: true
+  - name: Space on the first toggle
+    check: C6
+    key: space
+    expect: [{changed: true}]

@@ -1,0 +1,14 @@
+# Approved baseline screenshots, by component.
+#
+# The first full QA run (2026-11-14) proposed baselines for every tested
+# component: light and dark at 360, 960 and 1440 px. They are kept on the
+# qa-evidence branch under baselines/<slug>/. None is approved yet; approve a
+# component's baselines by adding it here, for example:
+#
+#   [card]
+#   approved = "2026-11-14"
+#   by = "Omar Qadmiri"
+#   shots = ["light-360", "light-960", "light-1440", "dark-360", "dark-960", "dark-1440"]
+#
+# Until then, the report shows every difference from the proposed baselines
+# as a visual change rather than a pass.

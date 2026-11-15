@@ -1,0 +1,32 @@
+component: draft-review-card
+steps:
+  - name: removing the attachment and attaching it again
+    check: C4
+    click: {contains: "Remove Invoice-2291"}
+    expect: [{absent: {contains: "Remove Invoice-2291"}}]
+    shot: no-attachment
+  - name: switching tone changes the wording
+    check: C4
+    click: Formal
+    expect: [{changed: true}]
+    shot: formal
+  - name: pressing the text opens the editor; Escape keeps it
+    check: C4
+    click: {at: [200, 170]}
+    expect: [{changed: true}]
+  - name: escape
+    check: C6
+    key: Escape
+  - name: Send folds the card to a receipt with Undo
+    check: C4
+    click: Send
+    wait: 1.5
+  - name: receipt
+    check: C4
+    wait: 1.5
+    expect: [{text: "Sent to"}, {text: "Undo"}]
+    shot: sent
+  - name: Undo reopens the draft
+    check: C4
+    click: {contains: "Undo"}
+    expect: [{present: {name: Discard}}]

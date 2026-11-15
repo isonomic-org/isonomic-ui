@@ -1,0 +1,154 @@
+# QA for isonomic-ui component stories.
+#
+# Manual only (Actions > QA > Run workflow). It is not part of any pull
+# request's checks and has no schedule, so it costs nothing until someone
+# starts it.
+#
+# - stories: build the QA gallery, render the named stories in light and dark
+#   at 360/960/1440 px, play their scripts and upload the results.
+# - retest: replay the step behind every open QA issue in
+#   qa/review/issues.json and upload which are fixed.
+# - macos: build the QA gallery on macOS and check every story stays up.
+#   macOS minutes cost ten times Linux ones; run it only when asked.
+#
+# The QA gallery and runner live in the separate qa/ workspace and are never
+# part of a release build.
+name: QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      stories:
+        description: "Story slugs to test, separated by spaces, or --all. Empty skips the job."
+        default: ""
+      retest:
+        description: "Retest the open QA issues"
+        type: boolean
+        default: false
+      macos:
+        description: "Smoke-launch every story on macOS (costly)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  QA_DISPLAY: ":99"
+  QA_PACKAGES: >-
+    xvfb openbox xdotool imagemagick tesseract-ocr
+    dbus dbus-x11 at-spi2-core python3-pyatspi python3-yaml python3-pil
+    mesa-vulkan-drivers libvulkan1 libxkbcommon-x11-0 libxcb1 libx11-xcb1
+    libfontconfig1 libfreetype6 libwayland-client0 libasound2t64 libgtk-3-dev
+
+jobs:
+  stories:
+    name: Stories (Linux)
+    if: inputs.stories != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: System packages
+        run: |
+          script/bootstrap
+          sudo apt-get install -y --no-install-recommends $QA_PACKAGES
+      - name: Rust toolchain
+        run: rustup toolchain install 1.98 --profile minimal -c clippy,rustfmt && rustup default 1.98
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            qa/target
+          key: qa-${{ runner.os }}-${{ hashFiles('qa/Cargo.lock') }}
+          restore-keys: qa-${{ runner.os }}-
+      - name: Build the QA gallery
+        working-directory: qa
+        run: cargo build -p qa-gallery -p qa-runner
+      - name: Render and script the stories
+        working-directory: qa
+        env:
+          QA_STORIES: ${{ inputs.stories }}
+        run: |
+          Xvfb :99 -screen 0 1600x2600x24 -nolisten tcp &
+          sleep 1
+          # The exit code only says whether a check failed; the status table carries the verdicts.
+          cargo run -q -p qa-runner -- run $QA_STORIES || true
+          python3 -I report/status.py --run out --issues review/issues.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-stories-${{ github.run_id }}
+          path: qa/out
+          retention-days: 14
+
+  retest:
+    name: Retest open QA issues (Linux)
+    if: inputs.retest
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: System packages
+        run: |
+          script/bootstrap
+          sudo apt-get install -y --no-install-recommends $QA_PACKAGES
+      - name: Rust toolchain
+        run: rustup toolchain install 1.98 --profile minimal -c clippy,rustfmt && rustup default 1.98
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            qa/target
+          key: qa-${{ runner.os }}-${{ hashFiles('qa/Cargo.lock') }}
+          restore-keys: qa-${{ runner.os }}-
+      - name: Retest
+        working-directory: qa
+        run: |
+          Xvfb :99 -screen 0 1600x2600x24 -nolisten tcp &
+          sleep 1
+          cargo build -p qa-gallery
+          python3 -I runner/retest.py --issues review/issues.json --out out-retest --sha "$GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-retest-${{ github.run_id }}
+          path: qa/out-retest
+          retention-days: 14
+
+  macos:
+    name: Stories smoke test (macOS)
+    if: inputs.macos
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install 1.98 --profile minimal && rustup default 1.98
+      - name: Build the QA gallery for macOS
+        working-directory: qa
+        run: cargo build -p qa-gallery
+      - name: Launch every story and check it stays up
+        working-directory: qa
+        run: |
+          status=0
+          ./target/debug/qa-gallery --list | sed -n 's/^story\t//p' > /tmp/stories.txt
+          n=0
+          while IFS= read -r story; do
+            n=$((n + 1))
+            ./target/debug/qa-gallery --story "$story" > "/tmp/story-$n.log" 2>&1 &
+            pid=$!
+            sleep 6
+            if kill -0 $pid 2>/dev/null; then
+              kill $pid
+              echo "ok   $story"
+            else
+              echo "FAIL $story exited early"; cat "/tmp/story-$n.log"; status=1
+            fi
+          done < /tmp/stories.txt
+          exit $status

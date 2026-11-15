@@ -1,0 +1,18 @@
+component: total-breakdown-card
+steps:
+  - name: pointing at a part puts its value in place of the total
+    check: C4
+    hover: {at: [150, 210]}
+    expect: [{text: "Payroll"}, {no_text: "Paid out"}]
+    shot: hover-part
+  - name: the period switch changes the numbers
+    check: C4
+    click: {at: [100, 400]}
+  - name: pick Week
+    check: C4
+    click: {at: [212, 46]}
+    expect: [{changed: true}]
+    shot: week
+  - name: negative or zero parts show 0%
+    check: C5
+    expect: [{text: "0%"}]

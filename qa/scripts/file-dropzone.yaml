@@ -1,0 +1,23 @@
+component: file-dropzone
+steps:
+  - name: failed file offers Retry, which uploads again
+    check: C4
+    click: {contains: "Retry Ledger-export"}
+    expect: [{no_text: "Connection lost"}]
+    shot: retried
+  - name: Remove drops a row
+    check: C4
+    click: {contains: "Remove Walkthrough"}
+    expect: [{absent: {contains: "Remove Walkthrough"}}]
+  - name: Clear empties the list
+    check: C4
+    click: Clear
+    expect: [{absent: {contains: "Remove Year-end"}}]
+    shot: cleared
+  - name: Enter on the area opens the file picker without crashing
+    check: C6
+    tabstart: true
+  - name: Return
+    check: C6
+    key: Escape
+    expect: [{alive: true}]

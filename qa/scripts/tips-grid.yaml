@@ -1,0 +1,18 @@
+component: tips-grid
+steps:
+  - name: taking an action flips the tip to done and moves the counter
+    check: C4
+    click: Try it
+    expect: [{text: "1/6"}, {no_text: "Nothing taken yet"}]
+    shot: taken
+  - name: Close runs on_close
+    check: C4
+    click: Close
+    expect: [{changed: true}]
+  - name: Enter on a focused tip action takes it
+    check: C6
+    tabstart: true
+  - name: Return on focused action
+    check: C6
+    key: Return
+    expect: [{changed: true}]

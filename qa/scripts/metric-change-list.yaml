@@ -1,0 +1,13 @@
+component: metric-change-list
+steps:
+  - name: rows show tone and direction separately
+    check: C4
+    expect: [{text: "Down to 18"}, {text: "Up 22%"}]
+  - name: hover washes the row
+    check: C4
+    hover: {at: [200, 75]}
+    expect: [{changed: true}]
+    shot: hover
+  - name: stacked layout puts the change under the metric
+    check: C5
+    expect: [{text: "Changes"}]

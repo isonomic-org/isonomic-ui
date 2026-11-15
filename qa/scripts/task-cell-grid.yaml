@@ -1,0 +1,30 @@
+component: task-cell-grid
+steps:
+  - name: the bar shows done of total, cost and time left
+    check: C4
+    expect: [{text: "of 180"}, {text: "left"}]
+  - name: the grid is one tab stop; Right opens the first cell's details
+    check: C6
+    tabstart: true
+  - name: right arrow
+    check: C6
+    key: Right
+    expect: [{text: "Receipt 4100"}]
+    shot: details-first
+  - name: Enter keeps it open and reports it
+    check: C6
+    key: Return
+    expect: [{text: "Kept r0 open"}]
+  - name: Escape lets it go
+    check: C6
+    key: Escape
+    expect: [{text: "Let go"}]
+  - name: End jumps to the last cell
+    check: C6
+    key: End
+    expect: [{text: "Receipt 4279"}]
+  - name: Retry N failed passes the failed ids
+    check: C4
+    click: {contains: "Retry 2 failed"}
+    expect: [{text: "Retry asked for 2 tasks"}]
+    shot: retry

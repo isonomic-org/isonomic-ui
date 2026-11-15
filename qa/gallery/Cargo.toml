@@ -1,0 +1,14 @@
+[package]
+name = "qa-gallery"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+description = "QA gallery: shows one gallery story in a bare window that the QA runner drives."
+
+[[bin]]
+name = "qa-gallery"
+path = "src/main.rs"
+
+[dependencies]
+isonomic-ui.workspace = true
+isonomic-ui-gallery.workspace = true

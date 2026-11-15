@@ -1,0 +1,24 @@
+# QA workspace for isonomic-ui. Kept separate from the library's own
+# workspace so QA-only code and tools never reach a release build.
+[workspace]
+resolver = "2"
+members = ["gallery", "runner"]
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+isonomic-ui = { path = "../crates/ui" }
+isonomic-ui-gallery = { path = "../crates/gallery" }
+
+# The library workspace carries this patch; a separate workspace has to
+# repeat it to build the same code.
+[patch.crates-io]
+gpui-pre-macros = { path = "../vendor/gpui-pre-macros" }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 2

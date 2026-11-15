@@ -1,0 +1,16 @@
+component: autonomy-level-control
+steps:
+  - name: picking Run freely moves risky actions to Goes ahead
+    check: C4
+    click: {at: [345, 108]}
+    expect: [{changed: true}, {text: "Run freely"}]
+    shot: run-freely
+  - name: locking an action moves it to Stops for a yes
+    check: C4
+    click: {contains: "Stop every time before: Draf"}
+    expect: [{changed: true}]
+    shot: locked
+  - name: the three levels are one Tab stop (first stop in the control)
+    check: C6
+    tabstart: true
+    expect: [{focused: "level"}]

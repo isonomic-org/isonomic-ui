@@ -1,0 +1,202 @@
+# Confirmed defects with their full reproduction notes, as filed on GitHub by the QA session.
+# Each was reproduced in a fresh gallery window before filing.
+
+- id: permission-prompt-enter-on-deny
+  slug: permission-prompt
+  title: "Permission prompt: Enter on a focused Deny button allows the request"
+  sev: 1
+  kind: keyboard
+  check: C6
+  step: 3
+  expected_bullet: 4
+  expected_note: "Enter is meant to allow with the picked choice, but a focused Deny button has its own Enter: pressing it must deny."
+  actual: |
+    With keyboard focus on **Deny** (the focus ring is drawn on Deny; the focused element is `reminders/deny`), pressing Enter **allows** the request: the prompt folds to "Allowed for 2 minutes" and `on_decide` reports an allow ("Reminders allowed" in the story). A keyboard user who deliberately moves to Deny and presses Enter grants the permission instead of refusing it.
+  cause: |
+    The prompt's card-level `on_key_down` maps `enter` to allow and runs for key events that bubble up from the buttons inside it, so it fires for Enter on the focused Deny button. It should leave Enter alone when a button (or any other control) inside the prompt has focus, or only act when the prompt itself is the focused element.
+  repro:
+    - Open the story (`cargo run -p qa-gallery -- --story permission-prompt`).
+    - Press Tab until Deny in the first prompt ("Collections assistant wants to send 14 reminders") has the focus ring (the second Tab stop).
+    - Press Enter.
+  shots: [enter-on-deny]
+  why_sev: "Sev1: the control does the opposite of what the person chose, and the action it grants is a permission."
+
+- id: autonomy-level-control-levels-not-tab-stop
+  slug: autonomy-level-control
+  title: "Autonomy level control: the level selector cannot be reached with Tab"
+  sev: 2
+  kind: keyboard
+  check: C6
+  step: 3
+  expected_bullet: 1
+  actual: |
+    The window has 6 Tab stops, all of them lock buttons. Tab goes lock 1 → lock 6 → back to lock 1 and never lands on the three levels, so Left/Right/Home/End can never be used and the level cannot be changed without a pointer.
+  cause: |
+    The level group tracks a `FocusHandle` but the handle is not a Tab stop (`cx.focus_handle()` without `.tab_stop(true)`), so it is focusable only from code.
+  repro:
+    - Open the story and press Tab repeatedly.
+    - Watch the focus ring: it visits only the six Lock buttons.
+  shots: []
+
+- id: filter-menu-list-not-tab-stop
+  slug: filter-menu
+  title: "Filter menu: the option list cannot be reached with Tab"
+  sev: 2
+  kind: keyboard
+  check: C6
+  step: 4
+  expected_bullet: 4
+  actual: |
+    The story has 4 Tab stops: Clear all and the three chip remove buttons. Tab cycles through those and never reaches the groups and options, so Up/Down/Enter/Left/Right cannot be used and filters cannot be picked from the keyboard.
+  cause: |
+    The list's `FocusHandle` is not a Tab stop (`cx.focus_handle()` without `.tab_stop(true)`).
+  repro:
+    - Open the story and press Tab repeatedly.
+    - Focus only visits Clear all and the chip remove buttons.
+  shots: [keyboard]
+
+- id: metric-trend-card-plot-not-tab-stop
+  slug: metric-trend-card
+  title: "Metric trend card: the plot cannot be reached with Tab"
+  sev: 2
+  kind: keyboard
+  check: C6
+  step: 4
+  expected_bullet: 4
+  actual: |
+    The story has no Tab stops at all. Tab does nothing, so the readout can only be opened with a pointer; Left/Right/Home/End/Escape on the plot are unreachable.
+  cause: |
+    The plot's `FocusHandle` is created with `cx.focus_handle()` and never made a Tab stop.
+  repro:
+    - Open the story, press Tab.
+    - Nothing gets focus and the readout stays where `default_point` put it.
+  shots: []
+
+- id: approval-card-buttons-unnamed
+  slug: approval-card
+  title: "Approval card: Approve and Deny have no accessible name"
+  sev: 2
+  kind: a11y
+  check: C9
+  expected_note: "C9: every control has a role and a name; a screen reader user must be able to tell Approve from Deny."
+  actual: |
+    In the accessibility tree the four decision buttons (`reminders/deny`, `reminders/approve`, `void/deny`, `void/approve`) are buttons with no label, and over AT-SPI they are push buttons with an empty name. A screen reader announces both as "button", so the person cannot tell which one approves.
+  cause: |
+    The buttons are built from a pressable with child elements (the text plus a key hint), so no label is set. Set `accessibility_label` to the visible text ("Approve", "Deny", or the custom approve label).
+  repro:
+    - Open the story with an accessibility client running and read the buttons in the footer.
+  shots: []
+
+- id: permission-prompt-buttons-unnamed
+  slug: permission-prompt
+  title: "Permission prompt: Allow and Deny have no accessible name"
+  sev: 2
+  kind: a11y
+  check: C9
+  expected_note: "C9: every control has a role and a name."
+  actual: |
+    `reminders/deny`, `reminders/allow`, `purge/deny` and `purge/allow` are buttons with no label in the accessibility tree and an empty name over AT-SPI. A screen reader announces "button" for both choices of a permission.
+  cause: "The buttons carry text and a key hint as children but no `accessibility_label`."
+  repro:
+    - Open the story with an accessibility client running and read the footer buttons.
+  shots: []
+
+- id: message-action-bar-icon-buttons-unnamed
+  slug: message-action-bar
+  title: "Message action bar: Regenerate, the votes and Read aloud have no accessible name"
+  sev: 2
+  kind: a11y
+  check: C9
+  expected_bullet: 7
+  expected_note: "Every button has a tooltip with its name; icon-only buttons need that name as their accessible label too."
+  actual: |
+    `actions/regenerate`, `actions/up`, `actions/down` and `actions/read-aloud` are icon-only buttons with no label in the accessibility tree (empty names over AT-SPI). Only Copy is named. The tooltips are visual only.
+  cause: "Pass the tooltip text to `accessibility_label` on each icon button."
+  repro:
+    - Open the story with an accessibility client running and read the bar's buttons.
+  shots: []
+
+- id: profile-menu-items-unnamed
+  slug: profile-menu
+  title: "Profile menu: menu items and the Next shortcut have no accessible name"
+  sev: 2
+  kind: a11y
+  check: C9
+  expected_bullet: 5
+  actual: |
+    The menu is announced as "Account", but its items (`account/settings`, `account/billing`, `account/sign-out`) and `account/next-step` have no label, so each is announced as "menu item" with nothing else.
+  cause: "Set `accessibility_label` on each row from its label (and badge, where present)."
+  repro:
+    - Open the story with an accessibility client running and read the menu.
+  shots: []
+
+- id: draft-review-card-edit-unnamed
+  slug: draft-review-card
+  title: "Draft review card: the icon-only Edit button has no accessible name"
+  sev: 2
+  kind: a11y
+  check: C9
+  expected_note: "C9: icon-only controls carry a label."
+  actual: "`edit` is an icon-only button with no label (empty name over AT-SPI)."
+  cause: "Add `accessibility_label(\"Edit message\")`."
+  repro:
+    - Open the story with an accessibility client running and read the buttons next to the tone switch.
+  shots: []
+
+- id: draft-review-card-to-row-overlap
+  slug: draft-review-card
+  title: "Draft review card: the recipient address runs under the attachment chip"
+  sev: 3
+  kind: visual
+  check: C2
+  expected_bullet: 2
+  actual: |
+    In the To row the recipient button ("Dana Whitlock dana@harbour.example") is not shrunk or truncated; the attachment chip is drawn on top of the end of the address, so both read "dana@harbour.examp" / "Invoice-2291.pdf" overlapping. Seen at 360 and 960 px in both themes.
+  cause: "The recipient button needs `min_w_0` with truncation, or the row needs to wrap the chip onto its own line."
+  repro:
+    - Open the story at 960 px wide and look at the To row.
+  shots: []
+  report_shot: light-960
+
+- id: variant-comparison-card-head-overlap
+  slug: variant-comparison-card
+  title: "Variant comparison card: the status line overlaps the title in the head"
+  sev: 3
+  kind: visual
+  check: C2
+  expected_bullet: 1
+  actual: |
+    In the head, the second line ("Collecting", "Week 3 of 4") is drawn over the bottom of the title "Reminder email wording" at every width and in both themes.
+  cause: "The title and the status row share a fixed-height slot; give the column its natural height (or a gap) instead."
+  repro:
+    - Open the story and look at the card's head.
+  shots: []
+  report_shot: light-960
+
+- id: approval-card-narrow-footer
+  slug: approval-card
+  title: "Approval card: at 360 px the footer squeezes 'Always allow' to nothing"
+  sev: 3
+  kind: visual
+  check: C2
+  actual: |
+    At 360 px the footer keeps the countdown, Deny and Approve on one line, so the "Always allow this action" label collapses to its checkbox and the card shows a tall empty band above the footer.
+  cause: "Let the footer wrap (checkbox on its own line) below a width, or drop the countdown to its own row."
+  repro:
+    - Open the story at 360 px wide.
+  shots: []
+  report_shot: light-360
+
+- id: autonomy-level-control-narrow-levels
+  slug: autonomy-level-control
+  title: "Autonomy level control: at 360 px the level labels run into each other"
+  sev: 3
+  kind: visual
+  check: C2
+  expected_bullet: 1
+  actual: "At 360 px the three segments keep their full labels on one line and the words run together ('Ask every time Ask when risky Run freely')."
+  cause: "Give the segments `min_w_0` with truncation or let the labels wrap to two lines."
+  repro:
+    - Open the story at 360 px wide.
+  shots: []
+  report_shot: light-360

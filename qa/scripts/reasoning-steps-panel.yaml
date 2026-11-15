@@ -1,0 +1,18 @@
+component: reasoning-steps-panel
+steps:
+  - name: a finished panel shows a check and the time taken
+    check: C4
+    expect: [{text: "Took"}]
+  - name: the header folds the steps away
+    check: C4
+    click: {at: [60, 34]}
+    expect: [{no_text: "Matching 41"}]
+    shot: folded
+  - name: and back
+    check: C4
+    click: {at: [60, 34]}
+    expect: [{text: "Matching 41"}]
+  - name: +N more chip is reachable by keyboard
+    check: C6
+    tabstart: true
+    expect: [{focused: true}]

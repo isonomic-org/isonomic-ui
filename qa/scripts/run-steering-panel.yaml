@@ -1,0 +1,40 @@
+component: run-steering-panel
+settle: 0.6
+steps:
+  - name: Enter in the field queues a note
+    check: C4
+    click: {contains: "Tell the agent"}
+  - name: type a note
+    check: C4
+    type: "Skip the coffee receipts"
+  - name: Enter queues
+    check: C4
+    key: Return
+    expect: [{text: "Skip the coffee"}]
+    shot: queued
+  - name: Ctrl+Enter applies a note right away
+    check: C4
+    type: "Use the March rates"
+  - name: ctrl enter
+    check: C4
+    key: ctrl+Return
+    expect: [{text: "Sent now: Use the March rates"}]
+    shot: right-away
+  - name: Pause holds the run
+    check: C4
+    click: Pause
+    expect: [{text: "Paused"}]
+    shot: paused
+  - name: Resume
+    check: C4
+    click: Resume
+    expect: [{text: "Resumed"}]
+  - name: the run finishes and the field closes
+    check: C5
+    wait: 20
+    expect: [{text: "Done"}, {absent: {contains: "Tell the agent"}}]
+    shot: done
+  - name: once done, the panel comes to rest
+    check: C8
+    wait: 1
+    expect: [{changed: false}]

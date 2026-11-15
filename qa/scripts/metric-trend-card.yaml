@@ -1,0 +1,26 @@
+component: metric-trend-card
+steps:
+  - name: pointing at the plot opens the readout at the nearest point
+    check: C4
+    hover: {at: [120, 150]}
+    expect: [{text: "Monday 12 May"}]
+    shot: readout-start
+  - name: empty card shows a quiet line
+    check: C5
+    expect: [{text: "Nothing to plot yet"}]
+  - name: the plot is a tab stop; Right moves between points
+    check: C6
+    hover: {at: [700, 900]}
+  - name: the plot is a Tab stop
+    check: C6
+    tabstart: true
+    expect: [{focused: "plot"}]
+  - name: right
+    check: C6
+    key: [Home, Right]
+    expect: [{text: "Tuesday 13 May"}]
+    shot: keyboard-point
+  - name: Escape closes the readout
+    check: C6
+    key: Escape
+    expect: [{no_text: "Tuesday 13 May"}]

@@ -1,0 +1,36 @@
+component: plan-editor
+steps:
+  - name: clicking a step focuses the list; Down selects the next
+    check: C6
+    click: {at: [200, 115]}
+  - name: down
+    check: C6
+    key: Down
+    expect: [{changed: true}]
+  - name: Alt+Down moves the step and emits Edited
+    check: C6
+    key: alt+Down
+    expect: [{text: "Edited, 5 steps"}]
+    shot: moved
+  - name: Delete removes the selected step
+    check: C6
+    key: Delete
+    expect: [{text: "Edited, 4 steps"}]
+  - name: Run plan emits Run and follows the run
+    check: C4
+    click: {contains: "Run plan"}
+    expect: [{text: "step"}]
+    shot: running
+  - name: the report step fails once and the clock stops
+    check: C4
+    wait: 3
+    expect: [{text: "Stopped at step"}, {text: "Try again from here"}]
+    shot: failed
+  - name: Try again runs on to Done
+    check: C4
+    click: {contains: "Try again"}
+  - name: done
+    check: C4
+    wait: 4
+    expect: [{text: "Done in"}]
+    shot: done

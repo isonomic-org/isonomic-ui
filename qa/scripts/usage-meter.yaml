@@ -1,0 +1,11 @@
+component: usage-meter
+steps:
+  - name: pointing at a row highlights it
+    check: C4
+    hover: {at: [200, 175]}
+    expect: [{changed: true}]
+    shot: hover-row
+  - name: See plans runs its action
+    check: C4
+    click: See plans
+    expect: [{no_text: "Nothing pressed yet"}]

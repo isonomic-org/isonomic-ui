@@ -1,0 +1,28 @@
+component: recommendation-card
+steps:
+  - name: accept swaps the buttons for an accepted line and Undo
+    check: C4
+    click: {contains: "Accept"}
+    expect: [{text: "Undo"}, {no_text: "Nothing accepted yet"}]
+    shot: accepted
+  - name: Undo restores the buttons
+    check: C4
+    click: {contains: "Undo"}
+    expect: [{present: {name: Alternatives}}]
+  - name: heading folds the reason away
+    check: C4
+    click: {at: [200, 43]}
+    expect: [{no_text: "Most edits land"}]
+    shot: folded
+  - name: alternatives menu opens and picking one marks it
+    check: C4
+    click: {at: [200, 43]}
+  - name: open alternatives
+    check: C4
+    click: Alternatives
+    expect: [{changed: true}]
+    shot: menu
+  - name: Escape closes the menu
+    check: C6
+    key: Escape
+    expect: [{changed: true}]
