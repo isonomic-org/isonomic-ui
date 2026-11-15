@@ -354,7 +354,7 @@ impl RenderOnce for TaskCellGrid {
             active: None,
             pinned: None,
             only: None,
-            focus: cx.focus_handle(),
+            focus: cx.focus_handle().tab_stop(true),
         });
         let (active, pinned, only, focus) = {
             let state = state.read(cx);
