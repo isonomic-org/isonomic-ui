@@ -7,14 +7,14 @@
 
 use std::rc::Rc;
 
-use gpui::{
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, StyledExt as _, ThemeStyled as _, h_flex, v_flex,
+};
+use isonomic_ui::{
     App, Bounds, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, PathBuilder, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, canvas, div, fill, point, prelude::FluentBuilder as _, px,
     relative, size,
-};
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, StyledExt as _, ThemeStyled as _, h_flex, v_flex,
 };
 
 use crate::common::{lifted_shadow, resting_shadow};
@@ -300,7 +300,7 @@ impl RenderOnce for MetricTrendCard {
             let lines = lines.clone();
             canvas(
                 |_, _, _| {},
-                move |bounds: Bounds<gpui::Pixels>, _, window, _| {
+                move |bounds: Bounds<isonomic_ui::Pixels>, _, window, _| {
                     let across = |ix: usize| {
                         bounds.left() + bounds.size.width * ((ix as f32 + 0.5) / points as f32)
                     };
@@ -434,7 +434,6 @@ impl RenderOnce for MetricTrendCard {
             .id((self.id.clone(), "plot"))
             .track_focus(&focus)
             .on_key_down({
-                let state = state.clone();
                 move |event, _, cx| {
                     if event.keystroke.modifiers.modified() {
                         return;

@@ -1,10 +1,11 @@
 //! Gallery story for the metric trend card.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::v_flex;
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Window,
 };
-use gpui_component::v_flex;
 use isonomic_ui_extra::metric_trend_card::{MetricTrendCard, TrendSeries};
 
 /// Shows a week of collections by customer group, and a card with nothing to plot.
@@ -14,6 +15,20 @@ impl MetricTrendCardStory {
     /// Create the story view.
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|_| Self)
+    }
+}
+
+impl Story for MetricTrendCardStory {
+    fn title() -> &'static str {
+        "Metric trend card"
+    }
+
+    fn description() -> &'static str {
+        "One headline number and how its parts moved."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
