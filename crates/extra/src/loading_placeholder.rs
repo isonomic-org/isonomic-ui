@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, px, relative,
@@ -131,6 +132,7 @@ impl RenderOnce for LoadingPlaceholder {
             .id(self.id.clone())
             .w_full()
             .gap_4()
+            .role(Role::ProgressIndicator)
             .aria_label(self.label.clone())
             .children((0..self.repeat).map(|_| shape(self.shape, color, line)))
             .refine_style(&self.style);
