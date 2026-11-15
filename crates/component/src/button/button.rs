@@ -772,8 +772,14 @@ impl RenderOnce for Button {
             .accessibility_label
             .clone()
             .or_else(|| self.label.clone());
-        // Like an HTML `title`, the tooltip describes the button.
-        let description = self.tooltip.as_ref().map(|(tooltip, _)| tooltip.clone());
+        // Like an HTML `title`, the tooltip describes the button. A button
+        // with nothing else to go by, such as one that shows only an icon,
+        // takes the tooltip as its name instead.
+        let tooltip_text = self.tooltip.as_ref().map(|(tooltip, _)| tooltip.clone());
+        let (accessibility_label, description) = match accessibility_label {
+            Some(label) => (Some(label), tooltip_text),
+            None => (tooltip_text, None),
+        };
         // A loading button with no icon shows the spinner where an icon would sit.
         let icon = self.icon.or_else(|| {
             self.loading.then(|| {
