@@ -292,6 +292,7 @@ impl Render for ButtonStory {
                     )
                     .child(
                         button("button-icon-4")
+                            .accessibility_label("Custom Child")
                             .child(
                                 h_flex()
                                     .items_center()
