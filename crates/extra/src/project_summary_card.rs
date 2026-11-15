@@ -15,6 +15,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -236,6 +237,7 @@ impl RenderOnce for ProjectSummaryCard {
                 .px_4()
                 .py_3()
                 .cursor_pointer()
+                .role(Role::Button)
                 .aria_label(format!("{}, {}, {done} of {total} subtasks done", self.name, self.status.word()))
                 .aria_expanded(self.open)
                 .on_click(move |_, window, cx| emit(ProjectEdit::Toggle, window, cx))
@@ -329,6 +331,7 @@ impl RenderOnce for ProjectSummaryCard {
                         .gap_2()
                         .py_1()
                         .cursor_pointer()
+                        .role(Role::CheckBox)
                         .aria_label(format!("{}, {}", task.label, if done { "done" } else { "open" }))
                         .aria_selected(done)
                         .on_click(move |_, window, cx| emit(ProjectEdit::Subtask(id.clone(), !done), window, cx))
