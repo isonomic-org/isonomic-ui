@@ -2,11 +2,12 @@
 
 use std::time::{Duration, Instant};
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::task_inbox_board::{InboxStatus, InboxStep, InboxTask, TaskInboxBoard};
 
 /// Background bookkeeping tasks. Approve, Reject and Retry are left to the
@@ -23,6 +24,20 @@ impl TaskInboxBoardStory {
             started: Instant::now(),
             last: "Nothing opened yet".into(),
         })
+    }
+}
+
+impl Story for TaskInboxBoardStory {
+    fn title() -> &'static str {
+        "Task inbox board"
+    }
+
+    fn description() -> &'static str {
+        "Every background task in one calm place."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

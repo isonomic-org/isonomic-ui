@@ -11,15 +11,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 /// How often the running clocks redraw.
@@ -394,7 +394,7 @@ impl RenderOnce for TaskInboxBoard {
                    fallback: Option<(InboxStatus, bool)>,
                    task: InboxTask| {
             let ui = ui.clone();
-            move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
+            move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
                 cx.stop_propagation();
                 match (&handler, fallback) {
                     (Some(handler), _) => handler(&task, window, cx),
@@ -411,7 +411,7 @@ impl RenderOnce for TaskInboxBoard {
         let card = |ix: usize, task: &InboxTask, compact: bool| {
             let is_open = open.as_ref() == Some(&task.id);
             let color = tone(task.status);
-            let state: gpui::AnyElement = match task.status {
+            let state: isonomic_ui::AnyElement = match task.status {
                 InboxStatus::Running => h_flex()
                     .gap_1()
                     .child(
