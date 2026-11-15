@@ -15,8 +15,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -298,6 +298,7 @@ impl RenderOnce for FilterMenu {
             (state.value.clone(), state.open.clone(), state.cursor)
         });
         let value = self.value.clone().unwrap_or(kept);
+        let list_name = format!("{} options", self.title);
         let rows = Rc::new(visible_rows(&self.groups, &open));
         let cursor = cursor.min(rows.len().saturating_sub(1));
 
@@ -429,6 +430,16 @@ impl RenderOnce for FilterMenu {
                     let group = &self.groups[g];
                     let picked = picked_label(value.in_group(&group.id).count());
                     base.pl_2()
+                        .role(Role::ListBoxOption)
+                        .aria_label(match &picked {
+                            Some(picked) => format!(
+                                "{}, {} options, {picked} picked",
+                                group.label,
+                                group.options.len()
+                            ),
+                            None => format!("{}, {} options", group.label, group.options.len()),
+                        })
+                        .aria_expanded(open.contains(&group.id))
                         .child(
                             Icon::new(if open.contains(&group.id) {
                                 IconName::ChevronDown
@@ -453,6 +464,9 @@ impl RenderOnce for FilterMenu {
                     let (option_id, label) = &group.options[o];
                     let is_picked = value.contains(&group.id, option_id);
                     base.pl(px(30.))
+                        .role(Role::ListBoxOption)
+                        .aria_label(format!("{}: {label}", group.label))
+                        .aria_selected(is_picked)
                         .child(
                             div()
                                 .flex()
@@ -522,7 +536,10 @@ impl RenderOnce for FilterMenu {
             )
             .child(
                 v_flex()
+                    .id(child_id("list".into()))
                     .track_focus(&focus)
+                    .role(Role::ListBox)
+                    .aria_label(list_name)
                     .on_key_down({
                         let act = act.clone();
                         let rows = rows.clone();
