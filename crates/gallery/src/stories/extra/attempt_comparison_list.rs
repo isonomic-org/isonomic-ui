@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::attempt_comparison_list::{Attempt, AttemptComparisonList, AttemptState};
 
 /// Shows three ways of reconciling a bank account, one still running.
@@ -20,6 +21,20 @@ impl AttemptComparisonListStory {
         cx.new(|_| Self {
             last: "The best one is in use".into(),
         })
+    }
+}
+
+impl Story for AttemptComparisonListStory {
+    fn title() -> &'static str {
+        "Attempt comparison list"
+    }
+
+    fn description() -> &'static str {
+        "The same task tried several ways at once."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
