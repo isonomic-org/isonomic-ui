@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -233,6 +234,7 @@ impl RenderOnce for TraceTimeline {
                     .cursor_pointer()
                     .when(is_selected, |this| this.bg(chip))
                     .hover(|s| s.bg(chip.opacity(0.6)))
+                    .role(Role::ListItem)
                     .aria_label(format!(
                         "{}, {}{}",
                         span.label,
