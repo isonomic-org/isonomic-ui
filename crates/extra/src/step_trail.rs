@@ -12,15 +12,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -428,7 +428,7 @@ impl RenderOnce for StepTrail {
                 this.bg(thread_color(step.state == TrailState::Done))
             });
 
-            let right: Option<gpui::AnyElement> = match step.state {
+            let right: Option<isonomic_ui::AnyElement> = match step.state {
                 TrailState::Done => step.took.map(|took| {
                     div()
                         .text_xs()

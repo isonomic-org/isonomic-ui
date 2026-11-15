@@ -2,11 +2,12 @@
 
 use std::time::{Duration, Instant};
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::step_trail::{StepTrail, SubstepState, TrailState, TrailStep, TrailSubstep};
 
 /// How a person answered the payment step.
@@ -36,6 +37,20 @@ impl StepTrailStory {
             chase_started: now.checked_sub(Duration::from_secs(41)).unwrap_or(now),
             pay_started: now,
         })
+    }
+}
+
+impl Story for StepTrailStory {
+    fn title() -> &'static str {
+        "Step trail"
+    }
+
+    fn description() -> &'static str {
+        "The steps an agent works through, as one quiet line."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
