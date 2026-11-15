@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -190,6 +191,7 @@ impl RenderOnce for ContextTreemap {
                             .when(shrank, |this| this.border_dashed().border_color(color))
                             .hover(|style| style.bg(color.opacity(0.45)))
                             .cursor_pointer()
+                            .role(Role::Button)
                             .aria_label(format!("{}, {} tokens{}", block.label, tokens_words(size), if shrank { ", compacted" } else { "" }))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
@@ -315,6 +317,7 @@ impl RenderOnce for ContextTreemap {
                                 .justify_center()
                                 .text_xs()
                                 .text_color(quiet)
+                                .role(Role::Button)
                                 .aria_label(format!("Free, {} tokens", tokens_words(free)))
                                 .on_click(move |_, window, cx| {
                                     if let Some(select) = &select_free {
