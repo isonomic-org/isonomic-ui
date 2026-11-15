@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, MouseButton, MouseDownEvent,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, canvas, div, prelude::FluentBuilder as _, px, relative,
@@ -234,6 +235,7 @@ impl RenderOnce for EditTimeline {
                             .when(future, |this| this.opacity(0.2))
                             .when(is_selected, |this| this.border_2().border_color(ink))
                             .cursor_pointer()
+                            .role(Role::Button)
                             .aria_label(format!("{} at {}: {}, +{} -{}", author_name(&edit.by), mmss(edit.at), edit.summary, edit.added, edit.removed))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
@@ -268,6 +270,7 @@ impl RenderOnce for EditTimeline {
             .flex_1()
             .h(px(18.))
             .cursor_pointer()
+            .role(Role::Slider)
             .aria_label(format!("Playhead at {} of {}", mmss(playhead), mmss(length_u)))
             .on_mouse_down(MouseButton::Left, move |event: &MouseDownEvent, window, cx| {
                 let bounds = track.get();
