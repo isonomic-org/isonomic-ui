@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, AppContext as _, Context, ElementId, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
@@ -182,6 +183,7 @@ impl RenderOnce for RunScheduleBoard {
                 .cursor_grab()
                 .overflow_hidden()
                 .when(tall, |this| this.h(px(ROW * s.hours as f32 - 3.)))
+                .role(Role::Group)
                 .aria_label(format!("{}, {} hours", s.label, s.hours))
                 .on_drag(dragged, |d, _, _, cx| cx.new(|_| d.clone()))
                 .child(div().text_xs().truncate().text_color(ink).child(s.label.clone()))
