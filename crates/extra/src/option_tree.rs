@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
     div, prelude::FluentBuilder as _, px, relative,
@@ -175,6 +176,7 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
         .when(chosen, |this| this.border_2())
         .bg(paint.fill)
         .shadow(resting_shadow(cx))
+        .role(Role::Group)
         .aria_label(format!(
             "{}. {}{}{}",
             branch.label,
