@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Task, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::plan_editor::{PlanEditor, PlanEditorEvent, PlanStep, PlanStepStatus};
 
 /// How long each pretend step takes.
@@ -128,6 +129,20 @@ impl PlanEditorStory {
                 }
             }
         }));
+    }
+}
+
+impl Story for PlanEditorStory {
+    fn title() -> &'static str {
+        "Plan editor"
+    }
+
+    fn description() -> &'static str {
+        "The steps an agent means to take, reviewed before it runs."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

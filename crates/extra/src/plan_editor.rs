@@ -9,18 +9,18 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gpui::{
-    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable,
-    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
     v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -542,7 +542,7 @@ fn steps_words(count: usize) -> String {
 }
 
 /// Six small dots that show a row can be dragged.
-fn grip(color: gpui::Hsla) -> impl IntoElement {
+fn grip(color: isonomic_ui::Hsla) -> impl IntoElement {
     let column = || {
         v_flex()
             .gap(px(2.))
@@ -637,7 +637,7 @@ impl Render for PlanEditor {
                     if !review && step.status == PlanStepStatus::Done {
                         accent
                     } else if review {
-                        gpui::transparent_black()
+                        isonomic_ui::transparent_black()
                     } else {
                         line
                     },
@@ -720,7 +720,7 @@ impl Render for PlanEditor {
                         };
                         this.hover(|style| style.bg(chip))
                             .on_click(cx.listener(
-                                move |this, event: &gpui::ClickEvent, window, cx| {
+                                move |this, event: &isonomic_ui::ClickEvent, window, cx| {
                                     this.selected = Some(ix);
                                     this.focus.focus(window, cx);
                                     if event.click_count() > 1 {
