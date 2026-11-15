@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, switch::Switch, v_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
@@ -125,6 +126,7 @@ impl RenderOnce for SettingToggleRow {
             .px_3()
             .py_2p5()
             .rounded(px(6.))
+            .role(Role::Group)
             .aria_label(spoken)
             .when(!frozen, |this| {
                 this.cursor_pointer().hover(move |s| s.bg(hover)).on_click(move |_, window, cx| {
