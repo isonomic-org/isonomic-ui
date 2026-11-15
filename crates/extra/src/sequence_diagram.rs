@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     Animation, AnimationExt as _, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, PathBuilder, Pixels, Point, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
@@ -209,6 +210,7 @@ impl RenderOnce for SequenceDiagram {
                     .flex()
                     .justify_center()
                     .cursor_pointer()
+                    .role(Role::Button)
                     .aria_label(format!("{} to {}: {}", m.from, m.to, m.label))
                     .aria_selected(is_selected)
                     .on_click(move |_, window, cx| {
@@ -252,6 +254,7 @@ impl RenderOnce for SequenceDiagram {
             .text_color(ink)
             .text_sm()
             .shadow(resting_shadow(cx))
+            .role(Role::Group)
             .aria_label(format!("Sequence of {} messages between {count}", self.messages.len()))
             .child(
                 h_flex()
