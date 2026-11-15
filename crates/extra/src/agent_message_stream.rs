@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, AppContext as _, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
     HighlightStyle, InteractiveElement as _, IntoElement, ParentElement as _, Render,
     SharedString, StatefulInteractiveElement as _, Styled as _, StyledText, Subscription, Window,
@@ -334,6 +335,7 @@ impl Render for AgentMessageStream {
                     .cursor_pointer()
                     .text_xs()
                     .aria_selected(active)
+                    .role(Role::Tab)
                     .aria_label(format!("Show {label}"))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.filter = id.clone();
