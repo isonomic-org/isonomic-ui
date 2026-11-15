@@ -98,6 +98,12 @@ impl RenderOnce for BreadcrumbItem {
             } else {
                 Role::ListItem
             })
+            // The visible text names the place; the last one is where you are.
+            .aria_label(if self.is_last {
+                SharedString::from(format!("{}, current page", self.label))
+            } else {
+                self.label.clone()
+            })
             .child(self.label)
             .text_color(cx.theme().muted_foreground)
             .when(self.is_last, |this| this.text_color(cx.theme().foreground))
