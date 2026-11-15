@@ -5,19 +5,19 @@
 //! side, what the connection does, and a switch. The keyboard does it all:
 //! arrows move, Enter switches, Escape clears and then closes.
 
-use gpui::{
-    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, Hsla,
-    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
     switch::Switch,
     v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable, Hsla,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -337,13 +337,13 @@ impl Render for IntegrationPicker {
                 .justify_center()
                 .rounded(px(size * 0.24))
                 .bg(color)
-                .text_color(gpui::white())
+                .text_color(isonomic_ui::white())
                 .font_semibold()
                 .map(|this| match &service.icon {
                     Some(icon) => this.child(
                         Icon::new(icon.clone())
                             .size(px(size * 0.55))
-                            .text_color(gpui::white()),
+                            .text_color(isonomic_ui::white()),
                     ),
                     None => this.text_size(px(size * 0.5)).child(mark(&service.name)),
                 })
@@ -456,7 +456,7 @@ impl Render for IntegrationPicker {
                         .child(
                             Icon::new(IconName::ChevronsUpDown)
                                 .small()
-                                .rotate(gpui::Radians(std::f32::consts::FRAC_PI_2))
+                                .rotate(isonomic_ui::Radians(std::f32::consts::FRAC_PI_2))
                                 .text_color(if service.connected { accent } else { quiet }),
                         )
                         .child(tile(&service, 48., ix)),

@@ -1,10 +1,11 @@
 //! Gallery story for the integration picker.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::integration_picker::{
     Integration, IntegrationPicker, IntegrationPickerEvent,
 };
@@ -118,6 +119,20 @@ impl IntegrationPickerStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for IntegrationPickerStory {
+    fn title() -> &'static str {
+        "Integration picker"
+    }
+
+    fn description() -> &'static str {
+        "Find a service and switch it on, without leaving."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
