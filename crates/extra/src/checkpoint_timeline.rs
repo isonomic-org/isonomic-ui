@@ -6,14 +6,14 @@
 
 use std::{collections::HashMap, rc::Rc, time::Duration};
 
-use gpui::{
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
+};
+use isonomic_ui::{
     App, Bounds, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
     ParentElement as _, PathBuilder, Pixels, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, fill, point,
     prelude::FluentBuilder as _, px, relative, size,
-};
-use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
 
 use crate::common::resting_shadow;

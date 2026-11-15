@@ -2,11 +2,12 @@
 
 use std::time::Duration;
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Task, Window, div,
 };
-use gpui_component::{ActiveTheme as _, IconName, v_flex};
 use isonomic_ui_extra::checkpoint_timeline::{Checkpoint, CheckpointStatus, CheckpointTimeline};
 
 /// How long the pretend agent takes to save the next checkpoint.
@@ -108,6 +109,20 @@ impl CheckpointTimelineStory {
             .ok();
         }));
         cx.notify();
+    }
+}
+
+impl Story for CheckpointTimelineStory {
+    fn title() -> &'static str {
+        "Checkpoint timeline"
+    }
+
+    fn description() -> &'static str {
+        "An agent's run as a line of saved points."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
