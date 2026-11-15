@@ -7,6 +7,7 @@
 
 use isonomic_ui::component::{ActiveTheme as _, h_flex};
 use isonomic_ui::{
+    Role,
     AnyView, App, Bounds, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement,
     KeyDownEvent, MouseButton, MouseDownEvent, MouseMoveEvent, ParentElement as _, Pixels, Render, SharedString,
     StatefulInteractiveElement as _, Styled as _, Window, canvas, div, prelude::FluentBuilder as _, px,
@@ -178,6 +179,10 @@ impl Render for SplitView {
                     .flex()
                     .justify_center()
                     .cursor_col_resize()
+                    .role(Role::Splitter)
+                    .aria_numeric_value(f64::from(percent))
+                    .aria_min_numeric_value(0.0)
+                    .aria_max_numeric_value(100.0)
                     .aria_label(format!("{}, first pane {}", self.label, if self.folded { "folded".to_string() } else { format!("{percent}%") }))
                     .on_mouse_down(
                         MouseButton::Left,
