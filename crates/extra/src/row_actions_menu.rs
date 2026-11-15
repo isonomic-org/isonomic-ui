@@ -15,6 +15,7 @@ use isonomic_ui::component::{
     menu::{ContextMenuExt as _, DropdownMenu as _, PopupMenu, PopupMenuItem},
 };
 use isonomic_ui::{
+    Role,
     App, Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
 };
@@ -167,6 +168,7 @@ impl RenderOnce for RowActionsMenu {
             .py_2()
             .rounded(theme.radius)
             .hover(|s| s.bg(chip.opacity(0.6)))
+            .role(Role::Group)
             .aria_label(format!("{}, {}. Right-click or use More for actions", self.title, self.detail))
             .child(
                 div()
