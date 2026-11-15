@@ -11,8 +11,8 @@
 //!
 //! `--story` takes a story's name as the gallery lists it (case does not
 //! matter). `--story __empty__` shows an empty window, which the runner times
-//! redraws against. `--list` prints every story name, one per line, in gallery
-//! order, and exits.
+//! redraws against. `--list` prints every story name in gallery order, one per
+//! line as `story<TAB>name`, and exits.
 //!
 //! Stdin commands (one per line), used by the QA runner:
 //!   theme light|dark      switch theme
@@ -203,7 +203,8 @@ fn main() {
             ..Default::default()
         };
         let empty = args.story.as_deref() == Some(EMPTY);
-        let story = args.story.clone().unwrap_or_else(|| "Welcome".into());
+        // The gallery opens on its first story when the name is not one of its own.
+        let story = args.story.clone().unwrap_or_default();
         let (window, stage) = isonomic_ui::open_window(options, cx, |window, cx| {
             set_dark(args.dark, window, cx);
             let gallery = (!empty).then(|| Gallery::embedded_view(&story, window, cx));
@@ -214,13 +215,16 @@ fn main() {
         if let Some(gallery) = stage.read(cx).gallery.clone() {
             let names = gallery.read(cx).story_names(cx);
             if args.list {
+                use std::io::Write as _;
+                let mut out = std::io::stdout().lock();
                 for name in &names {
-                    println!("{name}");
+                    // The marker tells names apart from log lines on the same stream.
+                    let _ = writeln!(out, "story\t{name}");
                 }
-                cx.quit();
-                return;
+                let _ = out.flush();
+                std::process::exit(0);
             }
-            if !names.iter().any(|name| name.eq_ignore_ascii_case(&story)) {
+            if args.story.is_some() && !names.iter().any(|name| name.eq_ignore_ascii_case(&story)) {
                 eprintln!("qa-gallery: no story named {story}");
                 std::process::exit(3);
             }

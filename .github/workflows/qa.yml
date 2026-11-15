@@ -137,7 +137,7 @@ jobs:
         working-directory: qa
         run: |
           status=0
-          ./target/debug/qa-gallery --list > /tmp/stories.txt
+          ./target/debug/qa-gallery --list | sed -n 's/^story\t//p' > /tmp/stories.txt
           n=0
           while IFS= read -r story; do
             n=$((n + 1))

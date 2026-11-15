@@ -33,7 +33,9 @@ fn main() -> ExitCode {
         match status {
             Ok(status) if status.success() => {}
             Ok(_) => {
-                eprintln!("qa-runner: the QA gallery does not build; that is a C1 failure for every story");
+                eprintln!(
+                    "qa-runner: the QA gallery does not build; that is a C1 failure for every story"
+                );
                 return ExitCode::from(2);
             }
             Err(err) => {
@@ -52,7 +54,12 @@ fn main() -> ExitCode {
             .into()
     });
     let driver = qa.join("runner/driver/qa_driver.py");
-    match Command::new(&python).arg("-I").arg(&driver).args(&args).status() {
+    match Command::new(&python)
+        .arg("-I")
+        .arg(&driver)
+        .args(&args)
+        .status()
+    {
         Ok(status) => ExitCode::from(status.code().unwrap_or(1) as u8),
         Err(err) => {
             eprintln!("qa-runner: could not start {python}: {err}");

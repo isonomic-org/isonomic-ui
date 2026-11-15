@@ -64,13 +64,12 @@ def save_jpeg(im: Image.Image, dest: Path, max_w: int | None = None) -> str:
 
 
 def verdict(checks: dict, issues: list[dict]) -> str:
+    """A story with no script has no C4 result; its verdict rests on the automatic checks."""
     if not checks:
         return "Blocked"
     open_issues = [i for i in issues if i.get("state", "open") == "open"]
     if checks.get("C1", {}).get("status") == "fail" or any(i["sev"] in (1, 2) for i in open_issues):
         return "Needs fixes"
-    if "C4" not in checks:
-        return "Pending"
     if open_issues or any(v.get("status") in ("warn", "fail") for v in checks.values()):
         return "Pass with polish"
     return "Pass"

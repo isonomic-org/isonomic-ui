@@ -416,7 +416,7 @@ def stories() -> dict[str, str]:
     if STORIES:
         return STORIES
     r = subprocess.run([str(GALLERY), "--list"], capture_output=True, text=True, timeout=120)
-    names = [line for line in r.stdout.splitlines() if line.strip()]
+    names = [line.split("\t", 1)[1] for line in r.stdout.splitlines() if line.startswith("story\t")]
     if not names:
         log("the QA gallery listed no stories:", r.stderr[-2000:])
         return STORIES
