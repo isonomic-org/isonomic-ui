@@ -7,6 +7,7 @@
 
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, px,
 };
@@ -151,6 +152,7 @@ impl RenderOnce for ShortcutKeys {
             .id(self.id.clone())
             .flex_none()
             .gap_1()
+            .role(Role::Label)
             .aria_label(spoken)
             .children(parts)
             .refine_style(&self.style)
