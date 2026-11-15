@@ -152,6 +152,27 @@ pub fn neighbours<'a>(links: &'a [NetworkLink], id: &str) -> Vec<(&'a SharedStri
     found
 }
 
+/// The lines at a node, in words, so the drawing is not the only place they show.
+pub fn link_words(nodes: &[NetworkNode], links: &[NetworkLink], id: &str) -> String {
+    let talks = neighbours(links, id);
+    if talks.is_empty() {
+        return "No links yet".into();
+    }
+    let each: Vec<String> = talks
+        .iter()
+        .map(|(other, messages, live)| {
+            let name = nodes
+                .iter()
+                .find(|n| &n.id == *other)
+                .map(|n| n.label.to_string())
+                .unwrap_or_else(|| other.to_string());
+            let unit = if *messages == 1 { "message" } else { "messages" };
+            format!("{name}, {messages} {unit}{}", if *live { ", in use now" } else { "" })
+        })
+        .collect();
+    format!("Linked to {}", each.join("; "))
+}
+
 type NodeHandler = Rc<dyn Fn(Option<&SharedString>, &mut Window, &mut App)>;
 
 /// Nodes joined by lines that grow with how much they talk.
@@ -315,6 +336,7 @@ impl RenderOnce for AgentNetworkGraph {
                     .when(!near, |this| this.opacity(0.35))
                     .role(Role::Button)
                     .aria_label(format!("{}, {} links", node.label, neighbours(&self.links, &node.id).len()))
+                    .aria_description(link_words(&self.nodes, &self.links, &node.id))
                     .aria_selected(is_selected)
                     .on_click(move |_, window, cx| {
                         cx.stop_propagation();
@@ -525,5 +547,16 @@ mod tests {
         ];
         let found: Vec<_> = neighbours(&links, "hub").into_iter().map(|(id, n, live)| (id.to_string(), n, live)).collect();
         assert_eq!(found, [("b".to_string(), 9, true), ("a".to_string(), 3, false)]);
+    }
+
+    #[test]
+    fn link_words_name_each_line_busiest_first() {
+        let nodes = vec![NetworkNode::new("hub", "Planner", NetworkNodeKind::Agent), NetworkNode::new("a", "Writer", NetworkNodeKind::Agent)];
+        let links = vec![NetworkLink::new("a", "hub", 1), NetworkLink::new("hub", "b", 9).live()];
+        assert_eq!(
+            link_words(&nodes, &links, "hub"),
+            "Linked to b, 9 messages, in use now; Writer, 1 message"
+        );
+        assert_eq!(link_words(&nodes, &[], "hub"), "No links yet");
     }
 }
