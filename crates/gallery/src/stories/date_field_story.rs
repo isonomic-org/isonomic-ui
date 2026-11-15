@@ -120,19 +120,28 @@ impl Render for DateFieldStory {
                     )
                     .v_flex()
                     .gap_3()
-                    .child(DateField::new(&self.year_first).with_size(self.size))
+                    .child(
+                        DateField::new(&self.year_first)
+                            .aria_label("Start date")
+                            .with_size(self.size),
+                    )
                     .child(note(format!("Value: {}", self.value), cx)),
             )
             .child(
                 section("Month first")
                     .description("Set the order to match how the reader writes dates.")
-                    .child(DateField::new(&self.month_first).with_size(self.size)),
+                    .child(
+                        DateField::new(&self.month_first)
+                            .aria_label("Due date")
+                            .with_size(self.size),
+                    ),
             )
             .child(
                 section("Day first")
                     .description("Any separator can stand between the segments.")
                     .child(
                         DateField::new(&self.day_first)
+                            .aria_label("Date of birth")
                             .separator(".")
                             .with_size(self.size),
                     ),
@@ -144,7 +153,11 @@ impl Render for DateFieldStory {
                     )
                     .v_flex()
                     .gap_3()
-                    .child(DateField::new(&self.ranged).with_size(self.size))
+                    .child(
+                        DateField::new(&self.ranged)
+                            .aria_label("Report date")
+                            .with_size(self.size),
+                    )
                     .child(note(
                         if in_range {
                             format!("{} is within 2026.", self.ranged_value)
@@ -157,6 +170,7 @@ impl Render for DateFieldStory {
             .child(
                 section("Disabled").child(
                     DateField::new(&self.disabled)
+                        .aria_label("Start date")
                         .with_size(self.size)
                         .disabled(true),
                 ),

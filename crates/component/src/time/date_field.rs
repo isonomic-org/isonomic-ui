@@ -24,6 +24,7 @@ pub struct DateField {
     size: Size,
     style: StyleRefinement,
     separator: Option<SharedString>,
+    aria_label: Option<SharedString>,
     disabled: bool,
     invalid: bool,
 }
@@ -36,6 +37,7 @@ impl DateField {
             size: Size::default(),
             style: StyleRefinement::default(),
             separator: None,
+            aria_label: None,
             disabled: false,
             invalid: false,
         }
@@ -44,6 +46,13 @@ impl DateField {
     /// What stands between the segments, default: `/`.
     pub fn separator(mut self, separator: impl Into<SharedString>) -> Self {
         self.separator = Some(separator.into());
+        self
+    }
+
+    /// Name the field for assistive technology, e.g. "Start date", when no
+    /// visible label is associated with it.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
         self
     }
 
@@ -103,6 +112,7 @@ impl RenderOnce for DateField {
                 BaseDateField::new(self.id, &self.state)
                     .disabled(self.disabled)
                     .when_some(self.separator, |this, separator| this.separator(separator))
+                    .when_some(self.aria_label, |this, label| this.aria_label(label))
                     // The base field fills the frame, so a press anywhere inside it lands on the
                     // field rather than on the frame around it.
                     .flex()
@@ -156,7 +166,11 @@ mod tests {
     #[cfg(feature = "test-support")]
     impl gpui::Render for FieldHarness {
         fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
-            div().child(DateField::new(&self.state).w(px(200.)))
+            div().child(
+                DateField::new(&self.state)
+                    .aria_label("Start date")
+                    .w(px(200.)),
+            )
         }
     }
 
@@ -187,6 +201,14 @@ mod tests {
                     .center()
             })
         };
+
+        cx.update(|window, _| {
+            let id = ElementId::from(("date-field", state.entity_id()));
+            let field = isonomic_ui_base::test_support::find(window, &[], &id).unwrap();
+            assert_eq!(field.role(), Some(gpui::Role::DateInput));
+            assert_eq!(field.label(), Some("Start date"));
+            assert_eq!(field.value(), Some("2026/11/14"));
+        });
 
         let day = segment(cx, "day");
         click_at(cx, day);

@@ -554,6 +554,7 @@ pub struct DateField {
     style: StyleRefinement,
     segment: SegmentRenderer,
     separator: SharedString,
+    aria_label: Option<SharedString>,
 }
 
 impl DateField {
@@ -565,7 +566,15 @@ impl DateField {
             style: StyleRefinement::default(),
             segment: Rc::new(|segment, _, _, _| segment.into_any_element()),
             separator: SharedString::new_static("/"),
+            aria_label: None,
         }
+    }
+
+    /// Name the field for assistive technology, e.g. "Start date", when no
+    /// visible label is associated with it.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
+        self
     }
 
     /// What stands between the field's segments (`/` by default), such as `-`
@@ -614,6 +623,9 @@ impl RenderOnce for DateField {
             .id(self.id.clone())
             .test_support()
             .role(Role::DateInput)
+            .when_some(self.aria_label.clone(), |this, label| {
+                this.aria_label(label)
+            })
             .aria_value(SharedString::from(value))
             .track_focus(&focus_handle.clone().tab_stop(!disabled))
             .when(!disabled, |this| {
