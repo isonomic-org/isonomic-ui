@@ -325,15 +325,24 @@ impl Render for CommentThread {
 
             let status = message.status.clone().map(|status| {
                 let id = message.id.clone();
+                // Keyed by the thread too, so two threads in one window
+                // never share a status line's id.
+                let thread = cx.entity_id();
                 let focus_handle = window
-                    .use_keyed_state(("status-focus", ix), cx, |_, cx| cx.focus_handle())
+                    .use_keyed_state(
+                        SharedString::from(format!("status-focus-{thread}-{ix}")),
+                        cx,
+                        |_, cx| cx.focus_handle(),
+                    )
                     .read(cx)
                     .clone();
                 let is_focused = focus_handle.is_focused(window);
                 v_flex()
                     .gap_1()
                     .child(
-                        Pressable::new(("status", ix))
+                        Pressable::new(SharedString::from(format!("status-{thread}-{ix}")))
+                            .accessibility_label(status.clone())
+                            .when(has_details, |this| this.aria_expanded(is_open))
                             .track_focus(&focus_handle)
                             .disabled(!has_details)
                             .on_click(
