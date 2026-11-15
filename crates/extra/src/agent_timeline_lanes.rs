@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, PathBuilder,
     RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
     Window, canvas, div, point, prelude::FluentBuilder as _, px, relative,
@@ -230,6 +231,7 @@ impl RenderOnce for AgentTimelineLanes {
                             .border_color(color.opacity(0.6))
                             .when(task.end.is_none(), |this| this.border_r_2().border_color(color))
                             .cursor_pointer()
+                            .role(Role::Button)
                             .aria_label(format!("{}, {} to {}", task.label, clock(task.start), task.end.map(clock).unwrap_or_else(|| "now".into())))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
@@ -256,6 +258,7 @@ impl RenderOnce for AgentTimelineLanes {
                             .ml(px(-7.))
                             .size(px(14.))
                             .cursor_pointer()
+                            .role(Role::Button)
                             .aria_label(format!("Decision at {}: {}", clock(decision.at), decision.label))
                             .aria_selected(is_selected)
                             .on_click(move |_, window, cx| {
