@@ -1,10 +1,11 @@
 //! Gallery story for the total breakdown card.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::v_flex;
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window,
 };
-use gpui_component::v_flex;
 use isonomic_ui_extra::total_breakdown_card::{BreakdownPart, TotalBreakdownCard};
 
 /// Shows expenses by category for three periods, and a card with its own last line.
@@ -18,6 +19,20 @@ impl TotalBreakdownCardStory {
         cx.new(|_| Self {
             period: "month".into(),
         })
+    }
+}
+
+impl Story for TotalBreakdownCardStory {
+    fn title() -> &'static str {
+        "Total breakdown card"
+    }
+
+    fn description() -> &'static str {
+        "One total and the parts it is made of."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
