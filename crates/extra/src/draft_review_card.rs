@@ -7,13 +7,7 @@
 
 use std::{rc::Rc, time::Duration};
 
-use gpui::{
-    AppContext as _, Context, Entity, EventEmitter, Focusable as _, InteractiveElement as _,
-    IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Selectable as _, Sizable as _,
     StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -22,6 +16,12 @@ use gpui_component::{
     menu::{DropdownMenu as _, PopupMenuItem},
     spinner::Spinner,
     v_flex,
+};
+use isonomic_ui::{
+    AppContext as _, Context, Entity, EventEmitter, Focusable as _, InteractiveElement as _,
+    IntoElement, KeyDownEvent, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
