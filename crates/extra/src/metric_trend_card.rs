@@ -239,7 +239,7 @@ impl RenderOnce for MetricTrendCard {
 
         let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| CardState {
             active: None,
-            focus: cx.focus_handle(),
+            focus: cx.focus_handle().tab_stop(true),
         });
         let (active, focus) = {
             let state = state.read(cx);
