@@ -5422,7 +5422,8 @@ impl<M: InputModeKind> Render for InputBaseState<M> {
         // `Self` is concrete enough to name its own entity type.
         M::register_actions(element, &entity, window)
             .test_support()
-            .track_focus(&self.focus_handle)
+            // A disabled field is skipped by Tab, as a disabled button is.
+            .track_focus(&self.focus_handle.clone().tab_stop(!self.disabled))
     }
 }
 
