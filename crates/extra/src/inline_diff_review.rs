@@ -19,6 +19,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, FocusHandle, HighlightStyle, Hsla, InteractiveElement as _, InteractiveText,
     IntoElement, KeyDownEvent, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StrikethroughStyle, StyleRefinement, Styled, StyledText,
@@ -656,6 +657,7 @@ impl RenderOnce for InlineDiffReview {
                 div()
                     .id((self.id.clone(), "paragraph"))
                     .track_focus(&focus)
+                    .role(Role::Group)
                     .aria_label(label)
                     .on_key_down(key_down)
                     .mx_2()
