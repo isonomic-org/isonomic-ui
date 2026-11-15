@@ -2,11 +2,12 @@
 
 use std::time::{Duration, SystemTime};
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::comment_thread::{
     CommentThread, CommentThreadEvent, ThreadAuthor, ThreadMessage,
 };
@@ -80,6 +81,20 @@ impl CommentThreadStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for CommentThreadStory {
+    fn title() -> &'static str {
+        "Comment thread"
+    }
+
+    fn description() -> &'static str {
+        "One conversation attached to a selection, a cell or a line."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
