@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -181,6 +182,7 @@ impl RenderOnce for ActivityRecap {
                     .min_w(px(14.))
                     .h_full()
                     .gap_1()
+                    .role(Role::Image)
                     .aria_label(format!("{}: {} done, {} failed, {} to review", bucket.label, bucket.done, bucket.failed, bucket.review))
                     .on_hover(move |hovered, window, cx| {
                         if let Some(pick) = &pick {
