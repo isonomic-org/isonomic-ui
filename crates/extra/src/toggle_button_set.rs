@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, px,
 };
@@ -152,6 +153,7 @@ impl RenderOnce for ToggleButtonSet {
             .rounded(px(8.))
             .border_1()
             .border_color(line)
+            .role(Role::Toolbar)
             .aria_label(self.label.clone())
             .children(buttons)
             .refine_style(&self.style)
