@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     Context, ElementId, EventEmitter, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
     StatefulInteractiveElement as _, Styled as _, Task, Window, div, prelude::FluentBuilder as _, px,
 };
@@ -191,6 +192,7 @@ impl Render for ToastQueue {
                     .border_color(line)
                     .bg(fill)
                     .shadow(shadow.clone())
+                    .role(if toast.tone == Tone::Danger { Role::Alert } else { Role::Status })
                     .aria_label(match &toast.body {
                         Some(body) => format!("{}. {body}", toast.title),
                         None => toast.title.to_string(),
