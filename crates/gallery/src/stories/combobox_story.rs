@@ -787,6 +787,9 @@ impl Render for ComboboxStory {
                                                                 Icon::new(IconName::Close).xsmall(),
                                                             )
                                                             .tab_stop(false)
+                                                            .accessibility_label(format!(
+                                                                "Remove {item}"
+                                                            ))
                                                             .on_click(move |_ev, _window, cx| {
                                                                 cx.stop_propagation();
                                                                 state.update(cx, |s, cx| {

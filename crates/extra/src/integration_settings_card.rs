@@ -555,6 +555,7 @@ impl Render for IntegrationSettingsCard {
                     .child(
                         Switch::new("settings-switch")
                             .checked(on)
+                            .accessibility_label(self.name.clone())
                             .on_click(cx.listener(|this, on: &bool, _, cx| this.toggle(*on, cx))),
                     ),
             )

@@ -499,17 +499,27 @@ pub struct CalendarItem {
 
 impl CalendarItem {
     fn new(id: impl Into<ElementId>, state: CalendarItemState) -> Self {
-        Self {
+        let item = Self {
             base: div().id(id.into()).test_support(),
             state,
             style: StyleRefinement::default(),
             children: vec![],
-        }
+        };
+        // Without a role the node is left out of the accessibility tree, and
+        // its label with it.
+        let role = item_role(state.kind());
+        item.role(role).aria_selected(state.is_active())
     }
     // Keep the default visible label available to assistive technology even
     // when a presentation assigns a role that does not derive a name from children.
+    // The arrows draw as symbols, so they are named in words.
     fn with_label(self, label: SharedString) -> Self {
-        self.aria_label(label.clone()).child(label)
+        let spoken: SharedString = match self.state.kind() {
+            CalendarItemKind::Previous => "Previous".into(),
+            CalendarItemKind::Next => "Next".into(),
+            _ => label.clone(),
+        };
+        self.aria_label(spoken).child(label)
     }
 
     pub fn item_state(&self) -> CalendarItemState {
@@ -546,6 +556,15 @@ impl StatefulInteractiveElement for CalendarItem {}
 impl RenderOnce for CalendarItem {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         self.base.children(self.children).refine_style(&self.style)
+    }
+}
+
+/// The accessible role of a calendar item: weekday names head the columns,
+/// everything else is pressed.
+fn item_role(kind: CalendarItemKind) -> gpui::Role {
+    match kind {
+        CalendarItemKind::Weekday => gpui::Role::ColumnHeader,
+        _ => gpui::Role::Button,
     }
 }
 
@@ -826,6 +845,8 @@ impl RenderOnce for Calendar {
         }
         v_flex()
             .id(self.id)
+            .role(gpui::Role::Group)
+            .aria_label("Calendar")
             .track_focus(&self.state.read(cx).focus_handle)
             .child(header)
             .child(body)
@@ -862,6 +883,16 @@ mod tests {
     use gpui::{AppContext as _, Context, Entity, IntoElement, Render, Subscription, Window};
 
     use super::*;
+
+    #[test]
+    fn calendar_items_get_roles() {
+        assert_eq!(
+            item_role(CalendarItemKind::Weekday),
+            gpui::Role::ColumnHeader
+        );
+        assert_eq!(item_role(CalendarItemKind::Day), gpui::Role::Button);
+        assert_eq!(item_role(CalendarItemKind::Previous), gpui::Role::Button);
+    }
 
     #[gpui::test]
     fn calendar_items_expose_names_in_every_view(cx: &mut gpui::TestAppContext) {

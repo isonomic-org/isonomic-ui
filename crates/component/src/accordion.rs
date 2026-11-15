@@ -168,6 +168,8 @@ pub struct AccordionItem {
     content_style: StyleRefinement,
     icon: Option<Icon>,
     title: AnyElement,
+    title_text: Option<SharedString>,
+    accessibility_label: Option<SharedString>,
     children: Vec<AnyElement>,
     open: bool,
     size: Size,
@@ -187,6 +189,8 @@ impl AccordionItem {
             content_style: StyleRefinement::default(),
             icon: None,
             title: SharedString::default().into_any_element(),
+            title_text: None,
+            accessibility_label: None,
             children: Vec::new(),
             open: false,
             disabled: false,
@@ -202,8 +206,18 @@ impl AccordionItem {
     }
 
     /// Set the title for the accordion item.
-    pub fn title(mut self, title: impl IntoElement) -> Self {
+    ///
+    /// A plain-text title also names the trigger for screen readers. For any
+    /// other element, set [`Self::accessibility_label`].
+    pub fn title(mut self, title: impl IntoElement + 'static) -> Self {
+        self.title_text = plain_text(&title);
         self.title = title.into_any_element();
+        self
+    }
+
+    /// Name the trigger for screen readers, for a title that isn't plain text.
+    pub fn accessibility_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.accessibility_label = Some(label.into());
         self
     }
 
@@ -277,6 +291,17 @@ impl Styled for AccordionItem {
     }
 }
 
+/// The text of a title given as a string, if it was one.
+fn plain_text(title: &dyn std::any::Any) -> Option<SharedString> {
+    if let Some(text) = title.downcast_ref::<&'static str>() {
+        Some(SharedString::from(*text))
+    } else if let Some(text) = title.downcast_ref::<String>() {
+        Some(SharedString::from(text.clone()))
+    } else {
+        title.downcast_ref::<SharedString>().cloned()
+    }
+}
+
 impl RenderOnce for AccordionItem {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let text_size = match self.size {
@@ -291,7 +316,9 @@ impl RenderOnce for AccordionItem {
             window,
             cx,
         );
+        let name = self.accessibility_label.clone().or(self.title_text.clone());
         let trigger = AccordionTrigger::new(("trigger", self.index))
+            .when_some(name, |this, name| this.aria_label(name))
             .open(self.open)
             .disabled(self.disabled)
             .h_flex()
@@ -396,6 +423,23 @@ mod tests {
     use gpui::{Context, Render, TestAppContext, div, px};
 
     use super::*;
+
+    #[test]
+    fn plain_text_titles_name_the_trigger() {
+        assert_eq!(
+            plain_text(&"Is it accessible?").as_deref(),
+            Some("Is it accessible?")
+        );
+        assert_eq!(
+            plain_text(&String::from("Billing")).as_deref(),
+            Some("Billing")
+        );
+        assert_eq!(
+            plain_text(&SharedString::from("Plans")).as_deref(),
+            Some("Plans")
+        );
+        assert_eq!(plain_text(&42u8), None);
+    }
 
     struct Harness;
 

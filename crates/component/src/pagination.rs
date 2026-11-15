@@ -141,6 +141,7 @@ impl Pagination {
             .compact()
             .with_size(self.size)
             .disabled(target_page.is_none())
+            .accessibility_label(label.clone())
             .tooltip(label.clone())
             .when(self.compact, |this| this.icon(icon.clone()))
             .when(!self.compact, |this| {

@@ -1,6 +1,7 @@
 use gpui::{
-    Action, AsKeystroke, FocusHandle, Half, InteractiveElement as _, IntoElement, KeyBinding,
-    KeyContext, Keystroke, ParentElement as _, RenderOnce, StyleRefinement, Styled, Window, div,
+    Action, AsKeystroke, ElementId, FocusHandle, Half, InteractiveElement as _, IntoElement,
+    KeyBinding, KeyContext, Keystroke, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, relative,
 };
 
@@ -225,6 +226,52 @@ impl Kbd {
     }
 }
 
+/// A keystroke in words for screen readers, such as "Command Shift P".
+/// The drawn symbols, such as ⌘ and ⇧, read poorly or not at all.
+pub fn spoken_keystroke(stroke: &Keystroke, mac: bool) -> String {
+    let m = &stroke.modifiers;
+    let mut words: Vec<String> = Vec::new();
+    if m.function {
+        words.push("Function".into());
+    }
+    if m.control {
+        words.push("Control".into());
+    }
+    if m.alt {
+        words.push(if mac { "Option" } else { "Alt" }.into());
+    }
+    if m.shift {
+        words.push("Shift".into());
+    }
+    if m.platform {
+        words.push(if mac { "Command" } else { "Super" }.into());
+    }
+    let key = match stroke.key.as_str() {
+        "enter" => "Enter".to_string(),
+        "escape" => "Escape".to_string(),
+        "backspace" => "Backspace".to_string(),
+        "delete" => "Delete".to_string(),
+        "tab" => "Tab".to_string(),
+        "space" => "Space".to_string(),
+        "up" => "Up".to_string(),
+        "down" => "Down".to_string(),
+        "left" => "Left".to_string(),
+        "right" => "Right".to_string(),
+        "pageup" => "Page Up".to_string(),
+        "pagedown" => "Page Down".to_string(),
+        "home" => "Home".to_string(),
+        "end" => "End".to_string(),
+        "-" => "Minus".to_string(),
+        "=" => "Equals".to_string(),
+        "," => "Comma".to_string(),
+        "." => "Period".to_string(),
+        "/" => "Slash".to_string(),
+        other => other.to_uppercase(),
+    };
+    words.push(key);
+    words.join(" ")
+}
+
 impl Styled for Kbd {
     fn style(&mut self) -> &mut StyleRefinement {
         &mut self.style
@@ -237,10 +284,17 @@ impl RenderOnce for Kbd {
             return Self::format(&self.stroke).into_any_element();
         }
 
+        let spoken = spoken_keystroke(&self.stroke, cfg!(target_os = "macos"));
         div()
             // Lets a test ask whether a given shortcut hint was painted this
             // frame; a no-op outside test-support builds.
             .debug_selector(|| format!("kbd:{}", self.stroke.unparse(cx.platform_info().os)))
+            // Named by the keystroke, so the same shortcut shown twice side by
+            // side is the only clash.
+            .id(ElementId::Name(SharedString::from(format!("kbd-{spoken}"))))
+            // A `Label` node is named by its value.
+            .role(Role::Label)
+            .aria_value(spoken)
             .text_color(cx.theme().muted_foreground)
             .bg(cx.theme().tokens.muted)
             .when(self.outline, |this| {
@@ -273,6 +327,14 @@ mod tests {
 
         if cfg!(target_os = "macos") {
             assert_eq!(Kbd::format(&Keystroke::parse("cmd-a").unwrap()), "⌘A");
+            assert_eq!(
+                super::spoken_keystroke(&Keystroke::parse("cmd-shift-p").unwrap(), true),
+                "Shift Command P"
+            );
+            assert_eq!(
+                super::spoken_keystroke(&Keystroke::parse("ctrl-alt-enter").unwrap(), false),
+                "Control Alt Enter"
+            );
             assert_eq!(Kbd::format(&Keystroke::parse("cmd--").unwrap()), "⌘-");
             assert_eq!(Kbd::format(&Keystroke::parse("cmd-+").unwrap()), "⌘+");
             assert_eq!(Kbd::format(&Keystroke::parse("cmd-enter").unwrap()), "⌘⏎");
