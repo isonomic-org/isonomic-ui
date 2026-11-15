@@ -539,6 +539,7 @@ pub struct TimeField {
     style: StyleRefinement,
     segment: SegmentRenderer,
     separator: SharedString,
+    aria_label: Option<SharedString>,
 }
 
 impl TimeField {
@@ -550,7 +551,15 @@ impl TimeField {
             style: StyleRefinement::default(),
             segment: Rc::new(|segment, _, _, _| segment.into_any_element()),
             separator: SharedString::new_static(":"),
+            aria_label: None,
         }
+    }
+
+    /// Name the field for assistive technology, e.g. "Start time", when no
+    /// visible label is associated with it.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
+        self
     }
 
     /// What stands between the field's segments (`:` by default), as a caller
@@ -596,6 +605,9 @@ impl RenderOnce for TimeField {
             .id(self.id.clone())
             .test_support()
             .role(Role::TimeInput)
+            .when_some(self.aria_label.clone(), |this, label| {
+                this.aria_label(label)
+            })
             .aria_value(SharedString::from(editor.time.format(format).to_string()))
             .track_focus(&focus_handle.clone().tab_stop(!disabled))
             .when(!disabled, |this| {

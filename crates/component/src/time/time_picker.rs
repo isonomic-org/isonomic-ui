@@ -1,8 +1,8 @@
 use chrono::{NaiveTime, Timelike as _};
 use gpui::{
-    AnyElement, App, AppContext as _, Bounds, ClickEvent, Context, ElementId, Empty, Entity, EventEmitter,
-    FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyBinding, MouseButton,
-    MouseUpEvent, ParentElement as _, Pixels, Render, RenderOnce, Role, ScrollHandle,
+    AnyElement, App, AppContext as _, Bounds, ClickEvent, Context, ElementId, Empty, Entity,
+    EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyBinding,
+    MouseButton, MouseUpEvent, ParentElement as _, Pixels, Render, RenderOnce, Role, ScrollHandle,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Subscription, Window,
     actions, deferred, div, prelude::FluentBuilder as _, px,
 };
@@ -352,6 +352,7 @@ pub struct TimePicker {
     state: Entity<TimePickerState>,
     size: Size,
     style: StyleRefinement,
+    aria_label: Option<SharedString>,
     disabled: bool,
     invalid: bool,
 }
@@ -363,9 +364,17 @@ impl TimePicker {
             state: state.clone(),
             size: Size::default(),
             style: StyleRefinement::default(),
+            aria_label: None,
             disabled: false,
             invalid: false,
         }
+    }
+
+    /// Name the time field for assistive technology, e.g. "Start time", when
+    /// no visible label is associated with it.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
+        self
     }
 
     /// Display the caller's validation result. This does not reject edits.
@@ -537,10 +546,16 @@ impl RenderOnce for TimePicker {
                     .child(
                         // The field fills the frame up to the button, so a press beside the
                         // segments still lands on the field.
-                        styled_base_field(("field", self.state.entity_id()), &field, self.disabled, cx)
-                            .h_full()
-                            .flex_1()
-                            .pl_1(),
+                        styled_base_field(
+                            ("field", self.state.entity_id()),
+                            &field,
+                            self.disabled,
+                            cx,
+                        )
+                        .when_some(self.aria_label, |this, label| this.aria_label(label))
+                        .h_full()
+                        .flex_1()
+                        .pl_1(),
                     )
                     .child(
                         Button::new("toggle")
@@ -614,7 +629,10 @@ mod tests {
     fn columns_follow_the_precision_and_clock() {
         use Column::*;
         let columns = |p, h| options(p, h).columns();
-        assert_eq!(columns(TimePrecision::Minute, HourCycle::H23), [Hour, Minute]);
+        assert_eq!(
+            columns(TimePrecision::Minute, HourCycle::H23),
+            [Hour, Minute]
+        );
         assert_eq!(
             columns(TimePrecision::Second, HourCycle::H12),
             [Hour, Minute, Second, Period]
@@ -676,7 +694,10 @@ mod tests {
     #[cfg(feature = "test-support")]
     impl Render for PickerHarness {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().p_4().child(TimePicker::new(&self.state))
+            div()
+                .size_full()
+                .p_4()
+                .child(TimePicker::new(&self.state).aria_label("Start time"))
         }
     }
 
@@ -722,8 +743,19 @@ mod tests {
         });
         cx.update(|window, cx| window.draw(cx).clear(cx));
         let state = cx.update(|_, cx| view.read(cx).state.clone());
-        let is_open = |cx: &mut gpui::VisualTestContext| cx.update(|_, cx| state.read(cx).is_open());
+        let is_open =
+            |cx: &mut gpui::VisualTestContext| cx.update(|_, cx| state.read(cx).is_open());
         let time = |cx: &mut gpui::VisualTestContext| cx.update(|_, cx| state.read(cx).time());
+
+        cx.update(|window, _| {
+            let id = ElementId::from(("field", state.entity_id()));
+            let field = isonomic_ui_base::test_support::find(window, &[], &id).unwrap();
+            assert_eq!(field.role(), Some(Role::TimeInput));
+            assert_eq!(field.label(), Some("Start time"));
+            let toggle =
+                isonomic_ui_base::test_support::find(window, &[], &"toggle".into()).unwrap();
+            assert_eq!(toggle.label(), Some("Choose time"));
+        });
 
         // The button opens the columns, with the current values selected.
         let toggle = center_of(cx, "toggle");
@@ -753,8 +785,9 @@ mod tests {
         cx.simulate_keystrokes("1 0");
         assert_eq!(time(cx), hm(10, 33));
         cx.update(|window, _| {
-            let hour = isonomic_ui_base::test_support::find(window, &[], &("hours", 10usize).into())
-                .unwrap();
+            let hour =
+                isonomic_ui_base::test_support::find(window, &[], &("hours", 10usize).into())
+                    .unwrap();
             assert_eq!(hour.selected(), Some(true));
         });
 

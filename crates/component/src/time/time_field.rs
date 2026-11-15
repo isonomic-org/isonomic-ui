@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use gpui::{
     App, ElementId, Entity, Focusable as _, FontFeatures, IntoElement, ParentElement as _,
-    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    RenderOnce, SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
 };
 
 use crate::{
@@ -73,6 +73,7 @@ pub struct TimeField {
     state: Entity<TimeFieldState>,
     size: Size,
     style: StyleRefinement,
+    aria_label: Option<SharedString>,
     disabled: bool,
     invalid: bool,
 }
@@ -84,9 +85,17 @@ impl TimeField {
             state: state.clone(),
             size: Size::default(),
             style: StyleRefinement::default(),
+            aria_label: None,
             disabled: false,
             invalid: false,
         }
+    }
+
+    /// Name the field for assistive technology, e.g. "Start time", when no
+    /// visible label is associated with it.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
+        self
     }
 
     pub(crate) fn with_id(mut self, id: impl Into<ElementId>) -> Self {
@@ -147,6 +156,7 @@ impl RenderOnce for TimeField {
                 // The base field fills the frame, so a press anywhere inside it lands on the
                 // field rather than on the frame around it.
                 styled_base_field(self.id, &self.state, self.disabled, cx)
+                    .when_some(self.aria_label, |this, label| this.aria_label(label))
                     .size_full()
                     .px_1(),
             )

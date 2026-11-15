@@ -106,7 +106,9 @@ impl Render for TimePickerStory {
                     )
                     .v_flex()
                     .gap_3()
-                    .child(TimePicker::new(&self.default).with_size(self.size))
+                    .child(TimePicker::new(&self.default)
+                            .aria_label("Start time")
+                            .with_size(self.size))
                     .child(
                         div()
                             .text_sm()
@@ -119,16 +121,21 @@ impl Render for TimePickerStory {
                     .description(
                         "An AM/PM column follows; minutes are listed every 15, and any minute can still be typed.",
                     )
-                    .child(TimePicker::new(&self.twelve_hour).with_size(self.size)),
+                    .child(TimePicker::new(&self.twelve_hour)
+                            .aria_label("Meeting time")
+                            .with_size(self.size)),
             )
             .child(
                 section("With seconds")
                     .description("Set the precision to pick seconds as well.")
-                    .child(TimePicker::new(&self.seconds).with_size(self.size)),
+                    .child(TimePicker::new(&self.seconds)
+                            .aria_label("Lap time")
+                            .with_size(self.size)),
             )
             .child(
                 section("Disabled").child(
                     TimePicker::new(&self.disabled)
+                        .aria_label("Start time")
                         .with_size(self.size)
                         .disabled(true),
                 ),
@@ -138,6 +145,7 @@ impl Render for TimePickerStory {
                     .description("Show a validation result from the owner.")
                     .child(
                         TimePicker::new(&self.invalid)
+                            .aria_label("End time")
                             .with_size(self.size)
                             .invalid(true),
                     ),
