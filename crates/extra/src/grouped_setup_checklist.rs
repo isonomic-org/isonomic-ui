@@ -17,7 +17,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -266,8 +267,12 @@ impl RenderOnce for GroupedSetupChecklist {
                 .clone();
             let head_focused = head_focus.is_focused(window);
             let group_id = group.id.clone();
+            let group_done = task_ids.iter().filter(|id| done.contains(id)).count();
+            let head_name = format!("{}, {group_done} of {} done", group.title, task_ids.len());
 
             let head = Pressable::new(head_id)
+                .accessibility_label(head_name)
+                .aria_expanded(is_open)
                 .track_focus(&head_focus)
                 .on_click({
                     let state = state.clone();
