@@ -8,17 +8,17 @@
 
 use std::{collections::HashMap, rc::Rc};
 
-use gpui::{
-    App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     spinner::Spinner,
     v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
+    div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -300,7 +300,7 @@ impl RenderOnce for EliminationBracket {
 
         let open = |key: MatchKey| {
             let state = state.clone();
-            move |_: &gpui::ClickEvent, _: &mut Window, cx: &mut App| {
+            move |_: &isonomic_ui::ClickEvent, _: &mut Window, cx: &mut App| {
                 state.update(cx, |state, cx| {
                     state.opened = (state.opened != Some(key)).then_some(key);
                     cx.notify();

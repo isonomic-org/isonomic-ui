@@ -1,10 +1,11 @@
 //! Gallery story for the elimination bracket.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::elimination_bracket::{Contender, EliminationBracket, Side, Verdict};
 
 /// Shows eight late-fee policies judged down to one, with a semifinal under way.
@@ -18,6 +19,20 @@ impl EliminationBracketStory {
         cx.new(|_| Self {
             last: "Nothing used yet".into(),
         })
+    }
+}
+
+impl Story for EliminationBracketStory {
+    fn title() -> &'static str {
+        "Elimination bracket"
+    }
+
+    fn description() -> &'static str {
+        "A judge picks the best of several answers, two at a"
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 
