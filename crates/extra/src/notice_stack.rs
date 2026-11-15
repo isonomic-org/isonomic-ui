@@ -245,6 +245,11 @@ impl RenderOnce for NoticeStack {
                         Button::new((self.id.clone(), "action"))
                             .outline()
                             .small()
+                            .accessibility_label(if external {
+                                format!("{label}, opens outside the app")
+                            } else {
+                                label.to_string()
+                            })
                             .child(h_flex().gap_1().child(label).when(external, |this| {
                                 this.child(Icon::new(IconName::ExternalLink).xsmall())
                             }))
