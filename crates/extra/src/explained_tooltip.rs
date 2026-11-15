@@ -7,6 +7,7 @@
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, tooltip::Tooltip, v_flex};
 use isonomic_ui::{
+    Role,
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Pixels, RenderOnce, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
@@ -129,6 +130,7 @@ impl RenderOnce for ExplainedTooltip {
                 })
                 .build(window, cx)
             })
+            .role(Role::Group)
             .aria_label(spoken_note(&self.title, self.body.as_deref(), self.off_because.as_deref()))
             .child(self.child)
             .refine_style(&self.style)
