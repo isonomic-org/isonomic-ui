@@ -17,9 +17,9 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     Animation, AnimationExt as _, App, AppContext as _, Context, Entity, EventEmitter, FocusHandle,
-    Focusable, InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div, ease_in_out,
-    linear_color_stop, linear_gradient, prelude::FluentBuilder as _, px, relative,
+    Focusable, InteractiveElement as _, IntoElement, ParentElement as _, Render, Role,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div,
+    ease_in_out, linear_color_stop, linear_gradient, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -459,6 +459,8 @@ impl Render for WritingAssistantCard {
         let mic = if self.listening {
             h_flex()
                 .id("assistant-mic")
+                .role(Role::Button)
+                .aria_label("Stop dictating")
                 .flex_none()
                 .size(px(28.))
                 .justify_center()
@@ -477,6 +479,7 @@ impl Render for WritingAssistantCard {
                 .small()
                 .icon(IconName::Mic)
                 .tooltip("Dictate")
+                .accessibility_label("Dictate")
                 .disabled(busy)
                 .on_click(cx.listener(|this, _, window, cx| this.toggle_mic(window, cx)))
                 .into_any_element()
