@@ -303,7 +303,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
                 tone_color
             })
         })
-        .role(Role::Group)
+        .role(Role::TreeItem)
         .aria_label(format!(
             "{}, {}, {}{}",
             node.name,
@@ -493,7 +493,7 @@ impl RenderOnce for AgentHierarchyCards {
             .gap_3()
             .text_sm()
             .text_color(ctx.paint.ink)
-            .role(Role::Group)
+            .role(Role::Tree)
             .aria_label(format!("{total} assistants, {summary}"))
             .child(
                 h_flex()
