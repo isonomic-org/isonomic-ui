@@ -12,6 +12,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, AppContext as _, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
     HighlightStyle, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render,
     SharedString, StatefulInteractiveElement as _, Styled as _, StyledText, Subscription, Window,
@@ -189,6 +190,7 @@ impl Render for SearchPicker {
                                 .rounded(px(4.))
                                 .cursor_pointer()
                                 .hover(|s| s.bg(line))
+                                .role(Role::Button)
                                 .aria_label(format!("Remove {p}"))
                                 .on_click(cx.listener(move |this, _, _, cx| this.unpick(&option, cx)))
                                 .child(Icon::new(IconName::Close).xsmall()),
