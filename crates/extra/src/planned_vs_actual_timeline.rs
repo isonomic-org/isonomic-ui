@@ -12,7 +12,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
 };
@@ -144,6 +144,27 @@ fn signed(late: Duration, early: Duration) -> String {
         format!("{sign}{seconds}s")
     } else {
         format!("{sign}{}", clock(gap))
+    }
+}
+
+/// A step in words for screen readers, such as "Draft: done in 2:10, +10s against the plan".
+fn spoken_step(title: &str, s: &Schedule, planned: Duration, now: Duration, format: &dyn Fn(Duration) -> String) -> String {
+    match s.state {
+        StepState::Done => format!(
+            "{title}: done in {}, {} against the plan",
+            format(s.end - s.start),
+            signed(s.end - s.start, planned)
+        ),
+        StepState::Running => format!(
+            "{title}: running, {} so far of {} planned",
+            format(now.max(s.start) - s.start),
+            format(planned)
+        ),
+        StepState::Waiting => format!(
+            "{title}: waiting, {} planned, expected to start at {}",
+            format(planned),
+            format(s.start)
+        ),
     }
 }
 
@@ -334,6 +355,8 @@ impl RenderOnce for PlannedVsActualTimeline {
 
                 h_flex()
                     .id(("step", ix))
+                    .role(Role::ListItem)
+                    .aria_label(spoken_step(&step.title, s, step.planned, self.now, format.as_ref()))
                     .h(px(ROW))
                     .when(faded, |this| this.opacity(0.45))
                     .on_hover({
@@ -450,6 +473,12 @@ impl RenderOnce for PlannedVsActualTimeline {
             });
         let rows: Vec<_> = rows.collect();
 
+        let summary = format!(
+            "{}: expected to finish at {}, {} against the plan",
+            self.title,
+            format(expected_finish),
+            gap
+        );
         let headline = h_flex()
             .gap_3()
             .px_4()
@@ -514,7 +543,7 @@ impl RenderOnce for PlannedVsActualTimeline {
                     .child(div().relative().flex_1().h_full().children(ticks)),
             )
             .child(
-                div().relative().child(v_flex().children(rows)).child(
+                div().relative().child(v_flex().id("steps").role(Role::List).aria_label("Steps").children(rows)).child(
                     div()
                         .absolute()
                         .top_0()
@@ -594,6 +623,8 @@ impl RenderOnce for PlannedVsActualTimeline {
 
         v_flex()
             .id(self.id.clone())
+            .role(Role::Group)
+            .aria_label(summary)
             .w_full()
             .max_w(px(820.))
             .rounded(radius_lg)
@@ -614,6 +645,18 @@ impl RenderOnce for PlannedVsActualTimeline {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn steps_read_in_words() {
+        let s = Schedule {
+            planned_start: Duration::ZERO,
+            planned_end: Duration::from_secs(120),
+            start: Duration::ZERO,
+            end: Duration::from_secs(130),
+            state: StepState::Done,
+        };
+        assert_eq!(spoken_step("Draft", &s, Duration::from_secs(120), Duration::ZERO, &clock), "Draft: done in 2:10, +10s against the plan");
+    }
 
     fn secs(seconds: u64) -> Duration {
         Duration::from_secs(seconds)
