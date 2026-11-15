@@ -8,16 +8,16 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    App, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
+    div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -641,7 +641,7 @@ impl RenderOnce for VariantComparisonCard {
                 .border_color(if is_picked {
                     accent.opacity(0.5)
                 } else {
-                    gpui::transparent_black()
+                    isonomic_ui::transparent_black()
                 })
                 .cursor_pointer()
                 .when(is_picked, |this| this.bg(accent.opacity(0.08)))
