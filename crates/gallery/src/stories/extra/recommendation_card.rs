@@ -1,10 +1,11 @@
 //! Gallery story for the recommendation card.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::recommendation_card::{
     Confidence, RecommendationCard, RecommendationOption,
 };
@@ -20,6 +21,20 @@ impl RecommendationCardStory {
         cx.new(|_| Self {
             last: "Nothing accepted yet".into(),
         })
+    }
+}
+
+impl Story for RecommendationCardStory {
+    fn title() -> &'static str {
+        "Recommendation card"
+    }
+
+    fn description() -> &'static str {
+        "One suggested option with the reason for it, how sure"
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

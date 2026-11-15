@@ -3,17 +3,17 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_base::Button as Pressable;
-use gpui_component::{
+use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     menu::{DropdownMenu as _, PopupMenuItem},
     v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
+    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -336,7 +336,7 @@ impl RenderOnce for RecommendationCard {
         let decide = |accept: bool, handler: Option<OptionHandler>| {
             let state = state.clone();
             let id = id.clone();
-            move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
+            move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
                 state.update(cx, |state, cx| {
                     state.accepted = accept.then_some(at);
                     cx.notify();
