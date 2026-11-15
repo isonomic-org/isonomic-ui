@@ -65,6 +65,8 @@ fn settings_item(
             .child(div().font_semibold().child(title))
             .children(tag.map(|tag| tag.small())),
     )
+    // The title is an element, so the trigger takes its name from here.
+    .accessibility_label(title)
     .title_style({
         let mut style = StyleRefinement::default();
         style.padding.top = Some(px(8.).into());

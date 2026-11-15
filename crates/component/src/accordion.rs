@@ -100,6 +100,9 @@ impl RenderOnce for Accordion {
         let open_indices = Rc::new(RefCell::new(HashSet::new()));
         let multiple = self.multiple;
         let last_ix = self.children.len().saturating_sub(1);
+        // The group reports its open items from each trigger, not from a
+        // click on the group, so the group itself is not something to press.
+        let on_toggle = self.on_toggle_click.filter(|_| !self.disabled);
 
         BaseAccordion::new(self.id)
             .v_flex()
@@ -130,29 +133,26 @@ impl RenderOnce for Accordion {
                             .disabled(disabled)
                             .on_toggle_click({
                                 let open_indices = open_indices.clone();
-                                move |open, _, _| {
-                                    let mut open_indices = open_indices.borrow_mut();
-                                    if *open {
-                                        if !multiple {
-                                            open_indices.clear();
+                                let on_toggle = on_toggle.clone();
+                                move |open, window, cx| {
+                                    let open_now = {
+                                        let mut open_indices = open_indices.borrow_mut();
+                                        if *open {
+                                            if !multiple {
+                                                open_indices.clear();
+                                            }
+                                            open_indices.insert(ix);
+                                        } else {
+                                            open_indices.remove(&ix);
                                         }
-                                        open_indices.insert(ix);
-                                    } else {
-                                        open_indices.remove(&ix);
+                                        open_indices.iter().copied().collect::<Vec<_>>()
+                                    };
+                                    if let Some(on_toggle) = &on_toggle {
+                                        on_toggle(&open_now, window, cx);
                                     }
                                 }
                             })
                     }),
-            )
-            .when_some(
-                self.on_toggle_click.filter(|_| !self.disabled),
-                |this, on_toggle| {
-                    this.on_click(move |_, window, cx| {
-                        let open_indices =
-                            open_indices.borrow().iter().copied().collect::<Vec<_>>();
-                        on_toggle(&open_indices, window, cx)
-                    })
-                },
             )
     }
 }
