@@ -10,7 +10,10 @@ steps:
     click: {contains: "Stop every time before: Draf"}
     expect: [{changed: true}]
     shot: locked
-  - name: the three levels are one Tab stop (first stop in the control)
+  - name: Right on the level selector moves the level
     check: C6
-    tabstart: true
-    expect: [{focused: "level"}]
+    click: {name: "Ask every time"}
+  - name: right
+    check: C6
+    key: Right
+    expect: [{changed: true}, {focused: "levels"}]
