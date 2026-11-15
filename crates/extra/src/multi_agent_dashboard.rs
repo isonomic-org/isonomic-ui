@@ -13,6 +13,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative,
@@ -286,6 +287,7 @@ impl RenderOnce for MultiAgentDashboard {
                 .when(active, |this| this.bg(paint.chip))
                 .cursor_pointer()
                 .text_xs()
+                .role(Role::Button)
                 .aria_label(format!("{label}, {count}"))
                 .aria_selected(active)
                 .on_click(move |_, window, cx| {
@@ -356,6 +358,7 @@ impl RenderOnce for MultiAgentDashboard {
                     .border_color(paint.line)
                     .bg(paint.fill)
                     .shadow(resting_shadow(cx))
+                    .role(Role::Group)
                     .aria_label(format!("{}, {}, {}", agent.name, agent.state.word(), agent.task))
                     .child(
                         h_flex()
