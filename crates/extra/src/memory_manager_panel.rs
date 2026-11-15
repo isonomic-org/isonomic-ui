@@ -14,6 +14,7 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
+    Role,
     AppContext as _, Context, ElementId, Entity, EventEmitter, Focusable as _, InteractiveElement as _,
     IntoElement, ParentElement as _, Render, SharedString, StatefulInteractiveElement as _,
     Styled as _, Subscription, Window, div, prelude::FluentBuilder as _, px, relative,
@@ -186,6 +187,7 @@ impl Render for MemoryManagerPanel {
                     .px_4()
                     .py_2p5()
                     .when(ix > 0, |this| this.border_t_1().border_color(line))
+                    .role(Role::ListItem)
                     .aria_label(format!("{}{}", item.text, if item.paused { ", paused" } else { "" }));
                 match editing {
                     Some(field) => row
