@@ -1,10 +1,11 @@
 //! Gallery story for the filter menu.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::filter_menu::{FilterGroup, FilterMenu, FilterSelection};
 
 /// Shows a menu that starts with three filters and reports every change.
@@ -18,6 +19,20 @@ impl FilterMenuStory {
         cx.new(|_| Self {
             last: "3 filters at the start".into(),
         })
+    }
+}
+
+impl Story for FilterMenuStory {
+    fn title() -> &'static str {
+        "Filter menu"
+    }
+
+    fn description() -> &'static str {
+        "A few groups of options to filter a list, table or board by."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

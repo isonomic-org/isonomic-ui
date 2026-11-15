@@ -6,17 +6,17 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     kbd::Kbd,
     v_flex,
+};
+use isonomic_ui::{
+    App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
+    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
+    div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
