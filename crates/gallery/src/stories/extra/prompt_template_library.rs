@@ -1,10 +1,11 @@
 //! Gallery story for the prompt template library.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
-use gpui_component::{ActiveTheme as _, v_flex};
 use isonomic_ui_extra::prompt_template_library::{
     PromptLibraryEvent, PromptTemplate, PromptTemplateLibrary, PromptVariable,
 };
@@ -88,6 +89,20 @@ impl PromptTemplateLibraryStory {
                 _events: events,
             }
         })
+    }
+}
+
+impl Story for PromptTemplateLibraryStory {
+    fn title() -> &'static str {
+        "Prompt template library"
+    }
+
+    fn description() -> &'static str {
+        "Saved prompts with blanks to fill in."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

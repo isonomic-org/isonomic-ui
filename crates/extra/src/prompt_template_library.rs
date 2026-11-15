@@ -8,18 +8,18 @@
 
 use std::{collections::HashMap, time::Duration};
 
-use gpui::{
-    App, AppContext as _, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, Focusable,
-    FontWeight, HighlightStyle, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
-    StyledText, Subscription, TextRun, Window, div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState, MoveEnd, MoveHome},
     v_flex,
+};
+use isonomic_ui::{
+    App, AppContext as _, ClipboardItem, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    FontWeight, HighlightStyle, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
+    StyledText, Subscription, TextRun, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -537,7 +537,7 @@ impl Render for PromptTemplateLibrary {
         let accent = theme.blue;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
-        let font = gpui::font(theme.font_family.clone());
+        let font = isonomic_ui::font(theme.font_family.clone());
         let text_size = window.rem_size() * 0.875;
         let palette = [
             theme.blue,
@@ -682,7 +682,7 @@ impl Render for PromptTemplateLibrary {
                 .gap_y_1()
                 .line_height(relative(1.6))
                 .children(pieces.iter().enumerate().flat_map(|(ix, piece)| {
-                    let parts: Vec<gpui::AnyElement> = match piece {
+                    let parts: Vec<isonomic_ui::AnyElement> = match piece {
                         Piece::Text(text) => words(text)
                             .map(|word| {
                                 div()
