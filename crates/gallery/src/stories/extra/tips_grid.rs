@@ -1,10 +1,11 @@
 //! Gallery story for the tips grid.
 
-use gpui::{
+use crate::Story;
+use isonomic_ui::component::{ActiveTheme as _, h_flex, kbd::Kbd, v_flex};
+use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, Keystroke, ParentElement as _, Render,
     SharedString, Styled as _, Window, div, px,
 };
-use gpui_component::{ActiveTheme as _, h_flex, kbd::Kbd, v_flex};
 use isonomic_ui_extra::tips_grid::{Tip, TipsGrid};
 
 /// Shows six tips in three columns, one of them with a key cap, and a close row.
@@ -18,6 +19,20 @@ impl TipsGridStory {
         cx.new(|_| Self {
             last: "Nothing taken yet".into(),
         })
+    }
+}
+
+impl Story for TipsGridStory {
+    fn title() -> &'static str {
+        "Tips grid"
+    }
+
+    fn description() -> &'static str {
+        "A panel of short tips, each with one action."
+    }
+
+    fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
+        Self::view(window, cx)
     }
 }
 

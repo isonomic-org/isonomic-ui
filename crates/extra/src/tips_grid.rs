@@ -5,15 +5,15 @@
 
 use std::rc::Rc;
 
-use gpui::{
-    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Pixels,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
-};
-use gpui_component::{
+use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
+};
+use isonomic_ui::{
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Pixels,
+    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
+    div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
