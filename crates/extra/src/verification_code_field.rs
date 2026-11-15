@@ -8,6 +8,7 @@
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyDownEvent,
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
     prelude::FluentBuilder as _, px,
@@ -207,6 +208,7 @@ impl Render for VerificationCodeField {
                     .track_focus(&self.focus)
                     .gap_1()
                     .cursor_text()
+                    .role(Role::TextInput)
                     .aria_label(format!("Verification code, {} of {} digits", digits.len(), self.len))
                     .on_click(cx.listener(|this, _, window, cx| {
                         window.focus(&this.focus, cx);
