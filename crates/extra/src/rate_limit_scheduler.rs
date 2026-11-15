@@ -19,6 +19,7 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
+    Role,
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
@@ -590,6 +591,7 @@ impl RenderOnce for RateLimitScheduler {
                     .rounded(radius)
                     .when(row > 0, |this| this.border_t_1().border_color(line))
                     .when(is_focused, |this| this.focus_ring_style(window, cx))
+                    .role(Role::Row)
                     .aria_label(format!(
                         "{}, {}, {}{}",
                         call.label,
