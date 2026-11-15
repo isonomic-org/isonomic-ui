@@ -8,6 +8,7 @@
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
+    Role,
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _,
@@ -113,6 +114,7 @@ impl RenderOnce for LabelledField {
             .w_full()
             .gap_1p5()
             .text_sm()
+            .role(Role::Group)
             .aria_label(name)
             .child(
                 h_flex()
