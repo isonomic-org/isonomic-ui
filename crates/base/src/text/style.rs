@@ -29,6 +29,10 @@ pub struct TextViewStyle {
     inline_code_style: StyleRefinement,
     /// Explicit list marker refinements, applied after theme and surface colors.
     list_style: StyleRefinement,
+    /// Refinements for a bulleted list's markers alone, over `list_style`.
+    bullet_list_style: StyleRefinement,
+    /// Refinements for a numbered list's markers alone, over `list_style`.
+    ordered_list_style: StyleRefinement,
     /// Explicit blockquote refinements, applied after theme and surface colors.
     blockquote_style: StyleRefinement,
     /// The table body background, or the theme surface when `None`. Only
@@ -59,6 +63,8 @@ impl PartialEq for TextViewStyle {
             && self.inline_code == other.inline_code
             && self.inline_code_style == other.inline_code_style
             && self.list_style == other.list_style
+            && self.bullet_list_style == other.bullet_list_style
+            && self.ordered_list_style == other.ordered_list_style
             && self.blockquote_style == other.blockquote_style
             && self.table_background == other.table_background
             && self.table_row_hover == other.table_row_hover
@@ -106,6 +112,8 @@ impl TextViewStyle {
             },
             inline_code_style: StyleRefinement::default(),
             list_style: StyleRefinement::default(),
+            bullet_list_style: StyleRefinement::default(),
+            ordered_list_style: StyleRefinement::default(),
             blockquote_style: StyleRefinement::default(),
             table_background: None,
             table_row_hover: None,
@@ -213,6 +221,21 @@ impl TextViewStyle {
     /// explicit refinements also take precedence on inverted surfaces.
     pub fn with_list_style(mut self, style: StyleRefinement) -> Self {
         self.list_style = style;
+        self
+    }
+
+    /// Refines the marker of a bulleted list item alone, over
+    /// [`Self::with_list_style`]: a bulleted list can then take its own
+    /// indent, gap and color while a numbered list keeps the shared ones.
+    pub fn with_bullet_list_style(mut self, style: StyleRefinement) -> Self {
+        self.bullet_list_style = style;
+        self
+    }
+
+    /// Refines the marker of a numbered list item alone, over
+    /// [`Self::with_list_style`].
+    pub fn with_ordered_list_style(mut self, style: StyleRefinement) -> Self {
+        self.ordered_list_style = style;
         self
     }
 
@@ -355,6 +378,31 @@ impl TextViewStyle {
         &self.list_style
     }
 
+    /// Explicit refinements for a bulleted list's markers alone.
+    pub fn bullet_list_style(&self) -> &StyleRefinement {
+        &self.bullet_list_style
+    }
+
+    /// Explicit refinements for a numbered list's markers alone.
+    pub fn ordered_list_style(&self) -> &StyleRefinement {
+        &self.ordered_list_style
+    }
+
+    /// The marker refinements for one kind of list: the shared ones with
+    /// that kind's own folded over them.
+    pub fn list_style_for(&self, ordered: bool) -> StyleRefinement {
+        let mut style = self.list_style.clone();
+        gpui::Refineable::refine(
+            &mut style,
+            if ordered {
+                &self.ordered_list_style
+            } else {
+                &self.bullet_list_style
+            },
+        );
+        style
+    }
+
     /// Explicit blockquote refinements.
     pub fn blockquote_style(&self) -> &StyleRefinement {
         &self.blockquote_style
@@ -460,6 +508,21 @@ mod tests {
     use gpui::{Styled as _, px};
 
     use super::*;
+
+    #[test]
+    fn a_list_kind_folds_its_own_marker_style_over_the_shared_one() {
+        let shared = StyleRefinement::default().min_w(px(28.)).pr(px(12.));
+        let style = TextViewStyle::default()
+            .with_list_style(shared.clone())
+            .with_bullet_list_style(StyleRefinement::default().min_w(px(21.)));
+        // A numbered list keeps the shared style whole.
+        assert!(style.list_style_for(true) == shared);
+        // A bulleted list takes its own indent and keeps the shared gap.
+        let bullet = style.list_style_for(false);
+        assert!(bullet.min_size.width == StyleRefinement::default().min_w(px(21.)).min_size.width);
+        assert!(bullet.padding.right == shared.padding.right);
+        assert!(style != TextViewStyle::default().with_list_style(shared));
+    }
 
     #[test]
     fn selection_layout_fingerprint_covers_callback_table_and_theme_fields() {

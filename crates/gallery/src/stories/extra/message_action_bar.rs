@@ -127,7 +127,7 @@ impl Render for MessageActionBarStory {
             )
             .child(div().text_xs().text_color(quiet).child(self.last.clone()))
             .child(div().pt_4().text_xs().text_color(quiet).child(
-                "28 px buttons with 16 px icons, the switcher first, and Regenerate reworded",
+                "28 px buttons with 16 px icons, the switcher first and quiet (12 px muted arrows), and Regenerate reworded",
             ))
             .child(
                 MessageActionBar::new("actions-reworded")
@@ -138,6 +138,7 @@ impl Render for MessageActionBarStory {
                     .button_size(Size::Size(px(28.)))
                     .icon_size(px(16.))
                     .pager_first(true)
+                    .pager_quiet(true)
                     .label(MessageActionLabel::Regenerate, "Try again"),
             )
     }

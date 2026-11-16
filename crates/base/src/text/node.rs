@@ -3906,7 +3906,7 @@ impl BlockNode {
                         .pr(indent * 0.3)
                         .text_right()
                         .text_color(style.muted_foreground())
-                        .refine_style(style.list_style())
+                        .refine_style(&style.list_style_for(options.ordered))
                         .child(
                             list_item_prefix(
                                 ix,
@@ -3944,7 +3944,7 @@ impl BlockNode {
                                 .border(px(1.5))
                                 .border_color(
                                     style
-                                        .list_style()
+                                        .list_style_for(options.ordered)
                                         .text
                                         .color
                                         .unwrap_or(style.muted_foreground()),
@@ -4006,7 +4006,7 @@ impl BlockNode {
                 let body = body_font_size(node_cx, window);
                 // A width set on the list marker is the indent for the whole
                 // item: nested lists and continuation lines follow it too.
-                let indent = match node_cx.style.list_style().min_size.width {
+                let indent = match node_cx.style.list_style_for(options.ordered).min_size.width {
                     Some(gpui::Length::Definite(DefiniteLength::Absolute(
                         gpui::AbsoluteLength::Pixels(width),
                     ))) => width,

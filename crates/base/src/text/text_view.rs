@@ -239,6 +239,8 @@ pub struct TextView {
     text_view_style: Option<TextViewStyle>,
     inline_code_style: Option<StyleRefinement>,
     list_style: Option<StyleRefinement>,
+    bullet_list_style: Option<StyleRefinement>,
+    ordered_list_style: Option<StyleRefinement>,
     blockquote_style: Option<StyleRefinement>,
     style: StyleRefinement,
     selectable: bool,
@@ -292,6 +294,8 @@ impl TextView {
             text_view_style: None,
             inline_code_style: None,
             list_style: None,
+            bullet_list_style: None,
+            ordered_list_style: None,
             blockquote_style: None,
             style: StyleRefinement::default(),
             selectable: true,
@@ -321,6 +325,8 @@ impl TextView {
             text_view_style: None,
             inline_code_style: None,
             list_style: None,
+            bullet_list_style: None,
+            ordered_list_style: None,
             blockquote_style: None,
             style: StyleRefinement::default(),
             state: None,
@@ -351,6 +357,8 @@ impl TextView {
             text_view_style: None,
             inline_code_style: None,
             list_style: None,
+            bullet_list_style: None,
+            ordered_list_style: None,
             blockquote_style: None,
             style: StyleRefinement::default(),
             state: None,
@@ -398,6 +406,18 @@ impl TextView {
     /// Unspecified properties are inherited.
     pub fn list_style(mut self, style: StyleRefinement) -> Self {
         self.list_style = Some(style);
+        self
+    }
+
+    /// Refines a bulleted list's markers alone, over [`Self::list_style`].
+    pub fn bullet_list_style(mut self, style: StyleRefinement) -> Self {
+        self.bullet_list_style = Some(style);
+        self
+    }
+
+    /// Refines a numbered list's markers alone, over [`Self::list_style`].
+    pub fn ordered_list_style(mut self, style: StyleRefinement) -> Self {
+        self.ordered_list_style = Some(style);
         self
     }
 
@@ -868,12 +888,26 @@ impl Element for TextView {
             text_view_style = &inline_style;
         }
         let block_style;
-        if self.list_style.is_some() || self.blockquote_style.is_some() {
+        if self.list_style.is_some()
+            || self.bullet_list_style.is_some()
+            || self.ordered_list_style.is_some()
+            || self.blockquote_style.is_some()
+        {
             let mut style = text_view_style.clone();
             if let Some(refinement) = &self.list_style {
                 let mut marker = style.list_style().clone();
                 marker.refine(refinement);
                 style = style.with_list_style(marker);
+            }
+            if let Some(refinement) = &self.bullet_list_style {
+                let mut marker = style.bullet_list_style().clone();
+                marker.refine(refinement);
+                style = style.with_bullet_list_style(marker);
+            }
+            if let Some(refinement) = &self.ordered_list_style {
+                let mut marker = style.ordered_list_style().clone();
+                marker.refine(refinement);
+                style = style.with_ordered_list_style(marker);
             }
             if let Some(refinement) = &self.blockquote_style {
                 let mut quote = style.blockquote_style().clone();

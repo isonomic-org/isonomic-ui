@@ -131,7 +131,7 @@ impl Render for MarkdownStory {
             .child(
                 section("List styling")
                     .description(
-                        "A wider indent, more room after the marker, and coloured markers.",
+                        "Numbered text 28 in, bulleted text 21 in, more room after the marker, and coloured markers.",
                     )
                     .w_full()
                     .max_w(px(720.))
@@ -140,6 +140,7 @@ impl Render for MarkdownStory {
                             TextView::markdown("markdown-lists", LISTS)
                                 .list_indent(px(28.))
                                 .list_marker_gap(px(12.))
+                                .bullet_list_indent(px(21.))
                                 .list_marker_color(marker),
                         ),
                     ),
