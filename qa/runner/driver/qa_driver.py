@@ -505,7 +505,12 @@ def keyboard_walk(app: App) -> dict:
         back = f["key"] if f else None
     app.key("Escape")
     reached = [x for x in dict.fromkeys(seq) if x]
-    no_ring = [seq[i] for i in range(len(seq)) if seq[i] and not ring[i] and (i == 0 or seq[i] != seq[i - 1])]
+    # The first stop is given focus without a key press, which does not count as
+    # keyboard focus, so an element is only flagged if it never shows a change
+    # on any press that lands on it.
+    arrivals = [i for i in range(len(seq)) if seq[i] and (i == 0 or seq[i] != seq[i - 1])]
+    shown = {seq[i] for i in arrivals if ring[i] and i > 0}
+    no_ring = list(dict.fromkeys(seq[i] for i in arrivals if not ring[i] and seq[i] not in shown))
     wraps = len(seq) > 1 and seq[0] is not None and seq[0] in seq[1:]
     nm = lambda k: names.get(k, k) if k else None
     res = {"tab_stops": stops, "sequence": [nm(k) for k in seq], "reached": [nm(k) for k in reached],
@@ -518,7 +523,7 @@ def keyboard_walk(app: App) -> dict:
     run = 1
     for i in range(1, len(seq)):
         run = run + 1 if seq[i] is not None and seq[i] == seq[i - 1] else 1
-        if seq[i] is not None and seq[i] == seq[i - 1] and (not ring[i] or run > 6):
+        if stops > 1 and seq[i] is not None and seq[i] == seq[i - 1] and (not ring[i] or run > 6):
             stuck = seq[i]
             break
     problems = []
