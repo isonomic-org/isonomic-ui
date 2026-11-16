@@ -1,0 +1,12 @@
+[package]
+name = "app-facade-consumer"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+description = "Uses the UI macros with isonomic-app as its only dependency."
+
+[dependencies]
+isonomic-app = { path = "../isonomic-app" }
+
+[dev-dependencies]
+isonomic-app = { path = "../isonomic-app", features = ["test-support"] }

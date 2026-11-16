@@ -1,20 +1,51 @@
 // Rewrites `gpui::` paths in macro output to the `isonomic-ui` umbrella crate
 // when the crate being compiled depends on it, so applications need not name
 // GPUI themselves.
+//
+// An application that gets Isonomic UI through the SDK depends on
+// `isonomic-app` instead, which re-exports the umbrella crate as its `ui`
+// module. When `isonomic-ui` is not a dependency, `isonomic-app` is tried
+// next and paths are rewritten to `<isonomic-app>::ui::`.
 use proc_macro::{Group, Ident, Literal, Punct, Spacing, TokenStream, TokenTree};
 use proc_macro_crate::{crate_name, FoundCrate};
 
-enum FacadePath {
-    Itself,
-    Name(String),
+/// Where GPUI's items are reached from the crate being compiled.
+struct FacadePath {
+    /// The path's segments, such as `["isonomic_ui"]` or `["isonomic_app", "ui"]`.
+    segments: Vec<String>,
+    /// Whether the path starts at the crate being compiled (`crate::…`)
+    /// rather than at a dependency (`::name::…`).
+    local: bool,
+}
+
+impl FacadePath {
+    /// The facade reached through `found`, then through the modules in `inner`.
+    fn new(found: FoundCrate, inner: &[&str]) -> Self {
+        let (head, local) = match found {
+            FoundCrate::Itself => ("crate".to_string(), true),
+            FoundCrate::Name(name) => (name, false),
+        };
+        let mut segments = vec![head];
+        segments.extend(inner.iter().map(|segment| segment.to_string()));
+        Self { segments, local }
+    }
+
+    /// The path as it is written inside a string literal, ending in `::`.
+    fn literal_prefix(&self) -> String {
+        let path = self.segments.join("::");
+        if self.local {
+            format!("{path}::")
+        } else {
+            format!("::{path}::")
+        }
+    }
 }
 
 pub(crate) fn rewrite(stream: TokenStream) -> TokenStream {
-    let facade = match crate_name("isonomic-ui") {
-        Ok(FoundCrate::Name(name)) => Some(FacadePath::Name(name)),
-        Ok(FoundCrate::Itself) => Some(FacadePath::Itself),
-        Err(_) => None,
-    };
+    let facade = crate_name("isonomic-ui")
+        .map(|found| FacadePath::new(found, &[]))
+        .or_else(|_| crate_name("isonomic-app").map(|found| FacadePath::new(found, &["ui"])))
+        .ok();
     rewrite_stream(stream, facade.as_ref())
 }
 
@@ -49,31 +80,29 @@ fn is_path_head(tokens: &[TokenTree], index: usize) -> bool {
 }
 
 fn append_path_head(output: &mut TokenStream, original: &Ident, facade: Option<&FacadePath>) {
-    let name = match facade {
-        Some(FacadePath::Itself) => "crate",
-        Some(FacadePath::Name(name)) => name,
-        None => {
-            output.extend([TokenTree::Ident(original.clone())]);
-            return;
-        }
+    let Some(facade) = facade else {
+        output.extend([TokenTree::Ident(original.clone())]);
+        return;
     };
-    output.extend([TokenTree::Ident(Ident::new(name, original.span()))]);
-    if original.to_string() == "gpui_platform" {
-        output.extend([
-            TokenTree::Punct(Punct::new(':', Spacing::Joint)),
-            TokenTree::Punct(Punct::new(':', Spacing::Alone)),
-            TokenTree::Ident(Ident::new("platform", original.span())),
-        ]);
+    let platform = (original.to_string() == "gpui_platform").then_some("platform");
+    let segments = facade.segments.iter().map(String::as_str).chain(platform);
+    for (index, segment) in segments.enumerate() {
+        if index > 0 {
+            output.extend([
+                TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+                TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+            ]);
+        }
+        output.extend([TokenTree::Ident(Ident::new(segment, original.span()))]);
     }
 }
 
 fn rewrite_literal(literal: &Literal, facade: Option<&FacadePath>) -> Literal {
-    let (gpui, platform) = match facade {
-        Some(FacadePath::Itself) => ("crate::".into(), "crate::platform::".into()),
-        Some(FacadePath::Name(name)) =>
-            (format!("::{name}::"), format!("::{name}::platform::")),
-        None => return literal.clone(),
+    let Some(facade) = facade else {
+        return literal.clone();
     };
+    let gpui = facade.literal_prefix();
+    let platform = format!("{gpui}platform::");
     let text = literal.to_string();
     let rewritten = text
         .replace("::gpui_platform::", &platform)

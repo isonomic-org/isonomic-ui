@@ -1,0 +1,12 @@
+[package]
+name = "isonomic-app"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+description = "Stand-in for the SDK's app crate: re-exports isonomic-ui as `ui`."
+
+[features]
+test-support = ["isonomic-ui/test-support"]
+
+[dependencies]
+isonomic-ui = { path = "../../../crates/ui" }
