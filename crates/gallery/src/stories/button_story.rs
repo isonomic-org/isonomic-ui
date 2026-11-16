@@ -495,6 +495,18 @@ impl Render for ButtonStory {
                     ),
             )
             .child(
+                section("Icon size")
+                    .description("A 28 px button keeps a 16 px icon.")
+                    .child(
+                        Button::new("button-icon-size")
+                            .ghost()
+                            .icon(IconName::Search)
+                            .with_size(px(28.))
+                            .icon_size(px(16.))
+                            .tooltip("Search"),
+                    ),
+            )
+            .child(
                 section("Dropdown")
                     .description("A caret indicates an attached menu.")
                     .w_128()

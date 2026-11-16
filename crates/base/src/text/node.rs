@@ -4004,7 +4004,14 @@ impl BlockNode {
                 span,
             } => {
                 let body = body_font_size(node_cx, window);
-                let indent = body * 1.4;
+                // A width set on the list marker is the indent for the whole
+                // item: nested lists and continuation lines follow it too.
+                let indent = match node_cx.style.list_style().min_size.width {
+                    Some(gpui::Length::Definite(DefiniteLength::Absolute(
+                        gpui::AbsoluteLength::Pixels(width),
+                    ))) => width,
+                    _ => body * 1.4,
+                };
                 let task_toggle = match (&node_cx.task_toggle_handler, checked, span, task_marker) {
                     (Some(handler), Some(checked), Some(item), Some(marker)) => Some((
                         handler.clone(),

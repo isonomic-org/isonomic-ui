@@ -63,6 +63,12 @@ const LISTS: &str = r#"1. Match the refunds
    - by email first
    - then by phone
 3. Recheck once the transfer clears
+
+   Its second paragraph lines up with the text above.
+
+- A loose item
+
+- Another loose item
 "#;
 
 pub struct MarkdownStory {
@@ -132,7 +138,7 @@ impl Render for MarkdownStory {
                     .child(
                         v_flex().w_full().min_w_0().child(
                             TextView::markdown("markdown-lists", LISTS)
-                                .list_indent(px(32.))
+                                .list_indent(px(28.))
                                 .list_marker_gap(px(12.))
                                 .list_marker_color(marker),
                         ),
