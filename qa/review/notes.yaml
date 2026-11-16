@@ -107,3 +107,25 @@ command-palette:
   - check: C6
     status: known
     note: "The second palette in the story holds focus on purpose (`set_hold_focus`), so Tab stays on its field and nothing changes on screen."
+
+# Outside the V1 set, reviewed 2026-11-16.
+base-editor:
+  - check: C6
+    status: known
+    note: "The code editor indents on Tab, so Tab does not leave it. That is how an editor works; Escape then Tab is the way out."
+base-input-group:
+  - check: C6
+    status: known
+    note: "One field in the story is a multi-line text area, which indents on Tab like an editor, so Tab does not leave it."
+base-carousel:
+  - check: C6
+    status: known
+    note: "The control flagged is below the bottom of the 2400 px test window in this long story; the same control in the carousels above shows its focus."
+base-questionnaire:
+  - check: C6
+    status: known
+    note: "The buttons flagged are below the bottom of the test window in this long story."
+checkpoint-timeline:
+  - check: C6
+    status: known
+    note: "The story has one Tab stop, and this check gives the first stop focus without a key press, which is not keyboard focus, so this check cannot judge it. It needs a look by hand."

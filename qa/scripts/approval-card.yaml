@@ -2,7 +2,7 @@ component: approval-card
 steps:
   - name: Approve folds the card into a resolved row
     check: C4
-    click: {at: [410, 227]}
+    click: {name: "Approve"}
     expect: [{text: "Approved"}]
     shot: approved
   - name: Escape while focus is in the second card denies it

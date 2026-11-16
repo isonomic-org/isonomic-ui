@@ -1,87 +1,29 @@
 [
  {
-  "number": 169,
-  "slug": "autonomy-level-control",
-  "sev": 2,
-  "kind": "keyboard",
-  "title": "Autonomy level control: the level selector cannot be reached with Tab",
-  "state": "open",
-  "check": "C6",
-  "step": 3
- },
- {
-  "number": 172,
-  "slug": "question-card",
-  "sev": 2,
-  "kind": "keyboard",
-  "title": "Question card: number keys and arrows never reach the card",
-  "state": "open",
-  "check": "C4",
-  "step": 2
- },
- {
-  "number": 180,
-  "slug": "variant-comparison-card",
+  "number": 368,
+  "slug": "base-toggle",
   "sev": 3,
+  "kind": "a11y",
+  "title": "Toggle group (the base): the group is an unnamed clickable element, and a key press on a toggle does not reach the group's callback",
+  "state": "open",
+  "check": "C9"
+ },
+ {
+  "number": 369,
+  "slug": "base-markdown",
+  "sev": 4,
   "kind": "visual",
-  "title": "Variant comparison card: the status line overlaps the title in the head",
+  "title": "Markdown: at 360 px, table cells break in the middle of a word or number",
   "state": "open",
-  "check": "manual",
-  "step": null
+  "check": "manual"
  },
  {
-  "number": 315,
-  "slug": "base-accordion",
+  "number": 374,
+  "slug": "run-monitor-card",
   "sev": 3,
   "kind": "a11y",
-  "title": "Accordion (the base): the section triggers have no accessible name or control role",
+  "title": "Run monitor card: Tab stops missing from the accessibility tree",
   "state": "open",
-  "check": "C9"
- },
- {
-  "number": 337,
-  "slug": "writing-assistant-card",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Writing assistant card: the microphone button has no accessible name",
-  "state": "open",
-  "check": "C9"
- },
- {
-  "number": 338,
-  "slug": "filter-menu",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Filter menu: Tab lands on the option list, but the list is not in the accessibility tree",
-  "state": "open",
-  "check": "C6",
-  "step": 4
- },
- {
-  "number": 339,
-  "slug": "base-combobox",
-  "sev": 3,
-  "kind": "a11y",
-  "title": "Combobox story (the base): the combobox fields have no accessible name",
-  "state": "open",
-  "check": "C9"
- },
- {
-  "number": 340,
-  "slug": "agent-hierarchy-cards",
-  "sev": 4,
-  "kind": "a11y",
-  "title": "Agent hierarchy cards: clickable cards report a group role, not a button",
-  "state": "open",
-  "check": "C9"
- },
- {
-  "number": 341,
-  "slug": "agent-network-graph",
-  "sev": 4,
-  "kind": "a11y",
-  "title": "Agent network graph: the clickable canvas has no control role",
-  "state": "open",
-  "check": "C9"
+  "check": "C6"
  }
 ]
