@@ -143,6 +143,7 @@ impl Render for ProgressStory {
                     .child(
                         Button::new("progress-play")
                             .icon(IconName::Play)
+                            .tooltip("Play the animation")
                             .on_click(cx.listener(|this, _, _, cx| this.start_animation(cx))),
                     ),
             )

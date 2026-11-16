@@ -14,7 +14,7 @@ use std::{
 };
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
@@ -1057,12 +1057,15 @@ impl Render for StepFormWizard {
                     Kind::Text => {
                         self.inputs.get(&field.name).map(|input| {
                             let prefixed = field.prefix.is_some();
+                            // The row draws the field's edge, so it shows the focus too.
+                            let focused = input.read(cx).focus_handle(cx).is_focused(window);
                             h_flex()
                                 .h(px(34.))
                                 .px_3()
                                 .rounded(radius)
                                 .border_1()
                                 .border_color(if wrong { danger } else { line })
+                                .when(focused, |this| this.focus_ring_style(window, cx))
                                 .children(field.prefix.clone().map(|prefix| {
                                     div().flex_none().text_color(quiet).child(prefix)
                                 }))
@@ -1083,6 +1086,7 @@ impl Render for StepFormWizard {
                         self.inputs.get(&field.name).map(|input| {
                             let name = field.name.clone();
                             let list = self.tags.get(&field.name).cloned().unwrap_or_default();
+                            let focused = input.read(cx).focus_handle(cx).is_focused(window);
                             h_flex()
                                 .flex_wrap()
                                 .gap_1()
@@ -1092,6 +1096,7 @@ impl Render for StepFormWizard {
                                 .rounded(radius)
                                 .border_1()
                                 .border_color(if wrong { danger } else { line })
+                                .when(focused, |this| this.focus_ring_style(window, cx))
                                 .children(list.into_iter().enumerate().map(|(ix, entry)| {
                                     let name = name.clone();
                                     h_flex()
