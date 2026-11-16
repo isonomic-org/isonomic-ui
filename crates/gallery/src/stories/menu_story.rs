@@ -156,6 +156,7 @@ impl Render for MenuStory {
                                     // An action that cannot be undone is drawn in the danger colour.
                                     .item(
                                         PopupMenuItem::new("Delete")
+                                            .id("menu-delete")
                                             .icon(isonomic_ui::component::IconName::Delete)
                                             .destructive()
                                             .on_click(window.listener_for(

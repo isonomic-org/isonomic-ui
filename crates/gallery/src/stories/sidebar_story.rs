@@ -717,7 +717,16 @@ impl SidebarStory {
             bottom: px(bottom),
             left: px(side),
         };
-        let row = |label: &'static str| SidebarMenuItem::new(label).height(px(32.)).focusable(true);
+        // Each row has an id of its own, so a test finds it whatever its place.
+        let row = |label: &'static str| {
+            SidebarMenuItem::new(label)
+                .id(SharedString::from(format!(
+                    "chat-row-{}",
+                    label.to_lowercase().replace(' ', "-")
+                )))
+                .height(px(32.))
+                .focusable(true)
+        };
         v_flex()
             .gap_2()
             .child(

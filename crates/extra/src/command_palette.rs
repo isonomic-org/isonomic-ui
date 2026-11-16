@@ -19,6 +19,8 @@ use isonomic_ui::{
     div, prelude::FluentBuilder as _, px,
 };
 
+use isonomic_ui::TestSupportExt as _;
+
 use crate::common::lifted_shadow;
 
 /// One command.
@@ -402,11 +404,23 @@ impl Render for CommandPalette {
                 ]
             });
 
+        // A command's first row has an id made from the command's id alone, so
+        // a test can find it without knowing its place. A command shown a
+        // second time, such as under Recent and under its group, keeps its
+        // index in the later row's id so the two stay apart.
+        let mut seen: Vec<SharedString> = Vec::new();
         let list: Vec<_> = rows
             .iter()
             .enumerate()
             .map(|(ix, (heading, command))| {
                 let id = command.id.clone();
+                let row_id: SharedString = if seen.contains(&command.id) {
+                    format!("command-{}-{ix}", command.id).into()
+                } else {
+                    seen.push(command.id.clone());
+                    format!("command-{}", command.id).into()
+                };
+                let meta_id: SharedString = format!("{row_id}-meta").into();
                 let off = command.unavailable.is_some();
                 v_flex()
                     .children(heading.clone().map(|h| {
@@ -421,9 +435,8 @@ impl Render for CommandPalette {
                     }))
                     .child(
                         h_flex()
-                            .id(ElementId::Name(
-                                format!("command-{}-{ix}", command.id).into(),
-                            ))
+                            .id(ElementId::Name(row_id))
+                            .test_support()
                             .gap_2()
                             .px_2()
                             .h(row_height)
@@ -465,7 +478,15 @@ impl Render for CommandPalette {
                                     })),
                             )
                             .children(command.meta.clone().map(|meta| {
-                                div().flex_none().text_xs().text_color(quiet).child(meta)
+                                div()
+                                    .id(ElementId::Name(meta_id))
+                                    .test_support()
+                                    .role(Role::Label)
+                                    .aria_label(meta.clone())
+                                    .flex_none()
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child(meta)
                             }))
                             .children(command.keys.clone().map(|keys| Kbd::new(keys))),
                     )
