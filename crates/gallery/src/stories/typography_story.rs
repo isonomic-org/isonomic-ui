@@ -17,7 +17,7 @@ impl super::Story for TypographyStory {
     }
 
     fn description() -> &'static str {
-        "The three bundled families: sans for the interface, mono for code and figures, serif for display text"
+        "The three bundled families: sans for the interface and wordmarks, mono for code and figures, serif for long-form reading"
     }
 
     fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
@@ -57,34 +57,10 @@ impl Render for TypographyStory {
             .items_center()
             .gap_6()
             .child(
-                section("Serif, for display text")
-                    .description("A wordmark and a greeting. The theme's serif_font_family.")
-                    .w_full()
-                    .max_w(px(720.))
-                    .child(
-                        v_flex()
-                            .w_full()
-                            .gap_3()
-                            .font_family(serif)
-                            .child(
-                                div()
-                                    .text_size(px(20.))
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .child("Isonomic"),
-                            )
-                            .child(div().text_size(px(32.)).child("Good morning"))
-                            .child(div().text_color(quiet).child(format!("Regular: {sample}")))
-                            .child(
-                                div()
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .text_color(quiet)
-                                    .child(format!("Medium: {sample}")),
-                            ),
-                    ),
-            )
-            .child(
-                section("Sans, for the interface")
-                    .description("The theme's font_family.")
+                section("Sans, for the interface and wordmarks")
+                    .description(
+                        "The theme's font_family. Light is for the product word of a wordmark.",
+                    )
                     .w_full()
                     .max_w(px(720.))
                     .child(
@@ -92,6 +68,11 @@ impl Render for TypographyStory {
                             .w_full()
                             .gap_2()
                             .font_family(sans)
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::LIGHT)
+                                    .child(format!("Light: {sample}")),
+                            )
                             .child(div().child(format!("Regular: {sample}")))
                             .child(
                                 div()
@@ -122,6 +103,34 @@ impl Render for TypographyStory {
                                     .font_weight(FontWeight::MEDIUM)
                                     .child(format!("Medium: {sample}")),
                             ),
+                    ),
+            )
+            .child(
+                section("Serif, for long-form reading")
+                    .description(
+                        "An article in a read mode, and rarely a chat bubble. Never a wordmark, \
+                         a heading, a greeting or interface text. The theme's serif_font_family.",
+                    )
+                    .w_full()
+                    .max_w(px(720.))
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .max_w(px(560.))
+                            .gap_3()
+                            .font_family(serif)
+                            .line_height(isonomic_ui::relative(1.6))
+                            .child(div().child(
+                                "A ledger is a record kept so that someone else can check it. \
+                                 That is its whole purpose, and it shapes everything about how \
+                                 one is written: each entry dated, each amount set against its \
+                                 source, nothing rubbed out.",
+                            ))
+                            .child(div().font_weight(FontWeight::MEDIUM).child(
+                                "The medium weight marks the few words in a passage that must \
+                                 not be missed.",
+                            ))
+                            .child(div().text_color(quiet).child(format!("Regular: {sample}"))),
                     ),
             )
     }

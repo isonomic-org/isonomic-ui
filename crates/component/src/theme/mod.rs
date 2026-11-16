@@ -203,9 +203,11 @@ pub struct Theme {
     /// and the like) and finally `.SystemUIFont`, so a missing font cannot
     /// crash text layout. A family set explicitly is used as-is.
     pub mono_font_family: SharedString,
-    /// The serif font family, for display text such as a wordmark or a
-    /// greeting. The default is the bundled serif (`assets::SERIF`), which
-    /// comes in regular and medium weights and no italic.
+    /// The serif font family, for long-form reading such as an article in a
+    /// read mode and, rarely, a chat bubble. Never for a wordmark, a
+    /// heading, a greeting or interface text. The default is the bundled
+    /// serif (`assets::SERIF`), which comes in regular and medium weights
+    /// and no italic.
     ///
     /// No component uses it; an application sets it on the text it wants:
     /// `div().font_family(cx.theme().serif_font_family.clone())`.

@@ -92,12 +92,13 @@ Used in order for chart series.
 
 ## Typography
 
-- The typefaces are IBM Plex Sans, IBM Plex Mono and IBM Plex Serif, and the icons are IBM Carbon; Isonomic uses no others.
+- The typefaces are IBM Plex Sans, IBM Plex Mono and IBM Plex Serif, and the icons are IBM Carbon; Isonomic uses no others. See [brand.md](brand.md) for what each is for and for the wordmark.
 - Interface text uses the bundled sans family (`assets::SANS`); code and
   tabular figures use the bundled mono family (`assets::MONO`).
-- Display text such as a wordmark or a greeting may use the bundled serif
-  family (`assets::SERIF`, the theme's `serif_font_family`), in regular or
-  medium. No control or body text uses it.
+- Long-form reading, such as an article in a read mode, uses the bundled
+  serif family (`assets::SERIF`, the theme's `serif_font_family`), in
+  regular or medium. Wordmarks, headings, greetings and interface text
+  never do.
 - Target scale: 13px body at weight 400, 13px controls at weight 500, 20px
   line height; 12px for small controls and captions.
 - Headings step up in size, not weight: 15, 18, 24px at weight 600.
