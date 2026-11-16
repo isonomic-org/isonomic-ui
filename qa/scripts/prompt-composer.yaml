@@ -1,0 +1,40 @@
+component: prompt-composer
+# The story answers for five seconds; a short settle keeps a step inside that time.
+settle: 0.6
+steps:
+  - name: Send does nothing while the message is empty
+    check: C5
+    click: Send
+    expect: [{no_text: "Answering"}]
+  - name: typing fills the message
+    check: C4
+    click: {name: "Message"}
+  - name: type
+    check: C4
+    type: "Chase the overdue invoices"
+    expect: [{changed: true}, {text: "overdue"}]
+    shot: typed
+  - name: Enter sends, and Send turns into Stop while the answer runs
+    check: C4
+    key: Return
+    expect: [{present: {name: "Stop the answer"}}]
+    shot: answering
+  - name: Stop ends the answer
+    check: C4
+    click: Stop the answer
+    expect: [{text: "Stopped"}, {absent: {name: "Stop the answer"}}]
+    shot: stopped
+  - name: Escape stops an answer too
+    check: C6
+    click: {name: "Message"}
+  - name: type again
+    check: C6
+    type: "And the March ones"
+  - name: send again
+    check: C6
+    key: Return
+    expect: [{present: {name: "Stop the answer"}}]
+  - name: escape
+    check: C6
+    key: Escape
+    expect: [{text: "Stopped"}, {absent: {name: "Stop the answer"}}]
