@@ -23,8 +23,8 @@ License text: [LICENSES/Apache-2.0.txt](LICENSES/Apache-2.0.txt)
 
 ## IBM Plex
 
-The fonts in `crates/assets/fonts` are IBM Plex Sans and IBM Plex Mono,
-unmodified.
+The fonts in `crates/assets/fonts` are IBM Plex Sans, IBM Plex Mono and
+IBM Plex Serif, unmodified.
 
 Copyright © 2017 IBM Corp. with Reserved Font Name "Plex". Licensed under the
 SIL Open Font License, Version 1.1.

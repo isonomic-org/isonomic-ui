@@ -105,6 +105,7 @@ pub struct MessageActionBar {
     quiet: bool,
     hover_group: Option<SharedString>,
     button_size: Size,
+    icon_size: Option<Size>,
     pager_first: bool,
     labels: Vec<(MessageActionLabel, SharedString)>,
     on_version_change: Option<VersionHandler>,
@@ -141,6 +142,7 @@ impl MessageActionBar {
             quiet: true,
             hover_group: None,
             button_size: Size::XSmall,
+            icon_size: None,
             pager_first: false,
             labels: Vec::new(),
             on_version_change: None,
@@ -154,6 +156,13 @@ impl MessageActionBar {
     /// Set the size of the bar's buttons. The default is extra small.
     pub fn button_size(mut self, size: Size) -> Self {
         self.button_size = size;
+        self
+    }
+
+    /// Set the size of the icons apart from the buttons' size, such as
+    /// 16 px icons in 28 px buttons. Without it the icons follow the buttons.
+    pub fn icon_size(mut self, size: impl Into<Size>) -> Self {
+        self.icon_size = Some(size.into());
         self
     }
 
@@ -511,6 +520,7 @@ impl RenderOnce for MessageActionBar {
         };
 
         let size = self.button_size;
+        let icon_size = self.icon_size;
         let labels = self.labels.clone();
         let words = move |which: MessageActionLabel| -> SharedString {
             labels
@@ -526,6 +536,7 @@ impl RenderOnce for MessageActionBar {
                     Button::new((self.id.clone(), "previous"))
                         .ghost()
                         .with_size(size)
+                        .when_some(icon_size, |this, icon| this.icon_size(icon))
                         .icon(IconName::ChevronLeft)
                         .disabled(version == 0)
                         .accessibility_label(words(MessageActionLabel::PreviousVersion))
@@ -543,6 +554,7 @@ impl RenderOnce for MessageActionBar {
                     Button::new((self.id.clone(), "next"))
                         .ghost()
                         .with_size(size)
+                        .when_some(icon_size, |this, icon| this.icon_size(icon))
                         .icon(IconName::ChevronRight)
                         .disabled(version + 1 >= count)
                         .accessibility_label(words(MessageActionLabel::NextVersion))
@@ -563,6 +575,7 @@ impl RenderOnce for MessageActionBar {
                     Clipboard::new((self.id.clone(), "copy"))
                         .value(self.text.clone())
                         .with_size(size)
+                        .when_some(icon_size, |this, icon| this.icon_size(icon))
                         .tooltip(words(MessageActionLabel::Copy))
                         .when_some(self.on_copy.clone(), |this, on_copy| {
                             this.on_copied(move |_, window, cx| on_copy(window, cx))
@@ -573,6 +586,7 @@ impl RenderOnce for MessageActionBar {
                         Button::new((self.id.clone(), "regenerate"))
                             .ghost()
                             .with_size(size)
+                            .when_some(icon_size, |this, icon| this.icon_size(icon))
                             .icon(IconName::RefreshCw)
                             .loading(self.regenerating)
                             .accessibility_label(words(MessageActionLabel::Regenerate))
@@ -592,6 +606,7 @@ impl RenderOnce for MessageActionBar {
                         Button::new((self.id.clone(), "up"))
                             .ghost()
                             .with_size(size)
+                            .when_some(icon_size, |this, icon| this.icon_size(icon))
                             .icon(IconName::ThumbsUp)
                             .selected(vote == Some(Vote::Up))
                             .accessibility_label(words(MessageActionLabel::GoodAnswer))
@@ -602,6 +617,7 @@ impl RenderOnce for MessageActionBar {
                         Button::new((self.id.clone(), "down"))
                             .ghost()
                             .with_size(size)
+                            .when_some(icon_size, |this, icon| this.icon_size(icon))
                             .icon(IconName::ThumbsDown)
                             .selected(vote == Some(Vote::Down))
                             .accessibility_label(words(MessageActionLabel::PoorAnswer))
@@ -617,6 +633,7 @@ impl RenderOnce for MessageActionBar {
                     let button = Button::new((self.id.clone(), "read-aloud"))
                         .ghost()
                         .with_size(size)
+                        .when_some(icon_size, |this, icon| this.icon_size(icon))
                         .selected(playing)
                         .accessibility_label(label.clone())
                         .tooltip(label)

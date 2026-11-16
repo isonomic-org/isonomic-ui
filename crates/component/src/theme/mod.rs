@@ -203,6 +203,13 @@ pub struct Theme {
     /// and the like) and finally `.SystemUIFont`, so a missing font cannot
     /// crash text layout. A family set explicitly is used as-is.
     pub mono_font_family: SharedString,
+    /// The serif font family, for display text such as a wordmark or a
+    /// greeting. The default is the bundled serif (`assets::SERIF`), which
+    /// comes in regular and medium weights and no italic.
+    ///
+    /// No component uses it; an application sets it on the text it wants:
+    /// `div().font_family(cx.theme().serif_font_family.clone())`.
+    pub serif_font_family: SharedString,
     /// The monospace font size for the application, default is 13px.
     pub mono_font_size: Pixels,
     /// Radius for the general elements.
@@ -805,6 +812,7 @@ impl From<&ThemeColor> for Theme {
             font_family: ".SystemUIFont".into(),
             font_size: px(16.),
             mono_font_family: mono_font::default_mono_font_family(),
+            serif_font_family: isonomic_ui_assets::SERIF.into(),
             mono_font_size: px(13.),
             radius: px(6.),
             radius_lg: px(8.),
