@@ -1,0 +1,42 @@
+component: run-status-bar
+steps:
+  - name: every state says what happened in words
+    check: C4
+    expect:
+      - {present: {contains: "You stopped this answer."}}
+      - {present: {contains: "The answer was cut short."}}
+      - {present: {contains: "Something went wrong. The model ran out of memory."}}
+      - {present: {contains: "Reconnecting"}}
+      - {present: {contains: "This chat is closed."}}
+  - name: only cut short and failed offer an action
+    check: C5
+    expect:
+      - {present: {name: "Continue", role: "push button"}}
+      - {present: {name: "Try again", role: "push button"}}
+      - {text: "Nothing pressed yet"}
+  - name: Continue runs its action
+    check: C4
+    click: {name: "Continue", index: 0}
+    expect: [{changed: true}, {text: "Continu"}]
+    shot: continuing
+  - name: the action settles
+    check: C4
+    wait: 2
+    expect: [{text: "Continued"}]
+  - name: Try again runs its action
+    check: C4
+    click: {name: "Try again", index: 0}
+    expect: [{changed: true}]
+    shot: trying
+  - name: the action settles
+    check: C4
+    wait: 2
+    expect: [{text: "Tried again"}]
+  - name: the actions are reachable by keyboard
+    check: C6
+    tabstart: true
+    expect: [{focused: "action"}]
+  - name: Enter presses the focused action
+    check: C6
+    key: Return
+    expect: [{changed: true}, {text: "Continu"}]

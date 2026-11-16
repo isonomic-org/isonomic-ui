@@ -61,6 +61,8 @@ const FILES: [(&str, &str); 3] = [
 /// microphone is on. Type "/" or "@" for suggestions, or drop files on it.
 pub struct PromptComposerStory {
     composer: Entity<PromptComposer>,
+    /// A composer with attaching and dictation off: text, a model and Send.
+    plain: Entity<PromptComposer>,
     attachments: Vec<ComposerAttachment>,
     apps: Vec<(ComposerChoice, bool)>,
     next_file: usize,
@@ -107,9 +109,21 @@ impl PromptComposerStory {
                 composer.set_apps(apps.clone(), cx);
                 composer.set_max_chars(Some(400), cx);
             });
+            let plain =
+                cx.new(|cx| PromptComposer::new("Message a local model\u{2026}", window, cx));
+            plain.update(cx, |plain, cx| {
+                plain.set_attach(false, cx);
+                plain.set_dictation(false, cx);
+                plain.set_models(
+                    vec![ComposerChoice::new("local", "Local model")],
+                    Some("local".into()),
+                    cx,
+                );
+            });
             let events = cx.subscribe_in(&composer, window, Self::on_event);
             Self {
                 composer,
+                plain,
                 attachments: Vec::new(),
                 apps,
                 next_file: 0,
@@ -325,5 +339,13 @@ impl Render for PromptComposerStory {
             }))
             .child(self.composer.clone())
             .child(div().text_xs().text_color(quiet).child(self.last.clone()))
+            .child(
+                div()
+                    .pt_4()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("With nothing to attach: no attach button, no microphone"),
+            )
+            .child(self.plain.clone())
     }
 }
