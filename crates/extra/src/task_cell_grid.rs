@@ -14,8 +14,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -496,6 +496,11 @@ impl RenderOnce for TaskCellGrid {
         let grid = div()
             .id((self.id.clone(), "grid"))
             .track_focus(&focus)
+            // The grid is one Tab stop driven by the arrow keys, so it is
+            // announced as a named group that says so.
+            .role(Role::Group)
+            .aria_label(format!("{}, tasks", self.title))
+            .aria_description("Arrow keys move between tasks.")
             .on_key_down({
                 let state = state.clone();
                 let select = select.clone();

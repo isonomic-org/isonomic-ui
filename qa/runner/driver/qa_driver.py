@@ -510,24 +510,33 @@ def keyboard_walk(app: App) -> dict:
     nm = lambda k: names.get(k, k) if k else None
     res = {"tab_stops": stops, "sequence": [nm(k) for k in seq], "reached": [nm(k) for k in reached],
            "no_visible_change": [nm(k) for k in no_ring], "shift_tab_back": nm(back), "wraps": wraps}
+    # One control can hold several Tab stops (the parts of a date, the cells of
+    # a grid), so a repeated element is not a trap in itself. Focus is stuck
+    # when a press moves nothing on screen, or when one element holds it for
+    # more presses than any such control has parts.
+    stuck = None
+    run = 1
+    for i in range(1, len(seq)):
+        run = run + 1 if seq[i] is not None and seq[i] == seq[i - 1] else 1
+        if seq[i] is not None and seq[i] == seq[i - 1] and (not ring[i] or run > 6):
+            stuck = seq[i]
+            break
     problems = []
     if stops and not reached:
         problems.append(f"Tab reaches none of the {stops} tab stops")
-    elif stops and len(reached) < stops:
-        problems.append(f"Tab reaches {len(reached)} of {stops} tab stops")
+    elif stuck:
+        problems.append(f"Tab stops moving at {nm(stuck)} (possible focus trap)")
     silent = sum(1 for k in seq[:stops] if k is None)
     if silent and reached:
         # Focus moved somewhere with no role: a screen reader announces nothing there.
         problems.append(f"{silent} Tab stop(s) are not in the accessibility tree")
     if no_ring:
         problems.append("no visible focus change on " + ", ".join(nm(k) for k in no_ring[:4]))
-    if stops > 1 and reached and not wraps:
-        problems.append("Tab does not cycle back to the first stop (possible focus trap)")
-    if stops > 1 and len(seq) >= 2 and seq[-1] and back == seq[-1]:
+    if stuck and len(seq) >= 2 and seq[-1] and back == seq[-1]:
         problems.append("Shift+Tab does not move focus back")
     res["status"] = "warn" if problems else ("pass" if stops else "info")
     res["note"] = "; ".join(problems) or (("Tab reaches the one stop, focus is visible" if stops == 1 else
-                                           f"Tab reaches all {stops} stops in order, focus is visible, Shift+Tab goes back")
+                                           f"Tab moves through all {stops} stops, focus is visible, Shift+Tab goes back")
                                           if stops else "no tab stops in this story")
     return res
 

@@ -265,6 +265,8 @@ impl RenderOnce for FindingsFeed {
         let fill = theme.background;
         let line = theme.border;
         let chip = theme.muted;
+        // A tint in the ring colour marks the part the keyboard is on.
+        let focus_tint = theme.ring.opacity(0.25);
         let accent = theme.blue;
         let success = theme.success;
         let radius_lg = theme.radius_lg;
@@ -378,6 +380,7 @@ impl RenderOnce for FindingsFeed {
                 .aria_label(worker_words)
                 .aria_selected(picked)
                 .tab_index(0)
+                .focus_visible(move |s| s.bg(focus_tint))
                 .gap_3()
                 .px_4()
                 .py_2()
@@ -508,7 +511,9 @@ impl RenderOnce for FindingsFeed {
                     Role::ListItem
                 })
                 .aria_label(finding_words)
-                .when(open.is_some(), |this| this.tab_index(0))
+                .when(open.is_some(), |this| {
+                    this.tab_index(0).focus_visible(move |s| s.bg(focus_tint))
+                })
                 .gap_2()
                 .h(px(32.))
                 .px_4()
@@ -599,6 +604,7 @@ impl RenderOnce for FindingsFeed {
                                         .role(Role::Button)
                                         .aria_label("Show all findings")
                                         .tab_index(0)
+                                        .focus_visible(move |s| s.bg(focus_tint))
                                         .text_color(accent)
                                         .cursor_pointer()
                                         .on_click(move |_, _, cx| {

@@ -117,6 +117,7 @@ impl Render for GroupBoxStory {
                                 .child("Make profile private and hide activity")
                                 .child(
                                     Switch::new("profile-private")
+                                        .accessibility_label("Make profile private")
                                         .checked(self.profile_private)
                                         .on_click(cx.listener(|this, checked: &bool, _, cx| {
                                             this.profile_private = *checked;
@@ -130,6 +131,7 @@ impl Render for GroupBoxStory {
                                 .child("Include private contributions on my profile")
                                 .child(
                                     Switch::new("private-contributions")
+                                        .accessibility_label("Include private contributions")
                                         .checked(self.private_contributions)
                                         .on_click(cx.listener(|this, checked: &bool, _, cx| {
                                             this.private_contributions = *checked;
@@ -167,6 +169,7 @@ impl Render for GroupBoxStory {
                             .child("Make profile private and hide activity")
                             .child(
                                 Switch::new("compact-private")
+                                    .accessibility_label("Make profile private")
                                     .checked(self.compact_private)
                                     .on_click(cx.listener(|this, checked: &bool, _, cx| {
                                         this.compact_private = *checked;

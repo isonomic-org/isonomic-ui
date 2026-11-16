@@ -217,6 +217,8 @@ impl RenderOnce for TotalBreakdownCard {
         let fill = theme.background;
         let line = theme.border;
         let chip = theme.muted;
+        // A tint in the ring colour marks the part the keyboard is on.
+        let focus_tint = theme.ring.opacity(0.25);
         let accent = theme.info;
         let success = theme.success;
         let danger = theme.danger;
@@ -295,6 +297,7 @@ impl RenderOnce for TotalBreakdownCard {
                         .aria_label(label.clone())
                         .aria_selected(is_selected)
                         .tab_index(0)
+                        .focus_visible(move |s| s.bg(focus_tint))
                         .flex()
                         .items_center()
                         .h(px(24.))

@@ -156,6 +156,7 @@ impl Render for LayoutDirectionStory {
                                 )
                                 .child(
                                     Switch::new("rtl-switch")
+                                        .accessibility_label("Notifications")
                                         .checked(self.notifications)
                                         .on_click(cx.listener(|this, checked, _, cx| {
                                             this.notifications = *checked;
