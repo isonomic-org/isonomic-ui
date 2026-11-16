@@ -48,6 +48,10 @@ pub struct TextView {
     /// The list marker refinements set so far, so each of the list options
     /// adds to the others instead of replacing them.
     list_marker: StyleRefinement,
+    /// The same for a bulleted list's markers alone.
+    bullet_marker: StyleRefinement,
+    /// The same for a numbered list's markers alone.
+    ordered_marker: StyleRefinement,
 }
 
 impl Styled for TextView {
@@ -66,6 +70,8 @@ impl TextView {
             motion: None,
             stream_fade: None,
             list_marker: StyleRefinement::default(),
+            bullet_marker: StyleRefinement::default(),
+            ordered_marker: StyleRefinement::default(),
         }
     }
     /// Creates a text view that parses `text` as Markdown.
@@ -78,6 +84,8 @@ impl TextView {
             motion: None,
             stream_fade: None,
             list_marker: StyleRefinement::default(),
+            bullet_marker: StyleRefinement::default(),
+            ordered_marker: StyleRefinement::default(),
         }
     }
     /// Creates a text view that parses `text` as HTML.
@@ -90,6 +98,8 @@ impl TextView {
             motion: None,
             stream_fade: None,
             list_marker: StyleRefinement::default(),
+            bullet_marker: StyleRefinement::default(),
+            ordered_marker: StyleRefinement::default(),
         }
     }
     /// Overrides the source of every document image, including embedded data URLs.
@@ -148,6 +158,36 @@ impl TextView {
     pub fn list_marker_color(mut self, color: gpui::Hsla) -> Self {
         self.list_marker = self.list_marker.text_color(color);
         self.inner = self.inner.list_style(self.list_marker.clone());
+        self
+    }
+    /// Sets how far a bulleted list's text is set in, apart from a numbered
+    /// list's: 21 here beside `list_indent(28)` puts bulleted text 21 in and
+    /// numbered text 28 in. Without it a bulleted list follows `list_indent`.
+    pub fn bullet_list_indent(mut self, indent: gpui::Pixels) -> Self {
+        self.bullet_marker = self.bullet_marker.min_w(indent);
+        self.inner = self.inner.bullet_list_style(self.bullet_marker.clone());
+        self
+    }
+    /// Sets the space between a bullet and its item's text, apart from a
+    /// numbered list's. The bullet is set against the text, so it starts at
+    /// the indent less this gap less its own width.
+    pub fn bullet_list_marker_gap(mut self, gap: gpui::Pixels) -> Self {
+        self.bullet_marker = self.bullet_marker.pr(gap);
+        self.inner = self.inner.bullet_list_style(self.bullet_marker.clone());
+        self
+    }
+    /// Sets how far a numbered list's text is set in, apart from a bulleted
+    /// list's. Without it a numbered list follows `list_indent`.
+    pub fn ordered_list_indent(mut self, indent: gpui::Pixels) -> Self {
+        self.ordered_marker = self.ordered_marker.min_w(indent);
+        self.inner = self.inner.ordered_list_style(self.ordered_marker.clone());
+        self
+    }
+    /// Sets the space between a number and its item's text, apart from a
+    /// bulleted list's.
+    pub fn ordered_list_marker_gap(mut self, gap: gpui::Pixels) -> Self {
+        self.ordered_marker = self.ordered_marker.pr(gap);
+        self.inner = self.inner.ordered_list_style(self.ordered_marker.clone());
         self
     }
     /// Refines the blockquote container, including its left border, over the

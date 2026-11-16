@@ -7,7 +7,7 @@
 use std::{f32::consts::TAU, rc::Rc, time::Duration};
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, IconName, Selectable as _, Sizable as _, Size,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Selectable as _, Sizable as _, Size,
     StyledExt as _,
     button::{Button, ButtonVariants as _},
     clipboard::Clipboard,
@@ -107,6 +107,7 @@ pub struct MessageActionBar {
     button_size: Size,
     icon_size: Option<Size>,
     pager_first: bool,
+    pager_quiet: bool,
     labels: Vec<(MessageActionLabel, SharedString)>,
     on_version_change: Option<VersionHandler>,
     on_copy: Option<Handler>,
@@ -144,6 +145,7 @@ impl MessageActionBar {
             button_size: Size::XSmall,
             icon_size: None,
             pager_first: false,
+            pager_quiet: false,
             labels: Vec::new(),
             on_version_change: None,
             on_copy: None,
@@ -163,6 +165,14 @@ impl MessageActionBar {
     /// 16 px icons in 28 px buttons. Without it the icons follow the buttons.
     pub fn icon_size(mut self, size: impl Into<Size>) -> Self {
         self.icon_size = Some(size.into());
+        self
+    }
+
+    /// Draw the version switcher quietly: its arrows at 12 px in the muted
+    /// text colour, beside its numbers, whatever the bar's own icon size.
+    /// Off by default, where the arrows follow the other actions.
+    pub fn pager_quiet(mut self, quiet: bool) -> Self {
+        self.pager_quiet = quiet;
         self
     }
 
@@ -530,14 +540,28 @@ impl RenderOnce for MessageActionBar {
                 .unwrap_or_else(|| which.default_words().into())
         };
         // The switcher between the versions of the answer.
+        let pager_quiet = self.pager_quiet;
+        let arrow = move |name: IconName| {
+            let icon = Icon::new(name);
+            if pager_quiet {
+                icon.text_color(quiet)
+            } else {
+                icon
+            }
+        };
+        let arrow_size = if pager_quiet {
+            Some(Size::Size(px(12.)))
+        } else {
+            icon_size
+        };
         let pager = (count > 1 && self.actions.contains(&MessageAction::Regenerate)).then(|| {
             h_flex()
                 .child(
                     Button::new((self.id.clone(), "previous"))
                         .ghost()
                         .with_size(size)
-                        .when_some(icon_size, |this, icon| this.icon_size(icon))
-                        .icon(IconName::ChevronLeft)
+                        .when_some(arrow_size, |this, icon| this.icon_size(icon))
+                        .icon(arrow(IconName::ChevronLeft))
                         .disabled(version == 0)
                         .accessibility_label(words(MessageActionLabel::PreviousVersion))
                         .tooltip(words(MessageActionLabel::PreviousVersion))
@@ -554,8 +578,8 @@ impl RenderOnce for MessageActionBar {
                     Button::new((self.id.clone(), "next"))
                         .ghost()
                         .with_size(size)
-                        .when_some(icon_size, |this, icon| this.icon_size(icon))
-                        .icon(IconName::ChevronRight)
+                        .when_some(arrow_size, |this, icon| this.icon_size(icon))
+                        .icon(arrow(IconName::ChevronRight))
                         .disabled(version + 1 >= count)
                         .accessibility_label(words(MessageActionLabel::NextVersion))
                         .tooltip(words(MessageActionLabel::NextVersion))
