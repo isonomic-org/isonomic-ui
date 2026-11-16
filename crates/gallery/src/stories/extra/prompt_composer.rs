@@ -127,6 +127,7 @@ impl PromptComposerStory {
                 cx.new(|cx| PromptComposer::new("Message a local model\u{2026}", window, cx));
             comfortable.update(cx, |comfortable, cx| {
                 comfortable.set_comfortable(true, cx);
+                comfortable.set_quiet_focus(true, cx);
                 comfortable.set_attach(false, cx);
                 comfortable.set_dictation(false, cx);
                 comfortable.set_models(
@@ -370,7 +371,7 @@ impl Render for PromptComposerStory {
                     .pt_4()
                     .text_xs()
                     .text_color(quiet)
-                    .child("Comfortable size: more room, a round Send, and a round filled Stop"),
+                    .child("Comfortable size with a quiet focus: 96 high when empty, a neutral edge when focused"),
             )
             .child(self.comfortable.clone())
     }
