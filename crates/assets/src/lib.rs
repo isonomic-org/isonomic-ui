@@ -11,7 +11,7 @@ extern crate gpui_fast_platform as gpui_platform;
 
 mod fonts;
 mod icon;
-pub use fonts::{MONO, SANS, fonts};
+pub use fonts::{MONO, SANS, SERIF, fonts};
 pub use icon::{IconName, IconNamed};
 
 /// Embed application assets for Isonomic UI.

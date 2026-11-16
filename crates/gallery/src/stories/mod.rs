@@ -85,6 +85,7 @@ mod toggle_story;
 mod toolbar_story;
 mod tooltip_story;
 mod tree_story;
+mod typography_story;
 mod virtual_list_story;
 mod welcome_story;
 
@@ -173,6 +174,7 @@ pub use toggle_story::ToggleStory;
 pub use toolbar_story::ToolbarStory;
 pub use tooltip_story::TooltipStory;
 pub use tree_story::TreeStory;
+pub use typography_story::TypographyStory;
 pub use virtual_list_story::VirtualListStory;
 
 pub use welcome_story::WelcomeStory;

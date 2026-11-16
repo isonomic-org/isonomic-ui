@@ -23,6 +23,7 @@ pub struct Clipboard {
     tooltip_show_delay: Option<Duration>,
     accessibility_label: Option<SharedString>,
     size: Size,
+    icon_size: Option<Size>,
 }
 
 impl Sizable for Clipboard {
@@ -45,7 +46,15 @@ impl Clipboard {
             tooltip_show_delay: None,
             accessibility_label: None,
             size: Size::XSmall,
+            icon_size: None,
         }
+    }
+
+    /// Set the size of the icon apart from the button's own size, such as a
+    /// 16 px icon in a 28 px button. Without it the icon follows the button.
+    pub fn icon_size(mut self, size: impl Into<Size>) -> Self {
+        self.icon_size = Some(size.into());
+        self
     }
 
     /// Set visible text for the clipboard button.
@@ -125,6 +134,7 @@ impl RenderOnce for Clipboard {
             .when_some(self.label, |this, label| this.label(label))
             .ghost()
             .with_size(self.size)
+            .when_some(self.icon_size, |this, size| this.icon_size(size))
             .when_some(self.tooltip_text, |this, text| this.tooltip(text))
             .when_some(self.tooltip_show_delay, |this, delay| {
                 this.tooltip_show_delay(delay)

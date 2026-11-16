@@ -6,6 +6,9 @@ use std::borrow::Cow;
 pub const SANS: &str = "IBM Plex Sans";
 /// The family name of the bundled monospace typeface.
 pub const MONO: &str = "IBM Plex Mono";
+/// The family name of the bundled serif typeface, in regular and medium.
+/// For display text such as a wordmark or a greeting, not for controls.
+pub const SERIF: &str = "IBM Plex Serif";
 
 macro_rules! font_files {
     ($($file:literal),* $(,)?) => {
@@ -30,5 +33,7 @@ pub fn fonts() -> Vec<Cow<'static, [u8]>> {
         "IBMPlexSans-Regular.ttf",
         "IBMPlexSans-SemiBold.ttf",
         "IBMPlexSans-SemiBoldItalic.ttf",
+        "IBMPlexSerif-Medium.ttf",
+        "IBMPlexSerif-Regular.ttf",
     ]
 }

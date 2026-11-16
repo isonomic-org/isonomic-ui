@@ -147,6 +147,7 @@ impl Gallery {
                 StoryContainer::panel::<ToolbarStory>(window, cx),
                 StoryContainer::panel::<TooltipStory>(window, cx),
                 StoryContainer::panel::<TreeStory>(window, cx),
+                StoryContainer::panel::<TypographyStory>(window, cx),
                 StoryContainer::panel::<VirtualListStory>(window, cx),
             ],
         )];

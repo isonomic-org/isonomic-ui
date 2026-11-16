@@ -84,6 +84,22 @@ impl Render for ClipboardStory {
                     ),
             )
             .child(
+                section("Icon size")
+                    .description("A 28 px button keeps a 16 px icon.")
+                    .w(px(480.))
+                    .child(
+                        h_flex().child(
+                            isonomic_ui::component::Sizable::with_size(
+                                Clipboard::new("clipboard-icon-size"),
+                                px(28.),
+                            )
+                            .value("A copied value")
+                            .icon_size(px(16.))
+                            .tooltip("Copy the value"),
+                        ),
+                    ),
+            )
+            .child(
                 section("With Input")
                     .description("Copies the field's current value.")
                     .w(px(480.))

@@ -126,20 +126,17 @@ impl Render for MessageActionBarStory {
                     ),
             )
             .child(div().text_xs().text_color(quiet).child(self.last.clone()))
-            .child(
-                div()
-                    .pt_4()
-                    .text_xs()
-                    .text_color(quiet)
-                    .child("Larger buttons, the switcher first, and Regenerate reworded"),
-            )
+            .child(div().pt_4().text_xs().text_color(quiet).child(
+                "28 px buttons with 16 px icons, the switcher first, and Regenerate reworded",
+            ))
             .child(
                 MessageActionBar::new("actions-reworded")
                     .text("The March close is ready to review.")
                     .quiet(false)
                     .versions(3)
                     .default_version(1)
-                    .button_size(Size::Small)
+                    .button_size(Size::Size(px(28.)))
+                    .icon_size(px(16.))
                     .pager_first(true)
                     .label(MessageActionLabel::Regenerate, "Try again"),
             )
