@@ -103,3 +103,7 @@ base-theme-colors:
   - check: C3
     status: known
     note: "The story shows every colour of the palette, light ones included, in both themes."
+command-palette:
+  - check: C6
+    status: known
+    note: "The second palette in the story holds focus on purpose (`set_hold_focus`), so Tab stays on its field and nothing changes on screen."

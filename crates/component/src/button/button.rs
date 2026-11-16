@@ -216,6 +216,7 @@ pub struct Button {
     border_corners: Corners<bool>,
     border_edges: Edges<bool>,
     dropdown_caret: bool,
+    truncate_label: bool,
     hover_group: Option<SharedString>,
     hover_group_held: bool,
     size: Size,
@@ -287,6 +288,7 @@ impl Button {
             outline: false,
             loading_icon: None,
             dropdown_caret: false,
+            truncate_label: false,
             hover_group: None,
             hover_group_held: false,
             tab_index: 0,
@@ -508,6 +510,14 @@ impl Button {
     /// Default is true.
     pub fn tab_stop(mut self, tab_stop: bool) -> Self {
         self.tab_stop = tab_stop;
+        self
+    }
+
+    /// Let a long label end in an ellipsis when the button is narrower than
+    /// its content, keeping the icon and the dropdown caret in view. Off by
+    /// default, where the label keeps its full width.
+    pub fn truncate_label(mut self, truncate: bool) -> Self {
+        self.truncate_label = truncate;
         self
     }
 
@@ -805,6 +815,7 @@ impl RenderOnce for Button {
                 _ => this.gap_2(),
             })
             .refine_style(&self.content_style)
+            .when(self.truncate_label, |this| this.min_w_0().max_w_full())
             .when_some(icon, |this, icon| {
                 this.child(
                     icon.loading_icon(self.loading_icon)
@@ -818,13 +829,21 @@ impl RenderOnce for Button {
                         .min_w_0()
                         .whitespace_nowrap()
                         .text_ellipsis()
+                        // The label gives way first: it shrinks and clips,
+                        // so what follows it stays in view.
+                        .when(self.truncate_label, |this| {
+                            this.flex_shrink(1.).overflow_hidden()
+                        })
                         .child(label),
                 )
             })
             .children(children)
             .when(self.dropdown_caret, |this| {
-                this.when(has_content, |this| this.justify_between())
-                    .child(Caret::new(self.size).text_color(normal_style.fg.opacity(0.75)))
+                this.when(has_content, |this| this.justify_between()).child(
+                    div()
+                        .flex_none()
+                        .child(Caret::new(self.size).text_color(normal_style.fg.opacity(0.75))),
+                )
             });
         root.role(self.role.resolve(|| {
             if self.variant.is_link() {

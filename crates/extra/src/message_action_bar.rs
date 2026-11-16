@@ -7,7 +7,8 @@
 use std::{f32::consts::TAU, rc::Rc, time::Duration};
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, IconName, Selectable as _, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, IconName, Selectable as _, Sizable as _, Size,
+    StyledExt as _,
     button::{Button, ButtonVariants as _},
     clipboard::Clipboard,
     h_flex,
@@ -34,6 +35,43 @@ pub enum MessageAction {
     Feedback,
     /// Read the message aloud.
     ReadAloud,
+}
+
+/// A label the bar speaks and shows in a tooltip, which its owner can reword.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MessageActionLabel {
+    /// The copy button. "Copy" by default.
+    Copy,
+    /// The button that asks for another answer. "Regenerate" by default.
+    Regenerate,
+    /// The switcher's back button. "Previous version" by default.
+    PreviousVersion,
+    /// The switcher's forward button. "Next version" by default.
+    NextVersion,
+    /// The vote up. "Good answer" by default.
+    GoodAnswer,
+    /// The vote down. "Poor answer" by default.
+    PoorAnswer,
+    /// Read aloud while it is not reading. "Read aloud" by default.
+    ReadAloud,
+    /// Read aloud while it is reading. "Stop reading" by default.
+    StopReading,
+}
+
+impl MessageActionLabel {
+    /// The words used when the owner gives none.
+    pub fn default_words(self) -> &'static str {
+        match self {
+            Self::Copy => "Copy",
+            Self::Regenerate => "Regenerate",
+            Self::PreviousVersion => "Previous version",
+            Self::NextVersion => "Next version",
+            Self::GoodAnswer => "Good answer",
+            Self::PoorAnswer => "Poor answer",
+            Self::ReadAloud => "Read aloud",
+            Self::StopReading => "Stop reading",
+        }
+    }
 }
 
 /// A vote on an answer.
@@ -66,6 +104,9 @@ pub struct MessageActionBar {
     speak_duration: Option<Duration>,
     quiet: bool,
     hover_group: Option<SharedString>,
+    button_size: Size,
+    pager_first: bool,
+    labels: Vec<(MessageActionLabel, SharedString)>,
     on_version_change: Option<VersionHandler>,
     on_copy: Option<Handler>,
     on_regenerate: Option<Handler>,
@@ -99,12 +140,36 @@ impl MessageActionBar {
             speak_duration: None,
             quiet: true,
             hover_group: None,
+            button_size: Size::XSmall,
+            pager_first: false,
+            labels: Vec::new(),
             on_version_change: None,
             on_copy: None,
             on_regenerate: None,
             on_feedback: None,
             on_speak: None,
         }
+    }
+
+    /// Set the size of the bar's buttons. The default is extra small.
+    pub fn button_size(mut self, size: Size) -> Self {
+        self.button_size = size;
+        self
+    }
+
+    /// Put the version switcher at the start of the bar, before the actions,
+    /// instead of after Regenerate. Off by default.
+    pub fn pager_first(mut self, first: bool) -> Self {
+        self.pager_first = first;
+        self
+    }
+
+    /// Reword one of the bar's labels, such as "Try again" for Regenerate.
+    /// The words are spoken by a screen reader and shown in the tooltip.
+    pub fn label(mut self, which: MessageActionLabel, words: impl Into<SharedString>) -> Self {
+        self.labels.retain(|(label, _)| *label != which);
+        self.labels.push((which, words.into()));
+        self
     }
 
     /// The message text. Copy writes it to the clipboard, and read aloud is
@@ -445,13 +510,60 @@ impl RenderOnce for MessageActionBar {
             }
         };
 
-        let mut bar = h_flex().gap_0p5();
+        let size = self.button_size;
+        let labels = self.labels.clone();
+        let words = move |which: MessageActionLabel| -> SharedString {
+            labels
+                .iter()
+                .find(|(label, _)| *label == which)
+                .map(|(_, words)| words.clone())
+                .unwrap_or_else(|| which.default_words().into())
+        };
+        // The switcher between the versions of the answer.
+        let pager = (count > 1 && self.actions.contains(&MessageAction::Regenerate)).then(|| {
+            h_flex()
+                .child(
+                    Button::new((self.id.clone(), "previous"))
+                        .ghost()
+                        .with_size(size)
+                        .icon(IconName::ChevronLeft)
+                        .disabled(version == 0)
+                        .accessibility_label(words(MessageActionLabel::PreviousVersion))
+                        .tooltip(words(MessageActionLabel::PreviousVersion))
+                        .on_click(go(version.saturating_sub(1))),
+                )
+                .child(
+                    div()
+                        .px_0p5()
+                        .text_xs()
+                        .text_color(quiet)
+                        .child(format!("{} / {count}", version + 1)),
+                )
+                .child(
+                    Button::new((self.id.clone(), "next"))
+                        .ghost()
+                        .with_size(size)
+                        .icon(IconName::ChevronRight)
+                        .disabled(version + 1 >= count)
+                        .accessibility_label(words(MessageActionLabel::NextVersion))
+                        .tooltip(words(MessageActionLabel::NextVersion))
+                        .on_click(go((version + 1).min(count - 1))),
+                )
+        });
+        let (pager_first, mut pager_after) = if self.pager_first {
+            (pager, None)
+        } else {
+            (None, pager)
+        };
+
+        let mut bar = h_flex().gap_0p5().children(pager_first);
         for action in &self.actions {
             bar = match action {
                 MessageAction::Copy => bar.child(
                     Clipboard::new((self.id.clone(), "copy"))
                         .value(self.text.clone())
-                        .tooltip("Copy")
+                        .with_size(size)
+                        .tooltip(words(MessageActionLabel::Copy))
                         .when_some(self.on_copy.clone(), |this, on_copy| {
                             this.on_copied(move |_, window, cx| on_copy(window, cx))
                         }),
@@ -460,11 +572,11 @@ impl RenderOnce for MessageActionBar {
                     .child(
                         Button::new((self.id.clone(), "regenerate"))
                             .ghost()
-                            .xsmall()
+                            .with_size(size)
                             .icon(IconName::RefreshCw)
                             .loading(self.regenerating)
-                            .accessibility_label("Regenerate")
-                            .tooltip("Regenerate")
+                            .accessibility_label(words(MessageActionLabel::Regenerate))
+                            .tooltip(words(MessageActionLabel::Regenerate))
                             .on_click({
                                 let on_regenerate = self.on_regenerate.clone();
                                 move |_, window, cx| {
@@ -474,70 +586,39 @@ impl RenderOnce for MessageActionBar {
                                 }
                             }),
                     )
-                    .when(count > 1, |this| {
-                        this.child(
-                            h_flex()
-                                .child(
-                                    Button::new((self.id.clone(), "previous"))
-                                        .ghost()
-                                        .xsmall()
-                                        .icon(IconName::ChevronLeft)
-                                        .disabled(version == 0)
-                                        .accessibility_label("Previous version")
-                                        .tooltip("Previous version")
-                                        .on_click(go(version.saturating_sub(1))),
-                                )
-                                .child(
-                                    div()
-                                        .px_0p5()
-                                        .text_xs()
-                                        .text_color(quiet)
-                                        .child(format!("{} / {count}", version + 1)),
-                                )
-                                .child(
-                                    Button::new((self.id.clone(), "next"))
-                                        .ghost()
-                                        .xsmall()
-                                        .icon(IconName::ChevronRight)
-                                        .disabled(version + 1 >= count)
-                                        .accessibility_label("Next version")
-                                        .tooltip("Next version")
-                                        .on_click(go((version + 1).min(count - 1))),
-                                ),
-                        )
-                    }),
+                    .children(pager_after.take()),
                 MessageAction::Feedback => bar
                     .child(
                         Button::new((self.id.clone(), "up"))
                             .ghost()
-                            .xsmall()
+                            .with_size(size)
                             .icon(IconName::ThumbsUp)
                             .selected(vote == Some(Vote::Up))
-                            .accessibility_label("Good answer")
-                            .tooltip("Good answer")
+                            .accessibility_label(words(MessageActionLabel::GoodAnswer))
+                            .tooltip(words(MessageActionLabel::GoodAnswer))
                             .on_click(cast(Vote::Up)),
                     )
                     .child(
                         Button::new((self.id.clone(), "down"))
                             .ghost()
-                            .xsmall()
+                            .with_size(size)
                             .icon(IconName::ThumbsDown)
                             .selected(vote == Some(Vote::Down))
-                            .accessibility_label("Poor answer")
-                            .tooltip("Poor answer")
+                            .accessibility_label(words(MessageActionLabel::PoorAnswer))
+                            .tooltip(words(MessageActionLabel::PoorAnswer))
                             .on_click(cast(Vote::Down)),
                     ),
                 MessageAction::ReadAloud => {
-                    let label = if playing {
-                        "Stop reading"
+                    let label = words(if playing {
+                        MessageActionLabel::StopReading
                     } else {
-                        "Read aloud"
-                    };
+                        MessageActionLabel::ReadAloud
+                    });
                     let button = Button::new((self.id.clone(), "read-aloud"))
                         .ghost()
-                        .xsmall()
+                        .with_size(size)
                         .selected(playing)
-                        .accessibility_label(label)
+                        .accessibility_label(label.clone())
                         .tooltip(label)
                         .on_click(toggle_speak.clone());
                     bar.child(if playing {

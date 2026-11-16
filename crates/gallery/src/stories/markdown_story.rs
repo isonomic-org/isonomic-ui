@@ -3,7 +3,7 @@ use isonomic_ui::{
     Window, px,
 };
 
-use isonomic_ui::component::{text::TextView, v_flex};
+use isonomic_ui::component::{ActiveTheme as _, text::TextView, v_flex};
 
 use crate::section;
 
@@ -57,6 +57,14 @@ line of prose wraps inside the column instead of running past its edge, however
 narrow the window gets.
 "#;
 
+/// Lists on their own, for the list styling options.
+const LISTS: &str = r#"1. Match the refunds
+2. Ask the landlord to return the duplicate
+   - by email first
+   - then by phone
+3. Recheck once the transfer clears
+"#;
+
 pub struct MarkdownStory {
     focus_handle: isonomic_ui::FocusHandle,
 }
@@ -94,20 +102,41 @@ impl Focusable for MarkdownStory {
 }
 
 impl Render for MarkdownStory {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        v_flex().w_full().items_center().gap_6().child(
-            section("A reply")
-                .description("Every block a chat reply can hold, in a reading column.")
-                .w_full()
-                .max_w(px(720.))
-                // The section centres its content; the column takes the full
-                // width so the text wraps inside it.
-                .child(
-                    v_flex()
-                        .w_full()
-                        .min_w_0()
-                        .child(TextView::markdown("markdown-reply", REPLY).selectable(true)),
-                ),
-        )
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let marker = cx.theme().info;
+        v_flex()
+            .w_full()
+            .items_center()
+            .gap_6()
+            .child(
+                section("A reply")
+                    .description("Every block a chat reply can hold, in a reading column.")
+                    .w_full()
+                    .max_w(px(720.))
+                    // The section centres its content; the column takes the full
+                    // width so the text wraps inside it.
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .min_w_0()
+                            .child(TextView::markdown("markdown-reply", REPLY).selectable(true)),
+                    ),
+            )
+            .child(
+                section("List styling")
+                    .description(
+                        "A wider indent, more room after the marker, and coloured markers.",
+                    )
+                    .w_full()
+                    .max_w(px(720.))
+                    .child(
+                        v_flex().w_full().min_w_0().child(
+                            TextView::markdown("markdown-lists", LISTS)
+                                .list_indent(px(32.))
+                                .list_marker_gap(px(12.))
+                                .list_marker_color(marker),
+                        ),
+                    ),
+            )
     }
 }

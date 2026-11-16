@@ -14,7 +14,7 @@ macro_rules! component_icon_names {
     ($($name:ident => $path:literal,)*) => {
         /// Default component icon names, retained for source compatibility.
         /// For the complete catalog, use `isonomic_ui_assets::IconName`.
-        #[derive(Clone, IntoElement)]
+        #[derive(Clone, Debug, PartialEq, Eq, IntoElement)]
         pub enum IconName {
             $($name,)*
         }

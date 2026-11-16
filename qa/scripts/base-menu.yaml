@@ -1,0 +1,11 @@
+component: base-menu
+steps:
+  - name: the menu opens with its destructive item
+    check: C4
+    click: {name: "Edit", role: "push button"}
+    expect: [{present: {name: "Delete"}}]
+    shot: destructive
+  - name: choosing it runs its handler
+    check: C4
+    click: {name: "Delete"}
+    expect: [{text: "clicked Delete"}]

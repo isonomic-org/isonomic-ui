@@ -701,7 +701,83 @@ impl Render for SidebarStory {
                                     }),
                             ),
                     )
-                    .child(self.render_content(window, cx)),
+                    .child(self.render_content(window, cx))
+                    .child(Self::render_chat_sidebar(cx)),
+            )
+    }
+}
+
+impl SidebarStory {
+    /// A chat sidebar built with the spacing options: its own paddings and
+    /// gap, 32 px rows the keyboard can reach, and a Pinned group that folds.
+    fn render_chat_sidebar(cx: &mut Context<Self>) -> impl IntoElement {
+        let edges = |top: f32, side: f32, bottom: f32| Edges {
+            top: px(top),
+            right: px(side),
+            bottom: px(bottom),
+            left: px(side),
+        };
+        let row = |label: &'static str| SidebarMenuItem::new(label).height(px(32.)).focusable(true);
+        v_flex()
+            .gap_2()
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child("Chat sidebar: custom spacing, rows the keyboard can reach, a group that folds"),
+            )
+            .child(
+                div()
+                    .h(px(380.))
+                    .w(px(260.))
+                    .rounded(cx.theme().radius)
+                    .border_1()
+                    .border_color(cx.theme().border)
+                    .overflow_hidden()
+                    .child(
+                        Sidebar::new("chat-sidebar")
+                            .collapsible(false)
+                            .w(px(260.))
+                            .header_padding(edges(8., 8., 4.))
+                            .content_padding(edges(4., 8., 8.))
+                            .footer_padding(edges(4., 8., 8.))
+                            .content_gap(px(8.))
+                            .header(div().px_2().font_medium().child("Chats"))
+                            .child(
+                                SidebarGroup::new("Actions").child(
+                                    SidebarMenu::new()
+                                        .gap_0p5()
+                                        .child(row("New chat").icon(IconName::Plus))
+                                        .child(row("Search").icon(IconName::Search)),
+                                ),
+                            )
+                            .child(
+                                SidebarGroup::new("Pinned")
+                                    .foldable(true)
+                                    .padding(edges(0., 0., 4.))
+                                    .child(
+                                        SidebarMenu::new()
+                                            .gap_0p5()
+                                            .child(row("March close checklist").active(true))
+                                            .child(row("Chase the overdue invoices")),
+                                    ),
+                            )
+                            .child(
+                                SidebarGroup::new("Earlier").child(
+                                    SidebarMenu::new()
+                                        .gap_0p5()
+                                        .child(row("Reconcile the card spend"))
+                                        .child(row("Draft the board note")),
+                                ),
+                            )
+                            .footer(
+                                div()
+                                    .px_2()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Local model"),
+                            ),
+                    ),
             )
     }
 }

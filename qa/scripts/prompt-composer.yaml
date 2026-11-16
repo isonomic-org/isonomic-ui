@@ -38,3 +38,15 @@ steps:
     check: C6
     key: Escape
     expect: [{text: "Stopped"}, {absent: {name: "Stop the answer"}}]
+  - name: the comfortable composer sends with a round Send
+    check: C4
+    click: {name: "Message", index: 2}
+  - name: type in it
+    check: C4
+    type: "One more"
+    shot: comfortable-send
+  - name: and shows a round filled Stop while answering
+    check: C4
+    key: Return
+    expect: [{present: {name: "Stop the answer"}}]
+    shot: comfortable-stop

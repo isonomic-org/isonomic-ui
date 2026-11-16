@@ -63,12 +63,15 @@ pub struct PromptComposerStory {
     composer: Entity<PromptComposer>,
     /// A composer with attaching and dictation off: text, a model and Send.
     plain: Entity<PromptComposer>,
+    /// The comfortable size. Send in it to see its round, filled Stop.
+    comfortable: Entity<PromptComposer>,
     attachments: Vec<ComposerAttachment>,
     apps: Vec<(ComposerChoice, bool)>,
     next_file: usize,
     sent: Vec<SharedString>,
     last: SharedString,
     _events: Subscription,
+    _comfortable_events: Subscription,
     _work: Option<Task<()>>,
 }
 
@@ -120,16 +123,31 @@ impl PromptComposerStory {
                     cx,
                 );
             });
+            let comfortable =
+                cx.new(|cx| PromptComposer::new("Message a local model\u{2026}", window, cx));
+            comfortable.update(cx, |comfortable, cx| {
+                comfortable.set_comfortable(true, cx);
+                comfortable.set_attach(false, cx);
+                comfortable.set_dictation(false, cx);
+                comfortable.set_models(
+                    vec![ComposerChoice::new("local", "Local model")],
+                    Some("local".into()),
+                    cx,
+                );
+            });
             let events = cx.subscribe_in(&composer, window, Self::on_event);
+            let comfortable_events = cx.subscribe_in(&comfortable, window, Self::on_event);
             Self {
                 composer,
                 plain,
+                comfortable,
                 attachments: Vec::new(),
                 apps,
                 next_file: 0,
                 sent: Vec::new(),
                 last: "Nothing sent yet".into(),
                 _events: events,
+                _comfortable_events: comfortable_events,
                 _work: None,
             }
         })
@@ -347,5 +365,13 @@ impl Render for PromptComposerStory {
                     .child("With nothing to attach: no attach button, no microphone"),
             )
             .child(self.plain.clone())
+            .child(
+                div()
+                    .pt_4()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("Comfortable size: more room, a round Send, and a round filled Stop"),
+            )
+            .child(self.comfortable.clone())
     }
 }

@@ -1,10 +1,10 @@
 //! Gallery story for the command palette.
 
 use crate::Story;
-use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::component::{ActiveTheme as _, IconName, Size, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Subscription, Window, div,
+    Styled as _, Subscription, Window, div, px,
 };
 use isonomic_ui_extra::command_palette::{CommandPalette, PaletteCommand, PaletteEvent};
 
@@ -12,6 +12,8 @@ use isonomic_ui_extra::command_palette::{CommandPalette, PaletteCommand, Palette
 /// the recent list and says what ran.
 pub struct CommandPaletteStory {
     palette: Entity<CommandPalette>,
+    /// A palette with every option set: a chat search.
+    search: Entity<CommandPalette>,
     recent: Vec<SharedString>,
     note: String,
     _events: Subscription,
@@ -55,8 +57,40 @@ impl CommandPaletteStory {
                 }
                 cx.notify();
             });
+            let search = cx.new(|cx| {
+                let mut search = CommandPalette::new(
+                    vec![
+                        PaletteCommand::new("new", "Actions", "New chat")
+                            .icon(IconName::Plus)
+                            .keys("cmd-n"),
+                        PaletteCommand::new("c1", "Today", "March close checklist")
+                            .icon(IconName::Inbox)
+                            .meta("2 h ago"),
+                        PaletteCommand::new("c2", "Today", "Chase the overdue invoices")
+                            .icon(IconName::Inbox)
+                            .meta("5 h ago"),
+                        PaletteCommand::new("c3", "Earlier", "Reconcile the card spend")
+                            .icon(IconName::Inbox)
+                            .meta("12 Mar"),
+                    ],
+                    window,
+                    cx,
+                );
+                search.set_width(px(640.), cx);
+                search.set_placeholder("Search chats", window, cx);
+                search.set_input_size(Size::Large, cx);
+                search.set_escape_hint(true, cx);
+                search.set_row_height(px(36.), cx);
+                search.set_keep_groups(true, cx);
+                search.set_footer_hints(["Enter to open", "Esc to close"], cx);
+                search.set_select_first(false, cx);
+                search.set_empty_text("No chats match.", cx);
+                search.set_hold_focus(true, cx);
+                search
+            });
             Self {
                 palette,
+                search,
                 recent: vec!["reconcile".into(), "remind".into()],
                 note: String::new(),
                 _events: events,
@@ -81,15 +115,30 @@ impl Story for CommandPaletteStory {
 
 impl Render for CommandPaletteStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        v_flex().gap_3().child(self.palette.clone()).child(
-            div()
-                .text_xs()
-                .text_color(cx.theme().muted_foreground)
-                .child(if self.note.is_empty() {
-                    "Type \u{201c}rec\u{201d}, then Enter.".to_string()
-                } else {
-                    self.note.clone()
-                }),
-        )
+        v_flex()
+            .gap_3()
+            .child(self.palette.clone())
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(if self.note.is_empty() {
+                        "Type \u{201c}rec\u{201d}, then Enter.".to_string()
+                    } else {
+                        self.note.clone()
+                    }),
+            )
+            .child(
+                div()
+                    .pt_4()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(
+                        "Every option set: wider, a larger field with an Esc key, icons and \
+                     notes on 36 px rows, groups kept while typing, its own hints, no row \
+                     selected until a key is pressed, and Tab held inside",
+                    ),
+            )
+            .child(self.search.clone())
     }
 }

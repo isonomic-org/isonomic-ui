@@ -228,6 +228,7 @@ pub struct PromptComposer {
     disabled: bool,
     dictation: bool,
     attach: bool,
+    comfortable: bool,
     max_chars: Option<usize>,
     readonly: bool,
     query: Option<(SuggestTrigger, usize)>,
@@ -305,6 +306,7 @@ impl PromptComposer {
             disabled: false,
             dictation: true,
             attach: true,
+            comfortable: false,
             max_chars: None,
             readonly: false,
             query: None,
@@ -528,6 +530,17 @@ impl PromptComposer {
     /// nothing can be attached.
     pub fn set_attach(&mut self, attach: bool, cx: &mut Context<Self>) {
         self.attach = attach;
+        cx.notify();
+    }
+
+    /// Use the roomier size. Off by default, where the composer is compact.
+    ///
+    /// The comfortable composer has more padding (14 px above, 12 at the end,
+    /// 10 below, 16 at the start), a 14 px gap between the field and the
+    /// controls, a row of controls 32 px high, and round 32 px Send and Stop
+    /// buttons, with Stop filled.
+    pub fn set_comfortable(&mut self, comfortable: bool, cx: &mut Context<Self>) {
+        self.comfortable = comfortable;
         cx.notify();
     }
 
@@ -925,9 +938,19 @@ impl Render for PromptComposer {
             }
         });
 
+        let comfortable = self.comfortable;
+        // Round and 32 px across in the comfortable size.
+        let round = move |button: Button| {
+            if comfortable {
+                button.size(px(32.)).rounded_full()
+            } else {
+                button
+            }
+        };
         let send = if self.busy {
             Button::new("stop")
                 .small()
+                .when(comfortable, |this| this.primary())
                 .icon(IconName::Square)
                 .tooltip("Stop  Esc")
                 .accessibility_label("Stop the answer")
@@ -942,6 +965,7 @@ impl Render for PromptComposer {
                 .accessibility_label("Send")
                 .on_click(cx.listener(|this, _, window, cx| this.submit(window, cx)))
         };
+        let send = round(send);
 
         v_flex()
             .id("prompt-composer")
@@ -961,6 +985,13 @@ impl Render for PromptComposer {
             .w_full()
             .gap_2()
             .p_2()
+            .when(comfortable, |this| {
+                this.gap(px(14.))
+                    .pt(px(14.))
+                    .pr(px(12.))
+                    .pb(px(10.))
+                    .pl(px(16.))
+            })
             .rounded(radius)
             .border_1()
             .border_color(edge)
@@ -989,6 +1020,7 @@ impl Render for PromptComposer {
                 h_flex()
                     .flex_wrap()
                     .gap_1()
+                    .when(comfortable, |this| this.min_h(px(32.)))
                     .child(
                         h_flex()
                             .gap_1()

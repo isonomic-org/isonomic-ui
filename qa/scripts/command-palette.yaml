@@ -1,0 +1,23 @@
+component: command-palette
+steps:
+  - name: with selecting the first row off, Enter does nothing until a key is pressed
+    check: C5
+    click: {name: "Search chats"}
+  - name: enter on nothing
+    check: C5
+    key: Return
+    expect: [{no_text: "Ran: new"}]
+  - name: Tab stays inside the palette
+    check: C6
+    key: Tab
+    expect: [{focused: "input-state"}]
+  - name: Down selects the first row
+    check: C6
+    key: Down
+    expect: [{changed: true}]
+    shot: first-row
+  - name: typing keeps the groups
+    check: C4
+    type: "c"
+    expect: [{text: "Today"}, {text: "Earlier"}]
+    shot: grouped

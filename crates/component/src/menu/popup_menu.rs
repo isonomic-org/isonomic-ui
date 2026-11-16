@@ -51,6 +51,8 @@ pub enum PopupMenuItem {
         action: Option<Box<dyn Action>>,
         // For link item
         handler: Option<Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>>,
+        /// Drawn in the danger colour, for an action that cannot be undone.
+        destructive: bool,
     },
     /// A menu item with custom element render.
     ElementItem {
@@ -83,6 +85,7 @@ impl PopupMenuItem {
             action: None,
             is_link: false,
             handler: None,
+            destructive: false,
         }
     }
 
@@ -180,6 +183,17 @@ impl PopupMenuItem {
         self
     }
 
+    /// Mark the item as destructive, such as Delete: its label and icon are
+    /// drawn in the theme's danger colour.
+    ///
+    /// Only works for [`PopupMenuItem::Item`].
+    pub fn destructive(mut self) -> Self {
+        if let PopupMenuItem::Item { destructive, .. } = &mut self {
+            *destructive = true;
+        }
+        self
+    }
+
     /// Set checked state for the menu item.
     ///
     /// NOTE: If `check_side` is [`Side::Left`], the icon will replace with a check icon.
@@ -227,6 +241,7 @@ impl PopupMenuItem {
             action: None,
             is_link: true,
             handler: Some(Rc::new(move |_, _, cx| cx.open_url(&href))),
+            destructive: false,
         }
     }
 
@@ -1430,9 +1445,12 @@ impl PopupMenu {
                 action,
                 disabled,
                 is_link,
+                destructive,
                 ..
             } => {
                 let show_link_icon = *is_link && self.external_link_icon;
+                // A disabled item stays quiet even when it is destructive.
+                let danger = (*destructive && !*disabled).then(|| cx.theme().danger);
                 let action = action.as_ref().map(|action| action.boxed_clone());
                 let key = self.render_key_binding(action, window, cx);
 
@@ -1444,13 +1462,15 @@ impl PopupMenu {
                 .disabled(*disabled)
                 .h(item_height)
                 .gap_x_1()
-                .children(Self::render_icon(
-                    has_left_icon,
-                    is_left_check,
-                    icon.clone(),
-                    window,
-                    cx,
-                ))
+                .children(
+                    Self::render_icon(has_left_icon, is_left_check, icon.clone(), window, cx).map(
+                        |icon| {
+                            div()
+                                .when_some(danger, |this, c| this.text_color(c))
+                                .child(icon)
+                        },
+                    ),
+                )
                 .child(
                     h_flex()
                         .flex_row_dir(cx)
@@ -1458,6 +1478,7 @@ impl PopupMenu {
                         .gap_3()
                         .items_center()
                         .justify_between()
+                        .when_some(danger, |this, color| this.text_color(color))
                         .when(!show_link_icon, |this| this.child(label.clone()))
                         .children(right_check_icon)
                         .when(show_link_icon, |this| {
