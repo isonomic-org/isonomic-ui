@@ -513,6 +513,14 @@ impl Button {
         self
     }
 
+    /// Set the size of the button's icon apart from the button's own size,
+    /// such as a 16 px icon in a 28 px button. Without it the icon follows
+    /// the button's size.
+    pub fn icon_size(mut self, size: impl Into<Size>) -> Self {
+        self.icon_size = Some(size.into());
+        self
+    }
+
     /// Let a long label end in an ellipsis when the button is narrower than
     /// its content, keeping the icon and the dropdown caret in view. Off by
     /// default, where the label keeps its full width.

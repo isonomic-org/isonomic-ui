@@ -63,8 +63,9 @@ impl CommandPaletteStory {
                         PaletteCommand::new("new", "Actions", "New chat")
                             .icon(IconName::Plus)
                             .keys("cmd-n"),
+                        // Any icon in the catalog, not only the component set.
                         PaletteCommand::new("c1", "Today", "March close checklist")
-                            .icon(IconName::Inbox)
+                            .icon(isonomic_ui::assets::IconName::Chat)
                             .meta("2 h ago"),
                         PaletteCommand::new("c2", "Today", "Chase the overdue invoices")
                             .icon(IconName::Inbox)

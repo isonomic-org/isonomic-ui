@@ -7,7 +7,7 @@
 //! now are shown greyed with the reason.
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, Size, StyledExt as _, h_flex,
+    ActiveTheme as _, Icon, IconName, IconNamed, Sizable as _, Size, StyledExt as _, h_flex,
     input::{Input, InputEvent, InputState},
     kbd::Kbd,
     v_flex,
@@ -34,8 +34,9 @@ pub struct PaletteCommand {
     pub keys: Option<Keystroke>,
     /// Why it can't run right now, if it can't.
     pub unavailable: Option<SharedString>,
-    /// An icon in front of its name, if it has one.
-    pub icon: Option<IconName>,
+    /// The path of an icon in front of its name, if it has one. Set it with
+    /// [`Self::icon`].
+    pub icon: Option<SharedString>,
     /// A quiet note at the end of its row, such as a date or a count.
     pub meta: Option<SharedString>,
 }
@@ -58,9 +59,10 @@ impl PaletteCommand {
         }
     }
 
-    /// Put an icon in front of its name.
-    pub fn icon(mut self, icon: IconName) -> Self {
-        self.icon = Some(icon);
+    /// Put an icon in front of its name: any icon in the catalog
+    /// (`isonomic_ui::assets::IconName`) or in the component icon set.
+    pub fn icon(mut self, icon: impl IconNamed) -> Self {
+        self.icon = Some(icon.path());
         self
     }
 
@@ -400,71 +402,75 @@ impl Render for CommandPalette {
                 ]
             });
 
-        let list: Vec<_> =
-            rows.iter()
-                .enumerate()
-                .map(|(ix, (heading, command))| {
-                    let id = command.id.clone();
-                    let off = command.unavailable.is_some();
-                    v_flex()
-                        .children(heading.clone().map(|h| {
-                            div()
-                                .px_2()
-                                .pt_2()
-                                .pb_1()
-                                .text_xs()
-                                .font_medium()
-                                .text_color(quiet)
-                                .child(h)
-                        }))
-                        .child(
-                            h_flex()
-                                .id(ElementId::Name(
-                                    format!("command-{}-{ix}", command.id).into(),
-                                ))
-                                .gap_2()
-                                .px_2()
-                                .h(row_height)
-                                .rounded(px(6.))
-                                .when(selected == Some(ix), |this| this.bg(chip))
-                                .when(!off, |this| this.cursor_pointer())
-                                .aria_selected(selected == Some(ix))
-                                .role(Role::ListBoxOption)
-                                .aria_label(match &command.unavailable {
-                                    Some(why) => format!("{}, unavailable: {why}", command.name),
-                                    None => command.name.to_string(),
-                                })
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    this.cursor = ix;
-                                    this.touched = true;
-                                    if !off {
-                                        cx.emit(PaletteEvent::Run(id.clone()));
-                                    }
-                                }))
-                                .children(command.icon.clone().map(|icon| {
-                                    Icon::new(icon).small().flex_none().text_color(quiet)
-                                }))
-                                .child(
-                                    v_flex()
-                                        .flex_1()
-                                        .min_w_0()
-                                        .child(
-                                            div()
-                                                .truncate()
-                                                .when(off, |this| this.text_color(quiet))
-                                                .child(command.name.clone()),
-                                        )
-                                        .children(command.unavailable.clone().map(|why| {
-                                            div().text_xs().text_color(quiet).truncate().child(why)
-                                        })),
-                                )
-                                .children(command.meta.clone().map(|meta| {
-                                    div().flex_none().text_xs().text_color(quiet).child(meta)
-                                }))
-                                .children(command.keys.clone().map(|keys| Kbd::new(keys))),
-                        )
-                })
-                .collect();
+        let list: Vec<_> = rows
+            .iter()
+            .enumerate()
+            .map(|(ix, (heading, command))| {
+                let id = command.id.clone();
+                let off = command.unavailable.is_some();
+                v_flex()
+                    .children(heading.clone().map(|h| {
+                        div()
+                            .px_2()
+                            .pt_2()
+                            .pb_1()
+                            .text_xs()
+                            .font_medium()
+                            .text_color(quiet)
+                            .child(h)
+                    }))
+                    .child(
+                        h_flex()
+                            .id(ElementId::Name(
+                                format!("command-{}-{ix}", command.id).into(),
+                            ))
+                            .gap_2()
+                            .px_2()
+                            .h(row_height)
+                            .rounded(px(6.))
+                            .when(selected == Some(ix), |this| this.bg(chip))
+                            .when(!off, |this| this.cursor_pointer())
+                            .aria_selected(selected == Some(ix))
+                            .role(Role::ListBoxOption)
+                            .aria_label(match &command.unavailable {
+                                Some(why) => format!("{}, unavailable: {why}", command.name),
+                                None => command.name.to_string(),
+                            })
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.cursor = ix;
+                                this.touched = true;
+                                if !off {
+                                    cx.emit(PaletteEvent::Run(id.clone()));
+                                }
+                            }))
+                            .children(command.icon.clone().map(|path| {
+                                Icon::default()
+                                    .path(path)
+                                    .small()
+                                    .flex_none()
+                                    .text_color(quiet)
+                            }))
+                            .child(
+                                v_flex()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .child(
+                                        div()
+                                            .truncate()
+                                            .when(off, |this| this.text_color(quiet))
+                                            .child(command.name.clone()),
+                                    )
+                                    .children(command.unavailable.clone().map(|why| {
+                                        div().text_xs().text_color(quiet).truncate().child(why)
+                                    })),
+                            )
+                            .children(command.meta.clone().map(|meta| {
+                                div().flex_none().text_xs().text_color(quiet).child(meta)
+                            }))
+                            .children(command.keys.clone().map(|keys| Kbd::new(keys))),
+                    )
+            })
+            .collect();
 
         v_flex()
             .w_full()
