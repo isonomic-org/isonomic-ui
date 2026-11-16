@@ -1,0 +1,12 @@
+# A separate workspace: see README.md.
+[workspace]
+resolver = "2"
+members = ["isonomic-app", "consumer"]
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+# The library workspace carries this patch; a separate workspace repeats it.
+[patch.crates-io]
+gpui-pre-macros = { path = "../../vendor/gpui-pre-macros" }

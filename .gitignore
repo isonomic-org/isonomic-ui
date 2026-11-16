@@ -4,3 +4,6 @@
 *.swp
 .idea
 .vscode
+
+# The fixture resolves its own versions when it is run by hand.
+/fixtures/*/Cargo.lock
