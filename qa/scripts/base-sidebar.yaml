@@ -3,7 +3,7 @@ steps:
   - name: a focusable row takes the keyboard when pressed
     check: C6
     click: {name: "Search", role: "tree item"}
-    expect: [{focused: "item"}]
+    expect: [{focused: "chat-row-search"}]
   - name: Down moves to the next row
     check: C6
     key: Down
@@ -12,7 +12,7 @@ steps:
   - name: Up moves back
     check: C6
     key: Up
-    expect: [{changed: true}, {focused: "item"}]
+    expect: [{changed: true}, {focused: "chat-row-search"}]
   - name: the Pinned group folds from its label
     check: C4
     click: {name: "Pinned", role: "push button"}

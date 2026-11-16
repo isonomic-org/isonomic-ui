@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::TestSupportExt as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -431,8 +432,20 @@ fn row_words(model: &ModelOption) -> String {
     }
 }
 
+/// The id of the picker's list of models: the picker's own id with "models".
+pub fn list_id(picker: impl Into<ElementId>) -> ElementId {
+    ElementId::NamedChild(picker.into().into(), "models".into())
+}
+
+/// The id of one model's row: the picker's own id with "model-" and the
+/// model's id, so a test can find a row whatever its place in the list.
+pub fn row_id(picker: impl Into<ElementId>, model: &str) -> ElementId {
+    ElementId::NamedChild(picker.into().into(), format!("model-{model}").into())
+}
+
 /// Everything the open menu draws from.
 struct Menu {
+    id: ElementId,
     look: Look,
     models: Vec<ModelOption>,
     columns: Vec<SharedString>,
@@ -510,7 +523,8 @@ impl Menu {
             let is_lit = lit_row == Some(ix);
             let is_chosen = self.chosen == Some(ix);
             h_flex()
-                .id(("model", ix))
+                .id(row_id(self.id.clone(), &model.id))
+                .test_support()
                 .role(Role::ListBoxOption)
                 .aria_label(row_words(model))
                 .aria_selected(is_chosen)
@@ -714,7 +728,8 @@ impl Menu {
             .text_color(ink)
             .child(
                 v_flex()
-                    .id("models")
+                    .id(list_id(self.id.clone()))
+                    .test_support()
                     .role(Role::ListBox)
                     .aria_label("Models")
                     .p_1()
@@ -887,6 +902,7 @@ impl RenderOnce for ModelPicker {
             });
 
         let menu = Rc::new(Menu {
+            id: self.id.clone(),
             look: self.look,
             models: self.models,
             columns: self.columns,

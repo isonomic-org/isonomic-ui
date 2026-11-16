@@ -124,6 +124,7 @@ pub struct SidebarMenuItem {
     context_menu: Option<Rc<dyn Fn(PopupMenu, &mut Window, &mut App) -> PopupMenu + 'static>>,
     height: Option<Pixels>,
     focusable: bool,
+    id: Option<ElementId>,
 }
 
 impl SidebarMenuItem {
@@ -147,7 +148,16 @@ impl SidebarMenuItem {
             context_menu: None,
             height: None,
             focusable: false,
+            id: None,
         }
+    }
+
+    /// Give the row an id of its own, so a test can find it whatever its
+    /// place in the menu: `window.find(id)` in a UI test. Without one the
+    /// row's id is "item". The id must be unique among the rows of its menu.
+    pub fn id(mut self, id: impl Into<ElementId>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 
     /// Set the row's height while the sidebar is expanded. The default is 28 px.
@@ -345,7 +355,8 @@ impl SidebarItem for SidebarMenuItem {
                 h_flex()
                     .flex_row_dir(cx)
                     .size_full()
-                    .id("item")
+                    .id(self.id.clone().unwrap_or_else(|| "item".into()))
+                    .test_support()
                     .role(Role::TreeItem)
                     .aria_label(accessibility_label.unwrap_or_else(|| label_text.clone()))
                     .aria_selected(is_active)

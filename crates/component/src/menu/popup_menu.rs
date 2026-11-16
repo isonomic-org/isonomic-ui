@@ -53,6 +53,8 @@ pub enum PopupMenuItem {
         handler: Option<Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>>,
         /// Drawn in the danger colour, for an action that cannot be undone.
         destructive: bool,
+        /// An id of its own, so a test can find the item whatever its place.
+        id: Option<gpui::ElementId>,
     },
     /// A menu item with custom element render.
     ElementItem {
@@ -86,6 +88,7 @@ impl PopupMenuItem {
             is_link: false,
             handler: None,
             destructive: false,
+            id: None,
         }
     }
 
@@ -183,6 +186,18 @@ impl PopupMenuItem {
         self
     }
 
+    /// Give the item an id of its own, so a test can find it whatever its
+    /// place in the menu: `window.find(id)` in a UI test. Without one the
+    /// item's id is its index. The id must be unique among the menu's items.
+    ///
+    /// Only works for [`PopupMenuItem::Item`].
+    pub fn id(mut self, id: impl Into<gpui::ElementId>) -> Self {
+        if let PopupMenuItem::Item { id: slot, .. } = &mut self {
+            *slot = Some(id.into());
+        }
+        self
+    }
+
     /// Mark the item as destructive, such as Delete: its label and icon are
     /// drawn in the theme's danger colour.
     ///
@@ -242,6 +257,7 @@ impl PopupMenuItem {
             is_link: true,
             handler: Some(Rc::new(move |_, _, cx| cx.open_url(&href))),
             destructive: false,
+            id: None,
         }
     }
 
@@ -1355,7 +1371,11 @@ impl PopupMenu {
             _ => (rems(1.625), options.radius),
         };
 
-        let this = MenuItemElement::new(ix)
+        let element_id = match item {
+            PopupMenuItem::Item { id: Some(id), .. } => id.clone(),
+            _ => gpui::ElementId::from(ix),
+        };
+        let this = MenuItemElement::new(element_id)
             .relative()
             .text_sm()
             .py_0()
