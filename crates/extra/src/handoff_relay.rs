@@ -373,6 +373,8 @@ impl RenderOnce for HandoffRelay {
         let fill = theme.background;
         let line = theme.border;
         let chip = theme.muted;
+        // A tint in the ring colour marks the part the keyboard is on.
+        let focus_tint = theme.ring.opacity(0.25);
         let accent = theme.blue;
         let success = theme.success;
         let warning = theme.warning;
@@ -632,7 +634,9 @@ impl RenderOnce for HandoffRelay {
                                     Role::ListItem
                                 })
                                 .aria_label(item_words)
-                                .when(is_lost, |this| this.tab_index(0))
+                                .when(is_lost, |this| {
+                                    this.tab_index(0).focus_visible(move |s| s.bg(focus_tint))
+                                })
                                 .gap_1()
                                 .px_1p5()
                                 .py_0p5()
@@ -738,6 +742,7 @@ impl RenderOnce for HandoffRelay {
                     .aria_label(handoff_words)
                     .aria_expanded(is_open)
                     .tab_index(0)
+                    .focus_visible(move |s| s.bg(focus_tint))
                     .gap_0p5()
                     .p_2()
                     .rounded(radius)
