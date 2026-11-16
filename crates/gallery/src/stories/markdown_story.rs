@@ -100,7 +100,14 @@ impl Render for MarkdownStory {
                 .description("Every block a chat reply can hold, in a reading column.")
                 .w_full()
                 .max_w(px(720.))
-                .child(TextView::markdown("markdown-reply", REPLY).selectable(true)),
+                // The section centres its content; the column takes the full
+                // width so the text wraps inside it.
+                .child(
+                    v_flex()
+                        .w_full()
+                        .min_w_0()
+                        .child(TextView::markdown("markdown-reply", REPLY).selectable(true)),
+                ),
         )
     }
 }

@@ -6,12 +6,12 @@ steps:
   - name: the header folds the steps away
     check: C4
     click: {name: "Took 5s"}
-    expect: [{no_text: "Matching 41"}]
+    expect: [{changed: true}, {absent: {name: "Show 2 more sources"}}]
     shot: folded
   - name: and back
     check: C4
     click: {name: "Took 5s"}
-    expect: [{text: "Matching 41"}]
+    expect: [{changed: true}, {present: {name: "Show 2 more sources"}}]
   - name: +N more chip is reachable by keyboard
     check: C6
     tabstart: true
