@@ -229,6 +229,7 @@ pub struct PromptComposer {
     dictation: bool,
     attach: bool,
     comfortable: bool,
+    quiet_focus: bool,
     max_chars: Option<usize>,
     readonly: bool,
     query: Option<(SuggestTrigger, usize)>,
@@ -307,6 +308,7 @@ impl PromptComposer {
             dictation: true,
             attach: true,
             comfortable: false,
+            quiet_focus: false,
             max_chars: None,
             readonly: false,
             query: None,
@@ -533,6 +535,16 @@ impl PromptComposer {
         cx.notify();
     }
 
+    /// Show focus quietly: a slightly darker neutral edge and no colour. Off
+    /// by default, where a focused composer takes the theme's ring colour.
+    ///
+    /// For a composer that holds the keyboard whenever its screen is open,
+    /// where a coloured edge would never go away.
+    pub fn set_quiet_focus(&mut self, quiet: bool, cx: &mut Context<Self>) {
+        self.quiet_focus = quiet;
+        cx.notify();
+    }
+
     /// Use the roomier size. Off by default, where the composer is compact.
     ///
     /// The comfortable composer has more padding (14 px above, 12 at the end,
@@ -691,7 +703,12 @@ impl Render for PromptComposer {
         let danger = theme.danger;
         let radius = theme.radius_lg;
         let focused = self.field.focus_handle(cx).contains_focused(window, cx);
-        let edge = if focused { theme.ring } else { line };
+        let edge = match (focused, self.quiet_focus) {
+            (true, false) => theme.ring,
+            // The input edge is the next neutral up from the plain border.
+            (true, true) => theme.input,
+            (false, _) => line,
+        };
 
         let text = self.field.read(cx).value();
         let over = self.over_limit(&text);
@@ -777,7 +794,7 @@ impl Render for PromptComposer {
                         )
                         .item(
                             PopupMenuItem::new("Add photos and screenshots")
-                                .icon(IconName::Frame)
+                                .icon(isonomic_ui::assets::IconName::Image)
                                 .on_click(move |_, _, cx| {
                                     images.update(cx, |_, cx| {
                                         cx.emit(PromptComposerEvent::Attach(AttachKind::Images))
@@ -1006,12 +1023,22 @@ impl Render for PromptComposer {
             })
             .children(menu)
             .child(
-                div().px_1().child(
-                    Textarea::new(&self.field)
-                        .appearance(false)
-                        .disabled(disabled || readonly)
-                        .aria_label("Message"),
-                ),
+                // In the comfortable size the field is exactly one line high
+                // when empty, so the whole composer is 96 px; it grows with
+                // the text as before.
+                // The small field has 2 px above and below one line of text and
+                // 8 px at the sides, which the wrapper takes back so the text
+                // starts at the composer's own padding.
+                div()
+                    .when(!comfortable, |this| this.px_1())
+                    .when(comfortable, |this| this.mx(px(-8.)))
+                    .child(
+                        Textarea::new(&self.field)
+                            .appearance(false)
+                            .when(comfortable, |this| this.small())
+                            .disabled(disabled || readonly)
+                            .aria_label("Message"),
+                    ),
             )
             .child(
                 // Two groups that wrap: in a narrow column the model, the

@@ -545,8 +545,23 @@ impl Render for CommandPalette {
                         .with_size(self.options.input_size)
                         .prefix(Icon::new(IconName::Search).small().text_color(quiet))
                         .when(self.options.escape_hint, |this| {
+                            // The word, on every platform: a key chip would
+                            // draw the escape symbol on some.
                             this.suffix(
-                                h_flex().children(Keystroke::parse("escape").ok().map(Kbd::new)),
+                                div()
+                                    .id("palette-escape-hint")
+                                    .role(Role::Label)
+                                    .aria_label("Escape")
+                                    .flex_none()
+                                    .px_1()
+                                    .py_0p5()
+                                    .rounded(px(3.))
+                                    .border_1()
+                                    .border_color(line)
+                                    .bg(fill)
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child("Esc"),
                             )
                         }),
                 ),
