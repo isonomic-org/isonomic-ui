@@ -1,42 +1,57 @@
 component: run-status-bar
+# The working bar's clock and spinner never rest, so a short settle keeps steps quick.
+settle: 0.8
 steps:
-  - name: every state says what happened in words
+  - name: every state says what it is in words
     check: C4
     expect:
-      - {present: {contains: "You stopped this answer."}}
+      - {present: {contains: "Working"}}
+      - {present: {contains: "You stopped this response"}}
+      - {present: {contains: "Something went wrong."}}
+      - {present: {contains: "Done"}}
       - {present: {contains: "The answer was cut short."}}
-      - {present: {contains: "Something went wrong. The model ran out of memory."}}
       - {present: {contains: "Reconnecting"}}
       - {present: {contains: "This chat is closed."}}
-  - name: only cut short and failed offer an action
+  - name: each state carries the buttons the owner passed
     check: C5
     expect:
+      - {present: {name: "Steer", role: "push button"}}
+      - {present: {name: "Stop", role: "push button"}}
+      - {present: {name: "Dismiss", role: "push button"}}
+      - {present: {name: "Resume", role: "push button"}}
       - {present: {name: "Continue", role: "push button"}}
-      - {present: {name: "Try again", role: "push button"}}
       - {text: "Nothing pressed yet"}
-  - name: Continue runs its action
+  - name: a passed button runs its handler
     check: C4
-    click: {name: "Continue", index: 0}
-    expect: [{changed: true}, {text: "Continu"}]
+    click: {name: "Resume"}
+    expect: [{text: "Resume pressed"}]
+    shot: resume
+  - name: Stop on the working bar runs its handler
+    check: C4
+    click: {name: "Stop"}
+    expect: [{text: "Stop pressed"}]
+  - name: the shorthand Continue shows as working
+    check: C4
+    click: {name: "Continue"}
+    expect: [{text: "Continu"}]
     shot: continuing
-  - name: the action settles
+  - name: and settles
     check: C4
     wait: 2
     expect: [{text: "Continued"}]
-  - name: Try again runs its action
+  - name: the shorthand Try again runs
     check: C4
-    click: {name: "Try again", index: 0}
+    click: {name: "Try again"}
     expect: [{changed: true}]
-    shot: trying
-  - name: the action settles
+  - name: and settles
     check: C4
     wait: 2
     expect: [{text: "Tried again"}]
-  - name: the actions are reachable by keyboard
+  - name: the buttons are reachable by keyboard, in order
     check: C6
     tabstart: true
-    expect: [{focused: "action"}]
-  - name: Enter presses the focused action
+    expect: [{focused: "button-0"}]
+  - name: Enter presses the focused button
     check: C6
     key: Return
-    expect: [{changed: true}, {text: "Continu"}]
+    expect: [{text: "Steer pressed"}]

@@ -1,22 +1,29 @@
-//! Run status bar: one bar above the composer that says how the last run ended, or why the chat can't go on, with the one thing to do about it.
+//! Run status bar: one bar above the composer that says what the run is doing or how it ended, with the things to do about it.
 //!
-//! There are five states. A run the person stopped, a run that was cut short
-//! and can be continued, a run that failed and can be tried again, a
-//! connection that is being restored, and a chat that is closed. The bar
-//! owns no state: its owner picks the state, may change the words, and is
-//! told when the action is pressed. A screen reader hears the bar as a
-//! status, and the action is an ordinary button.
+//! There are seven states. A run that is working, a run the person stopped,
+//! a run that was cut short and can be continued, a run that failed, a
+//! connection that is being restored, a chat that is closed, and a run that
+//! finished. The bar owns no state: its owner picks the state, may change the
+//! words, passes the buttons to show and is told when one is pressed. A
+//! screen reader hears the bar as a status, and each button is an ordinary
+//! button.
+//!
+//! Every state has the same quiet fill and edge except a failure, which is
+//! pale red with red words.
 
-use std::rc::Rc;
+use std::{rc::Rc, time::Duration};
 
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex,
-    spinner::Spinner, v_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
+    button::{Button, ButtonVariants as _},
+    h_flex,
+    spinner::Spinner,
+    v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, px,
+    App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::Tone;
@@ -24,70 +31,90 @@ use crate::common::Tone;
 /// What the bar is saying.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RunStatus {
-    /// The person stopped the run. Nothing to do.
+    /// The run is working. Shown with a spinner and, when the owner gives
+    /// it, the time it has taken so far.
+    Running,
+    /// The person stopped the run.
     Stopped,
     /// The run ended before it was finished, such as at a length limit. It
     /// can be continued.
     CutShort,
-    /// The run failed. It can be tried again.
+    /// The run failed. It can be tried again. This is the one state drawn
+    /// in red.
     Failed,
     /// The connection dropped and is being restored. Nothing to do but wait.
     Reconnecting,
     /// The chat is closed and takes no more messages.
     Closed,
+    /// The run finished.
+    Done,
 }
 
 impl RunStatus {
     /// Every state, in the order above.
-    pub const ALL: [RunStatus; 5] = [
+    pub const ALL: [RunStatus; 7] = [
+        RunStatus::Running,
         RunStatus::Stopped,
         RunStatus::CutShort,
         RunStatus::Failed,
         RunStatus::Reconnecting,
         RunStatus::Closed,
+        RunStatus::Done,
     ];
 
     /// The words shown when the owner gives none.
     pub fn default_message(self) -> &'static str {
         match self {
-            Self::Stopped => "You stopped this answer.",
+            Self::Running => "Working",
+            Self::Stopped => "You stopped this response",
             Self::CutShort => "The answer was cut short.",
             Self::Failed => "Something went wrong.",
             Self::Reconnecting => "Reconnecting\u{2026}",
             Self::Closed => "This chat is closed.",
+            Self::Done => "Done",
         }
     }
 
-    /// The action's label when the owner gives none, for the states that
-    /// have an action.
+    /// The label of the one button [`RunStatusBar::on_action`] adds, for the
+    /// states that have one.
     pub fn default_action(self) -> Option<&'static str> {
         match self {
             Self::CutShort => Some("Continue"),
             Self::Failed => Some("Try again"),
-            Self::Stopped | Self::Reconnecting | Self::Closed => None,
+            Self::Running | Self::Stopped | Self::Reconnecting | Self::Closed | Self::Done => None,
         }
     }
 
-    /// The meaning the state carries, which picks its colour.
+    /// The meaning the state carries. Only a failure is coloured by it; the
+    /// others share one quiet look.
     pub fn tone(self) -> Tone {
         match self {
             Self::Stopped | Self::Closed => Tone::Neutral,
             Self::CutShort => Tone::Warning,
             Self::Failed => Tone::Danger,
-            Self::Reconnecting => Tone::Info,
+            Self::Running | Self::Reconnecting => Tone::Info,
+            Self::Done => Tone::Success,
         }
     }
 
+    /// The state's icon. The two states that are waiting on something show a
+    /// spinner instead.
     fn icon(self) -> Option<IconName> {
         match self {
+            Self::Running | Self::Reconnecting => None,
             Self::Stopped => Some(IconName::Square),
             Self::CutShort => Some(IconName::TriangleAlert),
             Self::Failed => Some(IconName::CircleAlert),
-            // Reconnecting shows a spinner instead.
-            Self::Reconnecting => None,
             Self::Closed => Some(IconName::Info),
+            Self::Done => Some(IconName::CircleCheck),
         }
     }
+}
+
+/// How long a run has taken, as minutes and seconds: "0:14", "12:05".
+pub fn elapsed_words(elapsed: Duration) -> String {
+    let seconds = elapsed.as_secs();
+    format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
 /// What a screen reader hears for the bar, such as "Something went wrong.
@@ -99,9 +126,68 @@ fn spoken(message: &str, detail: Option<&str>) -> String {
     }
 }
 
+/// How a button in the bar looks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum RunStatusButtonStyle {
+    /// The surface colour with a grey edge. For most buttons.
+    #[default]
+    Secondary,
+    /// The ink colour. For the one button that carries on, such as Resume.
+    Primary,
+}
+
+type ClickHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 type ActionHandler = Rc<dyn Fn(&RunStatus, &mut Window, &mut App)>;
 
-/// The bar above the composer that says how the last run ended.
+/// One button in the bar: Steer, Stop, Dismiss, Retry, Resume and the like.
+#[derive(Clone)]
+pub struct RunStatusButton {
+    label: SharedString,
+    style: RunStatusButtonStyle,
+    busy: bool,
+    on_click: Option<ClickHandler>,
+}
+
+impl RunStatusButton {
+    /// Create a secondary button with a label.
+    pub fn new(label: impl Into<SharedString>) -> Self {
+        Self {
+            label: label.into(),
+            style: RunStatusButtonStyle::Secondary,
+            busy: false,
+            on_click: None,
+        }
+    }
+
+    /// Make it the primary button.
+    pub fn primary(mut self) -> Self {
+        self.style = RunStatusButtonStyle::Primary;
+        self
+    }
+
+    /// Set how it looks.
+    pub fn style(mut self, style: RunStatusButtonStyle) -> Self {
+        self.style = style;
+        self
+    }
+
+    /// Show it as working, and stop it being pressed again.
+    pub fn busy(mut self, busy: bool) -> Self {
+        self.busy = busy;
+        self
+    }
+
+    /// Hear when it is pressed.
+    pub fn on_click(
+        mut self,
+        on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_click = Some(Rc::new(on_click));
+        self
+    }
+}
+
+/// The bar above the composer that says what the run is doing or how it ended.
 #[derive(IntoElement)]
 pub struct RunStatusBar {
     id: ElementId,
@@ -109,6 +195,8 @@ pub struct RunStatusBar {
     status: RunStatus,
     message: Option<SharedString>,
     detail: Option<SharedString>,
+    elapsed: Option<Duration>,
+    buttons: Vec<RunStatusButton>,
     action_label: Option<SharedString>,
     action_busy: bool,
     on_action: Option<ActionHandler>,
@@ -123,6 +211,8 @@ impl RunStatusBar {
             status,
             message: None,
             detail: None,
+            elapsed: None,
+            buttons: Vec::new(),
             action_label: None,
             action_busy: false,
             on_action: None,
@@ -135,26 +225,53 @@ impl RunStatusBar {
         self
     }
 
-    /// Add a quieter second part, such as the reason a run failed.
+    /// Add a quieter second line, such as the reason a run failed. There is
+    /// none unless this is called.
     pub fn detail(mut self, detail: impl Into<SharedString>) -> Self {
         self.detail = Some(detail.into());
         self
     }
 
-    /// Name the action in other words than the state's own. Giving a label
-    /// also gives an action to a state that has none of its own.
+    /// Say how long the run has taken. It follows the message after a dot:
+    /// "Working · 0:14". The owner keeps the clock and passes the time on
+    /// each draw.
+    pub fn elapsed(mut self, elapsed: Duration) -> Self {
+        self.elapsed = Some(elapsed);
+        self
+    }
+
+    /// Add a button. Buttons show in the order they are added, at the end of
+    /// the bar.
+    pub fn button(mut self, button: RunStatusButton) -> Self {
+        self.buttons.push(button);
+        self
+    }
+
+    /// Add several buttons.
+    pub fn buttons(mut self, buttons: impl IntoIterator<Item = RunStatusButton>) -> Self {
+        self.buttons.extend(buttons);
+        self
+    }
+
+    /// Name the one button [`Self::on_action`] adds in other words than the
+    /// state's own. Giving a label also gives that button to a state that
+    /// has none of its own.
     pub fn action_label(mut self, label: impl Into<SharedString>) -> Self {
         self.action_label = Some(label.into());
         self
     }
 
-    /// Show the action as working, and stop it being pressed again.
+    /// Show the [`Self::on_action`] button as working, and stop it being
+    /// pressed again.
     pub fn action_busy(mut self, busy: bool) -> Self {
         self.action_busy = busy;
         self
     }
 
-    /// Hear when the action is pressed. Without this the bar shows no action.
+    /// A shorthand for one button: Continue for a run that was cut short,
+    /// Try again for one that failed. It goes after any buttons added with
+    /// [`Self::button`]. For more than one button, or other labels, pass
+    /// buttons instead.
     pub fn on_action(
         mut self,
         on_action: impl Fn(&RunStatus, &mut Window, &mut App) + 'static,
@@ -173,46 +290,85 @@ impl Styled for RunStatusBar {
 impl RenderOnce for RunStatusBar {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
-        let ink = theme.foreground;
-        let quiet = theme.muted_foreground;
-        let line = theme.border;
-        let radius = theme.radius;
         let status = self.status;
-        let tone = status.tone();
-        let mark = tone.color(cx);
-        let tint = tone.tint(cx);
+        let failed = status == RunStatus::Failed;
+        // One quiet look for every state; a failure is pale red with red words.
+        let (fill, edge, words_color) = if failed {
+            (
+                theme.danger.opacity(0.08),
+                theme.danger.opacity(0.22),
+                theme.danger,
+            )
+        } else {
+            (theme.muted, theme.border, theme.foreground.opacity(0.85))
+        };
+        let quiet = theme.muted_foreground;
 
         let message: SharedString = self
             .message
             .unwrap_or_else(|| status.default_message().into());
+        let message: SharedString = match self.elapsed {
+            Some(elapsed) => format!("{message} \u{b7} {}", elapsed_words(elapsed)).into(),
+            None => message,
+        };
         let words = spoken(&message, self.detail.as_deref());
+
+        // The shorthand button goes after the ones the owner passed, under
+        // the id it has always had.
+        let mut buttons: Vec<(SharedString, RunStatusButton)> = self
+            .buttons
+            .into_iter()
+            .enumerate()
+            .map(|(ix, button)| (format!("button-{ix}").into(), button))
+            .collect();
         let action_label: Option<SharedString> = self
             .action_label
             .or_else(|| status.default_action().map(Into::into));
-        let action = self.on_action.zip(action_label).map(|(on_action, label)| {
-            Button::new(ElementId::NamedChild(
-                self.id.clone().into(),
+        if let Some((on_action, label)) = self.on_action.zip(action_label) {
+            buttons.push((
                 "action".into(),
-            ))
-            .small()
-            .outline()
-            .label(label)
-            .loading(self.action_busy)
-            .on_click(move |_, window, cx| on_action(&status, window, cx))
+                RunStatusButton::new(label)
+                    .busy(self.action_busy)
+                    .on_click(move |_, window, cx| on_action(&status, window, cx)),
+            ));
+        }
+        let id = self.id.clone();
+        let buttons = buttons.into_iter().map(move |(name, button)| {
+            let on_click = button.on_click;
+            Button::new(ElementId::NamedChild(id.clone().into(), name))
+                .map(|this| match button.style {
+                    RunStatusButtonStyle::Primary => this.primary(),
+                    RunStatusButtonStyle::Secondary => this.outline(),
+                })
+                .xsmall()
+                .label(button.label)
+                .loading(button.busy)
+                .h(px(30.))
+                .px_2p5()
+                .rounded(px(4.))
+                .text_xs()
+                .font_medium()
+                .when_some(on_click, |this, on_click| {
+                    this.on_click(move |event, window, cx| on_click(event, window, cx))
+                })
         });
 
         h_flex()
             .id(self.id.clone())
             .w_full()
-            .min_h(px(36.))
+            .min_h(px(44.))
+            // In a narrow column the buttons drop to a line of their own
+            // rather than squeezing the words.
+            .flex_wrap()
             .gap_2()
-            .px_3()
+            .pl_3()
+            .pr_1p5()
             .py_1p5()
-            .rounded(radius)
+            .rounded(px(10.))
             .border_1()
-            .border_color(line)
-            .bg(tint)
-            .text_color(ink)
+            .border_color(edge)
+            .bg(fill)
+            .text_color(words_color)
             .text_sm()
             .role(Role::Status)
             .aria_label(words)
@@ -223,23 +379,21 @@ impl RenderOnce for RunStatusBar {
                     .items_center()
                     .justify_center()
                     .size_4()
-                    .text_color(mark)
                     .map(|this| match status.icon() {
                         Some(icon) => this.child(Icon::new(icon).small()),
                         None => this.child(Spinner::new().xsmall()),
                     }),
             )
             .child(
-                // The words wrap in a narrow column; the action keeps its place.
                 v_flex()
                     .flex_1()
-                    .min_w_0()
+                    .min_w(px(140.))
                     .child(div().font_medium().child(message))
                     .when_some(self.detail, |this, detail| {
                         this.child(div().text_xs().text_color(quiet).child(detail))
                     }),
             )
-            .children(action.map(|action| div().flex_none().child(action)))
+            .child(h_flex().flex_none().ml_auto().gap_1p5().children(buttons))
             .refine_style(&self.style)
     }
 }
@@ -249,7 +403,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_the_two_recoverable_states_have_an_action() {
+    fn only_the_two_recoverable_states_have_a_shorthand_action() {
         let with_action: Vec<_> = RunStatus::ALL
             .into_iter()
             .filter(|status| status.default_action().is_some())
@@ -268,15 +422,37 @@ mod tests {
         words.sort_unstable();
         words.dedup();
         assert_eq!(words.len(), RunStatus::ALL.len());
+        assert_eq!(
+            RunStatus::Stopped.default_message(),
+            "You stopped this response"
+        );
     }
 
     #[test]
-    fn the_tone_follows_how_bad_it_is() {
+    fn the_tone_follows_what_the_state_means() {
+        assert_eq!(RunStatus::Running.tone(), Tone::Info);
         assert_eq!(RunStatus::Stopped.tone(), Tone::Neutral);
         assert_eq!(RunStatus::CutShort.tone(), Tone::Warning);
         assert_eq!(RunStatus::Failed.tone(), Tone::Danger);
         assert_eq!(RunStatus::Reconnecting.tone(), Tone::Info);
         assert_eq!(RunStatus::Closed.tone(), Tone::Neutral);
+        assert_eq!(RunStatus::Done.tone(), Tone::Success);
+    }
+
+    #[test]
+    fn the_waiting_states_spin_and_the_rest_have_an_icon() {
+        for status in RunStatus::ALL {
+            let spins = matches!(status, RunStatus::Running | RunStatus::Reconnecting);
+            assert_eq!(status.icon().is_none(), spins, "{status:?}");
+        }
+    }
+
+    #[test]
+    fn elapsed_time_reads_as_minutes_and_seconds() {
+        assert_eq!(elapsed_words(Duration::from_secs(0)), "0:00");
+        assert_eq!(elapsed_words(Duration::from_secs(14)), "0:14");
+        assert_eq!(elapsed_words(Duration::from_secs(725)), "12:05");
+        assert_eq!(elapsed_words(Duration::from_millis(59_900)), "0:59");
     }
 
     #[test]
@@ -296,5 +472,12 @@ mod tests {
             ),
             "Something went wrong. The model ran out of memory."
         );
+    }
+
+    #[test]
+    fn a_button_is_secondary_until_made_primary() {
+        let button = RunStatusButton::new("Resume");
+        assert_eq!(button.style, RunStatusButtonStyle::Secondary);
+        assert_eq!(button.primary().style, RunStatusButtonStyle::Primary);
     }
 }
