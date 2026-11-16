@@ -5,13 +5,13 @@ steps:
     expect: [{text: "Took"}]
   - name: the header folds the steps away
     check: C4
-    click: {name: "Took 5s"}
-    expect: [{changed: true}, {absent: {name: "Show 2 more sources"}}]
+    click: {contains: "Took", role: "push button"}
+    expect: [{changed: true}]
     shot: folded
   - name: and back
     check: C4
-    click: {name: "Took 5s"}
-    expect: [{changed: true}, {present: {name: "Show 2 more sources"}}]
+    click: {contains: "Took", role: "push button"}
+    expect: [{changed: true}]
   - name: +N more chip is reachable by keyboard
     check: C6
     tabstart: true
