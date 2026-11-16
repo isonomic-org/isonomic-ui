@@ -6,7 +6,7 @@ use crate::{
     v_flex,
 };
 use gpui::{
-    AbsoluteLength, AnyElement, App, ClickEvent, DefiniteLength, EdgesRefinement, ElementId,
+    AbsoluteLength, AnyElement, App, ClickEvent, DefiniteLength, Edges, EdgesRefinement, ElementId,
     InteractiveElement as _, IntoElement, Length, ListAlignment, ListState, ParentElement, Pixels,
     RenderOnce, SharedString, StyleRefinement, Styled, Window, div, list, prelude::FluentBuilder,
     px,
@@ -243,6 +243,10 @@ pub struct Sidebar<E: SidebarItem + 'static> {
     side: Side,
     collapsible: SidebarCollapsible,
     collapsed: bool,
+    header_padding: Option<Edges<Pixels>>,
+    content_padding: Option<Edges<Pixels>>,
+    footer_padding: Option<Edges<Pixels>>,
+    content_gap: Option<Pixels>,
 }
 
 impl<E: SidebarItem> Sidebar<E> {
@@ -257,7 +261,42 @@ impl<E: SidebarItem> Sidebar<E> {
             side: Side::Left,
             collapsible: SidebarCollapsible::Icon,
             collapsed: false,
+            header_padding: None,
+            content_padding: None,
+            footer_padding: None,
+            content_gap: None,
         }
+    }
+
+    /// Set the padding around the header while the sidebar is expanded.
+    ///
+    /// The default is 12 px at the top and sides and none below.
+    pub fn header_padding(mut self, padding: Edges<Pixels>) -> Self {
+        self.header_padding = Some(padding);
+        self
+    }
+
+    /// Set the padding around the content while the sidebar is expanded:
+    /// the sides, the space above the first child and below the last.
+    ///
+    /// The default is 12 px all round.
+    pub fn content_padding(mut self, padding: Edges<Pixels>) -> Self {
+        self.content_padding = Some(padding);
+        self
+    }
+
+    /// Set the padding around the footer while the sidebar is expanded.
+    ///
+    /// The default is 12 px at the bottom and sides and none above.
+    pub fn footer_padding(mut self, padding: Edges<Pixels>) -> Self {
+        self.footer_padding = Some(padding);
+        self
+    }
+
+    /// Set the space between the sidebar's children. The default is none.
+    pub fn content_gap(mut self, gap: Pixels) -> Self {
+        self.content_gap = Some(gap);
+        self
     }
 
     /// Set the side of the sidebar.
@@ -422,6 +461,13 @@ impl<E: SidebarItem> RenderOnce for Sidebar<E> {
         let expanded_width = sidebar_expanded_width(&self.style);
         let side = physical_side(self.side, cx);
         let layout = SidebarLayout::new(self.collapsible, self.collapsed, expanded_width, side);
+        // Custom paddings apply to the expanded sidebar; collapsed to icons it
+        // keeps its own tight spacing.
+        let expanded = !layout.icon_collapsed;
+        let header_padding = self.header_padding.filter(|_| expanded);
+        let content_padding = self.content_padding.filter(|_| expanded);
+        let footer_padding = self.footer_padding.filter(|_| expanded);
+        let content_gap = self.content_gap.filter(|_| expanded);
 
         // Sidebar content renders at its target width immediately. A wrapper
         // div animates clip-width for smooth transitions without re-laying out
@@ -455,6 +501,12 @@ impl<E: SidebarItem> RenderOnce for Sidebar<E> {
                         .px_3()
                         .gap_2()
                         .when(layout.icon_collapsed, |this| this.pt_2().px_2())
+                        .when_some(header_padding, |this, edges| {
+                            this.pt(edges.top)
+                                .pr(edges.right)
+                                .pb(edges.bottom)
+                                .pl(edges.left)
+                        })
                         .child(header),
                 )
             })
@@ -466,6 +518,9 @@ impl<E: SidebarItem> RenderOnce for Sidebar<E> {
                         .px_3()
                         .gap_y_3()
                         .when(layout.icon_collapsed, |this| this.p_2())
+                        .when_some(content_padding, |this, edges| {
+                            this.pl(edges.left).pr(edges.right)
+                        })
                         .child(isonomic_ui_base::ScrollBounce::new(
                             "bounce",
                             &list_state,
@@ -485,8 +540,19 @@ impl<E: SidebarItem> RenderOnce for Sidebar<E> {
                                                     .into_any_element(),
                                             )
                                         })
-                                        .when(is_first, |this| this.pt_3())
-                                        .when(is_last, |this| this.pb_3())
+                                        .when(is_first, |this| {
+                                            this.pt(
+                                                content_padding.map_or(px(12.), |edges| edges.top)
+                                            )
+                                        })
+                                        .when(is_last, |this| {
+                                            this.pb(content_padding
+                                                .map_or(px(12.), |edges| edges.bottom))
+                                        })
+                                        .when_some(
+                                            content_gap.filter(|_| !is_first),
+                                            |this, gap| this.pt(gap),
+                                        )
                                         .into_any_element()
                                 }
                             })
@@ -504,6 +570,12 @@ impl<E: SidebarItem> RenderOnce for Sidebar<E> {
                         .px_3()
                         .gap_2()
                         .when(layout.icon_collapsed, |this| this.pt_2().px_2())
+                        .when_some(footer_padding, |this, edges| {
+                            this.pt(edges.top)
+                                .pr(edges.right)
+                                .pb(edges.bottom)
+                                .pl(edges.left)
+                        })
                         .child(footer),
                 )
             });

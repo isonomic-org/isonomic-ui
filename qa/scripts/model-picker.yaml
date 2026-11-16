@@ -22,3 +22,12 @@ steps:
     check: C6
     key: Escape
     expect: [{changed: true}]
+  - name: the plain picker names its rows for a screen reader
+    check: C4
+    click: {contains: "Model: Medium"}
+    expect: [{present: {name: "Small, 4 GB, fastest"}}, {present: {name: "Large, 16 GB, most careful"}}]
+    shot: plain-open
+  - name: close it
+    check: C4
+    key: Escape
+    expect: [{changed: true}]

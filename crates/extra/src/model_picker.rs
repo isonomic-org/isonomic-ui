@@ -19,10 +19,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    Anchor, AnyElement, App, Context, ElementId, Entity, FocusHandle, InteractiveElement as _,
-    IntoElement, KeyDownEvent, Keystroke, ParentElement as _, RenderOnce, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, px, relative,
+    Anchor, AnyElement, App, Context, Edges, ElementId, Entity, FocusHandle,
+    InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke, ParentElement as _, Pixels,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 /// How many steps a meter has.
@@ -181,6 +181,7 @@ pub struct ModelPicker {
     default_value: Option<SharedString>,
     above: bool,
     align_end: bool,
+    look: Look,
     on_change: Option<ChangeHandler>,
     on_setting_change: Option<SettingHandler>,
 }
@@ -198,9 +199,65 @@ impl ModelPicker {
             default_value: None,
             above: false,
             align_end: false,
+            look: Look::default(),
             on_change: None,
             on_setting_change: None,
         }
+    }
+
+    /// Show a header row above the models with this text, such as "Model".
+    ///
+    /// Without it there is a header only when there are meter columns, and
+    /// it reads "Model".
+    pub fn header(mut self, header: impl Into<SharedString>) -> Self {
+        self.look.header = Some(header.into());
+        self
+    }
+
+    /// Show or hide the small square in front of a model's name, on the
+    /// trigger and on each row. Shown by default.
+    pub fn tile(mut self, tile: bool) -> Self {
+        self.look.tile = tile;
+        self
+    }
+
+    /// Show or hide the chevron at the end of the trigger. Shown by default.
+    pub fn caret(mut self, caret: bool) -> Self {
+        self.look.caret = caret;
+        self
+    }
+
+    /// Put the chosen model's check at the end of its row, in a slot every
+    /// row keeps, instead of beside its name. Off by default.
+    pub fn trailing_check(mut self, trailing: bool) -> Self {
+        self.look.trailing_check = trailing;
+        self
+    }
+
+    /// Fill the chosen model's row. Off by default, where only the row
+    /// under the pointer or the keyboard is filled.
+    pub fn chosen_fill(mut self, fill: bool) -> Self {
+        self.look.chosen_fill = fill;
+        self
+    }
+
+    /// Set the padding inside each model row. The default is 8 px at the sides.
+    pub fn row_padding(mut self, padding: Edges<Pixels>) -> Self {
+        self.look.row_padding = Some(padding);
+        self
+    }
+
+    /// Set the space between model rows. The default is none.
+    pub fn row_gap(mut self, gap: Pixels) -> Self {
+        self.look.row_gap = Some(gap);
+        self
+    }
+
+    /// Show or hide the footer with the chosen model's note and the key
+    /// hints. Shown by default.
+    pub fn footer(mut self, footer: bool) -> Self {
+        self.look.footer = footer;
+        self
     }
 
     /// Add a model after the ones already added.
@@ -338,8 +395,45 @@ struct PickerState {
     focus: FocusHandle,
 }
 
+/// How the picker is drawn, apart from what it holds.
+#[derive(Clone)]
+struct Look {
+    header: Option<SharedString>,
+    tile: bool,
+    caret: bool,
+    trailing_check: bool,
+    chosen_fill: bool,
+    row_padding: Option<Edges<Pixels>>,
+    row_gap: Option<Pixels>,
+    footer: bool,
+}
+
+impl Default for Look {
+    fn default() -> Self {
+        Self {
+            header: None,
+            tile: true,
+            caret: true,
+            trailing_check: false,
+            chosen_fill: false,
+            row_padding: None,
+            row_gap: None,
+            footer: true,
+        }
+    }
+}
+
+/// What a screen reader hears for a model's row: its name, then its tagline.
+fn row_words(model: &ModelOption) -> String {
+    match &model.tagline {
+        Some(tagline) => format!("{}, {tagline}", model.name),
+        None => model.name.to_string(),
+    }
+}
+
 /// Everything the open menu draws from.
 struct Menu {
+    look: Look,
     models: Vec<ModelOption>,
     columns: Vec<SharedString>,
     settings: Vec<PickerSetting>,
@@ -414,14 +508,27 @@ impl Menu {
 
         let rows = self.models.iter().enumerate().map(|(ix, model)| {
             let is_lit = lit_row == Some(ix);
+            let is_chosen = self.chosen == Some(ix);
             h_flex()
                 .id(("model", ix))
+                .role(Role::ListBoxOption)
+                .aria_label(row_words(model))
+                .aria_selected(is_chosen)
                 .gap_2p5()
                 .min_h(px(44.))
                 .px_2()
+                .when_some(self.look.row_padding, |this, edges| {
+                    this.pt(edges.top)
+                        .pr(edges.right)
+                        .pb(edges.bottom)
+                        .pl(edges.left)
+                })
                 .rounded(radius)
                 .cursor_pointer()
-                .when(self.active == Some(ix), |this| this.bg(chip))
+                .when(
+                    self.active == Some(ix) || (self.look.chosen_fill && is_chosen),
+                    |this| this.bg(chip),
+                )
                 .on_hover({
                     let state = self.state.clone();
                     move |hovered, _, cx| {
@@ -445,7 +552,7 @@ impl Menu {
                         popover.dismiss(window, cx);
                     }
                 }))
-                .child(tile(model, cx))
+                .when(self.look.tile, |this| this.child(tile(model, cx)))
                 .child(
                     v_flex()
                         .flex_1()
@@ -454,7 +561,7 @@ impl Menu {
                             h_flex()
                                 .gap_1p5()
                                 .child(div().truncate().font_medium().child(model.name.clone()))
-                                .when(self.chosen == Some(ix), |this| {
+                                .when(is_chosen && !self.look.trailing_check, |this| {
                                     this.child(
                                         Icon::new(IconName::Check).xsmall().text_color(accent),
                                     )
@@ -480,6 +587,21 @@ impl Menu {
                             |column| meter(model.ratings.get(column).copied().unwrap_or(0), is_lit),
                         )))
                     }
+                })
+                .when(self.look.trailing_check, |this| {
+                    // Every row keeps the slot, so names line up whether or
+                    // not the row is the chosen one.
+                    this.child(
+                        div()
+                            .flex()
+                            .flex_none()
+                            .items_center()
+                            .justify_center()
+                            .size_4()
+                            .when(is_chosen, |this| {
+                                this.child(Icon::new(IconName::Check).xsmall().text_color(accent))
+                            }),
+                    )
                 })
         });
         let rows: Vec<_> = rows.collect();
@@ -592,25 +714,34 @@ impl Menu {
             .text_color(ink)
             .child(
                 v_flex()
+                    .id("models")
+                    .role(Role::ListBox)
+                    .aria_label("Models")
                     .p_1()
-                    .when(!self.columns.is_empty(), |this| {
-                        this.child(
-                            h_flex()
-                                .h(px(24.))
-                                .px_2()
-                                .text_xs()
-                                .text_color(quiet)
-                                .child(div().flex_1().child("Model"))
-                                .children(self.columns.iter().map(|column| {
-                                    div()
-                                        .flex_none()
-                                        .w(px(COLUMN))
-                                        .truncate()
-                                        .text_center()
-                                        .child(column.clone())
-                                })),
-                        )
-                    })
+                    .when_some(self.look.row_gap, |this, gap| this.gap(gap))
+                    .when(
+                        !self.columns.is_empty() || self.look.header.is_some(),
+                        |this| {
+                            this.child(
+                                h_flex()
+                                    .h(px(24.))
+                                    .px_2()
+                                    .text_xs()
+                                    .text_color(quiet)
+                                    .child(div().flex_1().child(
+                                        self.look.header.clone().unwrap_or_else(|| "Model".into()),
+                                    ))
+                                    .children(self.columns.iter().map(|column| {
+                                        div()
+                                            .flex_none()
+                                            .w(px(COLUMN))
+                                            .truncate()
+                                            .text_center()
+                                            .child(column.clone())
+                                    })),
+                            )
+                        },
+                    )
                     .children(rows),
             )
             .when(!settings.is_empty(), |this| {
@@ -622,20 +753,22 @@ impl Menu {
                         .children(settings),
                 )
             })
-            .child(
-                h_flex()
-                    .gap_1()
-                    .h(px(34.))
-                    .px_3()
-                    .border_t_1()
-                    .border_color(line)
-                    .text_xs()
-                    .text_color(quiet)
-                    .child(div().flex_1().min_w_0().truncate().children(note))
-                    .children(hint("up"))
-                    .children(hint("down"))
-                    .children(hint("enter")),
-            )
+            .when(self.look.footer, |this| {
+                this.child(
+                    h_flex()
+                        .gap_1()
+                        .h(px(34.))
+                        .px_3()
+                        .border_t_1()
+                        .border_color(line)
+                        .text_xs()
+                        .text_color(quiet)
+                        .child(div().flex_1().min_w_0().truncate().children(note))
+                        .children(hint("up"))
+                        .children(hint("down"))
+                        .children(hint("enter")),
+                )
+            })
             .into_any_element()
     }
 }
@@ -736,7 +869,7 @@ impl RenderOnce for ModelPicker {
                     .child(
                         h_flex()
                             .gap_1p5()
-                            .child(tile(model, cx))
+                            .when(self.look.tile, |this| this.child(tile(model, cx)))
                             .child(model.name.clone())
                             .children(self.settings.iter().zip(&switched).filter_map(
                                 |(setting, (on, _))| {
@@ -744,12 +877,17 @@ impl RenderOnce for ModelPicker {
                                     Some(Icon::new(icon).xsmall().text_color(quiet))
                                 },
                             ))
-                            .child(Icon::new(IconName::ChevronDown).xsmall().text_color(quiet)),
+                            .when(self.look.caret, |this| {
+                                this.child(
+                                    Icon::new(IconName::ChevronDown).xsmall().text_color(quiet),
+                                )
+                            }),
                     ),
                 None => this.label("Choose a model"),
             });
 
         let menu = Rc::new(Menu {
+            look: self.look,
             models: self.models,
             columns: self.columns,
             settings: self.settings,

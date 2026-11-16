@@ -3,8 +3,8 @@
 use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, IconName, h_flex, v_flex};
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Window, div, px,
+    App, AppContext as _, Context, Edges, Entity, IntoElement, ParentElement as _, Render,
+    SharedString, Styled as _, Window, div, px,
 };
 use isonomic_ui_extra::model_picker::{ModelOption, ModelPicker, PickerSetting, SettingChange};
 
@@ -122,5 +122,34 @@ impl Render for ModelPickerStory {
                     ),
             )
             .child(div().text_xs().text_color(quiet).child(self.last.clone()))
+            .child(
+                div()
+                    .pt_4()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("Plain: a header, no tiles, no caret, a check at the end, no footer"),
+            )
+            .child(
+                h_flex().child(
+                    ModelPicker::new("plain-model")
+                        .header("Local models")
+                        .tile(false)
+                        .caret(false)
+                        .trailing_check(true)
+                        .chosen_fill(true)
+                        .row_padding(Edges {
+                            top: px(6.),
+                            right: px(10.),
+                            bottom: px(6.),
+                            left: px(10.),
+                        })
+                        .row_gap(px(2.))
+                        .footer(false)
+                        .model(ModelOption::new("small", "Small").tagline("4 GB, fastest"))
+                        .model(ModelOption::new("medium", "Medium").tagline("8 GB, balanced"))
+                        .model(ModelOption::new("large", "Large").tagline("16 GB, most careful"))
+                        .default_value("medium"),
+                ),
+            )
     }
 }

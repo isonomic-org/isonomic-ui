@@ -153,6 +153,21 @@ impl Render for MenuStory {
                                     .menu("Cut", Box::new(Cut))
                                     .menu("Paste", Box::new(Paste))
                                     .separator()
+                                    // An action that cannot be undone is drawn in the danger colour.
+                                    .item(
+                                        PopupMenuItem::new("Delete")
+                                            .icon(isonomic_ui::component::IconName::Delete)
+                                            .destructive()
+                                            .on_click(window.listener_for(
+                                                &view,
+                                                |this, _, _, cx| {
+                                                    this.message =
+                                                        "You have clicked Delete".to_string();
+                                                    cx.notify();
+                                                },
+                                            )),
+                                    )
+                                    .separator()
                                     .menu_with_check(
                                         format!("Check Side {:?}", check_side),
                                         check_side.is_some(),

@@ -9,12 +9,26 @@ use crate::{
 };
 use gpui::{
     AnyElement, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, Window, div, percentage, prelude::FluentBuilder,
+    ParentElement as _, Pixels, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div, percentage, prelude::FluentBuilder, px,
 };
 use isonomic_ui_base::LogicalStyledExt as _;
 use isonomic_ui_base::TestSupportExt as _;
 use std::rc::Rc;
+
+/// Up and Down walk the Tab order, which in a sidebar is its rows and group
+/// labels in the order they are shown.
+pub(super) fn arrow_keys_move_focus(event: &gpui::KeyDownEvent, window: &mut Window, cx: &mut App) {
+    if event.keystroke.modifiers.modified() {
+        return;
+    }
+    match event.keystroke.key.as_str() {
+        "down" => window.focus_next(cx),
+        "up" => window.focus_prev(cx),
+        _ => return,
+    }
+    cx.stop_propagation();
+}
 
 /// Menu for the [`super::Sidebar`]
 #[derive(Clone)]
@@ -108,6 +122,8 @@ pub struct SidebarMenuItem {
     suffix: Option<Rc<dyn Fn(&mut Window, &mut App) -> AnyElement + 'static>>,
     disabled: bool,
     context_menu: Option<Rc<dyn Fn(PopupMenu, &mut Window, &mut App) -> PopupMenu + 'static>>,
+    height: Option<Pixels>,
+    focusable: bool,
 }
 
 impl SidebarMenuItem {
@@ -129,7 +145,24 @@ impl SidebarMenuItem {
             suffix: None,
             disabled: false,
             context_menu: None,
+            height: None,
+            focusable: false,
         }
+    }
+
+    /// Set the row's height while the sidebar is expanded. The default is 28 px.
+    pub fn height(mut self, height: Pixels) -> Self {
+        self.height = Some(height);
+        self
+    }
+
+    /// Let the keyboard reach the row. Off by default.
+    ///
+    /// A focusable row is a Tab stop that shows a focus ring. Enter and
+    /// Space press it, and Up and Down move to the row before and after it.
+    pub fn focusable(mut self, focusable: bool) -> Self {
+        self.focusable = focusable;
+        self
     }
 
     /// Set the icon for the menu item
@@ -296,6 +329,9 @@ impl SidebarItem for SidebarMenuItem {
         let is_active = self.active;
         let is_hoverable = !is_active && !self.disabled;
         let is_disabled = self.disabled;
+        let is_focusable = self.focusable && !self.disabled;
+        let row_height = self.height;
+        let ring = cx.theme().ring;
         let is_open = open_state
             .as_ref()
             .map_or(false, |s| !is_collapsed && *s.read(cx));
@@ -320,6 +356,14 @@ impl SidebarItem for SidebarMenuItem {
                     .rounded(cx.theme().radius)
                     .text_sm()
                     .refine_style(&self.style)
+                    .when(is_focusable, |this| {
+                        // Enter and Space press the row through its click.
+                        // The arrows walk the Tab order, which in a sidebar
+                        // is the rows in the order they are shown.
+                        this.tab_index(0)
+                            .focus_visible(move |style| style.border_1().border_color(ring))
+                            .on_key_down(arrow_keys_move_focus)
+                    })
                     .when(is_hoverable, |this| {
                         this.hover(|this| {
                             this.bg(cx.theme().sidebar_accent.opacity(0.8))
@@ -339,7 +383,7 @@ impl SidebarItem for SidebarMenuItem {
                         })
                     })
                     .when(!is_collapsed, |this| {
-                        this.h_7()
+                        this.h(row_height.unwrap_or(px(28.)))
                             .child(
                                 h_flex()
                                     .flex_row_dir(cx)

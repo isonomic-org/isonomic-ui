@@ -478,6 +478,23 @@ impl Render for ButtonStory {
                     ),
             )
             .child(
+                section("Truncated label")
+                    .description(
+                        "In a narrow space a long label ends in an ellipsis and the caret stays.",
+                    )
+                    .child(
+                        div().w(px(180.)).child(
+                            button("button-truncate-caret")
+                                .outline()
+                                .w_full()
+                                .truncate_label(true)
+                                .dropdown_caret(true)
+                                .label("A model with a very long name indeed")
+                                .on_click(Self::on_click),
+                        ),
+                    ),
+            )
+            .child(
                 section("Dropdown")
                     .description("A caret indicates an attached menu.")
                     .w_128()

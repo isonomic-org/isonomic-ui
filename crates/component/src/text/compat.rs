@@ -45,6 +45,9 @@ pub struct TextView {
     /// `None` leaves the state's own policy alone; `Some(false)` turns a
     /// fade off that an earlier frame turned on.
     stream_fade: Option<bool>,
+    /// The list marker refinements set so far, so each of the list options
+    /// adds to the others instead of replacing them.
+    list_marker: StyleRefinement,
 }
 
 impl Styled for TextView {
@@ -62,6 +65,7 @@ impl TextView {
             text_style: None,
             motion: None,
             stream_fade: None,
+            list_marker: StyleRefinement::default(),
         }
     }
     /// Creates a text view that parses `text` as Markdown.
@@ -73,6 +77,7 @@ impl TextView {
             text_style: None,
             motion: None,
             stream_fade: None,
+            list_marker: StyleRefinement::default(),
         }
     }
     /// Creates a text view that parses `text` as HTML.
@@ -84,6 +89,7 @@ impl TextView {
             text_style: None,
             motion: None,
             stream_fade: None,
+            list_marker: StyleRefinement::default(),
         }
     }
     /// Overrides the source of every document image, including embedded data URLs.
@@ -119,7 +125,29 @@ impl TextView {
     /// explicit style. The text color also outlines unchecked task-list
     /// checkboxes. Unspecified properties are inherited.
     pub fn list_style(mut self, style: StyleRefinement) -> Self {
+        self.list_marker = style.clone();
         self.inner = self.inner.list_style(style);
+        self
+    }
+    /// Sets how far a list item's text is set in: the width of the column
+    /// its bullet or number sits in. The default follows the text size.
+    pub fn list_indent(mut self, indent: gpui::Pixels) -> Self {
+        self.list_marker = self.list_marker.min_w(indent);
+        self.inner = self.inner.list_style(self.list_marker.clone());
+        self
+    }
+    /// Sets the space between a list's bullet or number and the item's text.
+    /// The default is three tenths of the indent.
+    pub fn list_marker_gap(mut self, gap: gpui::Pixels) -> Self {
+        self.list_marker = self.list_marker.pr(gap);
+        self.inner = self.inner.list_style(self.list_marker.clone());
+        self
+    }
+    /// Sets the colour of a list's bullets and numbers. The default is the
+    /// themed muted colour.
+    pub fn list_marker_color(mut self, color: gpui::Hsla) -> Self {
+        self.list_marker = self.list_marker.text_color(color);
+        self.inner = self.inner.list_style(self.list_marker.clone());
         self
     }
     /// Refines the blockquote container, including its left border, over the

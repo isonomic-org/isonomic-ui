@@ -3,12 +3,12 @@
 use std::time::Duration;
 
 use crate::Story;
-use isonomic_ui::component::{ActiveTheme as _, v_flex};
+use isonomic_ui::component::{ActiveTheme as _, Size, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, SharedString, Styled as _, Window, div, px,
 };
-use isonomic_ui_extra::message_action_bar::{MessageActionBar, Vote};
+use isonomic_ui_extra::message_action_bar::{MessageActionBar, MessageActionLabel, Vote};
 
 const FIRST: &str = "March closed 4% under budget. Freight was the only line that ran over.";
 const MORE: [&str; 2] = [
@@ -126,5 +126,22 @@ impl Render for MessageActionBarStory {
                     ),
             )
             .child(div().text_xs().text_color(quiet).child(self.last.clone()))
+            .child(
+                div()
+                    .pt_4()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("Larger buttons, the switcher first, and Regenerate reworded"),
+            )
+            .child(
+                MessageActionBar::new("actions-reworded")
+                    .text("The March close is ready to review.")
+                    .quiet(false)
+                    .versions(3)
+                    .default_version(1)
+                    .button_size(Size::Small)
+                    .pager_first(true)
+                    .label(MessageActionLabel::Regenerate, "Try again"),
+            )
     }
 }
