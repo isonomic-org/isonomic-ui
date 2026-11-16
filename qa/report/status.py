@@ -14,6 +14,8 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_report import CHECKS, verdict  # noqa: E402
 
@@ -29,6 +31,13 @@ def main():
     run = Path(a.run)
     issues = json.loads(Path(a.issues).read_text()) if a.issues and Path(a.issues).exists() else []
     results = {p.parent.name: json.loads(p.read_text()) for p in sorted(run.glob("*/results.json"))}
+    # A finding reviewed and accepted in review/notes.yaml (`known`) counts as a pass.
+    notes = yaml.safe_load((Path(__file__).resolve().parent.parent / "review/notes.yaml").read_text()) or {}
+    for slug, res in results.items():
+        for n in notes.get(slug, []) or []:
+            chk = res["checks"].get(n["check"])
+            if n["status"] == "known" and chk and chk.get("status") == "warn":
+                res["checks"][n["check"]] = {"status": "pass", "note": "known limit: " + n["note"]}
     slugs = [s for s in a.only.split(",") if s] or list(results)
     out = ["| Story | Verdict | " + " | ".join(CHECKS) + " | Open issues |",
            "|---|---|" + "---|" * len(CHECKS) + "---|"]

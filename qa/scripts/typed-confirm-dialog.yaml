@@ -1,0 +1,27 @@
+component: typed-confirm-dialog
+steps:
+  - name: the action does nothing until the phrase is typed
+    check: C5
+    click: Void invoice
+    expect: [{present: {name: "Void invoice"}}, {present: {name: "Type INV-2240"}}]
+  - name: a wrong phrase keeps it locked
+    check: C5
+    click: {name: "Type INV-2240"}
+  - name: type a wrong phrase
+    check: C5
+    type: "INV-2241"
+    expect: [{changed: true}]
+    shot: wrong
+  - name: the right phrase unlocks the action
+    check: C4
+    key: BackSpace
+  - name: type the last digit
+    check: C4
+    type: "0"
+    expect: [{changed: true}]
+    shot: unlocked
+  - name: Enter runs the action
+    check: C6
+    key: Return
+    expect: [{changed: true}]
+    shot: done

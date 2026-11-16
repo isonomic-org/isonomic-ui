@@ -61,3 +61,45 @@ elimination-bracket:
   - check: C8
     status: info
     note: "Never fully at rest: the only moving pixels are the spinner on the match being judged and on the 'Judging' tag. Expected while judging runs. Not filed."
+
+# V1 set, reviewed 2026-11-16 on main plus the V1 batch. `known` turns a
+# warning into a pass with the reason beside it.
+base-textarea:
+  - check: C6
+    status: known
+    note: "A multi-line text area indents on Tab, like an editor, so Tab does not leave the first area in the story. The prompt composer, which Chat uses, moves on with Tab (C6 passes there)."
+base-input:
+  - check: C6
+    status: known
+    note: "The story is taller than the 2400 px test window. The fields flagged are below its bottom edge, so their focus ring is off screen; every field above shows one."
+base-messagescroller:
+  - check: C6
+    status: known
+    note: "The one button flagged sits below the bottom of the test window in this long story."
+base-select:
+  - check: C6
+    status: known
+    note: "The field flagged is below the bottom of the test window in this long story."
+base-toggle:
+  - check: C9
+    status: warn
+    note: "Each toggle group is exposed as an unnamed element with a click action, and a keyboard press on a toggle in a group does not reach the group's callback. Filed for after V1; single toggles are named and show focus."
+base-attachment:
+  - check: C3
+    status: known
+    note: "White text and a black scrim over an image thumbnail, which is dark in both themes by design."
+  - check: C10
+    status: warn
+    note: "Redraw is about 35 ms over an empty window in a dev build under software rendering. Needs a release-build timing on the target Mac before it means anything."
+base-virtuallist:
+  - check: C10
+    status: warn
+    note: "Redraw is about 34 ms over an empty window in a dev build under software rendering. Needs a release-build timing on the target Mac before it means anything."
+streamed-answer:
+  - check: C3
+    status: known
+    note: "White text on the accent-coloured source chip; reads in both themes."
+base-theme-colors:
+  - check: C3
+    status: known
+    note: "The story shows every colour of the palette, light ones included, in both themes."

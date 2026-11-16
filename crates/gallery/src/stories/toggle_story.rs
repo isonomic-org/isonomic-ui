@@ -90,6 +90,7 @@ impl Render for ToggleStory {
                             .child(
                                 Toggle::new("favorite")
                                     .icon(IconName::Star)
+                                    .tooltip("Favourite")
                                     .with_size(self.size)
                                     .checked(self.checked[0])
                                     .on_click(cx.listener(|this, checked, _, cx| {
@@ -117,16 +118,19 @@ impl Render for ToggleStory {
                                     .child(
                                         Toggle::new(0)
                                             .icon(IconName::Bell)
+                                            .tooltip("Notifications")
                                             .checked(self.checked[1]),
                                     )
                                     .child(
                                         Toggle::new(1)
                                             .icon(IconName::Inbox)
+                                            .tooltip("Inbox")
                                             .checked(self.checked[2]),
                                     )
                                     .child(
                                         Toggle::new(2)
                                             .icon(IconName::Check)
+                                            .tooltip("Done")
                                             .checked(self.checked[3]),
                                     )
                                     .on_click(cx.listener(|this, values: &Vec<bool>, _, cx| {
@@ -147,16 +151,19 @@ impl Render for ToggleStory {
                                     .child(
                                         Toggle::new(0)
                                             .icon(IconName::Bell)
+                                            .tooltip("Notifications")
                                             .checked(self.checked[4]),
                                     )
                                     .child(
                                         Toggle::new(1)
                                             .icon(IconName::Inbox)
+                                            .tooltip("Inbox")
                                             .checked(self.checked[5]),
                                     )
                                     .child(
                                         Toggle::new(2)
                                             .icon(IconName::Check)
+                                            .tooltip("Done")
                                             .checked(self.checked[6]),
                                     )
                                     .on_click(cx.listener(|this, values: &Vec<bool>, _, cx| {

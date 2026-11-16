@@ -136,16 +136,28 @@ impl RenderOnce for SettingToggleRow {
             .px_3()
             .py_2p5()
             .rounded(px(6.))
+            .relative()
             .role(Role::Group)
             .aria_label(spoken)
             .when(!frozen, |this| {
-                this.cursor_pointer()
-                    .hover(move |s| s.bg(hover))
-                    .on_click(move |_, window, cx| {
-                        if let Some(change) = &row_change {
-                            change(!on, window, cx);
-                        }
-                    })
+                // A click anywhere on the row flips the setting. It sits on a
+                // layer with no role, so the switch stays the one control
+                // that is announced.
+                this.cursor_pointer().hover(move |s| s.bg(hover)).child(
+                    div()
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            "row-click".into(),
+                        ))
+                        .absolute()
+                        .inset_0()
+                        .size_full()
+                        .on_click(move |_, window, cx| {
+                            if let Some(change) = &row_change {
+                                change(!on, window, cx);
+                            }
+                        }),
+                )
             })
             .child(
                 h_flex()

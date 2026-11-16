@@ -144,7 +144,8 @@ impl PromptComposerStory {
                 });
                 let composer = composer.clone();
                 self._work = Some(cx.spawn(async move |this, cx| {
-                    cx.background_executor().timer(Duration::from_secs(2)).await;
+                    // Long enough to try Stop before the answer ends.
+                    cx.background_executor().timer(Duration::from_secs(5)).await;
                     composer.update(cx, |composer, cx| composer.set_busy(false, cx));
                     this.update(cx, |this, cx| {
                         this.last = "Answered".into();

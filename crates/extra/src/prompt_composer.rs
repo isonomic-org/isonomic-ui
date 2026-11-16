@@ -962,25 +962,38 @@ impl Render for PromptComposer {
                 ),
             )
             .child(
+                // Two groups that wrap: in a narrow column the model, the
+                // microphone and Send drop to a second line instead of
+                // running past the edge.
                 h_flex()
+                    .flex_wrap()
                     .gap_1()
-                    .child(plus)
-                    .children(self.leading.clone())
-                    .children(folder)
-                    .children(apps)
-                    .child(div().flex_1())
-                    .children(left.map(|left| {
-                        div()
+                    .child(
+                        h_flex()
+                            .gap_1()
+                            .child(plus)
+                            .children(self.leading.clone())
+                            .children(folder)
+                            .children(apps),
+                    )
+                    .child(
+                        h_flex()
                             .flex_none()
-                            .px_1()
-                            .text_xs()
-                            .text_color(if left < 0 { danger } else { quiet })
-                            .child(left.to_string())
-                    }))
-                    .children(self.trailing.clone())
-                    .children(model)
-                    .children(mic)
-                    .child(send),
+                            .ml_auto()
+                            .gap_1()
+                            .children(left.map(|left| {
+                                div()
+                                    .flex_none()
+                                    .px_1()
+                                    .text_xs()
+                                    .text_color(if left < 0 { danger } else { quiet })
+                                    .child(left.to_string())
+                            }))
+                            .children(self.trailing.clone())
+                            .children(model)
+                            .children(mic)
+                            .child(send),
+                    ),
             )
     }
 }

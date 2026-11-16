@@ -1,0 +1,14 @@
+component: streamed-answer
+steps:
+  - name: a finished answer shows its actions
+    check: C4
+    expect: [{present: {name: "Copy the answer"}}, {present: {name: "Regenerate"}}]
+  - name: rating an answer marks the choice
+    check: C4
+    click: Good answer
+    expect: [{changed: true}]
+    shot: rated
+  - name: the actions are reachable by keyboard
+    check: C6
+    tabstart: true
+    expect: [{focused: true}]
