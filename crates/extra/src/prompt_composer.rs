@@ -227,6 +227,7 @@ pub struct PromptComposer {
     listening: bool,
     disabled: bool,
     dictation: bool,
+    attach: bool,
     max_chars: Option<usize>,
     readonly: bool,
     query: Option<(SuggestTrigger, usize)>,
@@ -303,6 +304,7 @@ impl PromptComposer {
             listening: false,
             disabled: false,
             dictation: true,
+            attach: true,
             max_chars: None,
             readonly: false,
             query: None,
@@ -419,7 +421,8 @@ impl PromptComposer {
     fn capture_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         let keys = &event.keystroke;
         if (keys.modifiers.platform || keys.modifiers.control) && keys.key == "v" {
-            if self.disabled || self.readonly {
+            // With attaching off, a pasted image is left alone and text pastes as usual.
+            if self.disabled || self.readonly || !self.attach {
                 return;
             }
             let images: Vec<Image> = cx
@@ -513,6 +516,18 @@ impl PromptComposer {
     /// Turn the whole composer off, such as while offline.
     pub fn set_disabled(&mut self, disabled: bool, cx: &mut Context<Self>) {
         self.disabled = disabled;
+        cx.notify();
+    }
+
+    /// Say whether things can be attached. On by default.
+    ///
+    /// Off hides the attach button, the plus that adds files and photos, and
+    /// the composer no longer takes dropped files or pasted images, so
+    /// [`PromptComposerEvent::Attach`], [`PromptComposerEvent::DropFiles`]
+    /// and [`PromptComposerEvent::PasteImages`] are never sent. Use it where
+    /// nothing can be attached.
+    pub fn set_attach(&mut self, attach: bool, cx: &mut Context<Self>) {
+        self.attach = attach;
         cx.notify();
     }
 
@@ -725,38 +740,40 @@ impl Render for PromptComposer {
             .map(|attachment| self.chip(attachment, cx).into_any_element())
             .collect();
 
-        let plus = Button::new("attach")
-            .ghost()
-            .small()
-            .icon(IconName::Plus)
-            .disabled(disabled)
-            .tooltip("Add files and more")
-            .accessibility_label("Add files and more")
-            .dropdown_menu({
-                let entity = entity.clone();
-                move |menu, _, _| {
-                    let files = entity.clone();
-                    let images = entity.clone();
-                    menu.item(
-                        PopupMenuItem::new("Add files")
-                            .icon(IconName::File)
-                            .on_click(move |_, _, cx| {
-                                files.update(cx, |_, cx| {
-                                    cx.emit(PromptComposerEvent::Attach(AttachKind::Files))
-                                })
-                            }),
-                    )
-                    .item(
-                        PopupMenuItem::new("Add photos and screenshots")
-                            .icon(IconName::Frame)
-                            .on_click(move |_, _, cx| {
-                                images.update(cx, |_, cx| {
-                                    cx.emit(PromptComposerEvent::Attach(AttachKind::Images))
-                                })
-                            }),
-                    )
-                }
-            });
+        let plus = self.attach.then(|| {
+            Button::new("attach")
+                .ghost()
+                .small()
+                .icon(IconName::Plus)
+                .disabled(disabled)
+                .tooltip("Add files and more")
+                .accessibility_label("Add files and more")
+                .dropdown_menu({
+                    let entity = entity.clone();
+                    move |menu, _, _| {
+                        let files = entity.clone();
+                        let images = entity.clone();
+                        menu.item(
+                            PopupMenuItem::new("Add files")
+                                .icon(IconName::File)
+                                .on_click(move |_, _, cx| {
+                                    files.update(cx, |_, cx| {
+                                        cx.emit(PromptComposerEvent::Attach(AttachKind::Files))
+                                    })
+                                }),
+                        )
+                        .item(
+                            PopupMenuItem::new("Add photos and screenshots")
+                                .icon(IconName::Frame)
+                                .on_click(move |_, _, cx| {
+                                    images.update(cx, |_, cx| {
+                                        cx.emit(PromptComposerEvent::Attach(AttachKind::Images))
+                                    })
+                                }),
+                        )
+                    }
+                })
+        });
 
         let folder = (!self.folders.is_empty()).then(|| {
             let current = self
@@ -931,9 +948,13 @@ impl Render for PromptComposer {
             .key_context("PromptComposer")
             .capture_key_down(cx.listener(Self::capture_key))
             .on_key_down(cx.listener(Self::key_down))
-            .drag_over::<ExternalPaths>(|style, _, _, cx| style.border_color(cx.theme().ring))
+            .when(self.attach, |this| {
+                this.drag_over::<ExternalPaths>(|style, _, _, cx| {
+                    style.border_color(cx.theme().ring)
+                })
+            })
             .on_drop(cx.listener(|this, paths: &ExternalPaths, _, cx| {
-                if !this.disabled && !this.readonly {
+                if !this.disabled && !this.readonly && this.attach {
                     cx.emit(PromptComposerEvent::DropFiles(paths.paths().to_vec()));
                 }
             }))
@@ -971,7 +992,7 @@ impl Render for PromptComposer {
                     .child(
                         h_flex()
                             .gap_1()
-                            .child(plus)
+                            .children(plus)
                             .children(self.leading.clone())
                             .children(folder)
                             .children(apps),
