@@ -476,12 +476,20 @@ def contact_sheet(shots: dict[str, Path], dest: Path):
     return dest if dest.exists() else None
 
 
+def off_screen(nodes: list[dict], label: str) -> bool:
+    """Whether every on-screen element with this name lies outside the test window."""
+    if not label:
+        return False
+    boxes = [n for n in nodes if n.get("name") == label and n.get("h", 0) > 0]
+    return bool(boxes) and all(n["y"] >= HEIGHT or n["y"] + n["h"] <= 0 for n in boxes)
+
+
 def keyboard_walk(app: App) -> dict:
     """C6: walk the story with Tab and Shift+Tab from a fresh start."""
     tree = app.tree()
     stops = (tree[0].get("frame", {}) if tree else {}).get("tab_stop_count", 0) or 0
     actionable = [n["element_id"] for n in tree if set(n.get("on_action") or []) & {"Click", "Focus"}]
-    seq, ring, names = [], [], {}
+    seq, ring, names, labels = [], [], {}, {}
     prev = app.grab()
     for i in range(stops + 2):
         if i == 0:
@@ -496,6 +504,7 @@ def keyboard_walk(app: App) -> dict:
         seq.append(f["key"] if f else None)
         if f:
             names[f["key"]] = f["element_id"]
+            labels[f["key"]] = f.get("label") or ""
         ring.append(prev is not None and cur is not None and ImageChops.difference(prev, cur).getbbox() is not None)
         prev = cur
     back = None
@@ -503,6 +512,7 @@ def keyboard_walk(app: App) -> dict:
         app.key("shift+Tab")
         f = focused(app)
         back = f["key"] if f else None
+    on_screen = app.atspi()
     app.key("Escape")
     reached = [x for x in dict.fromkeys(seq) if x]
     # The first stop is given focus without a key press, which does not count as
@@ -511,6 +521,9 @@ def keyboard_walk(app: App) -> dict:
     arrivals = [i for i in range(len(seq)) if seq[i] and (i == 0 or seq[i] != seq[i - 1])]
     shown = {seq[i] for i in arrivals if ring[i] and i > 0}
     no_ring = list(dict.fromkeys(seq[i] for i in arrivals if not ring[i] and seq[i] not in shown))
+    # A control below the bottom of the test window cannot show anything, so it is not judged.
+    below = [k for k in no_ring if off_screen(on_screen, labels.get(k, ""))]
+    no_ring = [k for k in no_ring if k not in below]
     wraps = len(seq) > 1 and seq[0] is not None and seq[0] in seq[1:]
     nm = lambda k: names.get(k, k) if k else None
     res = {"tab_stops": stops, "sequence": [nm(k) for k in seq], "reached": [nm(k) for k in reached],
@@ -539,6 +552,7 @@ def keyboard_walk(app: App) -> dict:
         problems.append("no visible focus change on " + ", ".join(nm(k) for k in no_ring[:4]))
     if stuck and len(seq) >= 2 and seq[-1] and back == seq[-1]:
         problems.append("Shift+Tab does not move focus back")
+    res["below_window"] = [nm(k) for k in below]
     res["status"] = "warn" if problems else ("pass" if stops else "info")
     res["note"] = "; ".join(problems) or (("Tab reaches the one stop, focus is visible" if stops == 1 else
                                            f"Tab moves through all {stops} stops, focus is visible, Shift+Tab goes back")

@@ -16,8 +16,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window,
-    div, prelude::FluentBuilder as _, px, relative,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -346,6 +346,7 @@ impl RenderOnce for VariantComparisonCard {
         let fill = theme.background;
         let line = theme.border;
         let chip = theme.muted;
+        let focus_tint = theme.ring.opacity(0.25);
         let accent = theme.info;
         let success = theme.success;
         let danger = theme.danger;
@@ -564,12 +565,22 @@ impl RenderOnce for VariantComparisonCard {
 
         let switch = (metrics.len() > 1).then(|| {
             h_flex()
+                .id(child_id("metrics".into()))
+                .role(Role::TabList)
+                .aria_label("Measure")
                 .gap_1()
                 .children(metrics.iter().enumerate().map(|(ix, option)| {
                     let state = state.clone();
                     let on_metric_change = self.on_metric_change.clone();
                     div()
                         .id(child_id(format!("metric-{ix}")))
+                        // Each measure is a tab a screen reader can find and
+                        // the keyboard can reach and press.
+                        .role(Role::Tab)
+                        .aria_label(option.label.clone())
+                        .aria_selected(ix == metric_ix)
+                        .tab_index(0)
+                        .focus_visible(move |style| style.bg(focus_tint))
                         .flex()
                         .items_center()
                         .h(px(26.))

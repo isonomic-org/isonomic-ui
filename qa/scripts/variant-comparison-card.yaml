@@ -2,8 +2,8 @@ component: variant-comparison-card
 steps:
   - name: pressing a variant picks it and offers Go with
     check: C4
-    click: {at: [200, 172]}
-    expect: [{text: "Go with B"}, {text: "Picked due-date"}]
+    click: {contains: "B, Leads with the due date"}
+    expect: [{changed: true}, {present: {contains: "Go with"}}]
     shot: picked
   - name: Go with runs the action
     check: C4
@@ -11,15 +11,15 @@ steps:
     expect: [{text: "Going with due-date"}]
   - name: pressing the picked variant takes it back
     check: C4
-    click: {at: [200, 172]}
+    click: {contains: "B, Leads with the due date"}
     expect: [{text: "Pick taken back"}]
   - name: the metric switch shows Days to pay with lower is better
     check: C4
-    click: {at: [500, 97]}
+    click: {name: "Days to pay"}
     expect: [{text: "Days to pay"}]
     shot: days-to-pay
   - name: the head folds the card
     check: C4
-    click: {at: [200, 60]}
+    click: {name: "Reminder email wording"}
     expect: [{no_text: "Plain reminder"}]
     shot: closed

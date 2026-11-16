@@ -2,7 +2,7 @@ component: comment-thread
 steps:
   - name: status line with details folds open
     check: C4
-    click: {at: [110, 203]}
+    click: {name: "Rates corrected"}
     expect: [{changed: true}]
     shot: status-open
   - name: send is disabled while the field is empty

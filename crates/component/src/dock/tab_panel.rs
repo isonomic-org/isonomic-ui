@@ -346,6 +346,7 @@ impl TabGroupSkin {
             .child(
                 Button::new("menu")
                     .icon(IconName::Ellipsis)
+                    .accessibility_label("Panel options")
                     .xsmall()
                     .ghost()
                     .tab_stop(false)
@@ -516,9 +517,14 @@ impl TabGroupSkin {
                             .ix(ix)
                             .debug_selector(move || format!("{TAB_SELECTOR}-{ix}"))
                             .tab_bar_prefix(has_leading)
+                            // A title is an element, so the tab is named for
+                            // screen readers by its short name, or else by
+                            // the panel's own name.
                             .map(|this| match handle.and_then(|handle| handle.tab_name(cx)) {
-                                Some(tab_name) => this.child(tab_name),
-                                None => this.child(panel_title(panel, window, cx)),
+                                Some(tab_name) => this.aria_label(tab_name.clone()).child(tab_name),
+                                None => this
+                                    .aria_label(panel.panel_name(cx))
+                                    .child(panel_title(panel, window, cx)),
                             })
                             // Per-tab close (X) button. The gate mirrors
                             // `TabGroup::close_panel`, plus `!collapsed`, since a
@@ -533,6 +539,7 @@ impl TabGroupSkin {
                                     this.suffix(
                                         Button::new(("close-tab", ix))
                                             .icon(IconName::Close)
+                                            .accessibility_label("Close tab")
                                             .xsmall()
                                             // The regular ghost hover matches the
                                             // inactive tab bar background in the

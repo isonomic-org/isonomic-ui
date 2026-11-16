@@ -3,7 +3,7 @@ settle: 0.6
 steps:
   - name: Enter in the field queues a note
     check: C4
-    click: {contains: "Tell the agent"}
+    click: {contains: "Note for the agent"}
   - name: type a note
     check: C4
     type: "Skip the coffee receipts"
@@ -18,7 +18,8 @@ steps:
   - name: ctrl enter
     check: C4
     key: ctrl+Return
-    expect: [{text: "Sent now: Use the March rates"}]
+    # The story replaces this line as soon as the run picks the note up, so only the change is checked.
+    expect: [{changed: true}]
     shot: right-away
   - name: Pause holds the run
     check: C4
@@ -32,7 +33,7 @@ steps:
   - name: the run finishes and the field closes
     check: C5
     wait: 20
-    expect: [{text: "Done"}, {absent: {contains: "Tell the agent"}}]
+    expect: [{text: "Done"}, {absent: {contains: "Note for the agent"}}]
     shot: done
   - name: once done, the panel comes to rest
     check: C8
