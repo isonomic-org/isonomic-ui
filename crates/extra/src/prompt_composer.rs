@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Prompt composer: the field where a person writes to an assistant.
 //!
 //! A growing text field sits over a row of controls: a plus menu for

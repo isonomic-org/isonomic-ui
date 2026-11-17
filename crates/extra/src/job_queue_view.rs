@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Job queue view: the work waiting, the workers taking it, and how deep the backlog has run.
 //!
 //! The top row shows each worker slot: busy with a job and its progress,

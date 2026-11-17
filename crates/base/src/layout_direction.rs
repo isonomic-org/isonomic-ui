@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The application's layout direction.
 //!
 //! Right-to-left support is one global setting, not a switch on each

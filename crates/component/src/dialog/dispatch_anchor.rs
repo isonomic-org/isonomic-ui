@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{Action, App, FocusHandle, InteractiveElement as _, IntoElement, Styled, Window, div};
 
 /// A focus node of a dialog control's own, so the control can dispatch its

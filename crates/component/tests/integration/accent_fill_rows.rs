@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Content drawn on the theme's `accent` fill takes `accent_foreground`, the
 //! color the theme pairs with that fill, rather than the page `foreground`.
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! `SFSpeechRecognizer`, recognizing on the device only.
 
 use std::{cell::RefCell, rc::Rc};

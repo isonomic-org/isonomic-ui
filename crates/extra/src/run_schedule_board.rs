@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Run schedule board: a week of hour slots where limited assistant sessions are placed by dragging, or by an auto mode.
 //!
 //! Days run across, hours down. A scheduled session is a block in its slot;

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The dock area: the trees, the entity cache that mirrors them, and the
 //! reconciliation that keeps the two in step.
 

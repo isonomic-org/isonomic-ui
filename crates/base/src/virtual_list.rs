@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Virtual List for render a large number of differently sized rows/columns.
 //!
 //! > NOTE: This must ensure each column width or row height.

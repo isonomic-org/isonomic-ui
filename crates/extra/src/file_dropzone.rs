@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! File dropzone: drop or pick files and watch each one upload.
 //!
 //! The dropzone owns the list. It checks every file against the accepted types

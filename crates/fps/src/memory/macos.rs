@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reads `ri_phys_footprint` through `proc_pid_rusage`, the counter behind
 //! Activity Monitor's Memory column and the one the kernel judges a process
 //! against under memory pressure — the number that decides whether this

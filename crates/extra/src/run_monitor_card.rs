@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Run monitor card: one run's current step, time, spend and finished steps, foldable to a bar.
 //!
 //! Open, the card shows what the run is doing now, how long it has taken,

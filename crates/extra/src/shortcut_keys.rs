@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Shortcut keys: a keyboard shortcut written the way each platform writes it, including sequences ("⌘K, then P") and alternatives ("or").
 //!
 //! A shortcut is written once in a neutral form, such as "mod-k p", where

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Streamed answer: an assistant's reply with the sources it used.
 //!
 //! The question sits on top, then a row of source cards, then the answer as

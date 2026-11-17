@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Status badge: a labelled pill in a tone, with an optional live dot, a capped count and a remove button.
 //!
 //! The kit's badge marks a count or dot on something else; this one stands

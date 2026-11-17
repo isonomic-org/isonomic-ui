@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Code block: code to read and copy.
 //!
 //! A header names the file or the language and holds the copy button. The body

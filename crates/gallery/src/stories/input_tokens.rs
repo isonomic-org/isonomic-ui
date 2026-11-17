@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A chat composer shared by the Input and Textarea stories. Commands, images,
 //! skills and people are inserted as atomic inline tokens; the application
 //! maps a token's ID back to the resource it names.

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Flow builder: an automation's steps from top to bottom, with branches and a test run.
 //!
 //! The flow starts with its trigger. Each step is a card joined to the next

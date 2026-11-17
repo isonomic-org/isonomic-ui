@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, ScrollDelta,
     ScrollEvent, Styled as _, TestAppContext, VisualTestContext, Window, div, point, px,

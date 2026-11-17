@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{
     ActiveTheme as _, Selectable as _, Sizable as _, StyledExt as _,
     button::{Button, ButtonGroup},

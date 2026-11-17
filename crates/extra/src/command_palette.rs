@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Command palette: every action in one searchable list, grouped, with recent ones first and each one's shortcut.
 //!
 //! With nothing typed, recent commands lead, then every group. Typing

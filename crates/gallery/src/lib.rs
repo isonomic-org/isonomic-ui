@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{
     ActiveTheme, IconName, Root, Sizable as _, Size as ComponentSize, StyledExt as _,
     TITLE_BAR_HEIGHT, TitleBar, WindowExt,

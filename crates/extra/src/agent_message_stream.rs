@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Agent message stream: a live log of what assistants say to each other, with a composer that can mention them.
 //!
 //! Each message shows who sent it, who it was for, when, and what it said,

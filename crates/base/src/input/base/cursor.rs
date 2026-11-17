@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::ops::{Range, RangeBounds};
 
 /// A selection in the text, represented by start and end byte indices.

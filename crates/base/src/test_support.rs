@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Opt-in headless observation built exclusively on public GPUI APIs.
 //!
 //! Native accessibility properties are read automatically. Applications register

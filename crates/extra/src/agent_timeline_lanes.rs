@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Agent timeline lanes: one lane per assistant, with its tasks as blocks, the handoffs between lanes and the decisions taken.
 //!
 //! Time runs left to right with minute ticks. Each assistant's tasks are

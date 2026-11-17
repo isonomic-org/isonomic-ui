@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Disabled semantics on a control's accessibility node.
 //!
 //! GPUI has no `aria_disabled` setter, so a disabled control would reach

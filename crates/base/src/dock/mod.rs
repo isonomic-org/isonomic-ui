@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Dockable layout: splits and tab groups that a host can rearrange,
 //! persist, and restore — with no appearance of its own.
 //!

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Variant comparison card: where an experiment stands, and which way to go.
 //!
 //! Closed, the card is two lines: the experiment, its status, and the variant

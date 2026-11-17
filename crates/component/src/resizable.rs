@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! What this design system paints inside a resize handle.
 //!
 //! Base owns the band, the cursor and the drag; everything here is appearance.

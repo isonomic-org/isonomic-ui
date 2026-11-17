@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Boundary displacement shared by inputs and scroll viewports.
 //!
 //! Viewport owners keep their logical scroll position clamped and apply this

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Registers native elements without accepting a second description of their state.
 use gpui::{Element, Hitbox, InteractiveElement, IntoElement, SharedString};
 

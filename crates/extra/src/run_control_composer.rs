@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Run control composer: the message field for a running assistant, with stop, pause, resume, retry, steer and a queue.
 //!
 //! While a run is going, a message can either wait for the next step

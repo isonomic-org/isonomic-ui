@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     AnyElement, App, Bounds, ContentMask, Entity, Hsla, IntoElement, ParentElement as _, Path,
     PathBuilder, Pixels, Point, RenderOnce, StyleRefinement, Styled, Window, canvas, div,

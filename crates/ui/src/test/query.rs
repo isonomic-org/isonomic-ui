@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use super::{ElementSnapshot, ScopedWindow, observation};
 use crate::{ElementId, Role, Window};
 

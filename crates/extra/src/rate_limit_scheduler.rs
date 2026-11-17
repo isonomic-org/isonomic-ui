@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Rate limit scheduler: queued calls laid out against the limits they share.
 //!
 //! Each limit is a budget of calls per window, with what's used so far and

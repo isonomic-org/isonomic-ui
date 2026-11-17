@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// Display mapping system for Editor/Input.
 ///
 /// This module implements a layered display mapping architecture:

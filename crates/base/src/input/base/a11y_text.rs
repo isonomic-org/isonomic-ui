@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! An input's text as AccessKit text runs.
 //!
 //! AccessKit gives an assistive client a field's text, caret and selection only when the

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Individual native input steps for gestures spanning several UI updates.
 use super::TestWindowExt;
 use crate::{

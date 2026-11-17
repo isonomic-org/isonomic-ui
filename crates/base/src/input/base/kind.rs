@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Compile-time input modes.
 //!
 //! The three input states are one engine seen through a mode marker, one per

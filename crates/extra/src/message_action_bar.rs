@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Message action bar: the quiet row of actions under an assistant's message.
 //!
 //! Copy, regenerate with a switcher between the versions of the answer, a vote

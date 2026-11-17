@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Files outside a patch: a whole source shown for reference, and a working
 //! file containing Git conflict markers.
 use std::ops::Range;

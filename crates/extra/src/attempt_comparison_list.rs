@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Attempt comparison list: the same task tried several ways at once.
 //!
 //! Each attempt is a row with what it tries, a bar while it runs, and a score

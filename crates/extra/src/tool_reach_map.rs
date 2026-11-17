@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Tool reach map: every tool an assistant can reach, grouped by service, showing what it used, what failed and what it's not allowed to touch, with each call ready to replay.
 //!
 //! Each service is a group of tool chips. A chip is quiet when the tool was

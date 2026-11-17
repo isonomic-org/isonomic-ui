@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Permission prompt: an assistant asks for one specific right.
 //!
 //! The prompt says who asks, for what, why, and exactly what will happen. The

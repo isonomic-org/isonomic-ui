@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Approval stack: pending requests as a deck of cards to approve, edit or reject.
 //!
 //! The front card shows one request in full: who asks, what they'd do,

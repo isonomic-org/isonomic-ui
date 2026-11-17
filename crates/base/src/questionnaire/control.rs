@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     ElementId, Entity, InteractiveElement as _, SharedString, StatefulInteractiveElement as _,
     prelude::FluentBuilder as _,

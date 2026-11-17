@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // @reference: https://d3js.org/d3-shape/arc
 
 use std::{f32::consts::PI, fmt::Debug};

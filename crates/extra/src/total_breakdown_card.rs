@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Total breakdown card: one total and the parts it is made of.
 //!
 //! A small card for a dashboard: the total with its change, one bar split by

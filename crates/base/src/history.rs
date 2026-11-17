@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// A browser-style linear trail with a current entry.
 ///
 /// Entries before the current one can be revisited with [`back`](Self::back),

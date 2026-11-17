@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Headless frame-cost benchmark for `DataTable`.
 //!
 //! Measures `Window::draw` time and heap allocations per frame for a

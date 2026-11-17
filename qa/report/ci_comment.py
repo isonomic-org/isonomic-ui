@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """Write the QA comment for one pull request from a CI run.
 
   ci_comment.py --run qa/out --pr 28 --sha <head sha> --evidence-url <base url> > comment.md

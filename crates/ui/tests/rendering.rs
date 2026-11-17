@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! These tests need GPUI's real offscreen renderer: Metal on macOS or WGPU on
 //! Linux. No fake renderer is substituted for missing GPU support.
 fn main() {

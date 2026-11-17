@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{App, ElementId, Window};
 
 use super::{Instant, Interpolate, MotionStatus, Transition, TransitionId};

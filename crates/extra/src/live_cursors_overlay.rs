@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Live cursors overlay: who else is in a shared document, where their cursors are, what they've selected and what they suggest.
 //!
 //! The document is laid out word by word. Each collaborator, person or

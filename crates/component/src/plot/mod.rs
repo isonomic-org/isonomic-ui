@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Plotting for Isonomic UI's charts.
 //!
 //! The unstyled primitives — scales, shapes, axes, grids, labels, [`Plot`] and

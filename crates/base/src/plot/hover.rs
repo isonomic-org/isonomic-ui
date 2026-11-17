@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Hover tracking shared by every [`Plot`]: which datum the cursor is on, how
 //! far its hover has faded in, and where a pointer following it has glided to.
 //!

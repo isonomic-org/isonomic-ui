@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Speech input: capture audio, recognize it and hand the text to the caller.
 //!
 //! [`SpeechState`] owns a session and [`SpeechButton`], [`SpeechIndicator`] and

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Questionnaire behavior: answers, validation, navigation, focus and shortcuts.
 //!
 //! The state machine lives here so an application can replace the visual

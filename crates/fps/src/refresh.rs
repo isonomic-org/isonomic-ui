@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The refresh rate of the display a window is on, read from the platform.
 //!
 //! GPUI does not report it, and it cannot be recovered from the frames a

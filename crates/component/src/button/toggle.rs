@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui_base::LogicalStyledExt as _;
 use std::{cell::Cell, rc::Rc, time::Duration};
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 #[test]
 fn test_derive_context() {
     use gpui::{App, Window};

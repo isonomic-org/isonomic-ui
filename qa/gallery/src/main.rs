@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! QA gallery for isonomic-ui.
 //!
 //! Shows one story of the component gallery (`crates/gallery`) in a bare

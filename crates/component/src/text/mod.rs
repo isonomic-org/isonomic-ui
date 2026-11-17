@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Compatibility facade for rich text now owned by `isonomic-ui-base`.
 
 mod compat;

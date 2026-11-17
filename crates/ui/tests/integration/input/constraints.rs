@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Application-facing constraints exercised through the rendered input.
 //! GPUI's `Window::handle_a11y_action` is private: native SetValue dispatch
 //! cannot currently be covered through the public test API.

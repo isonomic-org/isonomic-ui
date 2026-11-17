@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::dock::PanelControl;
 use isonomic_ui::{AnyView, App, AppContext as _, Entity, Hsla, Pixels, Render, Window, px};
 

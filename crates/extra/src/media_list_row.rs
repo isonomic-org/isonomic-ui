@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Media list row: one compact row with a small picture or icon, a title over a quieter line, and an optional control at the end, for lists of files, connections or settings.
 //!
 //! The title and the line under it each end in an ellipsis when space runs

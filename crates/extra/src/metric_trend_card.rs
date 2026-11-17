@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Metric trend card: one headline number and how its parts moved.
 //!
 //! The card shows a title, a value that is already formatted, and the change

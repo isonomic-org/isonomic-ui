@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Fallback popup menu for platforms without an OS-native popup (e.g. Linux).
 //!
 //! It renders isonomic-ui-component's drawn [`PopupMenu`] through an overlay held by

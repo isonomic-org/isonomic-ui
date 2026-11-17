@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Agent network graph: assistants, people and tools as nodes, joined by how much they talk.
 //!
 //! Nodes sit where the owner places them, or in a ring around the first

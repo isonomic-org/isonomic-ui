@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Unstyled plotting: scales, shapes, axes, grids, labels, and the element and
 //! hover tracking behind every [`Plot`].
 //!

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use anyhow::Result;
 use gpui::{App, Context, MouseMoveEvent, Task, Window};
 use instant::Duration;

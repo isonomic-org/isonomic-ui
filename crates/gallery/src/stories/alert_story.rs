@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{
     IconName, Sizable as _, Size, alert::Alert, dock::PanelControl, text::markdown, v_flex,
 };

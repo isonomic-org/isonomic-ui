@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Shared contracts at the styled Input, Textarea and Editor boundaries.
 use isonomic_ui::{
     App, AppContext, ClipboardItem, Context, ElementId, ElementInputHandler, Entity, InputHandler,

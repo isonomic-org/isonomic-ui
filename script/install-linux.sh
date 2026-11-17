@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
 
 sudo apt update
 # Test on Ubuntu 24.04

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Amount stepper: a number field for money, hours or quantities that reads what people paste, tidies it on leaving, and steps with buttons or arrow keys.
 //!
 //! It accepts "1,250.50", "$1 250" or "(40)" for minus forty, keeps the value

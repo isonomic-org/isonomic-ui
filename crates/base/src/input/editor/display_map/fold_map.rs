@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// FoldMap: Folding projection layer (Wrap rows → Display rows).
 ///
 /// This module manages code folding by:

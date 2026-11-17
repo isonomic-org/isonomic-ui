@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Background tasks pill: a small header pill that opens into the tasks running behind the scenes.
 //!
 //! Closed, the pill says how many tasks are running, with a spinner while

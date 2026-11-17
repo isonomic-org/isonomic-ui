@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The pointer and wheel event surface used by [`super::CarouselContent`].
 //!
 //! The mask is deliberately a sibling of the scrolled content.  A mask nested

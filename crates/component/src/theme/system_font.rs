@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Keeps the theme's UI family on the font GPUI actually draws it with.
 //!
 //! The default UI family is the virtual `.SystemUIFont`, which GPUI maps to a

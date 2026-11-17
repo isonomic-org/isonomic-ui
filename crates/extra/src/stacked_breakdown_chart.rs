@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Stacked breakdown chart: one set of records, split the way the reader asks.
 //!
 //! The owner hands over flat records, the dimensions they can be grouped by

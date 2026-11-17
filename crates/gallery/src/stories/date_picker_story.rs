@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use chrono::{Datelike, Days, Duration, Utc};
 use isonomic_ui::component::{
     ActiveTheme as _, Sizable as _, Size, StyledExt, calendar,

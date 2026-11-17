@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Loading placeholder: grey shapes that stand in for content while it loads, shaped like the lines, rows, cards or table it will become.
 //!
 //! Pick a shape close to what will arrive so the page doesn't jump when it

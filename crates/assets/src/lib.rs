@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Bundled icons shared by Isonomic UI presentation and behavior layers.
 //!
 //! [`IconName`] and [`IconNamed`] do not depend on Isonomic UI. Register

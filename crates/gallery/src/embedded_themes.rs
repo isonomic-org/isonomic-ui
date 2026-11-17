@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 #[cfg(target_family = "wasm")]
 use std::collections::HashMap;
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """Build the "Isonomic UI QA" report page from a run's results.
 
   build_report.py --run qa/out [--meta <dir>] --dest qa/out/report

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::common;
 use isonomic_ui::test::{TestQueryExt, TestSupportExt, TestWindowExt};
 use isonomic_ui::{AppContext, Context, Entity, TestAppContext, Window, div, prelude::*, px, size};

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The presentation half of a dockable panel, and the concrete handle that
 //! carries it back across the renderer seam.
 //!

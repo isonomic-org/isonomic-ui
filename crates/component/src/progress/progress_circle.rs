@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{ActiveTheme, Sizable, Size, StyledExt};
 use gpui::Bounds;
 use gpui::prelude::FluentBuilder as _;

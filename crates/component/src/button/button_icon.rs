@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{Icon, Sizable, Size, progress::ProgressCircle, spinner::Spinner};
 use gpui::{App, IntoElement, RenderOnce, Window, prelude::FluentBuilder};
 

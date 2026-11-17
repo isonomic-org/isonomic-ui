@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// A foldable line range supplied by an editor highlighter or another source.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FoldRange {

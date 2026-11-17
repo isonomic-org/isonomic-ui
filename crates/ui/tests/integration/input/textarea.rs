@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Application-facing multiline editing and viewport regressions.
 use isonomic_ui::{
     App, AppContext, ClipboardItem, Context, ElementId, Entity, InputEvent as _, Modifiers,

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Tool call card: one tool call of an assistant on a single line.
 //!
 //! The line shows the tool's name, a short summary and how the call stands: a

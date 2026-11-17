@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Edit timeline: each change to each file on a time axis, to watch live or replay.
 //!
 //! Every file gets a lane, and every edit is a mark on it, sized by how

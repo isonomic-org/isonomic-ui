@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Review queue workspace: an assistant's proposals reviewed one at a time, riskiest first.
 //!
 //! The queue sits on the left, sorted by risk and then by age. The current

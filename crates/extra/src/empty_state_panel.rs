@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Empty state panel: what to show where content would be, told apart by why it's empty, with the next thing to do.
 //!
 //! "Nothing yet", "nothing matches", "couldn't load" and "not allowed" each

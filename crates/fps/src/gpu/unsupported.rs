@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Platforms with no GPU counter reachable from an ordinary process.
 //! Construction always fails, so the HUD leaves the reading out.
 

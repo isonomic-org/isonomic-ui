@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! How much memory this process is responsible for, as opposed to how many
 //! pages it happens to have mapped.
 //!

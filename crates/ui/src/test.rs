@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! UI integration testing for Isonomic UI components and application views.
 //!
 //! Render real components in a headless window, simulate clicks, keyboard input

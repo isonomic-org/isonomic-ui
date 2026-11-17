@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Boundary displacement only: the list keeps its clamped logical position.
 
 use crate::overscroll::Overscroll;

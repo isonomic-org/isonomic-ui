@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The highlighter module without tree-sitter: for WASM, or a native build
 //! that chose `syntect` or no highlighter at all. Syntax highlighting itself
 //! comes from `syntect_backend` when that feature is on; the theme types here

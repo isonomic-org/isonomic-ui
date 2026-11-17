@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use super::*;
 use isonomic_ui::component::{
     StyledExt as _,

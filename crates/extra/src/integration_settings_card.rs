@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Integration settings card: the settings of one connected service.
 //!
 //! A switch turns the service on or off at once. Below it, an API key can be

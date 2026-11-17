@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Prompt template library: saved prompts with blanks to fill in.
 //!
 //! A list of templates sits on the left, with a search over them. The chosen

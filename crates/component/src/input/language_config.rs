@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Language editing configuration. Grammar resources live in `highlighter`.
 
 pub use isonomic_ui_base::input::language_config::LanguageConfig;

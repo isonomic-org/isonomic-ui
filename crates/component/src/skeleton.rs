@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{ActiveTheme, StyledExt};
 use gpui::{
     Animation, AnimationExt, ElementId, InteractiveElement as _, IntoElement, RenderOnce, Role,

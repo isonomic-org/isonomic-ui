@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Quick edit popover: a value shown in place that opens a small popover to change it, with Save and Cancel, without leaving the page.
 //!
 //! Click the value to open the popover with the field focused and filled.

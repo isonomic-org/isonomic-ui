@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Shared popup positioning.
 //!
 //! Every anchored surface in Base resolves its position here so that flipping,

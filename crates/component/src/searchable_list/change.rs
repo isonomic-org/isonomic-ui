@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::IndexPath;
 
 /// A single, atomic selection change proposed by the mode-strategy for a user interaction.

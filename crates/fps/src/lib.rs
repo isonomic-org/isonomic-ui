@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A realtime performance HUD for GPUI applications: frames per second, a
 //! rolling frame time chart, and this process' GPU, CPU and memory usage.
 //!

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Handoff relay: a task passed from worker to worker.
 //!
 //! The workers stand in a row, each with what it is for and what it is on.

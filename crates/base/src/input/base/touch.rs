@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Touch selection for the input engine: long press, grab handles, edit menu.
 //!
 //! A long press selects the word under the finger and keeps following the

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Run status bar: one bar above the composer that says what the run is doing or how it ended, with the things to do about it.
 //!
 //! There are seven states. A run that is working, a run the person stopped,

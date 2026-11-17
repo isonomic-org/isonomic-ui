@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Onboarding checklist: a short list of first steps with a progress bar.
 //!
 //! Steps can be ticked in any order. The bar and the count follow, and an

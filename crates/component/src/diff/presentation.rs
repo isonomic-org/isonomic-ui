@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Presentation prepared on a background thread: syntax captures, as
 //! theme-independent highlight names or an application highlighter's styles,
 //! and inline changes between paired lines.

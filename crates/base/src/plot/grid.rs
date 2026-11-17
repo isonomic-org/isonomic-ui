@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{Background, Bounds, Pixels, Point, Window, fill, point, px, size};
 
 use super::origin_point;

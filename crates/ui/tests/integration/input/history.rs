@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::{
     AppContext, ClipboardItem, Context, Entity, TestAppContext, Window, WindowHandle,
     component::input::{Input, InputEvent, InputState},

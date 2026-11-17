@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! QA runner for isonomic-ui component stories.
 //!
 //!   cargo run -p qa-runner -- run card

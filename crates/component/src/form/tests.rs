@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use super::*;
 use gpui::{Context, InteractiveElement as _, Render, TestAppContext, div};
 

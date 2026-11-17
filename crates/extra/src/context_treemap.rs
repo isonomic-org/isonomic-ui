@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Context treemap: what fills a context budget as nested boxes, before and after compaction.
 //!
 //! Each kind of content (instructions, files, conversation, tool results)

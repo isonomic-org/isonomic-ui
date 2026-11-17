@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Option tree: the branches open at a decision point, what each leads to, and the risks flagged on the way.
 //!
 //! The decision sits at the left; each option branches to the right, and

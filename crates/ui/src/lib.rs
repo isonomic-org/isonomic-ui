@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Isonomic UI: one dependency for building desktop applications with GPUI.
 //!
 //! GPUI itself is published as a family of `gpui-pre-*` crates that move

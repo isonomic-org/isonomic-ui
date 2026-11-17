@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // @reference: https://github.com/d3/d3-sankey
 
 use gpui::{Path, PathBuilder, Pixels, Point, px};

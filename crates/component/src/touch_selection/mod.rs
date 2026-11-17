@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Touch selection: the grab handles and the edit menu a long press leaves
 //! behind, drawn over an [`crate::input::Input`] or over the window text
 //! selection that [`crate::text::TextView`] takes part in.

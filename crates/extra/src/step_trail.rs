@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Step trail: the steps an agent works through, as one quiet line.
 //!
 //! Finished steps show a check and their time. The step being worked on says

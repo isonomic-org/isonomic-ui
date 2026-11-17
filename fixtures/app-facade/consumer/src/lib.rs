@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Every macro here must expand without this crate naming GPUI or
 //! `isonomic-ui`: there is no `use … as gpui;` anywhere in the file.
 

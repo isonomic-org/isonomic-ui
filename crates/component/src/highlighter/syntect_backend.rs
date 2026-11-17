@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Syntax highlighting from syntect and bat's syntax collection.
 //!
 //! The lighter of the two highlighters: about two hundred languages for a few

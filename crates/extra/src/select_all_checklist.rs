@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Select-all checklist: the kit's checkboxes under a parent box that's ticked, empty or part-way, with a count.
 //!
 //! The parent shows a dash when some but not all are ticked, and ticking it

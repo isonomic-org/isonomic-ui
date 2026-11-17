@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Project summary card: a project at a glance, opening for quick edits to its status, people and subtasks.
 //!
 //! Closed, the card shows the project's name, its status, who's on it, when

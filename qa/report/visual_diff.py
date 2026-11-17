@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """Compare a run's screenshots with the approved baselines.
 
   visual_diff.py --run qa/out --baselines <dir with baselines/<slug>/*.png> [--write-proposed <dir>]

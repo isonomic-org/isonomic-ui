@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use super::auto_close::AutoClosedPairs;
 use crate::input::change::Change;
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A block surface draws a blockquote that opens with a registered `[!name]`
 //! marker inside a container, and keeps its blocks part of the document: a
 //! selection, a find and a reveal go across and inside it. See

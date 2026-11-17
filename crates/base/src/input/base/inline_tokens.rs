@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Document annotations for atomic inline objects. Coordinates are always source bytes.
 use std::ops::Range;
 

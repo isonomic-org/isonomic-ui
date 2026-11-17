@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Fault tree: the possible causes of a failure, joined by and/or gates, each with a verdict and its evidence.
 //!
 //! The failure sits at the top. Under it, causes branch down through gates:

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Draft review card: a message an assistant wrote, waiting for a person.
 //!
 //! The record the message is about heads the card. Below it the reviewer can

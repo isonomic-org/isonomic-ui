@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Comment thread: one conversation attached to a selection, a cell or a line.
 //!
 //! People reply in a field at the bottom. An assistant's replies can carry a

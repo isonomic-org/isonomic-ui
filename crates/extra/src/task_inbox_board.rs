@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Task inbox board: every background task in one calm place.
 //!
 //! Tasks sit in three columns: what needs a person (waiting or failed), what

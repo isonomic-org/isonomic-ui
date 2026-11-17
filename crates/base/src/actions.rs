@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Common actions shared by keyboard-driven GPUI controls.
 
 use gpui::{Action, actions};
