@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Tips grid: a panel of short tips, each with one action.
 //!
 //! Taking a tip's action turns it into a done state and moves the counter in

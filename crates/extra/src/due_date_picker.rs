@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Due date picker: a month calendar with one-click presets for the dates people actually pick, and days that can't be picked greyed out.
 //!
 //! Presets sit above the grid: today, in a week, in 30 days, end of month.

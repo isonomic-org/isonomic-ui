@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Presentation hook for an editor's existing viewport, without a second scroll system.
 use crate::{ScrollbarAxis, ScrollbarHandle};
 use gpui::{AnyElement, App, Bounds, Pixels, Point, ScrollHandle, Size, Window};

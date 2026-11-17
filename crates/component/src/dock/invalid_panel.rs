@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     App, Context, EventEmitter, FocusHandle, Focusable, IntoElement, ParentElement as _, Render,
     Styled as _, Window, div,

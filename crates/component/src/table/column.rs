@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     Bounds, Context, Edges, Empty, EntityId, IntoElement, ParentElement as _, Pixels, Render,
     SharedString, Styled as _, TextAlign, Window, div, prelude::FluentBuilder, px,

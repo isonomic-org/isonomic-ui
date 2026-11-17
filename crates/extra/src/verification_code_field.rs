@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Verification code field: boxes for a one-time code, one digit each, that fill as you type or paste and report the code when every box is full.
 //!
 //! Typing a digit fills the next box, Backspace empties the last one, and

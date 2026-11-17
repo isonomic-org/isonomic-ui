@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Sums the `accumulatedGPUTime` this process' accelerator clients report in
 //! the IO registry, and turns the time gained between two readings into a share
 //! of the wall clock that passed. This is the counter behind Activity Monitor's

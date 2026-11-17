@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Tab stops for shaped lines.
 //!
 //! The platform shapers do not agree on what a `\t` is: DirectWrite gives it

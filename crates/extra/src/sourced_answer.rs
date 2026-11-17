@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Sourced answer: a finished answer wired to the sources behind it.
 //!
 //! Every cited sentence ends in numbered markers. Pointing at a marker tints

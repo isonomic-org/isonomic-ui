@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Fades streamed text in: the rendered characters an update adds start
 //! transparent and reach full color over [`TextViewMotion::stream_fade`],
 //! as one chunk, or word by word (character by character for CJK) when

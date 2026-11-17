@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! HTML5 markup minifier.
 //!
 //! This is a fork of the `html5minify` crate.

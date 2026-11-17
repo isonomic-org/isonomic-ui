@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Step form wizard: a long form split into short steps, ending in a review.
 //!
 //! A row of thin bars on top shows where people are: reached steps fill in,

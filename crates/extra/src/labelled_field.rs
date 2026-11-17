@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Labelled field: any control with its label, a required or optional mark, a hint, an error and a character count, laid out the same way everywhere.
 //!
 //! The label sits above the control with "Required" or "Optional" beside

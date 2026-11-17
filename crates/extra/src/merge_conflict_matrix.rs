@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Merge conflict matrix: files down the side, branches across the top, and every place two branches touch the same file.
 //!
 //! A cell is filled when a branch changes a file, with how many lines.

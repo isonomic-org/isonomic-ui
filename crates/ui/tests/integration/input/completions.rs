@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Completion workflows through the styled editor, its real popup, and native input.
 //! Popup bounds verify caret anchoring; text, focus, and provider requests
 //! verify the workflow, with acceptance proving that menu actions were routed.

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Integration picker: find a service and switch it on, without leaving.
 //!
 //! A search field sits over a list of services, grouped into connected and

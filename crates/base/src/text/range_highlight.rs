@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Application-supplied highlights over the text a [`TextViewState`] renders,
 //! and scrolling one of its ranges into view.
 //!

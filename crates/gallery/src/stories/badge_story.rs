@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, Size, avatar::Avatar, badge::Badge,
     dock::PanelControl, v_flex,

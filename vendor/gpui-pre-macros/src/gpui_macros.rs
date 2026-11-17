@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // Modified for gpui-pre (snapshot of zed@d2a4fb6): the proc-macro entry points resolve gpui through a facade.
 mod gpui_pre_facade_paths;
 mod bench;

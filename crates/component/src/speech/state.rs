@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{cell::OnceCell, rc::Rc, time::Duration};
 
 use gpui::{App, Context, EventEmitter, Pixels, SharedString, Subscription, Task, WeakEntity};

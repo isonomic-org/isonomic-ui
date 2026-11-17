@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! What this design system paints on a grid layout.
 //!
 //! Base owns the grid: where items sit, the drag, the resize, the keyboard and

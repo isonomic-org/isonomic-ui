@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     AnyElement, AnyView, App, Bounds, ClickEvent, Element, ElementId, Entity, GlobalElementId,
     HighlightStyle, InspectorElementId, IntoElement, LayoutId, Pixels, Refineable as _, RenderOnce,

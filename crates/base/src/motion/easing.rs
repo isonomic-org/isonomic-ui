@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{fmt, num::NonZeroU32, rc::Rc, sync::Arc};
 
 use crate::animation::{cubic_bezier, unclamped_cubic_bezier};

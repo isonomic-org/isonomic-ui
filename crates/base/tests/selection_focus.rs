@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Selection controls keep their place in the focus path when disabled by a
 //! controlled update, so native Tab can still leave them in either direction.
 #[cfg(feature = "gpui-fast")]

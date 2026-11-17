@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Honors the operating system's reduced-motion preference.
 //!
 //! Every Base transition, spring, presence and reveal consults

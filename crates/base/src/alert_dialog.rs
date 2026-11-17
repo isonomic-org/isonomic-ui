@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::prelude::FluentBuilder as _;
 use gpui::{
     App, ClickEvent, FocusHandle, InteractiveElement as _, IntoElement, MouseButton, ParentElement,

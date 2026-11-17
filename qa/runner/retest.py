@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """Retest every open QA issue against the current integration build.
 
   retest.py --issues qa/review/issues.json --out qa/out-retest [--sha <commit>]

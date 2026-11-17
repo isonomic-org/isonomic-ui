@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Bridge the virtualized code surface to Base's window text selection.
 //! Content keys are exact source offsets, so copying does not depend on which
 //! rows are still painted when the gesture ends.

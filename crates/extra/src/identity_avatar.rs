@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Identity avatar: the kit's avatar for people and assistants, with presence, a working ring and a stack that counts the rest.
 //!
 //! A person shows their picture or initials; an assistant shows a bot mark

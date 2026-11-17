@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Comments panel: a sidebar feed of comments on one piece of work.
 //!
 //! Tabs narrow the feed to questions or to edits. A comment that starts with

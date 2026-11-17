@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Text input: the shared editing engine and the three states built on it.
 //!
 //! Nothing here should be `pub` unless it is reachable from outside the crate.

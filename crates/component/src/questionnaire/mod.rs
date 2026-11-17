@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Composable questionnaire controls.
 //!
 //! The behavior — answers, validation, navigation, focus and shortcuts — lives

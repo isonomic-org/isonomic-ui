@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Notice stack: announcements stacked behind each other, read one at a time.
 //!
 //! Only the front notice can be read and used. The next ones peek out below

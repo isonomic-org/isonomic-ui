@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Wordmark: the name "Isonomic", alone or followed by a product's name, set the one way the brand allows.
 //!
 //! "Isonomic" is always in the bundled sans at regular weight. A product's

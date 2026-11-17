@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Score rating: a row of stars for giving or showing a score, in whole or half steps, with an optional count of ratings beside it.
 //!
 //! Clicking a star sets the score; with half steps, the left half of a star

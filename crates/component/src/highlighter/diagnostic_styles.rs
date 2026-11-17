@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{App, Hsla};
 use isonomic_ui_base::input::DiagnosticSeverity;
 

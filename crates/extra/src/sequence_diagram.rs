@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Sequence diagram: messages between participants along their lifelines, newest one lit as it arrives.
 //!
 //! Participants head evenly spaced columns, each with a dashed lifeline

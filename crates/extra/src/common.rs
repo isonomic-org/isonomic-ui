@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Small pieces shared by the components in this crate.
 
 use isonomic_ui::component::ActiveTheme as _;

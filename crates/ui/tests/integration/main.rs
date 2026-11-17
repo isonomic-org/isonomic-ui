@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Kit's integration tests, in one binary.
 //!
 //! Each file under `tests/` is a binary of its own, linked with all of GPUI

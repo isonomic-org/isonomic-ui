@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Differential wrapping and edit invalidation checks over the original display-map implementation.
 
 use super::super::{TextWrapper, WrappingIndent, measured_wrap, measured_wrap_boundaries};

@@ -1,3 +1,6 @@
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """Reads the QA gallery's accessibility tree over the desktop accessibility bus and acts on it.
 
 Usage (python3.12, inside the runner's private D-Bus session):

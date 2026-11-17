@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Trace timeline: a run's spans as a folding tree beside bars on a shared time axis, with time, tokens and cost per step.
 //!
 //! The left side is the span tree: each span indented under the one that

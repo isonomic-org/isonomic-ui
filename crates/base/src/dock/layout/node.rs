@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{Axis, EntityId, Pixels};
 
 /// Stable container identity. Survives structural edits and normalization so

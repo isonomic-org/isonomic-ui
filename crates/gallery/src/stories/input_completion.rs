@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! An application-owned completion menu around a single-line `Input`.
 //!
 //! Typing `$` opens a menu of shell-style variables; typing filters it, the

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Agent run tree: everything one run did, as a folding outline with a detail pane.
 //!
 //! Each row is a step: a thought, a tool call, a helper it started, a

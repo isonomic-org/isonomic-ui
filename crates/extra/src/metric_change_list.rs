@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Metric change list: a short recap of what moved over a period, one metric per row.
 
 use std::time::Duration;

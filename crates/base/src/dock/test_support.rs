@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Panel doubles shared by the dock's tests.
 //!
 //! This lives beside the production modules rather than inside one module's

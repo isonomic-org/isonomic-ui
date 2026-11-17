@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Real searchable controls: native input, filtering, selection and owner callbacks.
 use crate::common;
 use isonomic_ui::component::{

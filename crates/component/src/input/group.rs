@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A shared frame around one text control and its addons.
 //!
 //! The parts follow the reference design's input group: [`InputGroup`] is the frame,

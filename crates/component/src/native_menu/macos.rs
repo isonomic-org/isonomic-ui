@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! macOS native menu implementation (AppKit `NSMenu` via objc2).
 
 use std::{cell::Cell, sync::Arc};

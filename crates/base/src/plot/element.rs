@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The element behind every [`Plot`]: layout, appear and hover tracking and
 //! the overlay the plot returns from [`Plot::tooltip`].
 use std::{cell::Cell, rc::Rc};

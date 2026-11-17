@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{ops::Deref, sync::Arc};
 
 use crate::{ThemeMode, theme::DEFAULT_THEME_COLORS};

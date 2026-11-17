@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Split view: two panes side by side with a handle between them that you drag, nudge with the arrow keys, or double-click to put back.
 //!
 //! Each pane keeps a smallest width, so neither can be squeezed away; a

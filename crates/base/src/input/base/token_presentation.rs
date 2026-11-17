@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Presentation callbacks and measured geometry. None of this enters document history.
 use super::{InlineToken, InlineTokenSpan, InputBaseState, InputModeKind, rope_ext::RopeExt as _};
 use gpui::{AnyElement, App, Bounds, ClickEvent, Font, IntoElement, Pixels, Window};

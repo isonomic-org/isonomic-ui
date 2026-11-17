@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A long press leaves a selection with grab handles and an edit menu, in an
 //! `Input` and in a `TextView`.
 

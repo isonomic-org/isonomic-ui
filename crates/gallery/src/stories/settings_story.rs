@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::{
     App, AppContext, Axis, Context, Element, Entity, FocusHandle, Focusable, Global, IntoElement,
     ParentElement as _, Render, SharedString, Styled, Window, prelude::FluentBuilder, px,

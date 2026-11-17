@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Writing assistant card: a small helper for rewriting and drafting text.
 //!
 //! The card opens on a welcome line with suggestions over a faint glow.

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 pub(crate) mod cache;
 mod delegate;
 mod list;

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Keeps the theme's default monospace family on a font the machine has.
 //!
 //! GPUI panics on the first line it lays out in a family it cannot find, and

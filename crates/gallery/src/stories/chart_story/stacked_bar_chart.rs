@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // You can draw any chart you want by using the `Plot`.
 
 use isonomic_ui::component::{

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote, quote_spanned};
 use syn::{

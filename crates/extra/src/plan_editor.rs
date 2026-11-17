@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Plan editor: the steps an agent means to take, reviewed before it runs.
 //!
 //! In review, people rename, reorder, remove and add steps, then press Run.

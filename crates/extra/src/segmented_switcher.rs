@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Segmented switcher: a short row of choices joined into one control, where exactly one is on, each with an optional icon and count.
 //!
 //! The chosen segment sits raised on a sunken track. Segments can carry a

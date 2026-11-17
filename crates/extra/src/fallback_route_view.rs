@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Fallback route view: one request finding a target that answers.
 //!
 //! A request can go to several targets in a fixed order: models, providers,

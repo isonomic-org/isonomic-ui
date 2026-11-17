@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Caret-anchored popups positioned from the input's current-frame geometry.
 //!
 //! The input stashes fresh caret geometry in its prepaint

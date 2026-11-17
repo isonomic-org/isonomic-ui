@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A grid whose items the user drags and resizes into place.
 //!
 //! [`GridLayoutState`] owns the layout — one [`GridArea`] per item, in grid

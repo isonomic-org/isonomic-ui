@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reasoning steps panel: shows what an assistant is doing while it works.
 //!
 //! A header counts the seconds. Under it the steps sit on a timeline, the

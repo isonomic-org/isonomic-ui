@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Checkpoint timeline: an agent's run as a line of saved points.
 //!
 //! People can rewind to any checkpoint. The agent then tries again from

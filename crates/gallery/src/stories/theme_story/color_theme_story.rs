@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, IndexPath, StyledExt as _, ThemeColor, ThemeStyled as _,
     button::{Button, ButtonVariants as _},

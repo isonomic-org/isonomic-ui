@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Fixtures use the production window entry point with deterministic test bounds.
 #![allow(dead_code)]
 use isonomic_ui::{

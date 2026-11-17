@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Drag hit-testing and drop geometry for the dock.
 //!
 //! This module decides *where* a drop would land and what shape a hovering

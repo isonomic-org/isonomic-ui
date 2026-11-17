@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Folder tree: nested folders and files that open and close, with guide lines for depth, counts beside folders, and a full keyboard path.
 //!
 //! Up and Down move through what's showing. Right opens a folder, or steps

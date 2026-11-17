@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Inline diff review: word-level changes to a text, accepted or rejected one at a time.
 //!
 //! The text reads as one paragraph with every change marked in place: what

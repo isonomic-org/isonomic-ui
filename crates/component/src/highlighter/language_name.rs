@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::SharedString;
 
 /// Built-in aliases for editing defaults when no exact grammar name is registered.

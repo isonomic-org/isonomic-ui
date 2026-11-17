@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     AnyElement, App, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
     StatefulInteractiveElement, StyleRefinement, Styled, Window, div, relative,

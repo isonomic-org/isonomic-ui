@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // @reference: https://d3js.org/d3-shape/area
 
 use gpui::{Background, Bounds, Path, PathBuilder, Pixels, Point, Window, px};

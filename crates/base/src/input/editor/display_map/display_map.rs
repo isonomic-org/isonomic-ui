@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// DisplayMap: Public facade for Editor/Input display mapping.
 ///
 /// This combines WrapMap and FoldMap to provide a unified API:

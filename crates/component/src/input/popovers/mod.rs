@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 mod caret_anchored;
 mod code_action_menu;
 mod completion_menu;

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::rc::Rc;
 
 use isonomic_ui::component::{ActiveTheme as _, button::Button, scroll::ScrollableElement, v_flex};

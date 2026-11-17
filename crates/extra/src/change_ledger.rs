@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Change ledger: everything an agent changed, each with an undo.
 //!
 //! Every row says what changed and where, with the before and after. Undo is

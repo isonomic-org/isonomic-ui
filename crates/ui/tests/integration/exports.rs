@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Every path `isonomic-ui` promises resolves, under every feature set.
 //!
 //! These are compile-time checks: each `use` or type alias fails to build if

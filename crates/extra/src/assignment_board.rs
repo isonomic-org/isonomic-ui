@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Assignment board: work items in one column per assignee, agents and people alike.
 //!
 //! Each column shows who it belongs to, whether they're free, and how much

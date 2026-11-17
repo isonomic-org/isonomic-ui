@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Card: a self-contained surface with a header, content and a footer.
 //!
 //! A card with an [`Card::on_click`] handler is one click target: the whole

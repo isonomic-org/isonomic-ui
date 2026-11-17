@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Simulated IME protocol coverage through GPUI's public ElementInputHandler.
 //!
 //! Focus, ordinary typing and history commands use Window events. Composition

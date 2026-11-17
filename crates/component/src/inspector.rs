@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{collections::HashMap, fmt::Write as _, rc::Rc, sync::OnceLock};
 
 use anyhow::Result;

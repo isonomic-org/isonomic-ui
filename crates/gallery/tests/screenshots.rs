@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Renders every gallery story offscreen, in light and dark, and writes one PNG
 //! per story and theme to `target/screenshots/<theme>/<story>.png` inside this
 //! crate's directory (or under `$SCREENSHOT_DIR`).

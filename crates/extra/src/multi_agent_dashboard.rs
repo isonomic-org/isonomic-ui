@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Multi-agent dashboard: every assistant at work, as a filterable grid of tiles with totals.
 //!
 //! The strip at the top counts assistants by state and adds up what they've

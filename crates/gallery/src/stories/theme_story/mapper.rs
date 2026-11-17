@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// A compatibility bridge for mapping theme color keys.
 ///
 /// This module provides a way to translate between the legacy snake_case keys

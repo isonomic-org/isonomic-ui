@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{ActiveTheme, Collapsible, Icon, IconName, h_flex, sidebar::SidebarItem, v_flex};
 use gpui::{
     App, Edges, ElementId, InteractiveElement as _, IntoElement, ParentElement, Pixels, Role,

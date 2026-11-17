@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! A menu rendered natively by the operating system.
 //!
 //! Unlike [`crate::menu::PopupMenu`], which is drawn by GPUI and therefore

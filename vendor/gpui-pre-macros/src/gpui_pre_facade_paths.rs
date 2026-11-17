@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // Rewrites `gpui::` paths in macro output to the `isonomic-ui` umbrella crate
 // when the crate being compiled depends on it, so applications need not name
 // GPUI themselves.

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Run steering panel: correct an agent while it works.
 //!
 //! The panel shows the run's steps and a field for notes. Enter queues a note

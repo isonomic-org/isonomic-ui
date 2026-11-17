@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{button::*, input::*, select::*, separator::*, *};
 use isonomic_ui::*;
 use itertools::Itertools as _;

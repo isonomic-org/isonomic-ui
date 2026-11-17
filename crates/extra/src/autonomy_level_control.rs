@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Autonomy level control: how much an assistant may do without asking.
 //!
 //! Three levels, and under them the assistant's real actions sorted into what

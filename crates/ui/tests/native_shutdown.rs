@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Exercise actual native application teardown in bounded child processes.
 //! Run with `cargo test -p isonomic-ui --no-default-features --test native_shutdown`.
 //! A desktop session is required; no TestAppContext or test scheduler is used.

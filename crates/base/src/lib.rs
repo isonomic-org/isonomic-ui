@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Behavior and infrastructure foundations for GPUI applications.
 //!
 //! Primitives deliberately avoid presentation styles. Layout, positioning,

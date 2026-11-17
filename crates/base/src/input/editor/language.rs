@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{cell::RefCell, rc::Rc};
 
 use super::{LanguageConfig, Rope, SyntaxContext, SyntaxContextProvider};

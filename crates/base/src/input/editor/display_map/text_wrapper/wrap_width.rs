@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Conservative width intervals reuse the original Unicode wrapping decisions without approximating glyphs.
 
 use gpui::{Boundary, Pixels, px};

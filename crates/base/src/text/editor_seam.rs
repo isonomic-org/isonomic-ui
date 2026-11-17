@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Crate-private plumbing behind [`editor_host`](super::editor_host).
 //!
 //! A text leaf whose [`InlineState`](super::inline::InlineState) carries an

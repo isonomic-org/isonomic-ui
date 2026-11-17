@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Contrast colour picker: a palette of swatches that checks each one as text on a background, with the ratio and whether it passes.
 //!
 //! Every swatch shows a tick or a warning for readability against the

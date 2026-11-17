@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Labelled divider: a rule that splits a list or feed into named runs, such as days in an activity feed, with an optional action at the end.
 //!
 //! The label sits at the start or in the middle of the rule. Day headings

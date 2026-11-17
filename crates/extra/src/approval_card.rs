@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Approval card: an assistant asks before it does something hard to undo.
 //!
 //! The card names the action, says how risky it is and previews what will

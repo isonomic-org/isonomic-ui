@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Question card: an assistant's question, answered in one keystroke.
 //!
 //! The card sits above a chat composer and holds the questions that wait for

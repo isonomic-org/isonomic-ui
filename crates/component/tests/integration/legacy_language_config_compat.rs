@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 // These imports and grammar struct literals were valid in 0.6.0.
 
 use isonomic_ui_component::{highlighter::*, input::*};

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Quick decision list: open questions that each take one of two answers.
 //!
 //! The heading counts what is still waiting. Picking an answer confirms it for

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Row actions menu: one list of actions for a row, opened by right-click on the row or from its "more" button.
 //!
 //! The kit's context menu opens on right-click only, which leaves keyboard

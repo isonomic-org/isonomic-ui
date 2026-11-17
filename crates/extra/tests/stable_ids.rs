@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Rows that a scripted test of a real app has to find by a stable id.
 
 use isonomic_ui::component::sidebar::{Sidebar, SidebarGroup, SidebarMenu, SidebarMenuItem};

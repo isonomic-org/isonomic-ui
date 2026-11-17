@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 #[cfg(not(target_family = "wasm"))]
 use std::time::Instant;
 use std::{cell::RefCell, rc::Rc, time::Duration};

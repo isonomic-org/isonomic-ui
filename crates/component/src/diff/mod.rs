@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Readonly, virtualized patch display inspired by Diffs from Pierre.
 //! Parse an externally supplied patch into [`DiffFile`]s, retain one
 //! [`DiffState`] for all of them in the owner, and build [`Diff`] during rendering.

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     AnyElement, App, Entity, Focusable, InteractiveElement as _, IntoElement, MouseButton,
     ParentElement as _, RenderOnce, Styled as _, Window, div, prelude::FluentBuilder,

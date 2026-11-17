@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Form select: a form field that picks one value from a list split into named groups, with a placeholder, a required mark, an error line and a way to clear.
 //!
 //! The field shows the picked option, or the placeholder in a quieter ink

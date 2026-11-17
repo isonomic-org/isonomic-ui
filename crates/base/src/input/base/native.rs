@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 #[cfg(target_os = "macos")]
 mod macos {
     use std::{cell::RefCell, collections::HashMap, mem, ptr, sync::Once};

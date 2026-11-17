@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Task cell grid: one large job split across many workers.
 //!
 //! Every task is a small cell on a grid that fills in as the workers get

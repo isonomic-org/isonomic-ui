@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Cost breakdown waterfall: what each step of a run cost, stacked up to the total.
 //!
 //! Each row is a step, and its bar starts where the step before it ended,

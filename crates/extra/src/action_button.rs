@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Action button: the kit's button with the states an action goes through: working, done, failed, and a second click to confirm.
 //!
 //! Idle, it's a plain button. Working, it shows a spinner and its working

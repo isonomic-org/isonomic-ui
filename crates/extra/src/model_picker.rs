@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Model picker: choose which model answers, and the settings that go with it.
 //!
 //! A small trigger for a composer toolbar opens a menu. Each model has a short

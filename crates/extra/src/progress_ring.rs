@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Progress ring: a circular indicator that fills as work completes, or circles while the amount is unknown, with an optional label beside it.
 //!
 //! Give it a share from 0 to 1 and the ring fills clockwise from the top;

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Filter menu: a few groups of options to filter a list, table or board by.
 //!
 //! What is picked sits on top as removable chips. Below, each group folds open

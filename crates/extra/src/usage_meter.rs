@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Usage meter: how much of a plan's allowance is used, and on what.
 //!
 //! One card answers the questions a billing page gets: how much is gone, what

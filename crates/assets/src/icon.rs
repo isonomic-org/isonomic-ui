@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{AnyElement, App, IntoElement, RenderOnce, SharedString, Styled, Window, svg};
 
 include!(concat!(env!("OUT_DIR"), "/icon_name.rs"));

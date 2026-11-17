@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::prelude::FluentBuilder as _;
 use isonomic_ui::*;
 use serde::Deserialize;

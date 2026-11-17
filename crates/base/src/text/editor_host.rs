@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Host API for external editors.
 //!
 //! An editor that lives outside isonomic-ui keeps its own document model and

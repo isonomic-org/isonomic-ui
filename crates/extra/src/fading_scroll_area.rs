@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Fading scroll area: a box that scrolls its content and fades the edge where more is hidden, with a button back to the top after a long scroll.
 //!
 //! The top edge fades once anything is scrolled away above, and the bottom

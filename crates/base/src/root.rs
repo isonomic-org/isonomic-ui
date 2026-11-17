@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Window roots and presentation-layer plugins.
 use crate::input::Copy;
 use crate::{StyledExt, TextSelectionLayer};

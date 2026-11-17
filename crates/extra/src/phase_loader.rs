@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Phase loader: a small pill that says what is being worked on right now.
 //!
 //! A spinner sits next to a label that walks through phases, either on a timer

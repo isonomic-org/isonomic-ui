@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 pub use crate::component_traits::{Collapsible, Disableable, Selectable};
 pub use crate::sizing::{Sizable, Size, StyleSized};
 use gpui::{

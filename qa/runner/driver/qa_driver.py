@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """QA driver for isonomic-ui component stories.
 
 Runs each story in the QA gallery under a virtual X display, takes the

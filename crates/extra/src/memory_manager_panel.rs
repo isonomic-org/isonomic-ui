@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Memory manager panel: what an assistant remembers, to search, edit, pause or remove, with undo.
 //!
 //! Each remembered item shows what it says, where it came from and when it

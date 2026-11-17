@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use super::TestWindowExt;
 use crate::{App, InputHandler, UTF16Selection, Window};
 use std::ops::Range;

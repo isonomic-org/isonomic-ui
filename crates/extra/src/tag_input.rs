@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Tag input: several short values in one field, as chips.
 //!
 //! Enter, a comma or Tab turns what was typed into a chip, and a pasted list

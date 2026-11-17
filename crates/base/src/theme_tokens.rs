@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Semantic design tokens shared by application-owned components.
 //!
 //! These tokens describe visual roles and scales. They intentionally do not

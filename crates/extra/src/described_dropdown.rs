@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Described dropdown: a button whose menu explains each choice in a second line, marks the current one, and keeps destructive choices apart.
 //!
 //! Each choice has a title and a short description, so "Weekly" can say

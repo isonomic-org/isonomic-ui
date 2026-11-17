@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Path breadcrumb: where you are as a trail of places, folding the middle into a menu when it's long.
 //!
 //! The first place and the last few always show; the ones between fold into

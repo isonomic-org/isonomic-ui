@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use isonomic_ui::component::{ActiveTheme as _, ThemeStyled as _, skeleton::Skeleton, v_flex};
 use isonomic_ui::{
     App, AppContext, Context, Entity, Focusable, IntoElement, ParentElement, Render, Styled,

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Period picker: pick a span of days on two months side by side, or take one of the reporting periods people use most.
 //!
 //! The first click picks the start, the second the end; until then the

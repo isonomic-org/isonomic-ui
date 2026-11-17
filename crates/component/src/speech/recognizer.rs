@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{fmt, rc::Rc, sync::Arc};
 
 use gpui::{App, Context, SharedString, Subscription, WeakEntity};

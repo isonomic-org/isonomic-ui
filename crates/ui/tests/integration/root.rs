@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Root` owns the window's overlay layers: a view that never mentions them
 //! still gets its dialogs, including when its content is cached.
 

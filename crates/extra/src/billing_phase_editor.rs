@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Billing phase editor: the phases of a contract, each with its dates, line items, discount and minimum.
 //!
 //! Each phase is a card: when it starts and for how many months, the line

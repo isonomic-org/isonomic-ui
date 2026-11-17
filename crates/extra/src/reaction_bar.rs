@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reaction bar: a row of small toggles with public counts, such as likes or saves.
 //!
 //! Pressing a toggle marks it as yours with a light tint, pops its icon and

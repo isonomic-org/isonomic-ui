@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Context usage grid: what fills a model's context budget.
 //!
 //! The budget is a field of small cells, coloured by the part that takes

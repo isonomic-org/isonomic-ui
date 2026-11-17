@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The arithmetic of a grid layout: where items may sit, what pushes what, and
 //! how a layout settles. Everything here is pure, in grid cells, and knows
 //! nothing about pixels, entities or rendering.

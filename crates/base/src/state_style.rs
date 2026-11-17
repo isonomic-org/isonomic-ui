@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{Refineable as _, StyleRefinement, Styled, prelude::FluentBuilder};
 
 /// A semantic-state style builder.

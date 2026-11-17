@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Typed confirm dialog: a confirmation for actions that can't be undone, listing what will happen and asking for a word to be typed first.
 //!
 //! The dialog names the action, lists its consequences, and asks the person

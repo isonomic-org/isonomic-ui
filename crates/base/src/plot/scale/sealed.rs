@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// Keeps [`PlotValue`](super::PlotValue) closed to the types it lists.
 pub trait Sealed {}
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Keyboard reach for extra components, checked in a headless window.
 
 use isonomic_ui::Entity;

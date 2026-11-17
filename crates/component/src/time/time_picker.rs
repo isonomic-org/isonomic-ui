@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use chrono::{NaiveTime, Timelike as _};
 use gpui::{
     AnyElement, App, AppContext as _, Bounds, ClickEvent, Context, ElementId, Empty, Entity,

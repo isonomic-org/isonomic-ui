@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Styled editor workflows driven through the production window and native events.
 
 use isonomic_ui::{

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Cross-platform async channel primitives for native and WASM targets.
 
 #[cfg(not(target_family = "wasm"))]

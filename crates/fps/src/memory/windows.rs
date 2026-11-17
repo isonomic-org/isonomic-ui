@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reads `PrivateUsage` through `GetProcessMemoryInfo`: this process' private
 //! commit, which is what Task Manager's Commit size column shows.
 //!

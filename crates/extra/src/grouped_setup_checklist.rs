@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Grouped setup checklist: onboarding split into areas, each a few steps that
 //! build on each other.
 //!

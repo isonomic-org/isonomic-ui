@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{AnyElement, IntoElement, Pixels, TextStyle};
 
 /// A GPUI element participating as one atomic object in a text line.

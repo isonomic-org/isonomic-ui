@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 /// An element or component that exposes controlled selected state.
 ///
 /// `selected` is the application's own meaning of selection: the current

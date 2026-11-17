@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! The isonomic-ui-component appearance for the dock.
 //!
 //! The layout tree, the persisted schema, the drag geometry, the active-panel

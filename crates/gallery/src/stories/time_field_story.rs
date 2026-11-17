@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use chrono::NaiveTime;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Sizable as _, Size, StyledExt,

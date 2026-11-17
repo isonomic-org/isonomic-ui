@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::{
     Action, AsKeystroke, ElementId, FocusHandle, Half, InteractiveElement as _, IntoElement,
     KeyBinding, KeyContext, Keystroke, ParentElement as _, RenderOnce, Role, SharedString,

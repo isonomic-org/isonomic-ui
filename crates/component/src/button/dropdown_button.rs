@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use gpui::Corners;
 use gpui::{
     Anchor, App, Context, Edges, ElementId, InteractiveElement as _, IntoElement, ParentElement,

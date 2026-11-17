@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Catch-up summary: what happened while you were away, as a card that folds to a divider.
 //!
 //! Open, the card counts what finished, what needs you and what failed, and

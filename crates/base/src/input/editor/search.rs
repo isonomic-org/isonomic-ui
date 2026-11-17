@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::input::InputModeKind;
 use aho_corasick::AhoCorasick;
 use gpui::{Context, Window};

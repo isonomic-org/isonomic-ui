@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reads the `GPU Engine` performance counters through PDH, the same source
 //! Task Manager's GPU column uses. Each instance is named after the process
 //! that owns it, so this process' share falls out of the instance names. No

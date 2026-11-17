@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Anud Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """Write the status table for a QA run, as Markdown.
 
   status.py --run qa/out [--issues qa/review/issues.json] [--only slug,slug] > status.md

@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Findings feed: several workers checking something at once.
 //!
 //! Each worker gets one calm row with what it is doing and how far it is.

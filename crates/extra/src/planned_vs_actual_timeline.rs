@@ -1,3 +1,6 @@
+// Copyright 2026 Anud Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 //! Planned vs actual timeline: a run's plan against what really happened.
 //!
 //! Every step has a dashed bar for when it was planned and a solid bar for
