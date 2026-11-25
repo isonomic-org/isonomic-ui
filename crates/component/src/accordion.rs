@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Arc};
 use gpui::{
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
     SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    percentage, prelude::FluentBuilder as _, rems,
+    percentage, prelude::FluentBuilder as _, px,
 };
 
 use crate::{ActiveTheme as _, Icon, IconName, Sizable, Size, StyledExt as _, h_flex};
@@ -113,9 +113,12 @@ impl RenderOnce for Accordion {
             // The bordered accordion is a single rounded card, the items are
             // joined by their separators.
             .when(self.bordered, |this| {
-                this.border_1()
-                    .border_color(cx.theme().border)
-                    .rounded(cx.theme().radius_lg)
+                this.shadow(crate::look::surface::resting(cx))
+                    .rounded(if cx.theme().radius_lg > px(0.) {
+                        cx.theme().radius_lg + px(2.)
+                    } else {
+                        px(0.)
+                    })
                     .overflow_hidden()
             })
             .refine_style(&self.style)
@@ -308,9 +311,9 @@ fn plain_text(title: &dyn std::any::Any) -> Option<SharedString> {
 impl RenderOnce for AccordionItem {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let text_size = match self.size {
-            Size::XSmall => rems(0.75),
-            Size::Large => rems(1.0),
-            _ => rems(0.875),
+            Size::XSmall => px(12.),
+            Size::Large => px(14.),
+            _ => px(13.),
         };
         let progress = spring(
             (self.index, "accordion-panel"),
@@ -395,6 +398,7 @@ impl RenderOnce for AccordionItem {
                             ("content", self.index),
                             progress,
                             div()
+                                .text_color(crate::look::ink::muted(cx))
                                 .map(|this| match self.size {
                                     Size::XSmall => this.pb_1().px_1p5(),
                                     Size::Small => this.pb_1p5().px_2(),
@@ -411,9 +415,11 @@ impl RenderOnce for AccordionItem {
                 .bg(cx.theme().tokens.accordion)
                 .overflow_hidden()
                 .when(!self.last, |this| {
-                    this.border_b_1().border_color(cx.theme().border)
+                    this.border_b_1()
+                        .border_color(crate::look::ink::hairline(cx))
                 })
                 .text_size(text_size)
+                .line_height(px(20.))
                 .refine_style(&self.style),
         )
     }
