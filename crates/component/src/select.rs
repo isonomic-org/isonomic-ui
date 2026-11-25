@@ -45,17 +45,29 @@ pub use crate::searchable_list::SearchableVec;
 pub struct Caret {
     size: Size,
     color: Option<Hsla>,
+    turn: f32,
 }
 
 impl Caret {
     /// Create a select caret sized for its trigger.
     pub fn new(size: Size) -> Self {
-        Self { size, color: None }
+        Self {
+            size,
+            color: None,
+            turn: 0.,
+        }
     }
 
     /// Set the caret color.
     pub fn text_color(mut self, color: Hsla) -> Self {
         self.color = Some(color);
+        self
+    }
+
+    /// How far the caret has turned over, from 0 (pointing down) to 1
+    /// (pointing up).
+    pub fn turn(mut self, turn: f32) -> Self {
+        self.turn = turn.clamp(0., 1.);
         self
     }
 }
@@ -69,6 +81,9 @@ impl RenderOnce for Caret {
                 _ => Size::Medium,
             })
             .when_some(self.color, |this, color| this.text_color(color))
+            .when(self.turn > 0., |this| {
+                this.rotate(gpui::radians(self.turn * std::f32::consts::PI))
+            })
     }
 }
 
@@ -562,6 +577,42 @@ where
         let outline_visible = self.state.open || (is_focused && !self.state.disabled);
 
         let (bg, fg) = input_style(self.state.disabled, cx);
+        let size = self.state.size;
+        let boxed = self.state.appearance;
+
+        // The trigger is a field: a hairline ring that firms under the
+        // pointer and steps to a full pixel while its list is open.
+        let hover_state =
+            window.use_keyed_state(("select-trigger-hovered", cx.entity_id()), cx, |_, _| false);
+        let hovered = boxed && allow_open && *hover_state.read(cx);
+        let fade = crate::look::hover_fade(("select-trigger", cx.entity_id()), hovered, window, cx);
+        let trigger_shadow = if self.state.disabled {
+            crate::look::surface::field(cx)
+                .into_iter()
+                .take(1)
+                .map(|mut ring| {
+                    ring.color = ring.color.alpha(ring.color.a * 0.75);
+                    ring
+                })
+                .collect()
+        } else if self.state.open {
+            crate::look::surface::field_focus(cx)
+        } else {
+            crate::look::mix_shadows(
+                &crate::look::surface::field(cx),
+                &crate::look::surface::field_hover(cx),
+                fade,
+            )
+        };
+        // The caret turns over as the list opens.
+        let turn = isonomic_ui_base::motion::transition(
+            ElementId::from(("select-caret", cx.entity_id())),
+            if self.state.open { 1. } else { 0. },
+            isonomic_ui_base::motion::Transition::new(std::time::Duration::from_millis(240))
+                .easing(cx.theme().motion.easing_enter.clone()),
+            window,
+            cx,
+        );
 
         self.state.list.update(cx, |list, cx| {
             list.set_searchable(searchable, cx);
@@ -584,25 +635,41 @@ where
                         .flex()
                         .items_center()
                         .justify_between()
-                        .border_1()
-                        .border_color(cx.theme().transparent)
-                        .when(self.state.appearance, |this| {
+                        .when(boxed, |this| {
                             this.bg(bg)
                                 .text_color(fg)
-                                .when(self.state.disabled, |this| this.opacity(0.5))
-                                .border_color(cx.theme().input)
-                                .rounded(cx.theme().radius)
+                                .rounded(if cx.theme().radius > px(0.) {
+                                    cx.theme().radius + px(1.)
+                                } else {
+                                    px(0.)
+                                })
+                                .shadow(trigger_shadow)
                         })
-                        .input_size(self.state.size)
-                        .input_text_size(self.state.size)
+                        .input_size(size)
+                        // The caret sits 2px nearer its edge than the text.
+                        .pr(px(match size {
+                            Size::XSmall | Size::Small => 6.,
+                            Size::Large => 10.,
+                            _ => 8.,
+                        }))
+                        .input_text_size(size)
                         .refine_style(&self.state.style)
-                        .when(outline_visible && self.state.appearance, |this| {
-                            this.border_1().border_color(cx.theme().ring)
-                        })
                         .when(
-                            outline_visible && self.state.appearance && self.focus_ring_enabled,
+                            outline_visible && !self.state.open && boxed && self.focus_ring_enabled,
                             |this| this.focus_ring_style(window, cx),
                         )
+                        .on_hover({
+                            move |hovered, window, cx| {
+                                let hovered = *hovered;
+                                hover_state.update(cx, |state, cx| {
+                                    if *state != hovered {
+                                        *state = hovered;
+                                        cx.notify();
+                                    }
+                                });
+                                window.refresh();
+                            }
+                        })
                         .when(allow_open, |this| {
                             this.on_click(cx.listener(Self::toggle_menu))
                         })
@@ -616,7 +683,7 @@ where
                                 .whitespace_nowrap()
                                 .items_center()
                                 .justify_between()
-                                .gap_1()
+                                .gap_2()
                                 .child(
                                     div()
                                         .id("title")
@@ -640,10 +707,11 @@ where
                                     let icon = match self.icon.clone() {
                                         Some(icon) => icon
                                             .xsmall()
-                                            .text_color(cx.theme().muted_foreground)
+                                            .text_color(crate::look::ink::icon(cx))
                                             .into_any_element(),
-                                        None => Caret::new(self.state.size)
-                                            .text_color(cx.theme().muted_foreground)
+                                        None => Caret::new(size)
+                                            .text_color(crate::look::ink::icon(cx))
+                                            .turn(turn)
                                             .into_any_element(),
                                     };
 
