@@ -1,0 +1,47 @@
+component: thinking-indicator
+# The orbs and shimmer never rest, so a short settle keeps steps quick.
+settle: 0.8
+steps:
+  - name: each kind of work says what it is in words
+    check: C4
+    expect:
+      - {present: {contains: "Working out what changed since February"}}
+      - {present: {contains: "Waiting for your approval"}}
+  - name: a working row shows the time so far after its label
+    check: C4
+    expect:
+      - {present: {contains: "Checking the February payments, 12s"}}
+  - name: a finished row says how long it thought
+    check: C5
+    expect:
+      - {present: {contains: "Thought for 2 seconds"}}
+      - {present: {name: "Thought for 14 seconds", role: "push button"}}
+      - {present: {name: "Thought for 9 seconds", role: "push button"}}
+      - {text: "Reasoning not opened yet"}
+    shot: finished
+  - name: a collapsed row hides its reasoning, an expanded one shows it
+    check: C5
+    expect:
+      - {text: "timing, not a missing entry"}
+  - name: pressing the collapsed row shows its reasoning
+    check: C4
+    click: {name: "Thought for 14 seconds"}
+    expect: [{text: "Collapsed reasoning opened"}]
+    shot: opened
+  - name: pressing it again hides it
+    check: C4
+    click: {name: "Thought for 14 seconds"}
+    expect: [{text: "Collapsed reasoning closed"}]
+  - name: the first disclosure is the first Tab stop
+    check: C6
+    tabstart: true
+    expect: [{focused: "head"}]
+  - name: Enter toggles the focused disclosure
+    check: C6
+    key: Return
+    expect: [{changed: true}, {text: "reasoning"}]
+  - name: Space toggles it back
+    check: C6
+    key: space
+    expect: [{changed: true}, {text: "reasoning"}]
+    shot: keyboard
