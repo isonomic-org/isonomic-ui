@@ -1,7 +1,10 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use gpui::{
     Anchor, AnyElement, App, Background, Bounds, ClickEvent, Edges, ElementId, Entity, EntityId,
@@ -204,6 +207,7 @@ impl TabBar {
     fn render_indicator(
         &self,
         bounds_rc: &Option<Rc<RefCell<TabIndicatorBounds>>>,
+        from_keys: bool,
         window: &mut Window,
         cx: &mut App,
     ) -> Option<(AnyElement, u64)> {
@@ -245,21 +249,17 @@ impl TabBar {
         // The springs hold the indicator's own position and velocity, so a tab
         // switched again mid-slide is redirected from where the indicator
         // actually is rather than restarted from the tab it left.
+        //
+        // A switch made from the keyboard does not slide: the indicator is
+        // under the new tab on the next frame, so a key press never waits.
         let indicator_key = format!("{}-tab-indicator", self.id);
-        let left = spring(
-            (indicator_key.clone(), "left"),
-            to_left,
-            cx.theme().motion_tokens().spring_move,
-            window,
-            cx,
-        );
-        let width = spring(
-            (indicator_key, "width"),
-            to_width,
-            cx.theme().motion_tokens().spring_move,
-            window,
-            cx,
-        );
+        let slide = cx
+            .theme()
+            .motion_tokens()
+            .spring_move
+            .with_travel(!from_keys);
+        let left = spring((indicator_key.clone(), "left"), to_left, slide, window, cx);
+        let width = spring((indicator_key, "width"), to_width, slide, window, cx);
 
         let variant = self.variant;
         let size = self.size;
@@ -363,6 +363,11 @@ impl TabBar {
             }
         }
     }
+}
+
+/// Whether a tab was activated with Enter or Space rather than the pointer.
+fn is_keyboard_click(event: &ClickEvent) -> bool {
+    matches!(event, ClickEvent::Keyboard(_))
 }
 
 impl Styled for TabBar {
@@ -486,7 +491,15 @@ impl RenderOnce for TabBar {
         reveal.advance(window, cx);
 
         let padding_x = paddings.left;
-        let indicator = self.render_indicator(&bounds_rc, window, cx);
+        // Whether the last switch came from the keyboard. A cell, so the click
+        // handlers can write it without asking for another render.
+        let from_keys: Rc<Cell<bool>> = window
+            .use_keyed_state(format!("{}-tab-from-keys", self.id), cx, |_, _| {
+                Rc::new(Cell::new(false))
+            })
+            .read(cx)
+            .clone();
+        let indicator = self.render_indicator(&bounds_rc, from_keys.get(), window, cx);
         let indicator_epoch = indicator.as_ref().map(|(_, epoch)| *epoch).unwrap_or(0);
         let mut indicator_element = indicator.map(|(el, _)| el);
         let indicator_ready = indicator_element.is_some();
@@ -547,8 +560,10 @@ impl RenderOnce for TabBar {
                     };
                     tab.on_click = on_click.map(|on_click| {
                         let reveal = reveal.clone();
+                        let from_keys = from_keys.clone();
                         Rc::new(
                             move |event: &ClickEvent, window: &mut Window, cx: &mut App| {
+                                from_keys.set(is_keyboard_click(event));
                                 reveal.reveal(ix, cx);
                                 on_click(event, window, cx)
                             },
@@ -917,6 +932,12 @@ mod tests {
 
     use super::*;
     use crate::scroll::ScrollableElement as _;
+
+    #[test]
+    fn only_a_key_press_counts_as_a_keyboard_switch() {
+        assert!(is_keyboard_click(&ClickEvent::Keyboard(Default::default())));
+        assert!(!is_keyboard_click(&ClickEvent::Mouse(Default::default())));
+    }
 
     struct Harness {
         group_handler: bool,

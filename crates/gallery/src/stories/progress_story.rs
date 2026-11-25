@@ -5,7 +5,7 @@ use isonomic_ui::component::{
     ActiveTheme, IconName, Sizable, Size, StyledExt,
     button::Button,
     h_flex,
-    progress::{Progress, ProgressCircle},
+    progress::{BarSegment, Progress, ProgressCircle, SegmentedBar},
     v_flex,
 };
 use isonomic_ui::prelude::FluentBuilder as _;
@@ -192,6 +192,38 @@ impl Render for ProgressStory {
                                     } else {
                                         "About 1 min left"
                                     }),
+                            ),
+                    ),
+            )
+            .child(
+                section("Striped and stacked")
+                    .description("Stripes mark a provisional amount; a stacked bar splits one total by source.")
+                    .w(px(560.))
+                    .items_center()
+                    .child(
+                        v_flex()
+                            .w(px(400.))
+                            .gap_4()
+                            .child(
+                                Progress::new("striped-progress")
+                                    .value(self.value)
+                                    .striped(true)
+                                    .accessibility_label("Estimated print run"),
+                            )
+                            .child(
+                                SegmentedBar::new("paper-stock", 4000.)
+                                    .label("Paper stock used")
+                                    .segment(BarSegment::new("Posters", 1200., cx.theme().chart_1))
+                                    .segment(BarSegment::new("Flyers", 860., cx.theme().chart_2))
+                                    .segment(BarSegment::new("Cards", 340., cx.theme().chart_3))
+                                    .segment(BarSegment::new("Proofs", 20., cx.theme().chart_4)),
+                            )
+                            .child(
+                                SegmentedBar::new("paper-stock-striped", 4000.)
+                                    .label("Paper stock reserved")
+                                    .striped(true)
+                                    .segment(BarSegment::new("Posters", 1900., cx.theme().chart_1))
+                                    .segment(BarSegment::new("Flyers", 700., cx.theme().chart_2)),
                             ),
                     ),
             )
