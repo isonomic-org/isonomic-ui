@@ -15,7 +15,7 @@ use std::{
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::{Button, ButtonVariants as _},
+    button::{Button, ButtonCustomVariant, ButtonVariants as _},
     h_flex,
     kbd::Kbd,
     v_flex,
@@ -744,16 +744,30 @@ impl RenderOnce for PermissionPrompt {
                         .gap_2()
                         .child(
                             Button::new((self.id.clone(), "deny"))
-                                .outline()
-                                .small()
+                                .large()
                                 .accessibility_label("Deny")
                                 .child(h_flex().gap_1p5().child("Deny").children(hint("escape")))
                                 .on_click(move |_, window, cx| deny(window, cx)),
                         )
                         .child({
-                            let button = Button::new((self.id.clone(), "allow")).small();
+                            let button = Button::new((self.id.clone(), "allow")).large();
+                            // Allowing something that cannot be undone is the one
+                            // place a danger action is solid.
+                            let on_fill = if self.risk == PermissionRisk::Destructive {
+                                cx.theme().danger_foreground
+                            } else {
+                                cx.theme().primary_foreground
+                            };
                             let button = if self.risk == PermissionRisk::Destructive {
-                                button.danger()
+                                let danger = cx.theme().danger;
+                                button.custom(
+                                    ButtonCustomVariant::new(cx)
+                                        .color(danger)
+                                        .solid(true)
+                                        .foreground(cx.theme().danger_foreground)
+                                        .hover(danger.opacity(0.9))
+                                        .active(danger.opacity(0.82)),
+                                )
                             } else {
                                 button.primary()
                             };
@@ -763,7 +777,13 @@ impl RenderOnce for PermissionPrompt {
                                     h_flex()
                                         .gap_1p5()
                                         .child(allow_label)
-                                        .children(hint("enter")),
+                                        // The hint takes the filled button's
+                                        // own ink so it sits on the colour
+                                        // instead of punching a grey hole in it.
+                                        .children(hint("enter").map(|kbd| {
+                                            kbd.bg(on_fill.opacity(0.16))
+                                                .text_color(on_fill.opacity(0.72))
+                                        })),
                                 )
                                 .on_click(move |_, window, cx| allow(window, cx))
                         }),

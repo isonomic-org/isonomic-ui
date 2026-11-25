@@ -48,6 +48,7 @@ pub struct ButtonCustomVariant {
     shadow: bool,
     hover: Hsla,
     active: Hsla,
+    solid: bool,
 }
 
 pub trait ButtonVariants: Sized {
@@ -112,6 +113,7 @@ impl ButtonCustomVariant {
             hover: cx.theme().transparent,
             active: cx.theme().transparent,
             shadow: false,
+            solid: false,
         }
     }
 
@@ -148,6 +150,23 @@ impl ButtonCustomVariant {
     pub fn shadow(mut self, shadow: bool) -> Self {
         self.shadow = shadow;
         self
+    }
+
+    /// Fill with the [`color`](Self::color) as given instead of its 20% tint.
+    ///
+    /// For the rare action that has to be a solid colour, such as allowing
+    /// something that cannot be undone. Default is false.
+    pub fn solid(mut self, solid: bool) -> Self {
+        self.solid = solid;
+        self
+    }
+
+    fn rest(&self, cx: &App) -> Background {
+        if self.solid {
+            self.color.into()
+        } else {
+            self.color.mix_oklab(cx.theme().transparent, 0.2).into()
+        }
     }
 }
 
@@ -1127,7 +1146,7 @@ impl ButtonVariant {
                 cx.theme().tokens.info_active.background.opacity(0.4)
             }
             (Self::Ghost | Self::Link | Self::Text, _) => cx.theme().transparent.into(),
-            (Self::Custom(colors), _) => colors.color.mix_oklab(cx.theme().transparent, 0.2).into(),
+            (Self::Custom(colors), _) => colors.rest(cx),
         }
     }
 
@@ -1145,7 +1164,7 @@ impl ButtonVariant {
             Self::Success => cx.theme().tokens.button_success.into(),
             Self::Info => cx.theme().tokens.button_info.into(),
             Self::Ghost | Self::Link | Self::Text => cx.theme().transparent.into(),
-            Self::Custom(colors) => colors.color.mix_oklab(cx.theme().transparent, 0.2).into(),
+            Self::Custom(colors) => colors.rest(cx),
         }
     }
 

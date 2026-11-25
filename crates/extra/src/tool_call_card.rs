@@ -30,9 +30,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
+    App, BoxShadow, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, StyledText, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    Styled, StyledText, Task, Window, div, point, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -784,7 +784,6 @@ impl RenderOnce for ToolCallGroup {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let danger = theme.danger;
         let radius = theme.radius;
 
@@ -890,19 +889,33 @@ impl RenderOnce for ToolCallGroup {
             .cursor_pointer()
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(
+                // The tools overlap like a hand of cards, each tile lifted off
+                // the one before it by a ring in the page colour.
                 h_flex()
                     .flex_none()
-                    .gap(px(2.))
-                    .children(icons.into_iter().map(|icon| {
+                    .children(icons.into_iter().enumerate().map(|(ix, icon)| {
                         div()
                             .flex()
                             .items_center()
                             .justify_center()
                             .size(px(22.))
+                            .when(ix > 0, |this| this.ml(px(-4.)))
                             .rounded(px(6.))
-                            .border_1()
-                            .border_color(line)
                             .bg(fill)
+                            .shadow({
+                                let mut ring = resting_shadow(cx);
+                                ring.insert(
+                                    0,
+                                    BoxShadow {
+                                        color: fill,
+                                        offset: point(px(0.), px(0.)),
+                                        blur_radius: px(0.),
+                                        spread_radius: px(1.5),
+                                        inset: false,
+                                    },
+                                );
+                                ring
+                            })
                             .text_color(quiet)
                             .child(Icon::new(icon).xsmall())
                     })),
