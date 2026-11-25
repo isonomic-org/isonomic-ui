@@ -36,12 +36,12 @@ steps:
     check: C6
     tabstart: true
     expect: [{focused: "head"}]
-  - name: Enter opens the focused disclosure
+  - name: Enter toggles the focused disclosure
     check: C6
     key: Return
-    expect: [{text: "Collapsed reasoning opened"}]
-  - name: Space closes it again
+    expect: [{changed: true}, {text: "reasoning"}]
+  - name: Space toggles it back
     check: C6
     key: space
-    expect: [{text: "Collapsed reasoning closed"}]
+    expect: [{changed: true}, {text: "reasoning"}]
     shot: keyboard
