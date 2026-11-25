@@ -59,7 +59,10 @@ impl Render for TickGaugeStory {
                     .child(
                         TickGauge::new("on-time", "Sent on time", rate)
                             .subtitle(format!("Week {}", self.week + 31))
-                            .caption(format!("{late} of {} late", group_thousands(u64::from(total))))
+                            .caption(format!(
+                                "{late} of {} late",
+                                group_thousands(u64::from(total))
+                            ))
                             .target(0.99, "Goal 99%")
                             .aside(if met {
                                 Tag::success().child("On goal")

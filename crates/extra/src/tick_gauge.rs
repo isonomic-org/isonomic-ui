@@ -13,7 +13,7 @@ use std::{f32::consts::PI, time::Duration};
 use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::base::{Presence, Transition, transition};
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, StyledExt as _, rolling_number::RollingNumber,
+    ActiveTheme as _, Icon, StyledExt as _, TextRole as _, rolling_number::RollingNumber,
 };
 use isonomic_ui::{
     AnyElement, App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement,
@@ -231,8 +231,7 @@ fn arc_label(along: f32, text: SharedString, color: Hsla) -> impl IntoElement {
 
 impl RenderOnce for TickGauge {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let part =
-            |name: &'static str| ElementId::NamedChild(self.id.clone().into(), name.into());
+        let part = |name: &'static str| ElementId::NamedChild(self.id.clone().into(), name.into());
         let figure: SharedString = self
             .figure
             .clone()
@@ -329,14 +328,7 @@ impl RenderOnce for TickGauge {
                     .font_medium(),
             )
             .when_some(self.caption.clone(), |this, caption| {
-                this.child(
-                    div()
-                        .mt_1()
-                        .text_size(px(12.))
-                        .line_height(px(16.))
-                        .text_color(quiet)
-                        .child(caption),
-                )
+                this.child(div().mt_1().text_caption().text_color(quiet).child(caption))
             });
 
         shell(cx)
