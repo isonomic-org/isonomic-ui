@@ -4,8 +4,8 @@
 use crate::{ActiveTheme, Sizable, Size, StyledExt};
 use gpui::{
     Animation, AnimationExt as _, App, Background, ElementId, Hsla, IntoElement, IsZero as _,
-    ParentElement, RenderOnce, SharedString, StyleRefinement, Styled, Window, ease_in_out,
-    prelude::FluentBuilder, px, relative,
+    ParentElement, RenderOnce, SharedString, StyleRefinement, Styled, Window, div, ease_in_out,
+    pattern_slash, prelude::FluentBuilder, px, relative,
 };
 use instant::Duration;
 use isonomic_ui_base::{
@@ -23,6 +23,7 @@ pub struct Progress {
     accessibility_label: Option<SharedString>,
     size: Size,
     loading: bool,
+    striped: bool,
 }
 
 impl Progress {
@@ -36,6 +37,7 @@ impl Progress {
             style: StyleRefinement::default(),
             size: Size::default(),
             loading: false,
+            striped: false,
         }
     }
 
@@ -45,6 +47,12 @@ impl Progress {
     /// sliding animation is shown instead.
     pub fn loading(mut self, loading: bool) -> Self {
         self.loading = loading;
+        self
+    }
+
+    /// Draw diagonal stripes over the filled part.
+    pub fn striped(mut self, striped: bool) -> Self {
+        self.striped = striped;
         self
     }
 
@@ -90,6 +98,7 @@ impl RenderOnce for Progress {
             .unwrap_or(cx.theme().tokens.progress_bar.into());
         let value = self.value;
         let loading = self.loading;
+        let stripes = self.striped.then(|| stripe_pattern(cx));
         let accessibility_label = self.accessibility_label;
         let reduce_motion = cx.reduce_motion();
         let rtl = LayoutDirection::global(cx).is_rtl();
@@ -151,6 +160,10 @@ impl RenderOnce for Progress {
                     .bg(bg)
                     .rounded(radius)
                     .refine_style(&inner_style)
+                    .when_some(stripes, |this, stripes| {
+                        this.overflow_hidden()
+                            .child(div().size_full().rounded(radius).bg(stripes))
+                    })
                     .map(|this| {
                         if loading && !reduce_motion {
                             this.with_animation(
@@ -179,6 +192,12 @@ impl RenderOnce for Progress {
                     }),
             )
     }
+}
+
+/// Diagonal stripes for a filled bar: 3px lines 4px apart, in the colour that
+/// sits on the primary fill, at low alpha.
+pub(super) fn stripe_pattern(cx: &App) -> Background {
+    pattern_slash(cx.theme().tokens.primary_foreground.opacity(0.16), 3., 4.)
 }
 
 #[cfg(test)]
