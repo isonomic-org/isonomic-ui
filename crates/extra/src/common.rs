@@ -3,8 +3,11 @@
 
 //! Small pieces shared by the components in this crate.
 
-use isonomic_ui::component::ActiveTheme as _;
-use isonomic_ui::{App, BoxShadow, Hsla};
+use isonomic_ui::component::{ActiveTheme as _, Icon, StyledExt as _, h_flex};
+use isonomic_ui::{
+    AnyElement, App, BoxShadow, Div, Hsla, IntoElement, ParentElement as _, Styled as _, div,
+    prelude::FluentBuilder as _, px,
+};
 
 /// The meaning a status carries, resolved to theme colors.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -54,6 +57,89 @@ pub fn resting_shadow(cx: &App) -> Vec<BoxShadow> {
 /// state.
 pub fn lifted_shadow(cx: &App) -> Vec<BoxShadow> {
     isonomic_ui::component::look::surface::resting_hover(cx)
+}
+
+/// Outer frame of a component built from layers. Layers are told apart by
+/// their fill alone: headers and footers sit in the shell's padding, content
+/// sits in a [`panel`].
+pub fn shell(cx: &App) -> Div {
+    div()
+        .w_full()
+        .p(px(6.))
+        .rounded(px(22.))
+        .bg(cx.theme().muted)
+}
+
+/// Main content area inside a [`shell`].
+pub fn panel(cx: &App) -> Div {
+    div().rounded(px(16.)).bg(cx.theme().background)
+}
+
+/// One level deeper than a [`panel`]: code, payloads, details.
+pub fn inset(cx: &App) -> Div {
+    div().rounded(px(12.)).bg(cx.theme().secondary)
+}
+
+/// An icon in a tinted square, 36px with a 16px icon.
+pub fn icon_tile(icon: impl Into<Icon>, cx: &App) -> Div {
+    let icon: Icon = icon.into();
+    div()
+        .flex()
+        .flex_none()
+        .items_center()
+        .justify_center()
+        .size(px(36.))
+        .rounded(px(16.))
+        .bg(cx.theme().secondary)
+        .text_color(cx.theme().muted_foreground)
+        .child(icon.size(px(16.)))
+}
+
+/// Header row of a [`shell`]: an optional icon tile, a title over a quieter
+/// line, and whatever belongs at the far end.
+pub fn shell_header(
+    icon: Option<Icon>,
+    title: impl IntoElement,
+    subtitle: Option<AnyElement>,
+    aside: Option<AnyElement>,
+    cx: &App,
+) -> Div {
+    let quiet = cx.theme().muted_foreground;
+    let no_icon = icon.is_none();
+    h_flex()
+        .gap_3()
+        .pl(px(6.))
+        .pr(px(14.))
+        .pt(px(6.))
+        .pb_3()
+        .when_some(icon, |this, icon| this.child(icon_tile(icon, cx)))
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .when(no_icon, |this| this.pl_2())
+                .child(
+                    div()
+                        .truncate()
+                        .text_size(px(15.))
+                        .line_height(px(22.))
+                        .font_medium()
+                        .child(title),
+                )
+                .when_some(subtitle, |this, subtitle| {
+                    this.child(
+                        div()
+                            .truncate()
+                            .text_size(px(13.))
+                            .line_height(px(20.))
+                            .text_color(quiet)
+                            .child(subtitle),
+                    )
+                }),
+        )
+        .when_some(aside, |this, aside| {
+            this.child(h_flex().flex_none().gap_2().child(aside))
+        })
 }
 
 #[cfg(test)]
