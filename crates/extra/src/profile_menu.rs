@@ -10,12 +10,12 @@ use isonomic_ui::base::Button as Pressable;
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
-    avatar::Avatar, h_flex, progress::Progress, v_flex,
+    avatar::Avatar, h_flex, look, progress::Progress, v_flex,
 };
 use isonomic_ui::{
     AnyElement, App, ElementId, FocusHandle, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 
 type Handler = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -191,10 +191,11 @@ impl RenderOnce for ProfileMenu {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
-        let line = theme.border;
-        let wash = theme.foreground.opacity(0.05);
+        let subtle = look::ink::subtle(cx);
+        let line = look::ink::hairline(cx);
+        let wash = look::ink::wash_strong(cx);
         let alert = theme.danger;
-        let alert_tint = theme.danger.opacity(0.1);
+        let alert_tint = theme.danger.opacity(0.08);
         let radius = theme.radius;
 
         let child_id = |name: SharedString| ElementId::NamedChild(self.id.clone().into(), name);
@@ -236,10 +237,10 @@ impl RenderOnce for ProfileMenu {
                     .justify_start()
                     .gap_2p5()
                     .w_full()
-                    .h(px(34.))
+                    .h(px(32.))
                     .px_2()
                     .rounded(radius)
-                    .line_height(relative(1.4))
+                    .line_height(px(20.))
                     .cursor_pointer()
                     .hover(|style| style.bg(wash))
                     .when(is_focused, |this| this.focus_ring_style(window, cx))
@@ -259,7 +260,8 @@ impl RenderOnce for ProfileMenu {
                                 .rounded(px(5.))
                                 .bg(alert_tint)
                                 .text_color(alert)
-                                .text_label_small()
+                                .text_badge()
+                                .line_height(px(18.))
                                 .child(badge),
                         )
                     })
@@ -275,15 +277,26 @@ impl RenderOnce for ProfileMenu {
             let on_continue = setup.on_continue;
             v_flex()
                 .gap_2()
-                .p_3()
+                .pt(px(10.))
+                .px_3()
+                .pb(px(6.))
                 .border_t_1()
                 .border_color(line)
                 .child(
                     h_flex()
                         .justify_between()
-                        .text_color(quiet)
-                        .child(div().font_medium().child(setup.title.clone()))
-                        .child(format!("{}/{}", setup.done, setup.total)),
+                        .text_caption()
+                        .child(
+                            div()
+                                .font_medium()
+                                .text_color(quiet)
+                                .child(setup.title.clone()),
+                        )
+                        .child(
+                            div()
+                                .text_color(subtle)
+                                .child(format!("{}/{}", setup.done, setup.total)),
+                        ),
                 )
                 .child(
                     Progress::new(child_id("progress".into()))
@@ -301,13 +314,18 @@ impl RenderOnce for ProfileMenu {
                                 }
                             })
                             .justify_start()
-                            .gap_1()
-                            .w_full()
+                            .gap_2()
+                            .h(px(32.))
+                            .px_2()
+                            // The row's hover reaches past the section's
+                            // padding; its text stays on the section's edge.
+                            .mx(px(-8.))
                             .rounded(radius)
-                            .line_height(relative(1.4))
+                            .line_height(px(20.))
                             .cursor_pointer()
+                            .hover(|style| style.bg(wash))
                             .when(next_focused, |this| this.focus_ring_style(window, cx))
-                            .child(div().flex_none().text_color(quiet).child("Next:"))
+                            .child(div().flex_none().text_color(subtle).child("Next:"))
                             .child(div().flex_1().min_w_0().truncate().child(next))
                             .child(
                                 Icon::new(IconName::ArrowRight)
@@ -321,27 +339,33 @@ impl RenderOnce for ProfileMenu {
 
         v_flex()
             .id(self.id)
-            .w(px(288.))
+            .w(px(260.))
             .popover_style(cx)
-            .border_1()
-            .border_color(line)
             .text_color(ink)
             .text_body()
             .child(
                 h_flex()
-                    .gap_3()
+                    .gap_2p5()
                     .p_3()
                     .child(div().flex_none().child(self.avatar.unwrap_or_else(|| {
-                        Avatar::new().name(self.name.clone()).into_any_element()
+                        Avatar::new()
+                            .name(self.name.clone())
+                            .with_size(px(32.))
+                            .into_any_element()
                     })))
                     .child(
                         v_flex()
                             .flex_1()
                             .min_w_0()
-                            .line_height(relative(1.4))
-                            .child(div().truncate().font_medium().child(self.name))
+                            .child(div().truncate().text_label().child(self.name))
                             .when_some(self.email, |this, email| {
-                                this.child(div().truncate().text_color(quiet).child(email))
+                                this.child(
+                                    div()
+                                        .truncate()
+                                        .text_caption()
+                                        .text_color(subtle)
+                                        .child(email),
+                                )
                             }),
                     ),
             )

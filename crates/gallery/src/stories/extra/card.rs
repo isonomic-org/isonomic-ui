@@ -5,7 +5,7 @@
 
 use crate::Story;
 use isonomic_ui::component::{
-    ActiveTheme as _, IconName, Selectable as _, Sizable as _,
+    ActiveTheme as _, IconName, Selectable as _, Sizable as _, TextRole as _,
     button::{Button, ButtonVariants as _},
     h_flex, v_flex,
 };
@@ -42,11 +42,11 @@ impl CardStory {
             .flex_1()
             .child(
                 div()
-                    .text_xs()
+                    .text_caption()
                     .text_color(cx.theme().muted_foreground)
                     .child(label),
             )
-            .child(div().text_base().child(value))
+            .child(div().text_size(px(15.)).line_height(px(24.)).child(value))
     }
 }
 
