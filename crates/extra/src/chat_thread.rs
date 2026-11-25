@@ -600,7 +600,7 @@ impl RenderOnce for ChatThread {
                     .content(
                         BubbleContent::new()
                             .rounded(px(16.))
-                            .when(!place.grouped, |this| this.rounded_tr(px(6.)))
+                            .when(!place.grouped, |this| this.rounded_tr(px(10.)))
                             .px(px(14.))
                             .py_2()
                             .text_size(px(14.))

@@ -369,7 +369,7 @@ impl SentMessage {
                 .small()
                 .w_auto()
                 .max_w(px(240.))
-                .rounded(px(14.))
+                .rounded(px(16.))
                 .border_color(clear)
                 .bg(wash)
                 .media(AttachmentMedia::new().child(Icon::new(icon)))
@@ -508,7 +508,7 @@ impl Render for SentMessage {
                 .content(
                     BubbleContent::new()
                         .rounded(px(16.))
-                        .rounded_br(px(6.))
+                        .rounded_br(px(10.))
                         .px(px(14.))
                         .py_2()
                         .text_size(px(14.))
