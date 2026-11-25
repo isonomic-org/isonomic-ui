@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
     switch::Switch, v_flex,
@@ -112,7 +113,7 @@ impl RenderOnce for SettingToggleRow {
 
         let control = if self.saving {
             div()
-                .text_xs()
+                .text_caption()
                 .text_color(quiet)
                 .child("Saving\u{2026}")
                 .into_any_element()
@@ -173,8 +174,7 @@ impl RenderOnce for SettingToggleRow {
                             .child(
                                 h_flex()
                                     .gap_1p5()
-                                    .text_sm()
-                                    .font_medium()
+                                    .text_label()
                                     .child(self.title.clone())
                                     .when(self.locked.is_some(), |this| {
                                         this.child(
@@ -183,10 +183,10 @@ impl RenderOnce for SettingToggleRow {
                                     }),
                             )
                             .when_some(self.description, |this, text| {
-                                this.child(div().text_xs().text_color(quiet).child(text))
+                                this.child(div().text_caption().text_color(quiet).child(text))
                             })
                             .when_some(self.locked, |this, reason| {
-                                this.child(div().text_xs().text_color(quiet).child(reason))
+                                this.child(div().text_caption().text_color(quiet).child(reason))
                             }),
                     )
                     .child(div().flex_none().child(control)),
@@ -195,7 +195,7 @@ impl RenderOnce for SettingToggleRow {
                 this.child(
                     h_flex()
                         .gap_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(danger)
                         .child(Icon::new(IconName::CircleAlert).xsmall())
                         .child(error),

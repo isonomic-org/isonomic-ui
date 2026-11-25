@@ -16,6 +16,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -349,8 +350,7 @@ impl RenderOnce for RunStatusBar {
                 .h(px(30.))
                 .px_2p5()
                 .rounded(px(4.))
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .when_some(on_click, |this, on_click| {
                     this.on_click(move |event, window, cx| on_click(event, window, cx))
                 })
@@ -372,7 +372,7 @@ impl RenderOnce for RunStatusBar {
             .border_color(edge)
             .bg(fill)
             .text_color(words_color)
-            .text_sm()
+            .text_body()
             .role(Role::Status)
             .aria_label(words)
             .child(
@@ -393,7 +393,7 @@ impl RenderOnce for RunStatusBar {
                     .min_w(px(140.))
                     .child(div().font_medium().child(message))
                     .when_some(self.detail, |this, detail| {
-                        this.child(div().text_xs().text_color(quiet).child(detail))
+                        this.child(div().text_caption().text_color(quiet).child(detail))
                     }),
             )
             .child(h_flex().flex_none().ml_auto().gap_1p5().children(buttons))

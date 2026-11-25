@@ -9,6 +9,7 @@
 //! at the foot sends a note into the stream; typing @ opens a picker of
 //! participants, and Up, Down and Enter choose one.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -358,7 +359,7 @@ impl Render for AgentMessageStream {
                     .border_color(if active { ink } else { line })
                     .when(active, |this| this.bg(chip))
                     .cursor_pointer()
-                    .text_xs()
+                    .text_caption()
                     .aria_selected(active)
                     .role(Role::Tab)
                     .aria_label(format!("Show {label}"))
@@ -403,7 +404,7 @@ impl Render for AgentMessageStream {
                     None => h_flex()
                         .gap_2()
                         .py_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().flex_1().h(px(1.)).bg(line))
                         .child(div().flex_none().child(message.text.clone()))
@@ -445,10 +446,10 @@ impl Render for AgentMessageStream {
                                     .child(
                                         h_flex()
                                             .gap_1p5()
-                                            .text_xs()
+                                            .text_caption()
                                             .child(
                                                 div()
-                                                    .font_semibold()
+                                                    .font_medium()
                                                     .text_color(ink)
                                                     .child(self.handle(from)),
                                             )
@@ -477,8 +478,6 @@ impl Render for AgentMessageStream {
                 .w(px(220.))
                 .p_1()
                 .rounded(radius)
-                .border_1()
-                .border_color(line)
                 .bg(fill)
                 .shadow(resting_shadow(cx))
                 .children(found.iter().enumerate().map(|(ix, person)| {
@@ -513,11 +512,9 @@ impl Render for AgentMessageStream {
             .w_full()
             .max_w(px(620.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()

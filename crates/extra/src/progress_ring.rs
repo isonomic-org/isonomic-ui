@@ -10,6 +10,7 @@
 
 use std::time::Instant;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
 use isonomic_ui::{
     App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -210,14 +211,13 @@ impl RenderOnce for ProgressRing {
                             .flex()
                             .items_center()
                             .justify_center()
-                            .text_sm()
-                            .font_medium()
+                            .text_label()
                             .child(percent_label(share.unwrap_or(0.0))),
                     )
                 },
             ))
             .when_some(self.label, |this, label| {
-                this.child(div().text_sm().text_color(quiet).child(label))
+                this.child(div().text_body().text_color(quiet).child(label))
             })
             .refine_style(&self.style)
     }

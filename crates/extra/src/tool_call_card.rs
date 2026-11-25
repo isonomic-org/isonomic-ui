@@ -17,6 +17,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Rope, Sizable as _, StyledExt as _, ThemeStyled as _,
@@ -386,7 +387,7 @@ fn code_section(
         .child(
             h_flex()
                 .justify_between()
-                .child(div().text_xs().font_medium().text_color(quiet).child(label))
+                .child(div().text_caption().font_medium().text_color(quiet).child(label))
                 .child(Clipboard::new((id.clone(), "copy")).value(text.clone())),
         )
         .child(
@@ -395,7 +396,7 @@ fn code_section(
                 .rounded(radius)
                 .bg(panel)
                 .font_family(mono)
-                .text_xs()
+                .text_caption()
                 .line_height(relative(1.5))
                 .when(is_long && !show_all, |this| {
                     this.max_h(px(CAPPED_LINES as f32 * 18. + 20.))
@@ -422,7 +423,6 @@ impl RenderOnce for ToolCallCard {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let accent = theme.info;
         let danger = theme.danger;
         let radius = theme.radius;
@@ -592,7 +592,7 @@ impl RenderOnce for ToolCallCard {
                     })
                     .children(time.map(|time| {
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if status == ToolCallStatus::Failed {
                                 danger
                             } else {
@@ -694,11 +694,9 @@ impl RenderOnce for ToolCallCard {
             .id(self.id.clone())
             .w_full()
             .rounded(radius)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(head)
@@ -940,7 +938,7 @@ impl RenderOnce for ToolCallGroup {
             .w_full()
             .gap_1p5()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .child(h_flex().child(head))
             .when(open, |this| {

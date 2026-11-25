@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable, Size, StyledExt as _, h_flex, shimmer::ShimmerText,
     spinner::Spinner,
@@ -193,7 +194,6 @@ impl RenderOnce for PhaseLoader {
         let quiet = theme.muted_foreground;
         let accent = theme.info;
         let fill = theme.background;
-        let line = theme.border;
         let radius = theme.radius;
         let animate = !cx.reduce_motion();
 
@@ -337,9 +337,9 @@ impl RenderOnce for PhaseLoader {
             .text_color(if done { ink } else { quiet })
             .map(|this| {
                 if compact {
-                    this.text_xs()
+                    this.text_caption()
                 } else {
-                    this.text_sm()
+                    this.text_body()
                 }
             })
             .map(|this| {
@@ -352,8 +352,6 @@ impl RenderOnce for PhaseLoader {
             .when(self.variant == PhaseLoaderVariant::Pill, |this| {
                 this.h(height)
                     .rounded(radius)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(resting_shadow(cx))
                     .map(|this| {

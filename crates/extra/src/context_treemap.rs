@@ -12,6 +12,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
@@ -229,7 +230,7 @@ impl RenderOnce for ContextTreemap {
                             })
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .truncate()
                                     .text_color(ink)
                                     .child(block.label.clone()),
@@ -259,7 +260,7 @@ impl RenderOnce for ContextTreemap {
                 .py_0p5()
                 .rounded(px(5.))
                 .cursor_pointer()
-                .text_xs()
+                .text_caption()
                 .when(active, |this| {
                     this.bg(fill).shadow(resting_shadow(cx)).font_medium()
                 })
@@ -299,11 +300,9 @@ impl RenderOnce for ContextTreemap {
             .w_full()
             .max_w(px(760.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -324,7 +323,7 @@ impl RenderOnce for ContextTreemap {
                             )))
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(if over { theme_danger(cx) } else { quiet })
                                     .child(if over {
                                         format!("Over by {}", tokens_words(used - self.budget))
@@ -368,7 +367,7 @@ impl RenderOnce for ContextTreemap {
                                 .flex()
                                 .items_center()
                                 .justify_center()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .role(Role::Button)
                                 .aria_label(format!("Free, {} tokens", tokens_words(free)))
@@ -387,7 +386,7 @@ impl RenderOnce for ContextTreemap {
                     .gap_3()
                     .px_4()
                     .pb_2()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .children(groups.iter().enumerate().map(|(gx, (kind, total))| {
                         h_flex()
@@ -407,7 +406,7 @@ impl RenderOnce for ContextTreemap {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(detail),
             )

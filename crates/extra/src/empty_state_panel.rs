@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -144,7 +145,7 @@ impl RenderOnce for EmptyStatePanel {
                 .border_1()
                 .border_dashed()
                 .border_color(line)
-                .text_sm()
+                .text_body()
                 .role(Role::Group)
                 .aria_label(format!("{}. {}", self.title, self.body))
                 .child(Icon::new(icon).small().text_color(color))
@@ -155,7 +156,7 @@ impl RenderOnce for EmptyStatePanel {
                         .child(div().font_medium().truncate().child(self.title.clone()))
                         .child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .truncate()
                                 .child(self.body.clone()),
@@ -177,7 +178,7 @@ impl RenderOnce for EmptyStatePanel {
             .border_1()
             .border_dashed()
             .border_color(line)
-            .text_sm()
+            .text_body()
             .role(Role::Group)
             .aria_label(format!("{}. {}", self.title, self.body))
             .child(
@@ -198,7 +199,7 @@ impl RenderOnce for EmptyStatePanel {
                     .child(
                         div()
                             .text_base()
-                            .font_semibold()
+                            .font_medium()
                             .text_center()
                             .child(self.title.clone()),
                     )

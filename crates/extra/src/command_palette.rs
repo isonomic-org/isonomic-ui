@@ -9,8 +9,9 @@
 //! Escape asks the owner to close the palette. Commands that can't run right
 //! now are shown greyed with the reason.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, IconNamed, Sizable as _, Size, StyledExt as _, h_flex,
+    ActiveTheme as _, Icon, IconName, IconNamed, Sizable as _, Size, h_flex,
     input::{Input, InputEvent, InputState},
     kbd::Kbd,
     v_flex,
@@ -431,8 +432,7 @@ impl Render for CommandPalette {
                             .px_2()
                             .pt_2()
                             .pb_1()
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .text_color(quiet)
                             .child(h)
                     }))
@@ -477,7 +477,7 @@ impl Render for CommandPalette {
                                             .child(command.name.clone()),
                                     )
                                     .children(command.unavailable.clone().map(|why| {
-                                        div().text_xs().text_color(quiet).truncate().child(why)
+                                        div().text_caption().text_color(quiet).truncate().child(why)
                                     })),
                             )
                             .children(command.meta.clone().map(|meta| {
@@ -487,7 +487,7 @@ impl Render for CommandPalette {
                                     .role(Role::Label)
                                     .aria_label(meta.clone())
                                     .flex_none()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(meta)
                             }))
@@ -500,11 +500,9 @@ impl Render for CommandPalette {
             .w_full()
             .max_w(self.options.width)
             .rounded(theme.radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(lifted_shadow(cx))
             .when(hold_focus, |this| {
                 // Tab would move to whatever is behind the palette; keep it
@@ -562,7 +560,7 @@ impl Render for CommandPalette {
                                     .border_1()
                                     .border_color(line)
                                     .bg(fill)
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child("Esc"),
                             )
@@ -594,7 +592,7 @@ impl Render for CommandPalette {
                         .py_1p5()
                         .border_t_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .children(footer_hints),
                 )

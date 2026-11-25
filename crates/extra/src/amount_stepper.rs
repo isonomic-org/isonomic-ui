@@ -8,6 +8,7 @@
 //! fixed number of decimals once the field loses focus. Up and Down step
 //! by one step, or ten with Shift. It reports each settled value.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Sizable as _,
     button::Button,
@@ -284,10 +285,10 @@ impl Render for AmountStepper {
                         .disabled(disabled)
                         .aria_label(self.label.clone())
                         .when_some(unit.clone().filter(|_| self.unit_first), |this, unit| {
-                            this.prefix(div().text_sm().text_color(quiet).child(unit))
+                            this.prefix(div().text_body().text_color(quiet).child(unit))
                         })
                         .when_some(unit.filter(|_| !self.unit_first), |this, unit| {
-                            this.suffix(div().text_sm().text_color(quiet).child(unit))
+                            this.suffix(div().text_body().text_color(quiet).child(unit))
                         }),
                 ),
             )

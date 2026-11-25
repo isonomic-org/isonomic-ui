@@ -11,6 +11,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -484,7 +485,7 @@ impl Render for TagInput {
             .w_full()
             .gap_1p5()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .when(disabled, |this| this.opacity(0.6))
             .on_key_down(cx.listener(Self::key_down))
@@ -494,7 +495,7 @@ impl Render for TagInput {
                         .gap_2()
                         .child(div().font_medium().child(label))
                         .when(self.optional, |this| {
-                            this.child(div().text_xs().text_color(quiet).child("Optional"))
+                            this.child(div().text_caption().text_color(quiet).child("Optional"))
                         }),
                 )
             })
@@ -528,7 +529,7 @@ impl Render for TagInput {
                     h_flex()
                         .items_start()
                         .gap_3()
-                        .text_xs()
+                        .text_caption()
                         .child(div().flex_1().min_w_0().children(
                             below.map(|(text, color)| div().text_color(color).child(text)),
                         ))

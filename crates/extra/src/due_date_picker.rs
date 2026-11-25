@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -236,7 +237,6 @@ impl RenderOnce for DueDatePicker {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let chip = theme.muted;
         let accent = theme.primary;
         let radius_lg = theme.radius_lg;
@@ -332,7 +332,7 @@ impl RenderOnce for DueDatePicker {
                     .items_center()
                     .justify_center()
                     .rounded(px(8.))
-                    .text_sm()
+                    .text_body()
                     .when(!in_month, |this| this.text_color(quiet.opacity(0.6)))
                     .when(!ok, |this| {
                         this.text_color(quiet.opacity(0.4)).line_through()
@@ -341,7 +341,7 @@ impl RenderOnce for DueDatePicker {
                         this.border_1().border_color(accent)
                     })
                     .when(picked, |this| {
-                        this.bg(accent).text_color(fill).font_semibold()
+                        this.bg(accent).text_color(fill).font_medium()
                     })
                     .when(at_cursor && !picked, |this| this.bg(chip))
                     .when(ok && !picked, |this| {
@@ -408,8 +408,6 @@ impl RenderOnce for DueDatePicker {
             .gap_3()
             .p_3()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
             .shadow(resting_shadow(cx))
@@ -433,13 +431,13 @@ impl RenderOnce for DueDatePicker {
                     div()
                         .w(px(34.))
                         .text_center()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(*d)
                 })),
             )
             .child(h_flex().flex_wrap().w(px(238.)).children(days))
-            .child(div().text_xs().text_color(quiet).child(match self.picked {
+            .child(div().text_caption().text_color(quiet).child(match self.picked {
                 Some(day) => SharedString::from(format!("Due {}", day.words())),
                 None => "Pick a day, or a preset.".into(),
             }))

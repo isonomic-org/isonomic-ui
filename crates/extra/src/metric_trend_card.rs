@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, StyledExt as _, ThemeStyled as _, h_flex, v_flex,
 };
@@ -327,8 +328,7 @@ impl RenderOnce for MetricTrendCard {
                 .px_1p5()
                 .rounded(px(5.))
                 .bg(color.opacity(0.14))
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .children(icon.map(|icon| Icon::new(icon).size_3().text_color(color)))
                 .child(delta_words(delta, format.as_ref()))
         });
@@ -439,11 +439,9 @@ impl RenderOnce for MetricTrendCard {
                     .gap_1()
                     .p_2()
                     .rounded(radius)
-                    .border_1()
-                    .border_color(line)
                     .bg(surface)
                     .shadow(lifted_shadow(cx))
-                    .text_xs()
+                    .text_caption()
                     .children(heading.map(|heading| div().font_medium().child(heading)))
                     .children(self.series.iter().zip(&lines).map(|(series, (_, color))| {
                         h_flex()
@@ -513,7 +511,7 @@ impl RenderOnce for MetricTrendCard {
             .w(px(AXIS_WIDTH))
             .h(px(PLOT_HEIGHT))
             .justify_between()
-            .text_xs()
+            .text_caption()
             .text_color(quiet)
             .when(!is_empty, |this| {
                 this.children(
@@ -528,7 +526,7 @@ impl RenderOnce for MetricTrendCard {
             h_flex()
                 .pl(px(AXIS_WIDTH + 8.))
                 .justify_between()
-                .text_xs()
+                .text_caption()
                 .text_color(quiet)
                 .children(
                     named
@@ -544,11 +542,9 @@ impl RenderOnce for MetricTrendCard {
             .w_full()
             .max_w(px(460.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill_color)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -565,7 +561,7 @@ impl RenderOnce for MetricTrendCard {
                                     .child(
                                         div()
                                             .text_2xl()
-                                            .font_semibold()
+                                            .font_medium()
                                             .line_height(relative(1.2))
                                             .child(self.value),
                                     )

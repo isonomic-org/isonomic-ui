@@ -14,6 +14,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -271,8 +272,6 @@ impl RenderOnce for ApprovalStack {
                             .bottom(px((peeks - depth) as f32 * 8.))
                             .h(px(40.))
                             .rounded(radius_lg)
-                            .border_1()
-                            .border_color(line)
                             .bg(if depth == 1 { fill } else { chip })
                             .shadow(resting_shadow(cx))
                     }))
@@ -307,7 +306,7 @@ impl RenderOnce for ApprovalStack {
                                             .flex_1()
                                             .min_w_0()
                                             .truncate()
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(quiet)
                                             .child(if request.asked.is_empty() {
                                                 request.from.to_string()
@@ -322,7 +321,7 @@ impl RenderOnce for ApprovalStack {
                                             .px_1p5()
                                             .rounded(px(4.))
                                             .bg(tone.tint(cx))
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(tone_color)
                                             .child(div().size(px(6.)).rounded_full().bg(tone_color))
                                             .child(risk_word),
@@ -331,7 +330,7 @@ impl RenderOnce for ApprovalStack {
                             .child(
                                 div()
                                     .text_base()
-                                    .font_semibold()
+                                    .font_medium()
                                     .line_height(relative(1.3))
                                     .child(request.action.clone()),
                             )
@@ -354,7 +353,7 @@ impl RenderOnce for ApprovalStack {
                                                         div()
                                                             .w(px(96.))
                                                             .flex_none()
-                                                            .text_xs()
+                                                            .text_caption()
                                                             .text_color(quiet)
                                                             .child(label.clone()),
                                                     )
@@ -392,7 +391,7 @@ impl RenderOnce for ApprovalStack {
                 .child(div().font_medium().child("Nothing waiting"))
                 .child(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("{} decided", self.decided)),
                 )
@@ -413,14 +412,14 @@ impl RenderOnce for ApprovalStack {
             .gap_3()
             .p_1()
             .rounded(radius_lg)
-            .text_sm()
+            .text_body()
             .text_color(ink)
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(
                 h_flex()
                     .gap_2()
                     .px_1()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(Icon::new(IconName::Inbox).xsmall())
                     .child(div().flex_1().child(if waiting == 0 {
@@ -438,7 +437,7 @@ impl RenderOnce for ApprovalStack {
                 h_flex()
                     .gap_2()
                     .px_1()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(
                         div()

@@ -12,6 +12,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, Hsla, InteractiveElement as _, IntoElement,
@@ -194,8 +195,7 @@ impl RenderOnce for SequenceDiagram {
                     .border_1()
                     .border_color(line)
                     .bg(fill)
-                    .text_xs()
-                    .font_medium()
+                    .text_label_small()
                     .child(div().truncate().child(name.clone()))
             })
             .collect();
@@ -245,7 +245,7 @@ impl RenderOnce for SequenceDiagram {
                                 fill.opacity(0.9)
                             })
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if is_new || is_selected { ink } else { quiet })
                             .when(is_new, |this| this.font_medium())
                             .child(format!("{}. {}", row + 1, m.label)),
@@ -272,11 +272,9 @@ impl RenderOnce for SequenceDiagram {
             .w_full()
             .max_w(px(760.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .role(Role::Group)
             .aria_label(format!(
@@ -289,7 +287,7 @@ impl RenderOnce for SequenceDiagram {
                     .py_2()
                     .border_b_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(
                         div()

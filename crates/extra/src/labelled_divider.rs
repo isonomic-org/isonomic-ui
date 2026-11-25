@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -144,8 +145,7 @@ impl RenderOnce for LabelledDivider {
                 this.child(
                     div()
                         .flex_none()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .text_color(quiet)
                         .child(label),
                 )

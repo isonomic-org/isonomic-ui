@@ -4,7 +4,7 @@
 //! Small pieces shared by the components in this crate.
 
 use isonomic_ui::component::ActiveTheme as _;
-use isonomic_ui::{App, BoxShadow, Hsla, hsla, px};
+use isonomic_ui::{App, BoxShadow, Hsla};
 
 /// The meaning a status carries, resolved to theme colors.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -44,30 +44,16 @@ impl Tone {
     }
 }
 
-/// Shadow of a surface resting on the page. Empty when the theme turns shadows off.
+/// Shadow of a surface resting on the page: the library's raised surface,
+/// a hairline ring and a soft drop.
 pub fn resting_shadow(cx: &App) -> Vec<BoxShadow> {
-    if !cx.theme().shadow {
-        return Vec::new();
-    }
-    vec![
-        BoxShadow::new(px(0.), px(1.), hsla(0., 0., 0., 0.06)).blur_radius(px(1.)),
-        BoxShadow::new(px(0.), px(1.), hsla(0., 0., 0., 0.04))
-            .blur_radius(px(1.))
-            .spread_radius(px(-1.)),
-    ]
+    isonomic_ui::component::look::surface::resting(cx)
 }
 
-/// Shadow of a surface lifted under the pointer. Empty when the theme turns shadows off.
+/// Shadow of a surface lifted under the pointer: the raised surface's hover
+/// state.
 pub fn lifted_shadow(cx: &App) -> Vec<BoxShadow> {
-    if !cx.theme().shadow {
-        return Vec::new();
-    }
-    vec![
-        BoxShadow::new(px(0.), px(2.), hsla(0., 0., 0., 0.09))
-            .blur_radius(px(3.))
-            .spread_radius(px(-1.)),
-        BoxShadow::new(px(0.), px(1.), hsla(0., 0., 0., 0.05)).blur_radius(px(1.)),
-    ]
+    isonomic_ui::component::look::surface::resting_hover(cx)
 }
 
 #[cfg(test)]

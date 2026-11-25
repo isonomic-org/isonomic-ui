@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -263,14 +264,14 @@ impl RenderOnce for PeriodPicker {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .text_sm()
+                        .text_body()
                         .cursor_pointer()
                         .when(inside && !edge, |this| this.bg(accent.opacity(0.14)))
                         .when(edge, |this| {
                             this.bg(accent)
                                 .text_color(fill)
                                 .rounded(px(8.))
-                                .font_semibold()
+                                .font_medium()
                         })
                         .when(is_today && !edge, |this| {
                             this.border_1().border_color(accent).rounded(px(8.))
@@ -309,7 +310,7 @@ impl RenderOnce for PeriodPicker {
                         div()
                             .w(px(32.))
                             .text_center()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(*d)
                     })),
@@ -371,8 +372,6 @@ impl RenderOnce for PeriodPicker {
             .items_start()
             .flex_wrap()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
             .shadow(resting_shadow(cx))
@@ -397,7 +396,7 @@ impl RenderOnce for PeriodPicker {
                             .child(month_view(month_shift(self.first_month, 1)))
                             .child(step(1)),
                     )
-                    .child(div().text_xs().text_color(quiet).child(summary)),
+                    .child(div().text_caption().text_color(quiet).child(summary)),
             )
             .refine_style(&self.style)
     }

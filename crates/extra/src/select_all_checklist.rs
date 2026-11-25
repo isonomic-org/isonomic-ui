@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     checkbox::Checkbox, h_flex, v_flex,
@@ -198,7 +199,7 @@ impl RenderOnce for SelectAllChecklist {
             .child(div().flex_1().font_medium().child(self.title.clone()))
             .child(
                 div()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(format!("{ticked} of {}", self.items.len())),
             );
@@ -235,7 +236,7 @@ impl RenderOnce for SelectAllChecklist {
                     .children(
                         item.note
                             .clone()
-                            .map(|n| div().text_xs().text_color(quiet).child(n)),
+                            .map(|n| div().text_caption().text_color(quiet).child(n)),
                     )
             })
             .collect();
@@ -244,7 +245,7 @@ impl RenderOnce for SelectAllChecklist {
             .id(self.id.clone())
             .w_full()
             .max_w(px(480.))
-            .text_sm()
+            .text_body()
             .child(div().border_b_1().border_color(line).child(parent))
             .children(rows)
             .refine_style(&self.style)

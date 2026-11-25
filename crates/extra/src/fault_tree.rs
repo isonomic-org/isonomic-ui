@@ -12,6 +12,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -250,18 +251,18 @@ fn draw(
                     div()
                         .flex_1()
                         .min_w_0()
-                        .when(depth == 0, |this| this.font_semibold())
+                        .when(depth == 0, |this| this.font_medium())
                         .when(depth > 0, |this| this.font_medium())
                         .when(faded, |this| this.line_through())
                         .line_height(relative(1.3))
                         .child(node.label.clone()),
                 )
-                .child(div().flex_none().text_xs().text_color(color).child(word)),
+                .child(div().flex_none().text_caption().text_color(color).child(word)),
         )
         .children(node.evidence.clone().map(|e| {
             div()
                 .pl(px(20.))
-                .text_xs()
+                .text_caption()
                 .text_color(paint.quiet)
                 .line_height(relative(1.4))
                 .child(e)
@@ -289,8 +290,7 @@ fn draw(
                             .px_1p5()
                             .rounded(px(4.))
                             .bg(paint.chip)
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .text_color(paint.ink)
                             .child(gate_word),
                     ),
@@ -326,11 +326,9 @@ impl RenderOnce for FaultTree {
             .w_full()
             .max_w(px(680.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(paint.line)
             .bg(paint.fill)
             .text_color(paint.ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -339,7 +337,7 @@ impl RenderOnce for FaultTree {
                     .py_2p5()
                     .border_b_1()
                     .border_color(paint.line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(paint.quiet)
                     .child(Icon::new(IconName::Search).xsmall())
                     .child(div().flex_1().child(match standing {

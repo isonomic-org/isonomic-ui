@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -260,7 +261,7 @@ impl RenderOnce for ToolReachMap {
                 .border_color(if active { ink } else { line })
                 .when(active, |this| this.bg(chip))
                 .cursor_pointer()
-                .text_xs()
+                .text_caption()
                 .aria_selected(active)
                 .on_click(move |_, window, cx| {
                     if let Some(on_filter) = &on_filter {
@@ -338,7 +339,7 @@ impl RenderOnce for ToolReachMap {
                             })
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .font_family(mono.clone())
                                     .text_color(
                                         if standing == ReachStanding::Unused
@@ -354,8 +355,7 @@ impl RenderOnce for ToolReachMap {
                             .when(!tool.calls.is_empty(), |this| {
                                 this.child(
                                     div()
-                                        .text_xs()
-                                        .font_medium()
+                                        .text_label_small()
                                         .text_color(if fails > 0 { bad_c } else { ok_c })
                                         .child(if fails > 0 {
                                             format!("{fails}/{}", tool.calls.len())
@@ -371,8 +371,7 @@ impl RenderOnce for ToolReachMap {
                         .gap_1p5()
                         .child(
                             div()
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .text_color(quiet)
                                 .child(service),
                         )
@@ -411,7 +410,7 @@ impl RenderOnce for ToolReachMap {
                                     div()
                                         .w(px(64.))
                                         .flex_none()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child(call.when.clone()),
                                 )
@@ -420,7 +419,7 @@ impl RenderOnce for ToolReachMap {
                                         .flex_1()
                                         .min_w_0()
                                         .truncate()
-                                        .text_xs()
+                                        .text_caption()
                                         .font_family(mono.clone())
                                         .child(call.summary.clone()),
                                 )
@@ -464,7 +463,7 @@ impl RenderOnce for ToolReachMap {
                             )
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(tool.service.clone()),
                             ),
@@ -472,13 +471,13 @@ impl RenderOnce for ToolReachMap {
                     .when(!tool.allowed, |this| {
                         this.child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("This assistant isn't allowed to use this tool."),
                         )
                     })
                     .when(tool.allowed && tool.calls.is_empty(), |this| {
-                        this.child(div().text_xs().text_color(quiet).child("Never called."))
+                        this.child(div().text_caption().text_color(quiet).child("Never called."))
                     })
                     .children(rows)
             });
@@ -488,11 +487,9 @@ impl RenderOnce for ToolReachMap {
             .w_full()
             .max_w(px(760.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 v_flex()
@@ -513,7 +510,7 @@ impl RenderOnce for ToolReachMap {
                             )
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(format!("{} tools", self.tools.len())),
                             ),

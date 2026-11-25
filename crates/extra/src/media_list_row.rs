@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -211,8 +212,7 @@ impl RenderOnce for MediaListRow {
                         div()
                             .w_full()
                             .truncate()
-                            .text_sm()
-                            .font_medium()
+                            .text_label()
                             .child(self.title.clone()),
                     )
                     .when_some(self.secondary, |this, line| {
@@ -220,7 +220,7 @@ impl RenderOnce for MediaListRow {
                             div()
                                 .w_full()
                                 .truncate()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(line),
                         )

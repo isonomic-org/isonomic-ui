@@ -9,6 +9,7 @@
 //! checks the code the boxes lock; a wrong code shows its message and the
 //! boxes clear for another go. A resend link counts down before it opens.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -201,7 +202,7 @@ impl Render for VerificationCodeField {
                         .when(here, |this| this.border_2())
                         .bg(fill)
                         .text_lg()
-                        .font_semibold()
+                        .font_medium()
                         .when(self.checking, |this| this.opacity(0.6))
                         .children(digit.map(|d| d.to_string()))
                 });
@@ -219,7 +220,7 @@ impl Render for VerificationCodeField {
             if seconds == 0 {
                 div()
                     .id("resend")
-                    .text_sm()
+                    .text_body()
                     .text_color(link)
                     .cursor_pointer()
                     .child(label)
@@ -231,7 +232,7 @@ impl Render for VerificationCodeField {
                     .into_any_element()
             } else {
                 div()
-                    .text_sm()
+                    .text_body()
                     .text_color(quiet)
                     .child(label)
                     .into_any_element()
@@ -259,13 +260,13 @@ impl Render for VerificationCodeField {
                     .children(groups),
             )
             .when(self.checking, |this| {
-                this.child(div().text_sm().text_color(quiet).child("Checking\u{2026}"))
+                this.child(div().text_body().text_color(quiet).child("Checking\u{2026}"))
             })
             .when_some(error, |this, error| {
                 this.child(
                     h_flex()
                         .gap_1()
-                        .text_sm()
+                        .text_body()
                         .text_color(danger)
                         .child(Icon::new(IconName::CircleAlert).xsmall())
                         .child(error),

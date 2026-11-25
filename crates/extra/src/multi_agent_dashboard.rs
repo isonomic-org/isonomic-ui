@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -298,7 +299,7 @@ impl RenderOnce for MultiAgentDashboard {
                 .border_color(if active { paint.ink } else { paint.line })
                 .when(active, |this| this.bg(paint.chip))
                 .cursor_pointer()
-                .text_xs()
+                .text_caption()
                 .role(Role::Button)
                 .aria_label(format!("{label}, {count}"))
                 .aria_selected(active)
@@ -369,8 +370,6 @@ impl RenderOnce for MultiAgentDashboard {
                     .gap_2()
                     .p_3()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(paint.line)
                     .bg(paint.fill)
                     .shadow(resting_shadow(cx))
                     .role(Role::Group)
@@ -408,7 +407,7 @@ impl RenderOnce for MultiAgentDashboard {
                                     .px_1p5()
                                     .rounded(px(4.))
                                     .bg(tint)
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(color)
                                     .child(agent.state.word()),
                             ),
@@ -437,7 +436,7 @@ impl RenderOnce for MultiAgentDashboard {
                     .child(
                         h_flex()
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .text_color(paint.quiet)
                             .child(format!("{} steps", agent.steps))
                             .child(dollars(agent.spent_cents))
@@ -457,11 +456,11 @@ impl RenderOnce for MultiAgentDashboard {
         let stat = |label: &'static str, value: String, color: Hsla| {
             v_flex()
                 .gap_0p5()
-                .child(div().text_xs().text_color(paint.quiet).child(label))
+                .child(div().text_caption().text_color(paint.quiet).child(label))
                 .child(
                     div()
                         .text_lg()
-                        .font_semibold()
+                        .font_medium()
                         .text_color(color)
                         .child(value),
                 )
@@ -471,7 +470,7 @@ impl RenderOnce for MultiAgentDashboard {
             .id(self.id.clone())
             .w_full()
             .gap_3()
-            .text_sm()
+            .text_body()
             .text_color(paint.ink)
             .child(
                 h_flex()
@@ -487,8 +486,8 @@ impl RenderOnce for MultiAgentDashboard {
                         v_flex()
                             .flex_1()
                             .min_w(px(160.))
-                            .child(div().font_semibold().child(self.title.clone()))
-                            .child(div().text_xs().text_color(paint.quiet).child(format!(
+                            .child(div().font_medium().child(self.title.clone()))
+                            .child(div().text_caption().text_color(paint.quiet).child(format!(
                                 "{} running now",
                                 count_in(&self.agents, FleetState::Working)
                             ))),

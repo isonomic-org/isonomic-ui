@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -313,7 +314,7 @@ impl RenderOnce for AgentTimelineLanes {
                             .child(
                                 div()
                                     .truncate()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(ink)
                                     .child(task.label.clone()),
                             )
@@ -379,7 +380,7 @@ impl RenderOnce for AgentTimelineLanes {
                             .gap_1p5()
                             .px_3()
                             .child(Icon::new(IconName::Bot).xsmall().text_color(quiet))
-                            .child(div().truncate().text_xs().font_medium().child(name.clone())),
+                            .child(div().truncate().text_caption().font_medium().child(name.clone())),
                     )
                     .child(
                         div()
@@ -442,11 +443,9 @@ impl RenderOnce for AgentTimelineLanes {
             .w_full()
             .max_w(px(900.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -460,7 +459,7 @@ impl RenderOnce for AgentTimelineLanes {
                                 .absolute()
                                 .top(px(7.))
                                 .left(relative(share(t)))
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(clock(t))
                         }),
@@ -527,7 +526,7 @@ impl RenderOnce for AgentTimelineLanes {
                     .gap_2()
                     .px_4()
                     .py_2()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .bg(chip.opacity(0.3))
                     .child(div().flex_1().min_w_0().truncate().child(detail))

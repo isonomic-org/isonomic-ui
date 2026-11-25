@@ -11,6 +11,7 @@
 
 use std::{collections::HashMap, rc::Rc};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -373,14 +374,14 @@ impl RenderOnce for EliminationBracket {
                         .children(score.map(|score| {
                             div()
                                 .flex_none()
-                                .text_xs()
+                                .text_caption()
                                 .when(!won, |this| this.text_color(quiet))
                                 .child(score_words(score))
                         }))
                         .when(won && score.is_none(), |this| {
                             this.child(Icon::new(IconName::Check).xsmall().text_color(success))
                         }),
-                    None => this.child(div().text_xs().text_color(quiet).child("Waiting")),
+                    None => this.child(div().text_caption().text_color(quiet).child("Waiting")),
                 })
         };
 
@@ -426,7 +427,7 @@ impl RenderOnce for EliminationBracket {
                 .gap_2()
                 .child(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(round_name(round, rounds).to_uppercase()),
                 )
@@ -443,7 +444,7 @@ impl RenderOnce for EliminationBracket {
                     .id("winner")
                     .role(Role::Status)
                     .aria_label(format!("Winner: {}", winner.name))
-                    .child(div().text_xs().text_color(quiet).child("WINNER"))
+                    .child(div().text_caption().text_color(quiet).child("WINNER"))
                     .child(
                         v_flex().flex_1().justify_center().child(
                             h_flex()
@@ -562,10 +563,10 @@ impl RenderOnce for EliminationBracket {
                                     })),
                             )
                             .children(contender.meta.clone().map(|meta| {
-                                div().truncate().text_xs().text_color(quiet).child(meta)
+                                div().truncate().text_caption().text_color(quiet).child(meta)
                             }))
                             .children(contender.output.clone().map(|output| {
-                                div().text_xs().line_height(relative(1.5)).child(output)
+                                div().text_caption().line_height(relative(1.5)).child(output)
                             })),
                         None => this.child(div().text_color(quiet).child("Not known yet")),
                     })
@@ -588,8 +589,6 @@ impl RenderOnce for EliminationBracket {
                 .gap_2()
                 .p_3()
                 .rounded(radius_lg)
-                .border_1()
-                .border_color(line)
                 .bg(fill)
                 .shadow(resting_shadow(cx))
                 .child(
@@ -600,13 +599,13 @@ impl RenderOnce for EliminationBracket {
                             _ => format!("{} {}", round_name(round, rounds), position + 1),
                         }))
                         .child(div().flex_1())
-                        .child(div().text_xs().text_color(quiet).child(status)),
+                        .child(div().text_caption().text_color(quiet).child(status)),
                 )
                 .child(h_flex().items_start().gap_2().child(upper).child(lower))
                 .children(
                     verdict
                         .and_then(|verdict| verdict.reason.clone())
-                        .map(|reason| div().text_xs().text_color(quiet).child(reason)),
+                        .map(|reason| div().text_caption().text_color(quiet).child(reason)),
                 )
                 .children(use_winner.map(|button| h_flex().justify_end().child(button)))
         });
@@ -622,7 +621,7 @@ impl RenderOnce for EliminationBracket {
             .aria_label(self.title.clone())
             .w_full()
             .gap_3()
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .text_color(ink)
             .child(
@@ -643,7 +642,7 @@ impl RenderOnce for EliminationBracket {
                                 .px_1p5()
                                 .rounded(px(5.))
                                 .bg(accent.opacity(0.12))
-                                .text_xs()
+                                .text_caption()
                                 .child(Spinner::new().xsmall().color(accent))
                                 .child("Judging"),
                         )
@@ -651,7 +650,7 @@ impl RenderOnce for EliminationBracket {
                     .child(
                         div()
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(progress),
                     ),

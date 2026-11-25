@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
@@ -212,7 +213,7 @@ impl RenderOnce for CatchUpSummary {
                 .gap_3()
                 .py_1()
                 .cursor_pointer()
-                .text_xs()
+                .text_caption()
                 .text_color(quiet)
                 .role(Role::Button)
                 .aria_label(format!(
@@ -249,11 +250,11 @@ impl RenderOnce for CatchUpSummary {
                 .child(
                     div()
                         .text_lg()
-                        .font_semibold()
+                        .font_medium()
                         .text_color(color)
                         .child(count.to_string()),
                 )
-                .child(div().text_xs().text_color(quiet).child(label))
+                .child(div().text_caption().text_color(quiet).child(label))
         };
 
         let rows: Vec<_> = reading_order(&self.items)
@@ -287,7 +288,7 @@ impl RenderOnce for CatchUpSummary {
                             .child(div().line_height(relative(1.35)).child(item.text.clone()))
                             .when(!item.when.is_empty(), |this| {
                                 this.child(
-                                    div().text_xs().text_color(quiet).child(item.when.clone()),
+                                    div().text_caption().text_color(quiet).child(item.when.clone()),
                                 )
                             }),
                     )
@@ -314,11 +315,9 @@ impl RenderOnce for CatchUpSummary {
             .w_full()
             .max_w(px(560.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .role(Role::Region)
             .aria_label(format!("While you were away, {}", self.away))

@@ -9,6 +9,7 @@
 //! remove takes it out, with an undo line until the next change. The panel
 //! reports each of these and shows whatever items its owner passes back.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -256,7 +257,7 @@ impl Render for MemoryManagerPanel {
                         .child(
                             h_flex()
                                 .gap_1()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .when(item.paused, |this| {
                                     this.child(
@@ -339,11 +340,9 @@ impl Render for MemoryManagerPanel {
             .w_full()
             .max_w(px(560.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 v_flex()
@@ -357,7 +356,7 @@ impl Render for MemoryManagerPanel {
                             .gap_2()
                             .child(Icon::new(IconName::MemoryStick).small().text_color(quiet))
                             .child(div().flex_1().font_medium().child("What's remembered"))
-                            .child(div().text_xs().text_color(quiet).child(format!(
+                            .child(div().text_caption().text_color(quiet).child(format!(
                                 "{} items{}",
                                 self.items.len(),
                                 if paused > 0 {
@@ -394,7 +393,7 @@ impl Render for MemoryManagerPanel {
                     .border_t_1()
                     .border_color(line)
                     .bg(chip.opacity(0.5))
-                    .text_xs()
+                    .text_caption()
                     .child(
                         div()
                             .flex_1()

@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -392,11 +393,9 @@ impl RenderOnce for ApprovalCard {
             .w_full()
             .max_w(px(440.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx));
 
@@ -551,8 +550,7 @@ impl RenderOnce for ApprovalCard {
                         .px_1p5()
                         .rounded(px(5.))
                         .bg(badge_fill)
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .child(div().size(px(6.)).rounded(px(3.)).bg(badge_color))
                         .child(risk.label())
                 })),
@@ -621,7 +619,7 @@ impl RenderOnce for ApprovalCard {
                         .children(remaining.map(|left| {
                             div()
                                 .flex_none()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(if left <= URGENT_FROM { warning } else { quiet })
                                 .child(format!("Expires in {}", clock(left)))
                         }))

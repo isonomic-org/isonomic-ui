@@ -13,6 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -365,7 +366,7 @@ impl Render for CommentsPanel {
                                 .px_1()
                                 .rounded(px(4.))
                                 .bg(chip)
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(count.to_string()),
                         )
@@ -455,14 +456,14 @@ impl Render for CommentsPanel {
                             .into_any_element(),
                         Some(EditState::Running) => h_flex()
                             .gap_1p5()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(Spinner::new().xsmall())
                             .child("Running")
                             .into_any_element(),
                         Some(EditState::Applied) => h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .text_color(success)
                             .child(Icon::new(IconName::CircleCheck).xsmall())
                             .child("Applied")
@@ -489,8 +490,7 @@ impl Render for CommentsPanel {
                                         .rounded_full()
                                         .bg(tint.opacity(0.18))
                                         .text_color(tint)
-                                        .text_xs()
-                                        .font_semibold()
+                                        .text_label_small()
                                         .child(initials(&comment.author.name)),
                                 )
                                 .child(
@@ -501,7 +501,7 @@ impl Render for CommentsPanel {
                                         .font_medium()
                                         .child(comment.author.name.clone()),
                                 )
-                                .child(div().flex_none().text_xs().text_color(quiet).child(
+                                .child(div().flex_none().text_caption().text_color(quiet).child(
                                     ago_words(now.saturating_duration_since(comment.posted)),
                                 ))
                                 .child(
@@ -537,11 +537,9 @@ impl Render for CommentsPanel {
             .w_full()
             .max_w(px(420.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .overflow_hidden()
             .shadow(resting_shadow(cx))
             .child(
@@ -555,7 +553,7 @@ impl Render for CommentsPanel {
                     .child(
                         h_flex()
                             .gap_2()
-                            .child(div().flex_1().font_semibold().child(self.title.clone()))
+                            .child(div().flex_1().font_medium().child(self.title.clone()))
                             .when(self.closable, |this| {
                                 this.child(
                                     Button::new("comments-close")
@@ -610,8 +608,7 @@ impl Render for CommentsPanel {
                             .rounded_full()
                             .bg(me_tint.opacity(0.18))
                             .text_color(me_tint)
-                            .text_xs()
-                            .font_semibold()
+                            .text_label_small()
                             .child(initials(&self.me.name)),
                     )
                     .child(

@@ -11,6 +11,7 @@
 
 use std::{collections::HashSet, rc::Rc};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -359,8 +360,7 @@ impl RenderOnce for ContextUsageGrid {
             .flex_none()
             .px_1p5()
             .rounded(px(5.))
-            .text_xs()
-            .font_medium()
+            .text_label_small()
             .map(|this| {
                 if full {
                     this.bg(danger.opacity(0.16))
@@ -381,7 +381,7 @@ impl RenderOnce for ContextUsageGrid {
                 if part.compacted {
                     h_flex()
                         .gap_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(success)
                         .child(Icon::new(IconName::Check).xsmall())
                         .child("Compacted")
@@ -457,7 +457,7 @@ impl RenderOnce for ContextUsageGrid {
                             .gap_2()
                             .h(px(26.))
                             .pr_1()
-                            .text_xs()
+                            .text_caption()
                             .child(Icon::new(IconName::File).xsmall().text_color(quiet))
                             .child(
                                 div()
@@ -490,7 +490,7 @@ impl RenderOnce for ContextUsageGrid {
                         this.child(
                             div()
                                 .h(px(26.))
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("Nothing left"),
                         )
@@ -519,11 +519,9 @@ impl RenderOnce for ContextUsageGrid {
             .w_full()
             .max_w(px(380.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .shadow(resting_shadow(cx))
             .child(
@@ -547,7 +545,7 @@ impl RenderOnce for ContextUsageGrid {
                                     .px_1p5()
                                     .rounded(px(5.))
                                     .bg(chip)
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(model)
                             })),
@@ -559,7 +557,7 @@ impl RenderOnce for ContextUsageGrid {
                             .child(
                                 div()
                                     .text_2xl()
-                                    .font_semibold()
+                                    .font_medium()
                                     .line_height(relative(1.1))
                                     .child(figure),
                             )
@@ -589,7 +587,7 @@ impl RenderOnce for ContextUsageGrid {
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if warn { warning } else { quiet })
                             .child(footer_words),
                     )

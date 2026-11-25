@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::Button,
@@ -169,7 +170,7 @@ impl RenderOnce for DescribedDropdown {
                                         )
                                         .child(
                                             div()
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(theme.muted_foreground)
                                                 .child(description.clone()),
                                         ),

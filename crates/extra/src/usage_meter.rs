@@ -10,6 +10,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -403,7 +404,7 @@ impl RenderOnce for UsageMeter {
                         .rounded(radius)
                         .border_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .cursor_pointer()
                         .map(|this| {
                             if is_selected {
@@ -451,8 +452,7 @@ impl RenderOnce for UsageMeter {
         .gap_1()
         .px_1p5()
         .rounded(px(5.))
-        .text_xs()
-        .font_medium();
+        .text_label_small();
 
         let bar = h_flex()
             .w_full()
@@ -524,7 +524,7 @@ impl RenderOnce for UsageMeter {
                     .gap_1p5()
                     .child(
                         h_flex()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(div().flex_1().child(self.daily_label.clone()))
                             .children(daily_average(&self.daily).map(|average| {
@@ -575,7 +575,7 @@ impl RenderOnce for UsageMeter {
                         .child(
                             h_flex()
                                 .gap_1()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(div().truncate().child(limit.label.clone()))
                                 .when(near, |this| {
@@ -638,11 +638,9 @@ impl RenderOnce for UsageMeter {
             .w_full()
             .max_w(px(460.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -659,7 +657,7 @@ impl RenderOnce for UsageMeter {
                                     .min_w_0()
                                     .child(div().truncate().font_medium().child(self.title))
                                     .children(caption.map(|caption| {
-                                        div().truncate().text_xs().text_color(quiet).child(caption)
+                                        div().truncate().text_caption().text_color(quiet).child(caption)
                                     })),
                             )
                             .children(switch),
@@ -671,7 +669,7 @@ impl RenderOnce for UsageMeter {
                             .child(
                                 div()
                                     .text_2xl()
-                                    .font_semibold()
+                                    .font_medium()
                                     .line_height(relative(1.1))
                                     .child(amount_words(used)),
                             )

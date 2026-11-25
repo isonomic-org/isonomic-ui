@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -158,8 +159,7 @@ impl RenderOnce for MergeConflictMatrix {
             .h(px(34.))
             .border_b_1()
             .border_color(line)
-            .text_xs()
-            .font_medium()
+            .text_label_small()
             .text_color(quiet)
             .child(div().w(path_w).flex_none().px_3().child("File"))
             .children(self.branches.iter().map(|(_, name)| {
@@ -194,7 +194,7 @@ impl RenderOnce for MergeConflictMatrix {
                                 } else {
                                     accent.opacity(0.1)
                                 })
-                                .text_xs()
+                                .text_caption()
                                 .child(div().text_color(success).child(format!("+{}", t.added)))
                                 .child(
                                     div()
@@ -207,7 +207,7 @@ impl RenderOnce for MergeConflictMatrix {
                                 .flex()
                                 .items_center()
                                 .px_1p5()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(line)
                                 .child("\u{b7}")
                                 .into_any_element(),
@@ -277,7 +277,7 @@ impl RenderOnce for MergeConflictMatrix {
                     .into_any_element()
                 } else {
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child("No conflict")
                         .into_any_element()
@@ -325,7 +325,7 @@ impl RenderOnce for MergeConflictMatrix {
                                 div()
                                     .min_w_0()
                                     .truncate()
-                                    .text_xs()
+                                    .text_caption()
                                     .font_family(mono.clone())
                                     .child(file.path.clone()),
                             ),
@@ -340,11 +340,9 @@ impl RenderOnce for MergeConflictMatrix {
             .w_full()
             .max_w(px(900.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -367,7 +365,7 @@ impl RenderOnce for MergeConflictMatrix {
                             } else {
                                 chip
                             })
-                            .text_xs()
+                            .text_caption()
                             .text_color(if resolved == conflicts { success } else { ink })
                             .child(if conflicts == 0 {
                                 "No conflicts".to_string()

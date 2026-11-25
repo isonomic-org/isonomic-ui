@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable, Selectable, StyledExt as _, ThemeStyled as _, h_flex, v_flex,
@@ -138,7 +139,7 @@ fn surface<E: Styled>(
         .border_color(edge)
         .bg(fill)
         .text_color(ink)
-        .text_sm()
+        .text_body()
         .line_height(relative(1.5))
         .shadow(shadow)
 }
@@ -346,7 +347,7 @@ impl RenderOnce for CardFooter {
             .gap_2()
             .min_w_0()
             .min_h_7()
-            .text_xs()
+            .text_caption()
             .text_color(cx.theme().muted_foreground)
             .children(self.children)
             .when(!self.trailing.is_empty(), |this| {

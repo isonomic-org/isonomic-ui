@@ -9,6 +9,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -342,8 +343,7 @@ impl RenderOnce for AttemptComparisonList {
                         .border_1()
                         .border_color(line)
                         .bg(fill)
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .text_color(quiet)
                         .map(|this| match attempt.icon.clone() {
                             Some(icon) => this.child(Icon::new(icon).small()),
@@ -370,7 +370,7 @@ impl RenderOnce for AttemptComparisonList {
                         .child(
                             div()
                                 .truncate()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(under_color)
                                 .child(under.unwrap_or_default()),
                         )
@@ -399,8 +399,7 @@ impl RenderOnce for AttemptComparisonList {
                                             .px_1p5()
                                             .rounded(px(5.))
                                             .bg(success.opacity(0.14))
-                                            .text_xs()
-                                            .font_medium()
+                                            .text_label_small()
                                             .child("Best"),
                                     )
                                 })
@@ -409,18 +408,18 @@ impl RenderOnce for AttemptComparisonList {
                                         div().font_medium().text_color(danger).child("Failed"),
                                     ),
                                     (AttemptState::Done, Some(score)) => this.child(
-                                        div().text_lg().font_semibold().child(score.to_string()),
+                                        div().text_lg().font_medium().child(score.to_string()),
                                     ),
                                     _ => this.child(div().text_color(quiet).child("\u{2013}")),
                                 }),
                         )
-                        .child(div().text_xs().text_color(quiet).child(facts.join(", ")))
+                        .child(div().text_caption().text_color(quiet).child(facts.join(", ")))
                         .map(|this| {
                             if is_used {
                                 this.child(
                                     h_flex()
                                         .gap_1()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(success)
                                         .child(Icon::new(IconName::Check).xsmall())
                                         .child("In use"),
@@ -456,7 +455,7 @@ impl RenderOnce for AttemptComparisonList {
             .w_full()
             .max_w(px(640.))
             .gap_2()
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .text_color(ink)
             .child(
@@ -488,8 +487,6 @@ impl RenderOnce for AttemptComparisonList {
                     .gap_2()
                     .p_2()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(resting_shadow(cx))
                     .children(rows),

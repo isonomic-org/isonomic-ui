@@ -11,6 +11,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::Button, h_flex, spinner::Spinner, v_flex,
@@ -326,7 +327,7 @@ impl RenderOnce for FallbackRouteView {
                     .rounded_full_style(cx)
                     .border_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child((ix + 1).to_string())
                     .into_any_element(),
@@ -362,18 +363,18 @@ impl RenderOnce for FallbackRouteView {
                                     div()
                                         .min_w_0()
                                         .truncate()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child(provider)
                                 })),
                         )
-                        .child(div().truncate().text_xs().text_color(color).child(words)),
+                        .child(div().truncate().text_caption().text_color(color).child(words)),
                 )
                 .child(
                     v_flex()
                         .flex_none()
                         .items_end()
-                        .text_xs()
+                        .text_caption()
                         .child(
                             div()
                                 .font_medium()
@@ -414,11 +415,9 @@ impl RenderOnce for FallbackRouteView {
             .w_full()
             .max_w(px(480.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -443,7 +442,7 @@ impl RenderOnce for FallbackRouteView {
                             .px_1p5()
                             .rounded(px(5.))
                             .bg(chip)
-                            .text_xs()
+                            .text_caption()
                             .child(div().size(px(6.)).rounded_full_style(cx).bg(summary_color))
                             .child(summary),
                     )
@@ -451,14 +450,14 @@ impl RenderOnce for FallbackRouteView {
                         this.child(
                             div()
                                 .flex_none()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(elapsed_words(total)),
                         )
                     })
                     .children(
                         self.total_cost
-                            .map(|cost| div().flex_none().text_xs().text_color(quiet).child(cost)),
+                            .map(|cost| div().flex_none().text_caption().text_color(quiet).child(cost)),
                     ),
             )
             .child(

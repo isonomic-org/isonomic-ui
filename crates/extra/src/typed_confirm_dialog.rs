@@ -8,6 +8,7 @@
 //! turns on. Escape or Cancel backs out. It holds only the typed text; the
 //! owner shows and hides it.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -108,7 +109,6 @@ impl Render for TypedConfirmDialog {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let danger = Tone::Danger.color(cx);
         let ready = typed_matches(&self.field.read(cx).value(), &self.word);
         v_flex()
@@ -117,11 +117,9 @@ impl Render for TypedConfirmDialog {
             .gap_4()
             .p_5()
             .rounded(theme.radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(lifted_shadow(cx))
             .on_key_down(cx.listener(|_, event: &KeyDownEvent, _, cx| {
                 if event.keystroke.key == "escape" {
@@ -150,7 +148,7 @@ impl Render for TypedConfirmDialog {
                     .child(
                         v_flex()
                             .gap_1()
-                            .child(div().text_base().font_semibold().child(self.title.clone()))
+                            .child(div().text_base().font_medium().child(self.title.clone()))
                             .child(div().text_color(quiet).child("This can't be undone.")),
                     ),
             )
@@ -180,7 +178,7 @@ impl Render for TypedConfirmDialog {
                     .gap_1p5()
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(format!("To confirm, type {} below.", self.word)),
                     )

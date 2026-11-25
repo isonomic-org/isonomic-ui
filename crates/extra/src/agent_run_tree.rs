@@ -13,6 +13,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     v_flex,
@@ -483,7 +484,7 @@ impl RenderOnce for AgentRunTree {
                             .min_w_0()
                             .truncate()
                             .when(step.kind == RunStepKind::Tool, |this| {
-                                this.font_family(mono.clone()).text_xs()
+                                this.font_family(mono.clone()).text_caption()
                             })
                             .when(step.outcome == RunStepOutcome::Skipped, |this| {
                                 this.text_color(quiet).line_through()
@@ -510,7 +511,7 @@ impl RenderOnce for AgentRunTree {
                             .w(px(54.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(match step.outcome {
                                 RunStepOutcome::Running => "running".to_string(),
@@ -530,14 +531,14 @@ impl RenderOnce for AgentRunTree {
                 let block = |label: &'static str, text: &SharedString| {
                     v_flex()
                         .gap_1()
-                        .child(div().text_xs().font_medium().text_color(quiet).child(label))
+                        .child(div().text_caption().font_medium().text_color(quiet).child(label))
                         .child(
                             div()
                                 .p_2()
                                 .rounded(radius)
                                 .bg(chip)
                                 .font_family(mono.clone())
-                                .text_xs()
+                                .text_caption()
                                 .line_height(relative(1.5))
                                 .child(text.clone()),
                         )
@@ -559,7 +560,7 @@ impl RenderOnce for AgentRunTree {
                     .child(
                         h_flex()
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .child(
                                 div()
                                     .px_1p5()
@@ -605,11 +606,9 @@ impl RenderOnce for AgentRunTree {
             .w_full()
             .max_w(px(860.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -627,7 +626,7 @@ impl RenderOnce for AgentRunTree {
                             .font_medium()
                             .child(self.title),
                     )
-                    .child(div().text_xs().text_color(quiet).child(format!(
+                    .child(div().text_caption().text_color(quiet).child(format!(
                         "{total} steps, {}{}{}",
                         duration_words(run_millis),
                         if tally[0] > 0 {

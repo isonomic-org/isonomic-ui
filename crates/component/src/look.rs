@@ -19,11 +19,10 @@ use crate::ActiveTheme as _;
 /// Text roles. Each sets size, line height and weight together, so a box is
 /// exactly as tall as the design says and baselines line up across components.
 pub trait TextRole: Styled + Sized {
-    /// Running text: 13px on a 20px line, regular.
+    /// Running text: 13px on a 20px line. Leaves the weight alone, so it
+    /// combines with a weight set before or after it.
     fn text_body(self) -> Self {
-        self.text_size(px(13.))
-            .line_height(px(20.))
-            .font_weight(FontWeight::NORMAL)
+        self.text_size(px(13.)).line_height(px(20.))
     }
 
     /// A control's label, a row title, a card title: 13px on 20px, medium.
@@ -33,11 +32,9 @@ pub trait TextRole: Styled + Sized {
             .font_weight(FontWeight::MEDIUM)
     }
 
-    /// Secondary lines, hints, meta: 12px on 16px, regular.
+    /// Secondary lines, hints, meta: 12px on 16px. Leaves the weight alone.
     fn text_caption(self) -> Self {
-        self.text_size(px(12.))
-            .line_height(px(16.))
-            .font_weight(FontWeight::NORMAL)
+        self.text_size(px(12.)).line_height(px(16.))
     }
 
     /// A small control's label: 12px on 16px, medium.

@@ -14,6 +14,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     v_flex,
@@ -324,7 +325,7 @@ impl RenderOnce for AgentNetworkGraph {
                         .bg(fill)
                         .border_1()
                         .border_color(if link.live { accent } else { line })
-                        .text_xs()
+                        .text_caption()
                         .text_color(if link.live { accent } else { quiet })
                         .when(!touches, |this| this.opacity(0.25))
                         .child(link.messages.to_string()),
@@ -407,7 +408,7 @@ impl RenderOnce for AgentNetworkGraph {
                             .rounded(px(4.))
                             .bg(fill.opacity(0.85))
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .text_center()
                             .when(is_selected, |this| this.font_medium())
                             .child(node.label.clone()),
@@ -475,11 +476,9 @@ impl RenderOnce for AgentNetworkGraph {
             .w_full()
             .max_w(px(760.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -488,7 +487,7 @@ impl RenderOnce for AgentNetworkGraph {
                     .py_2p5()
                     .border_b_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(Icon::new(IconName::Network).small())
                     .child(div().flex_1().child(format!(
@@ -576,7 +575,7 @@ impl RenderOnce for AgentNetworkGraph {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(
                         detail.unwrap_or_else(|| "Select a node to see who it talks to.".into()),

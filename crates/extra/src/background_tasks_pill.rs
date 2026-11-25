@@ -12,6 +12,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -254,7 +255,7 @@ impl RenderOnce for BackgroundTasksPill {
             .bg(if open { chip } else { fill })
             .hover(|style| style.bg(chip))
             .cursor_pointer()
-            .text_xs()
+            .text_caption()
             .text_color(ink)
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .role(Role::Button)
@@ -377,7 +378,7 @@ impl RenderOnce for BackgroundTasksPill {
                                 this.child(
                                     div()
                                         .pl(px(15.))
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(
                                             if matches!(
                                                 task.state,
@@ -406,19 +407,16 @@ impl RenderOnce for BackgroundTasksPill {
                 .max_w(px(320.))
                 .p_1()
                 .rounded(radius_lg)
-                .border_1()
-                .border_color(line)
                 .bg(fill)
                 .shadow(lifted_shadow(cx))
-                .text_sm()
+                .text_body()
                 .text_color(ink)
                 .child(
                     div()
                         .px_3()
                         .pt_2()
                         .pb_1()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .text_color(quiet)
                         .child("Running in the background"),
                 )

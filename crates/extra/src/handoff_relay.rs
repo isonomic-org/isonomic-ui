@@ -10,6 +10,7 @@
 
 use std::{any::Any, rc::Rc};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -327,7 +328,7 @@ impl Render for DraggedTask {
             .border_1()
             .border_color(theme.border)
             .bg(theme.popover)
-            .text_sm()
+            .text_body()
             .text_color(theme.foreground)
             .shadow_md()
             .child(self.title.clone())
@@ -486,8 +487,6 @@ impl RenderOnce for HandoffRelay {
                     .gap_2()
                     .p_3()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(resting_shadow(cx))
                     .can_drop(accepts)
@@ -526,17 +525,17 @@ impl RenderOnce for HandoffRelay {
                                         div().font_medium().truncate().child(worker.name.clone()),
                                     )
                                     .children(worker.model.clone().map(|model| {
-                                        div().text_xs().text_color(quiet).truncate().child(model)
+                                        div().text_caption().text_color(quiet).truncate().child(model)
                                     })),
                             )
                             .children(worker.cost.map(|cost| {
                                 div()
                                     .flex_none()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(format!("${cost:.2}"))
                             }))
-                            .child(div().flex_none().px_1p5().rounded(px(4.)).text_xs().map(
+                            .child(div().flex_none().px_1p5().rounded(px(4.)).text_caption().map(
                                 |this| {
                                     if working.is_some() {
                                         this.bg(accent.opacity(0.12))
@@ -550,7 +549,7 @@ impl RenderOnce for HandoffRelay {
                     )
                     .children(worker.about.clone().map(|about| {
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .line_height(relative(1.4))
                             .child(about)
@@ -561,7 +560,7 @@ impl RenderOnce for HandoffRelay {
                             .py_1p5()
                             .rounded(radius)
                             .bg(chip.opacity(0.6))
-                            .text_xs()
+                            .text_caption()
                             .child(current),
                     )
             });
@@ -644,7 +643,7 @@ impl RenderOnce for HandoffRelay {
                                 .px_1p5()
                                 .py_0p5()
                                 .rounded(px(4.))
-                                .text_xs()
+                                .text_caption()
                                 .border_1()
                                 .map(|this| {
                                     if is_lost {
@@ -683,7 +682,7 @@ impl RenderOnce for HandoffRelay {
                         h_flex()
                             .gap_2()
                             .pt_1()
-                            .text_xs()
+                            .text_caption()
                             .child(div().flex_1().min_w_0().text_color(quiet).child(reason))
                             .when(restore.is_some(), |this| {
                                 this.child(
@@ -769,7 +768,7 @@ impl RenderOnce for HandoffRelay {
                             .children(skipped.map(|name| {
                                 div()
                                     .flex_none()
-                                    .text_xs()
+                                    .text_caption()
                                     .font_normal()
                                     .text_color(quiet)
                                     .child(format!("To {name}"))
@@ -778,7 +777,7 @@ impl RenderOnce for HandoffRelay {
                     .child(
                         h_flex()
                             .gap_1p5()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(
                                 div()
@@ -799,7 +798,7 @@ impl RenderOnce for HandoffRelay {
                     .child(
                         h_flex()
                             .gap_1p5()
-                            .text_xs()
+                            .text_caption()
                             .child(div().size(px(6.)).rounded_full().bg(state_color))
                             .child(state_words),
                     )
@@ -820,7 +819,7 @@ impl RenderOnce for HandoffRelay {
                     h_flex()
                         .gap_1()
                         .px_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().truncate().child(from.name.clone()))
                         .child(Icon::new(IconName::ArrowRight).xsmall())
@@ -841,7 +840,7 @@ impl RenderOnce for HandoffRelay {
                         div()
                             .px_1()
                             .py_2()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("Nothing handed over yet"),
                     )
@@ -886,7 +885,7 @@ impl RenderOnce for HandoffRelay {
             .aria_label("Handoff relay")
             .w_full()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.3))
             .child(h_flex().items_start().gap_3().children(cards))
             .child(lines)

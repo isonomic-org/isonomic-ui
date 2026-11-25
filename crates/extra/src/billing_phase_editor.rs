@@ -14,6 +14,7 @@
 
 use std::collections::HashMap;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -612,8 +613,6 @@ impl BillingPhaseEditor {
             .gap_3()
             .p_4()
             .rounded(radius)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .shadow(resting_shadow(cx))
             .child(
@@ -626,8 +625,7 @@ impl BillingPhaseEditor {
                             .size(px(22.))
                             .rounded_full()
                             .bg(muted)
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .flex()
                             .items_center()
                             .justify_center()
@@ -674,7 +672,7 @@ impl BillingPhaseEditor {
                     .child(
                         h_flex()
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(div().flex_1().child("Item"))
                             .child(div().w(px(80.)).text_center().child("Qty"))
@@ -739,7 +737,7 @@ impl BillingPhaseEditor {
             .child(
                 v_flex()
                     .gap_0p5()
-                    .text_sm()
+                    .text_body()
                     .child(sum_row("Items".into(), money(totals.subtotal), false))
                     .when(totals.discount > 0, |this| {
                         this.child(sum_row(
@@ -799,7 +797,7 @@ impl Render for BillingPhaseEditor {
             .w_full()
             .max_w(px(640.))
             .gap_3()
-            .text_sm()
+            .text_body()
             .text_color(ink)
             .line_height(relative(1.45))
             .children(cards)
@@ -821,7 +819,7 @@ impl Render for BillingPhaseEditor {
                         this.child(
                             h_flex()
                                 .gap_1()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(danger)
                                 .child(Icon::new(IconName::TriangleAlert).xsmall())
                                 .child(if bad == 1 {
@@ -838,10 +836,10 @@ impl Render for BillingPhaseEditor {
                             .child(
                                 div()
                                     .text_lg()
-                                    .font_semibold()
+                                    .font_medium()
                                     .child(format!("{sign}{}", money(total))),
                             )
-                            .child(div().text_xs().text_color(quiet).child(format!(
+                            .child(div().text_caption().text_color(quiet).child(format!(
                                 "over {months} months, {sign}{} a month on average",
                                 money(average)
                             ))),

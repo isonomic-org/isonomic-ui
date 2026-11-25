@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -249,7 +250,7 @@ impl RenderOnce for ContrastColorPicker {
                     let verdict = |label: &'static str, pass: bool| {
                         h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if pass { ok } else { bad })
                             .child(
                                 Icon::new(if pass {
@@ -287,11 +288,11 @@ impl RenderOnce for ContrastColorPicker {
                                     div()
                                         .text_color(*color)
                                         .text_lg()
-                                        .font_semibold()
+                                        .font_medium()
                                         .child("Invoice 2291 is overdue"),
                                 )
                                 .child(
-                                    div().text_color(*color).text_sm().child(
+                                    div().text_color(*color).text_body().child(
                                         "Paid amounts show in this colour on this background.",
                                     ),
                                 ),
@@ -302,7 +303,7 @@ impl RenderOnce for ContrastColorPicker {
                                 .child(div().font_medium().child(name.clone()))
                                 .child(
                                     div()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child(format!("{ratio:.2} : 1")),
                                 )
@@ -319,11 +320,9 @@ impl RenderOnce for ContrastColorPicker {
             .gap_3()
             .p_4()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -331,7 +330,7 @@ impl RenderOnce for ContrastColorPicker {
                     .child(div().flex_1().font_medium().child("Text colour"))
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("Ticks pass for normal text"),
                     ),
@@ -365,7 +364,7 @@ impl RenderOnce for ContrastColorPicker {
                 this.child(
                     h_flex()
                         .gap_2()
-                        .child(div().text_xs().text_color(quiet).child("Recent"))
+                        .child(div().text_caption().text_color(quiet).child("Recent"))
                         .children(
                             self.recent
                                 .iter()

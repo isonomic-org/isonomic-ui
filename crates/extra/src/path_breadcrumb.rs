@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -184,7 +185,7 @@ impl RenderOnce for PathBreadcrumb {
             .id(self.id.clone())
             .gap_0p5()
             .min_w_0()
-            .text_sm()
+            .text_body()
             .role(Role::Navigation)
             .aria_label(format!("Path: {joined}"))
             .children(items)

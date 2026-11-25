@@ -8,6 +8,7 @@
 
 use std::{rc::Rc, sync::Arc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Toggle;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
@@ -374,8 +375,7 @@ impl RenderOnce for ReactionBar {
                 .px(px(10.))
                 .rounded(radius)
                 .border_1()
-                .text_sm()
-                .font_medium()
+                .text_label()
                 .cursor_pointer()
                 .map(|this| {
                     if shown.active {

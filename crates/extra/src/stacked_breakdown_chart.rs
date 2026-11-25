@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::Button,
@@ -359,11 +360,9 @@ impl RenderOnce for StackedBreakdownChart {
             .w_full()
             .max_w(px(560.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx));
         if self.dimensions.is_empty() {
@@ -431,7 +430,7 @@ impl RenderOnce for StackedBreakdownChart {
                 .flex_1()
                 .min_w_0()
                 .gap_1()
-                .child(div().text_xs().text_color(quiet).child(label))
+                .child(div().text_caption().text_color(quiet).child(label))
                 .child(
                     Button::new((self.id.clone(), name))
                         .outline()
@@ -580,11 +579,9 @@ impl RenderOnce for StackedBreakdownChart {
                 .gap_1()
                 .p_2()
                 .rounded(radius)
-                .border_1()
-                .border_color(line)
                 .bg(surface)
                 .shadow(lifted_shadow(cx))
-                .text_xs()
+                .text_caption()
                 .child(
                     h_flex()
                         .gap_3()
@@ -633,7 +630,7 @@ impl RenderOnce for StackedBreakdownChart {
                     .w(px(36.))
                     .h(px(PLOT_HEIGHT))
                     .justify_between()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .children((0..=4).map(|step| {
                         div()
@@ -651,7 +648,7 @@ impl RenderOnce for StackedBreakdownChart {
                     .px_0p5()
                     .truncate()
                     .text_center()
-                    .text_xs()
+                    .text_caption()
                     .when(hovered != Some(ix), |this| this.text_color(quiet))
                     .child(name.clone())
             }));
@@ -669,7 +666,7 @@ impl RenderOnce for StackedBreakdownChart {
             .px_4()
             .border_t_1()
             .border_color(line)
-            .text_xs()
+            .text_caption()
             .text_color(quiet)
             .child(
                 div()
@@ -795,7 +792,7 @@ impl RenderOnce for StackedBreakdownChart {
                             h_flex()
                                 .flex_none()
                                 .gap_1()
-                                .child(div().font_semibold().child(amount_words(grand)))
+                                .child(div().font_medium().child(amount_words(grand)))
                                 .child(div().text_color(quiet).child(measure.unit.clone())),
                         ),
                 )

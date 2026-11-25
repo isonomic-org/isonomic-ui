@@ -15,6 +15,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -353,7 +354,7 @@ impl RenderOnce for StepTrail {
                         .flex_1()
                         .min_w_0()
                         .truncate()
-                        .font_semibold()
+                        .font_medium()
                         .child(title),
                 )
                 .children(self.agent.clone().map(|agent| {
@@ -363,7 +364,7 @@ impl RenderOnce for StepTrail {
                         .px_1p5()
                         .rounded(px(5.))
                         .bg(chip)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(Icon::new(IconName::Bot).xsmall())
                         .child(agent)
@@ -371,7 +372,7 @@ impl RenderOnce for StepTrail {
                 .child(
                     div()
                         .flex_none()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("{done}/{total}")),
                 )
@@ -434,7 +435,7 @@ impl RenderOnce for StepTrail {
             let right: Option<isonomic_ui::AnyElement> = match step.state {
                 TrailState::Done => step.took.map(|took| {
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(took_words(took))
                         .into_any_element()
@@ -442,7 +443,7 @@ impl RenderOnce for StepTrail {
                 TrailState::Running => Some(
                     h_flex()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .children(
                             step.status
                                 .clone()
@@ -479,7 +480,7 @@ impl RenderOnce for StepTrail {
                 TrailState::Failed => Some(tag("Failed", danger).into_any_element()),
                 TrailState::Declined => Some(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child("Declined")
                         .into_any_element(),
@@ -552,7 +553,7 @@ impl RenderOnce for StepTrail {
                         .h(px(24.))
                         .gap_2()
                         .cursor_pointer()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .hover(|style| style.text_color(ink))
                         .child(div().w(px(16.)))
@@ -578,7 +579,7 @@ impl RenderOnce for StepTrail {
                         h_flex()
                             .h(px(24.))
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .child(
                                 div()
                                     .w(px(16.))
@@ -630,7 +631,7 @@ impl RenderOnce for StepTrail {
                     .bg(warning.opacity(0.08))
                     .border_1()
                     .border_color(warning.opacity(0.3))
-                    .children(step.ask.clone().map(|ask| div().text_xs().child(ask)))
+                    .children(step.ask.clone().map(|ask| div().text_caption().child(ask)))
                     .child(
                         h_flex()
                             .gap_2()
@@ -694,11 +695,9 @@ impl RenderOnce for StepTrail {
             .w_full()
             .max_w(px(420.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.3))
             .shadow(resting_shadow(cx))
             .children(header)
@@ -722,8 +721,7 @@ fn tag(label: &'static str, color: Hsla) -> impl IntoElement {
         .px_1p5()
         .rounded(px(4.))
         .bg(color.opacity(0.14))
-        .text_xs()
-        .font_medium()
+        .text_label_small()
         .text_color(color)
         .child(label)
 }

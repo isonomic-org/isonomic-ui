@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::Button,
@@ -191,8 +192,7 @@ impl RenderOnce for FormSelect {
             .child(
                 h_flex()
                     .gap_0p5()
-                    .text_sm()
-                    .font_medium()
+                    .text_label()
                     .child(self.label.clone())
                     .when(self.required, |this| {
                         this.child(div().text_color(danger).child("*"))
@@ -264,7 +264,7 @@ impl RenderOnce for FormSelect {
                 this.child(
                     h_flex()
                         .gap_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(danger)
                         .child(Icon::new(IconName::CircleAlert).xsmall())
                         .child(error),

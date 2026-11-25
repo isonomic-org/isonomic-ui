@@ -8,6 +8,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -213,7 +214,7 @@ impl RenderOnce for NoticeStack {
             .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(shadow.clone())
             .child(
@@ -225,8 +226,7 @@ impl RenderOnce for NoticeStack {
                             .rounded(px(5.))
                             .bg(pill)
                             .text_color(quiet)
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .child(badge.to_uppercase())
                     }))
                     .child(

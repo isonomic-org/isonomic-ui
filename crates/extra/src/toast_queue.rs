@@ -10,6 +10,7 @@
 
 use std::time::Duration;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -229,9 +230,9 @@ impl Render for ToastQueue {
                             .flex_1()
                             .min_w_0()
                             .gap_0p5()
-                            .child(div().text_sm().font_medium().child(toast.title.clone()))
+                            .child(div().text_body().font_medium().child(toast.title.clone()))
                             .when_some(toast.body.clone(), |this, body| {
-                                this.child(div().text_xs().text_color(quiet).child(body))
+                                this.child(div().text_caption().text_color(quiet).child(body))
                             }),
                     )
                     .when_some(toast.action.clone(), |this, label| {
@@ -265,7 +266,7 @@ impl Render for ToastQueue {
             .when(waiting > 0, |this| {
                 this.child(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("+{waiting} more")),
                 )

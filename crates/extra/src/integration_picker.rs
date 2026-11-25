@@ -8,6 +8,7 @@
 //! side, what the connection does, and a switch. The keyboard does it all:
 //! arrows move, Enter switches, Escape clears and then closes.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -341,7 +342,7 @@ impl Render for IntegrationPicker {
                 .rounded(px(size * 0.24))
                 .bg(color)
                 .text_color(isonomic_ui::white())
-                .font_semibold()
+                .font_medium()
                 .map(|this| match &service.icon {
                     Some(icon) => this.child(
                         Icon::new(icon.clone())
@@ -376,7 +377,7 @@ impl Render for IntegrationPicker {
                         .child(div().truncate().child(service.name.clone()))
                         .child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .truncate()
                                 .child(service.category.clone()),
@@ -388,8 +389,7 @@ impl Render for IntegrationPicker {
                 .px_2()
                 .pt_2()
                 .pb_1()
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .text_color(quiet)
                 .child(label)
         };
@@ -414,7 +414,7 @@ impl Render for IntegrationPicker {
                 this.child(
                     div()
                         .p_3()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("Nothing matches \"{query}\"")),
                 )
@@ -453,7 +453,7 @@ impl Render for IntegrationPicker {
                                 .bg(ink)
                                 .text_color(fill)
                                 .text_size(px(22.))
-                                .font_semibold()
+                                .font_medium()
                                 .child(mark(&self.app_name)),
                         )
                         .child(
@@ -473,13 +473,13 @@ impl Render for IntegrationPicker {
                                 .min_w_0()
                                 .child(
                                     div()
-                                        .font_semibold()
+                                        .font_medium()
                                         .child(format!("{} + {}", self.app_name, service.name)),
                                 )
                                 .child(
                                     h_flex()
                                         .gap_1p5()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .children(service.domain.clone())
                                         .when(service.connected, |this| {
@@ -549,11 +549,9 @@ impl Render for IntegrationPicker {
             .max_w(px(680.))
             .h(px(440.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .overflow_hidden()
             .shadow(resting_shadow(cx))
             .child(
@@ -583,7 +581,7 @@ impl Render for IntegrationPicker {
                             .flex_1()
                             .child(Input::new(&self.search).appearance(false)),
                     )
-                    .child(div().text_xs().text_color(quiet).child(key("Ctrl /"))),
+                    .child(div().text_caption().text_color(quiet).child(key("Ctrl /"))),
             )
             .child(
                 h_flex()
@@ -600,7 +598,7 @@ impl Render for IntegrationPicker {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(div().size(px(6.)).rounded_full().bg(if on > 0 {
                         success

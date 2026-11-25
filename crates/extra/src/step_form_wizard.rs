@@ -16,6 +16,7 @@ use std::{
     rc::Rc,
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -868,11 +869,9 @@ impl Render for StepFormWizard {
             .w_full()
             .max_w(px(520.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx));
 
@@ -896,7 +895,7 @@ impl Render for StepFormWizard {
                     div()
                         .pt_1()
                         .text_base()
-                        .font_semibold()
+                        .font_medium()
                         .child(self.success_heading.clone()),
                 )
                 .child(div().text_color(quiet).child(self.success_line.clone()))
@@ -947,8 +946,7 @@ impl Render for StepFormWizard {
                         .child(
                             h_flex()
                                 .gap_1p5()
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .text_color(if current { ink } else { quiet })
                                 .child(if done {
                                     Icon::new(IconName::Check)
@@ -970,19 +968,19 @@ impl Render for StepFormWizard {
                 .justify_between()
                 .child(div().font_medium().child(field.label.clone()))
                 .when(field.optional, |this| {
-                    this.child(div().text_xs().text_color(quiet).child("Optional"))
+                    this.child(div().text_caption().text_color(quiet).child("Optional"))
                 })
         };
         let under = |field: &WizardField, error: Option<&String>| match (error, &field.hint) {
             (Some(error), _) => Some(
                 h_flex()
                     .gap_1()
-                    .text_xs()
+                    .text_caption()
                     .text_color(danger)
                     .child(Icon::new(IconName::CircleAlert).xsmall())
                     .child(error.clone()),
             ),
-            (None, Some(hint)) => Some(h_flex().text_xs().text_color(quiet).child(hint.clone())),
+            (None, Some(hint)) => Some(h_flex().text_caption().text_color(quiet).child(hint.clone())),
             _ => None,
         };
 
@@ -1004,7 +1002,7 @@ impl Render for StepFormWizard {
                             div()
                                 .w(px(96.))
                                 .flex_none()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .pt_0p5()
                                 .child(step.title.clone()),
@@ -1013,7 +1011,7 @@ impl Render for StepFormWizard {
                             texts.into_iter().enumerate().map(|(line_ix, text)| {
                                 div()
                                     .when(line_ix == 0, |this| this.font_medium())
-                                    .when(line_ix > 0, |this| this.text_xs().text_color(quiet))
+                                    .when(line_ix > 0, |this| this.text_caption().text_color(quiet))
                                     .child(text)
                             }),
                         ))
@@ -1034,7 +1032,7 @@ impl Render for StepFormWizard {
                         .child(
                             div()
                                 .text_base()
-                                .font_semibold()
+                                .font_medium()
                                 .child(self.review_heading.clone()),
                         )
                         .child(
@@ -1108,7 +1106,7 @@ impl Render for StepFormWizard {
                                         .pr_0p5()
                                         .rounded(px(4.))
                                         .bg(chip)
-                                        .text_xs()
+                                        .text_caption()
                                         .child(entry.clone())
                                         .child(
                                             Button::new(SharedString::from(format!(
@@ -1173,7 +1171,7 @@ impl Render for StepFormWizard {
                                             .child(
                                                 div()
                                                     .flex_1()
-                                                    .font_semibold()
+                                                    .font_medium()
                                                     .child(choice.title.clone()),
                                             )
                                             .child(
@@ -1202,13 +1200,13 @@ impl Render for StepFormWizard {
                                                 .rounded(px(4.))
                                                 .bg(accent.opacity(0.12))
                                                 .text_color(accent)
-                                                .text_xs()
+                                                .text_caption()
                                                 .child(badge),
                                         )
                                     }))
                                     .children(choice.aside.clone().map(|aside| div().child(aside)))
                                     .children(choice.description.clone().map(|description| {
-                                        div().text_xs().text_color(quiet).child(description)
+                                        div().text_caption().text_color(quiet).child(description)
                                     }))
                             }))
                             .into_any_element()
@@ -1227,7 +1225,7 @@ impl Render for StepFormWizard {
                         .child(
                             div()
                                 .text_base()
-                                .font_semibold()
+                                .font_medium()
                                 .child(step.heading.clone().unwrap_or(step.title.clone())),
                         )
                         .children(
@@ -1270,7 +1268,7 @@ impl Render for StepFormWizard {
             .children(failed.map(|message| {
                 h_flex()
                     .gap_1()
-                    .text_xs()
+                    .text_caption()
                     .text_color(danger)
                     .child(Icon::new(IconName::CircleAlert).xsmall())
                     .child(message)

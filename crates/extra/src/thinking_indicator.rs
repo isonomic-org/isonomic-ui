@@ -12,6 +12,7 @@
 
 use std::time::Instant;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, shimmer::ShimmerText};
 use isonomic_ui::{
     App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -316,7 +317,7 @@ impl RenderOnce for ThinkingIndicator {
                 )
                 .color(quiet),
             )
-            .child(div().text_sm().text_color(quiet).map(|this| {
+            .child(div().text_body().text_color(quiet).map(|this| {
                 if working && !still {
                     this.child(ShimmerText::new(label.clone()).id(ElementId::NamedChild(
                         self.id.clone().into(),

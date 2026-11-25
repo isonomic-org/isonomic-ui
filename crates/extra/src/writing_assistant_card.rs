@@ -11,6 +11,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -378,7 +379,7 @@ impl Render for WritingAssistantCard {
                 .child(
                     div()
                         .text_base()
-                        .font_semibold()
+                        .font_medium()
                         .child(self.greeting.clone()),
                 )
                 .child(h_flex().flex_wrap().gap_1p5().children(
@@ -495,11 +496,9 @@ impl Render for WritingAssistantCard {
             .max_w(px(380.))
             .h(px(420.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .overflow_hidden()
             .shadow(resting_shadow(cx))
@@ -519,11 +518,11 @@ impl Render for WritingAssistantCard {
                                 h_flex()
                                     .gap_1p5()
                                     .child(Icon::new(IconName::Star).xsmall().text_color(accent))
-                                    .child(div().font_semibold().child(self.name.clone())),
+                                    .child(div().font_medium().child(self.name.clone())),
                             )
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(self.tagline.clone()),
                             ),

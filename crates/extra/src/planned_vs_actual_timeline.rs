@@ -10,6 +10,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, spinner::Spinner,
     v_flex,
@@ -318,7 +319,7 @@ impl RenderOnce for PlannedVsActualTimeline {
                     .ml(px(-16.))
                     .w(px(32.))
                     .text_center()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(format(time))
             });
@@ -467,7 +468,7 @@ impl RenderOnce for PlannedVsActualTimeline {
                                     .left(relative(at(edge)))
                                     .ml_1p5()
                                     .gap_1()
-                                    .text_xs()
+                                    .text_caption()
                                     .child(
                                         div()
                                             .when(s.state == StepState::Waiting, |this| {
@@ -525,8 +526,7 @@ impl RenderOnce for PlannedVsActualTimeline {
                     .flex_none()
                     .px_1p5()
                     .rounded(px(5.))
-                    .text_xs()
-                    .font_medium()
+                    .text_label_small()
                     .bg(if behind {
                         warning.opacity(0.18)
                     } else {
@@ -551,7 +551,7 @@ impl RenderOnce for PlannedVsActualTimeline {
                         div()
                             .flex_none()
                             .w(px(NAME_COLUMN))
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("STEP"),
                     )
@@ -588,7 +588,7 @@ impl RenderOnce for PlannedVsActualTimeline {
             .py_2()
             .border_t_1()
             .border_color(line)
-            .text_xs()
+            .text_caption()
             .text_color(quiet)
             .child(
                 h_flex()
@@ -652,11 +652,9 @@ impl RenderOnce for PlannedVsActualTimeline {
             .w_full()
             .max_w(px(820.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .shadow(resting_shadow(cx))
             .child(headline)

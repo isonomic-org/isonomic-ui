@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
@@ -306,7 +307,7 @@ impl RenderOnce for TotalBreakdownCard {
                         .h(px(24.))
                         .px_2()
                         .rounded(radius)
-                        .text_xs()
+                        .text_caption()
                         .cursor_pointer()
                         .map(|this| {
                             if is_selected {
@@ -334,8 +335,7 @@ impl RenderOnce for TotalBreakdownCard {
                 .px_1p5()
                 .rounded(px(5.))
                 .bg(color.opacity(0.14))
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .children(icon.map(|icon| Icon::new(icon).size_3().text_color(color)))
                 .child(change_words(percent))
         });
@@ -435,11 +435,9 @@ impl RenderOnce for TotalBreakdownCard {
             .w_full()
             .max_w(px(360.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -467,13 +465,13 @@ impl RenderOnce for TotalBreakdownCard {
                                     .child(
                                         div()
                                             .text_2xl()
-                                            .font_semibold()
+                                            .font_medium()
                                             .line_height(relative(1.2))
                                             .child(figure),
                                     )
                                     .when(hovered.is_none(), |this| this.children(change)),
                             )
-                            .child(div().truncate().text_xs().text_color(quiet).child(caption)),
+                            .child(div().truncate().text_caption().text_color(quiet).child(caption)),
                     )
                     .child(bar)
                     .child(
@@ -490,7 +488,7 @@ impl RenderOnce for TotalBreakdownCard {
                     .py_2p5()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
             }))
             .refine_style(&self.style)

@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -322,7 +323,6 @@ impl RenderOnce for PermissionPrompt {
         let success = theme.success;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
-        let ring = theme.ring;
 
         let scopes = offered_scopes(&self.scopes, self.risk);
         let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| PromptState {
@@ -407,11 +407,9 @@ impl RenderOnce for PermissionPrompt {
             .max_w(px(400.))
             .overflow_hidden()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(if focus.is_focused(window) { ring } else { line })
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx));
 
@@ -489,7 +487,7 @@ impl RenderOnce for PermissionPrompt {
                                                 .child(format!("· {}", self.action)),
                                         ),
                                 )
-                                .child(div().truncate().text_xs().text_color(quiet).child(note)),
+                                .child(div().truncate().text_caption().text_color(quiet).child(note)),
                         )
                         .child(
                             Button::new((self.id.clone(), "again"))
@@ -597,8 +595,7 @@ impl RenderOnce for PermissionPrompt {
                                 .rounded(radius)
                                 .border_1()
                                 .border_color(line)
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .text_color(quiet)
                                 .child(initials(&self.who)),
                         )
@@ -631,8 +628,7 @@ impl RenderOnce for PermissionPrompt {
                                 .px_1p5()
                                 .rounded(px(5.))
                                 .bg(color.opacity(0.16))
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .child(Icon::new(icon).size_3().text_color(color))
                                 .child(word)
                         })),
@@ -667,7 +663,7 @@ impl RenderOnce for PermissionPrompt {
                                     .rounded(px(4.))
                                     .border_1()
                                     .border_color(line)
-                                    .text_xs()
+                                    .text_caption()
                                     .child(self.items.len().to_string()),
                             ),
                     )
@@ -737,7 +733,7 @@ impl RenderOnce for PermissionPrompt {
                 .when(self.risk == PermissionRisk::Destructive, |this| {
                     this.child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("What cannot be undone is never allowed for good"),
                     )

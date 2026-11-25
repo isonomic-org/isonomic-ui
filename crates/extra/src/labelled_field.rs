@@ -9,6 +9,7 @@
 //! past it. The field passes its label, hint and error to screen readers as
 //! one name.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -127,7 +128,7 @@ impl RenderOnce for LabelledField {
             .id(self.id.clone())
             .w_full()
             .gap_1p5()
-            .text_sm()
+            .text_body()
             .role(Role::Group)
             .aria_label(name)
             .child(
@@ -136,7 +137,7 @@ impl RenderOnce for LabelledField {
                     .child(div().font_medium().child(self.label.clone()))
                     .children(self.required.map(|required| {
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if required { danger } else { quiet })
                             .child(if required { "Required" } else { "Optional" })
                     })),
@@ -148,7 +149,7 @@ impl RenderOnce for LabelledField {
                     this.child(
                         h_flex()
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .child(match &self.error {
                                 Some(error) => h_flex()
                                     .flex_1()

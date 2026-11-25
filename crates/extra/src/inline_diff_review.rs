@@ -15,6 +15,7 @@
 
 use std::{ops::Range, rc::Rc};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     ThemeStyled as _,
@@ -535,7 +536,7 @@ impl RenderOnce for InlineDiffReview {
                 .child(
                     div()
                         .flex_none()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("{} of {count}", current + 1)),
                 )
@@ -580,7 +581,7 @@ impl RenderOnce for InlineDiffReview {
                         .child(
                             div()
                                 .flex_none()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(if accepted { success } else { quiet })
                                 .child(if accepted { "Accepted" } else { "Rejected" }),
                         )
@@ -605,11 +606,9 @@ impl RenderOnce for InlineDiffReview {
             .w_full()
             .max_w(px(560.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.6))
             .shadow(resting_shadow(cx))
             .child(
@@ -630,7 +629,7 @@ impl RenderOnce for InlineDiffReview {
                     .child(
                         div()
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(if open == 0 {
                                 "All reviewed".to_string()

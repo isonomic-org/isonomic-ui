@@ -10,6 +10,7 @@
 
 use std::time::Duration;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, StyledExt as _, h_flex,
     input::{InputEvent, Textarea, TextareaState},
@@ -222,7 +223,7 @@ impl Render for AutosaveNotes {
                 h_flex()
                     .justify_between()
                     .gap_3()
-                    .text_xs()
+                    .text_caption()
                     .child(
                         div()
                             .text_color(status_color)

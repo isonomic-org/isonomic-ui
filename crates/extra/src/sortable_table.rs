@@ -11,6 +11,7 @@
 
 use std::{cmp::Ordering, rc::Rc};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, checkbox::Checkbox, h_flex,
     v_flex,
@@ -242,7 +243,7 @@ impl RenderOnce for SortableTable {
                 .when_some(c.width, |this, w| this.w(px(w)).flex_none())
                 .when(c.width.is_none(), |this| this.flex_1().min_w(px(80.)))
                 .when(c.numeric, |this| this.text_right())
-                .when(bold, |this| this.font_semibold())
+                .when(bold, |this| this.font_medium())
                 .child(text)
         };
 
@@ -254,8 +255,7 @@ impl RenderOnce for SortableTable {
                 .border_b_1()
                 .border_color(line)
                 .bg(chip.opacity(0.4))
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .text_color(quiet)
                 .child(
                     div().w(px(36.)).flex_none().pl_3().child(
@@ -422,11 +422,9 @@ impl RenderOnce for SortableTable {
             .id(self.id.clone())
             .w_full()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .overflow_hidden()
             .shadow(resting_shadow(cx))
             .child(header)

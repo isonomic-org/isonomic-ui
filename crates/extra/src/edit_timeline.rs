@@ -11,6 +11,7 @@
 
 use std::{cell::Cell, rc::Rc};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -276,7 +277,7 @@ impl RenderOnce for EditTimeline {
                             .w(px(140.))
                             .flex_none()
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .font_family(cx.theme().mono_font_family.clone())
                             .child(name.clone()),
                     )
@@ -406,11 +407,9 @@ impl RenderOnce for EditTimeline {
             .w_full()
             .max_w(px(800.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -428,20 +427,20 @@ impl RenderOnce for EditTimeline {
                     )
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(added_color)
                             .child(format!("+{added}")),
                     )
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(removed_color)
                             .child(format!("\u{2212}{removed}")),
                     )
                     .children(self.authors.iter().enumerate().map(|(ix, (_, name))| {
                         h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(
                                 div()
@@ -482,7 +481,7 @@ impl RenderOnce for EditTimeline {
                     .child(
                         div()
                             .w(px(40.))
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(mmss(playhead)),
                     )
@@ -491,7 +490,7 @@ impl RenderOnce for EditTimeline {
                         div()
                             .w(px(40.))
                             .text_right()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(mmss(length_u)),
                     ),
@@ -503,7 +502,7 @@ impl RenderOnce for EditTimeline {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .map(|this| match focus {
                         Some(edit) => this
                             .child(div().size(px(8.)).rounded_full().bg(author_color(&edit.by)))

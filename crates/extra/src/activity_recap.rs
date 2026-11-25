@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
@@ -236,7 +237,7 @@ impl RenderOnce for ActivityRecap {
                     )
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_center()
                             .truncate()
                             .text_color(if picked { ink } else { quiet })
@@ -281,7 +282,7 @@ impl RenderOnce for ActivityRecap {
                                             .flex_1()
                                             .min_w_0()
                                             .truncate()
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(quiet)
                                             .child(item.meta.clone()),
                                     )
@@ -316,8 +317,7 @@ impl RenderOnce for ActivityRecap {
                     h_flex()
                         .gap_1p5()
                         .px_1()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .child(Icon::new(icon).xsmall().text_color(color))
                         .child(title)
                         .child(div().text_color(quiet).child(count.to_string())),
@@ -328,7 +328,7 @@ impl RenderOnce for ActivityRecap {
                         div()
                             .px_1()
                             .py_2()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("Nothing here."),
                     )
@@ -340,11 +340,9 @@ impl RenderOnce for ActivityRecap {
             .w_full()
             .max_w(px(900.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -354,25 +352,25 @@ impl RenderOnce for ActivityRecap {
                     .py_3()
                     .border_b_1()
                     .border_color(line)
-                    .child(div().flex_1().font_semibold().child(self.title.clone()))
+                    .child(div().flex_1().font_medium().child(self.title.clone()))
                     .child(
                         h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .child(div().size(px(8.)).rounded(px(2.)).bg(done_c))
                             .child(format!("{done} done")),
                     )
                     .child(
                         h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .child(div().size(px(8.)).rounded(px(2.)).bg(failed_c))
                             .child(format!("{failed} failed")),
                     )
                     .child(
                         h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .child(div().size(px(8.)).rounded(px(2.)).bg(review_c))
                             .child(format!("{review} to review")),
                     ),
@@ -383,7 +381,7 @@ impl RenderOnce for ActivityRecap {
                     .px_4()
                     .pt_3()
                     .child(h_flex().h(px(140.)).items_end().gap_1().children(bars))
-                    .child(div().text_xs().text_color(quiet).child(picked_line)),
+                    .child(div().text_caption().text_color(quiet).child(picked_line)),
             )
             .child(
                 h_flex()

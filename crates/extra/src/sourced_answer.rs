@@ -10,6 +10,7 @@
 
 use std::{ops::Range, rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
 use isonomic_ui::component::{
     ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
@@ -584,7 +585,7 @@ impl RenderOnce for SourcedAnswer {
                         .border_1()
                         .border_color(if lit { accent } else { line })
                         .when(open == Some(n), |this| this.bg(chip))
-                        .text_xs()
+                        .text_caption()
                         .cursor_pointer()
                         .when(subject.is_some() && !lit, |this| this.opacity(0.55))
                         .when(focused == Some(n), |this| this.focus_ring_style(window, cx))
@@ -652,7 +653,7 @@ impl RenderOnce for SourcedAnswer {
                                     .flex_1()
                                     .min_w_0()
                                     .truncate()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(about),
                             )
@@ -662,7 +663,7 @@ impl RenderOnce for SourcedAnswer {
                                     .px_1()
                                     .rounded(px(4.))
                                     .bg(chip)
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child((n + 1).to_string()),
                             )
@@ -787,11 +788,9 @@ impl RenderOnce for SourcedAnswer {
             .gap_3()
             .p_4()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.6))
             .shadow(resting_shadow(cx))
             .child(
@@ -805,7 +804,7 @@ impl RenderOnce for SourcedAnswer {
                                 .map(|source| badge(&source.name)),
                         ),
                     )
-                    .child(div().text_xs().text_color(quiet).child(summary)),
+                    .child(div().text_caption().text_color(quiet).child(summary)),
             )
             .child(
                 div()
@@ -862,7 +861,7 @@ impl RenderOnce for SourcedAnswer {
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(status),
                     )

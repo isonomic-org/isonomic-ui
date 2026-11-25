@@ -9,6 +9,7 @@
 //! stack overlaps a few and counts the rest, naming everyone for screen
 //! readers.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, avatar::Avatar, h_flex,
 };
@@ -312,8 +313,7 @@ impl RenderOnce for IdentityStack {
                         .border_2()
                         .border_color(theme.background)
                         .bg(theme.muted)
-                        .text_xs()
-                        .font_semibold()
+                        .text_label_small()
                         .child(format!("+{rest}")),
                 )
             })

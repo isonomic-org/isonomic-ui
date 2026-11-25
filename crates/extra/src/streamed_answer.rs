@@ -13,6 +13,7 @@
 
 use std::time::{Duration, Instant};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -543,7 +544,7 @@ impl Render for StreamedAnswer {
                 .bg(palette[ix % palette.len()])
                 .text_color(isonomic_ui::white())
                 .text_size(px(size * 0.62))
-                .font_semibold()
+                .font_medium()
                 .map(|this| match &source.icon {
                     Some(icon) => this.child(
                         Icon::new(icon.clone())
@@ -591,7 +592,7 @@ impl Render for StreamedAnswer {
                 .child(
                     h_flex()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(mark(source, ix, 14.))
                         .child(
@@ -605,8 +606,7 @@ impl Render for StreamedAnswer {
                 )
                 .child(
                     div()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .line_height(relative(1.35))
                         .line_clamp(2)
                         .text_ellipsis()
@@ -653,8 +653,8 @@ impl Render for StreamedAnswer {
                                 this.all_sources = true;
                                 cx.notify();
                             }))
-                            .child(div().font_semibold().child(format!("+{hidden}")))
-                            .child(div().text_xs().text_color(quiet).child("more")),
+                            .child(div().font_medium().child(format!("+{hidden}")))
+                            .child(div().text_caption().text_color(quiet).child("more")),
                     )
                 })
         });
@@ -686,7 +686,7 @@ impl Render for StreamedAnswer {
                                 &mut glue,
                                 div()
                                     .whitespace_nowrap()
-                                    .when(*bold, |this| this.font_semibold().text_color(ink))
+                                    .when(*bold, |this| this.font_medium().text_color(ink))
                                     .child(word.to_string())
                                     .into_any_element(),
                                 !word.ends_with(' '),
@@ -717,8 +717,6 @@ impl Render for StreamedAnswer {
                                 .w(px(300.))
                                 .p_1()
                                 .rounded(radius)
-                                .border_1()
-                                .border_color(line)
                                 .bg(popover)
                                 .shadow(resting_shadow(cx))
                                 .children(known.iter().map(|ix| {
@@ -730,7 +728,7 @@ impl Render for StreamedAnswer {
                                         .child(
                                             h_flex()
                                                 .gap_1p5()
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(quiet)
                                                 .child(mark(source, *ix, 12.))
                                                 .child(
@@ -745,14 +743,13 @@ impl Render for StreamedAnswer {
                                         )
                                         .child(
                                             div()
-                                                .text_xs()
-                                                .font_semibold()
+                                                .text_label_small()
                                                 .text_color(ink)
                                                 .child(source.title.clone()),
                                         )
                                         .children(source.snippet.clone().map(|snippet| {
                                             div()
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(quiet)
                                                 .line_clamp(2)
                                                 .text_ellipsis()
@@ -771,7 +768,7 @@ impl Render for StreamedAnswer {
                                         .id(("answer-cite", this_chip))
                                         .px_1p5()
                                         .rounded(px(4.))
-                                        .text_xs()
+                                        .text_caption()
                                         .line_height(relative(1.5))
                                         .bg(if lit { accent.opacity(0.16) } else { chip })
                                         .text_color(if lit { accent } else { quiet })
@@ -880,8 +877,7 @@ impl Render for StreamedAnswer {
                 .child(
                     div()
                         .pb_1()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .text_color(quiet)
                         .child("RELATED"),
                 )
@@ -976,7 +972,7 @@ impl Render for StreamedAnswer {
                 .child(div().flex_1())
                 .child(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(match (thumbs, &self.reason) {
                             (Some(false), None) => "What went wrong?".to_string(),
@@ -1028,20 +1024,18 @@ impl Render for StreamedAnswer {
             .max_w(px(640.))
             .gap_3()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.55))
             .when(self.framed, |this| {
                 this.p_4()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(resting_shadow(cx))
             })
             .child(
                 div()
                     .text_base()
-                    .font_semibold()
+                    .font_medium()
                     .line_height(relative(1.35))
                     .child(self.question.clone()),
             )
@@ -1049,7 +1043,7 @@ impl Render for StreamedAnswer {
             .child(
                 h_flex()
                     .gap_1p5()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .map(|this| {
                         if done {

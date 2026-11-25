@@ -10,6 +10,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Selectable as _, Sizable as _,
     StyledExt as _,
@@ -376,8 +377,7 @@ impl Render for DraftReviewCard {
                                         .px_1p5()
                                         .rounded(px(5.))
                                         .bg(warning.opacity(0.18))
-                                        .text_xs()
-                                        .font_medium()
+                                        .text_label_small()
                                         .child(status)
                                 })),
                         )
@@ -397,11 +397,9 @@ impl Render for DraftReviewCard {
             .w_full()
             .max_w(px(480.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .on_key_down(cx.listener(Self::key_down))
@@ -608,7 +606,7 @@ impl Render for DraftReviewCard {
                         .child(div().flex_1())
                         .when(self.editing, |this| {
                             this.child(
-                                div().text_xs().text_color(quiet).child(
+                                div().text_caption().text_color(quiet).child(
                                     "Escape to finish, the main modifier with Enter to send",
                                 ),
                             )
@@ -634,8 +632,7 @@ impl Render for DraftReviewCard {
                             .px_1p5()
                             .rounded(px(5.))
                             .bg(if sending { chip } else { success.opacity(0.16) })
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .when(sending, |this| this.child(Spinner::new().xsmall()))
                             .child(if sending {
                                 "Sending"
