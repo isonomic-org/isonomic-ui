@@ -7,15 +7,14 @@ use crate::actions::{SelectLeft, SelectRight};
 use crate::menu::menu_item::MenuItemElement;
 use crate::scroll::ScrollableElement;
 use crate::{ActiveTheme, ElementExt, Icon, IconName, Sizable as _, h_flex, v_flex};
-use crate::{Side, Size, kbd::Kbd};
+use crate::{Side, Size, TextRole as _, kbd::Kbd};
 use gpui::{
     Action, Anchor, AnyElement, App, AppContext, Bounds, Context, DismissEvent, Edges, Entity,
     EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement, KeyBinding,
-    ParentElement, Pixels, Rems, Render, Role, ScrollHandle, SharedString,
-    StatefulInteractiveElement, Styled, WeakEntity, Window, anchored, deferred, div,
-    prelude::FluentBuilder, px, rems,
+    ParentElement, Pixels, Render, Role, ScrollHandle, SharedString, StatefulInteractiveElement,
+    Styled, WeakEntity, Window, anchored, deferred, div, prelude::FluentBuilder, px, rems,
 };
-use gpui::{ClickEvent, Half, MouseDownEvent, OwnedMenuItem, Point, Subscription};
+use gpui::{ClickEvent, MouseDownEvent, OwnedMenuItem, Point, Subscription};
 use isonomic_ui_base::{LayoutDirection, LogicalStyledExt as _, TestSupportExt as _};
 
 use std::collections::HashSet;
@@ -1365,13 +1364,14 @@ impl PopupMenu {
 
         let selected = self.selected_index == Some(ix);
         const EDGE_PADDING: Pixels = px(4.);
-        const INNER_PADDING: Rems = rems(0.5);
+        const INNER_PADDING: Pixels = px(10.);
 
         let is_submenu = matches!(item, PopupMenuItem::Submenu { .. });
 
+        // Rows are 32px (28px small), rounded a step inside the 12px panel.
         let (item_height, radius) = match self.size {
-            Size::Small => (rems(1.25), options.radius.half()),
-            _ => (rems(1.625), options.radius),
+            Size::Small => (px(28.), options.radius),
+            _ => (px(32.), options.radius + px(2.)),
         };
 
         let element_id = match item {
@@ -1380,7 +1380,7 @@ impl PopupMenu {
         };
         let this = MenuItemElement::new(element_id)
             .relative()
-            .text_sm()
+            .text_body()
             .py_0()
             .px(INNER_PADDING)
             .rounded(radius)
@@ -1417,12 +1417,12 @@ impl PopupMenu {
 
         match item {
             PopupMenuItem::Separator => this
-                .h_auto()
+                .h(px(1.))
                 .p_0()
-                .my_0p5()
-                .mx_neg_1()
-                .border_b(px(2.))
-                .border_color(cx.theme().border)
+                .my_1()
+                .mx_1p5()
+                .rounded(px(0.))
+                .bg(crate::look::ink::hairline(cx))
                 .disabled(true),
             PopupMenuItem::Label(label) => this.disabled(true).cursor_default().child(
                 h_flex()
@@ -1484,7 +1484,7 @@ impl PopupMenu {
                 })
                 .disabled(*disabled)
                 .h(item_height)
-                .gap_x_1()
+                .gap_x(px(9.))
                 .children(
                     Self::render_icon(has_left_icon, is_left_check, icon.clone(), window, cx).map(
                         |icon| {
@@ -1675,7 +1675,7 @@ impl Render for PopupMenu {
                 v_flex()
                     .id("items")
                     .p_1()
-                    .gap_y_0p5()
+                    .gap_y_0()
                     .min_w(rems(8.))
                     .when_some(self.min_width, |this, min_width| this.min_w(min_width))
                     .map(|this| match self.max_width {

@@ -3,8 +3,8 @@
 
 use crate::{ColorName, Sizable, Size, StyledExt, theme::ActiveTheme as _};
 use gpui::{
-    AbsoluteLength, AnyElement, App, Hsla, IntoElement, ParentElement, RenderOnce, StyleRefinement,
-    Styled, Window, div, prelude::FluentBuilder as _, relative, rems, transparent_white,
+    AbsoluteLength, AnyElement, App, FontWeight, Hsla, IntoElement, ParentElement, RenderOnce,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, rems, transparent_white,
 };
 
 /// The variant of the Tag.
@@ -28,12 +28,27 @@ pub enum TagVariant {
 impl TagVariant {
     fn bg(&self, cx: &App) -> Hsla {
         match self {
+            // Status tones are soft tints with the tone's own colour as ink.
             Self::Primary => cx.theme().primary,
-            Self::Secondary => cx.theme().secondary,
-            Self::Danger => cx.theme().danger,
-            Self::Success => cx.theme().success,
-            Self::Warning => cx.theme().warning,
-            Self::Info => cx.theme().info,
+            Self::Secondary => {
+                cx.theme()
+                    .foreground
+                    .alpha(if cx.theme().is_dark() { 0.08 } else { 0.06 })
+            }
+            Self::Danger => cx
+                .theme()
+                .danger
+                .alpha(if cx.theme().is_dark() { 0.16 } else { 0.1 }),
+            Self::Success => {
+                cx.theme()
+                    .success
+                    .alpha(if cx.theme().is_dark() { 0.16 } else { 0.1 })
+            }
+            Self::Warning => cx.theme().warning.alpha(0.16),
+            Self::Info => cx
+                .theme()
+                .info
+                .alpha(if cx.theme().is_dark() { 0.16 } else { 0.1 }),
             Self::Color(color) => {
                 if cx.theme().is_dark() {
                     color.scale(950).opacity(0.5)
@@ -74,40 +89,13 @@ impl TagVariant {
                 }
             }
             Self::Secondary => {
-                if outline {
-                    cx.theme().muted_foreground
-                } else {
-                    cx.theme().secondary_foreground
-                }
+                let _ = outline;
+                crate::look::ink::muted(cx)
             }
-            Self::Danger => {
-                if outline {
-                    cx.theme().danger
-                } else {
-                    cx.theme().danger_foreground
-                }
-            }
-            Self::Success => {
-                if outline {
-                    cx.theme().success
-                } else {
-                    cx.theme().success_foreground
-                }
-            }
-            Self::Warning => {
-                if outline {
-                    cx.theme().warning
-                } else {
-                    cx.theme().warning_foreground
-                }
-            }
-            Self::Info => {
-                if outline {
-                    cx.theme().info
-                } else {
-                    cx.theme().info_foreground
-                }
-            }
+            Self::Danger => cx.theme().danger,
+            Self::Success => cx.theme().success,
+            Self::Warning => cx.theme().warning,
+            Self::Info => cx.theme().info,
             Self::Color(color) => {
                 if cx.theme().is_dark() {
                     color.scale(300)
@@ -242,31 +230,49 @@ impl RenderOnce for Tag {
         };
         let fg = self.variant.fg(self.outline, cx);
         let border = self.variant.border(cx);
+        // A pill: 18px tall with 11px medium text at medium, a tinted fill and
+        // no edge unless it is outlined.
+        let theme_radius = cx.theme().radius;
         let rounded = self.rounded.unwrap_or(
-            match self.size {
-                Size::XSmall | Size::Small => cx.theme().radius / 2.,
-                _ => cx.theme().radius,
+            if theme_radius <= px(0.) {
+                px(0.)
+            } else {
+                match self.size {
+                    Size::XSmall | Size::Small => px(4.),
+                    Size::Large => px(5.),
+                    _ => px(4.),
+                }
             }
             .into(),
         );
 
         div()
             .flex()
+            .flex_none()
             .items_center()
-            .border_1()
-            .line_height(relative(1.25))
+            .gap_1()
+            .whitespace_nowrap()
+            .when(self.outline, |this| this.border_1().border_color(border))
             .map(|this| match self.size {
-                Size::XSmall | Size::Small => this.text_size(rems(0.625)),
-                Size::Large => this.text_sm(),
-                _ => this.text_xs(),
+                Size::XSmall | Size::Small => this
+                    .h(px(16.))
+                    .px(px(5.))
+                    .text_size(px(10.))
+                    .line_height(px(14.)),
+                Size::Large => this
+                    .h(px(20.))
+                    .px(px(7.))
+                    .text_size(px(12.))
+                    .line_height(px(16.)),
+                _ => this
+                    .h(px(18.))
+                    .px(px(6.))
+                    .text_size(px(11.))
+                    .line_height(px(16.)),
             })
-            .map(|this| match self.size {
-                Size::XSmall | Size::Small => this.px_1p5().py_0p5(),
-                _ => this.px_2p5().py_1(),
-            })
+            .font_weight(FontWeight::MEDIUM)
             .bg(bg)
             .text_color(fg)
-            .border_color(border)
             .rounded(rounded)
             .refine_style(&self.style)
             .children(self.children)

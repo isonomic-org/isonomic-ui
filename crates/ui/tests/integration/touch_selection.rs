@@ -10,7 +10,7 @@ use isonomic_ui::{
     AppContext, Context, DispatchPhase, Entity, InputEvent as _, LongPressEvent, Modifiers,
     MouseButton, MouseDownEvent, MouseUpEvent, Pixels, Point, ScrollDelta, ScrollEvent,
     StyleRefinement, TestAppContext, TouchDragEvent, TouchPhase, Window, WindowHandle, canvas, div,
-    prelude::*, px,
+    prelude::*, px, relative,
 };
 use isonomic_ui_base::TextSelection;
 use isonomic_ui_component::{
@@ -27,6 +27,9 @@ struct Screen {
 impl Render for Screen {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
+            // Positions below are measured at 16px text on a 1.618 line.
+            .text_size(px(16.))
+            .line_height(relative(1.618))
             .size_full()
             .flex()
             .flex_col()
@@ -63,6 +66,9 @@ struct Text {
 impl Render for Text {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
+            // Positions below are measured at 16px text on a 1.618 line.
+            .text_size(px(16.))
+            .line_height(relative(1.618))
             .id("text")
             .test_support()
             .w(px(320.))
@@ -79,10 +85,16 @@ struct CachedScreen {
 
 impl Render for CachedScreen {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().p_4().child(
-            isonomic_ui::AnyView::from(self.text.clone())
-                .cached(StyleRefinement::default().w(px(320.)).h(px(120.))),
-        )
+        div()
+            // Positions below are measured at 16px text on a 1.618 line.
+            .text_size(px(16.))
+            .line_height(relative(1.618))
+            .size_full()
+            .p_4()
+            .child(
+                isonomic_ui::AnyView::from(self.text.clone())
+                    .cached(StyleRefinement::default().w(px(320.)).h(px(120.))),
+            )
     }
 }
 
@@ -93,19 +105,25 @@ struct TallScreen {
 
 impl Render for TallScreen {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().p_4().child(
-            div()
-                .id("box")
-                .w(px(200.))
-                .h(px(48.))
-                .overflow_y_scroll()
-                .child(
-                    div()
-                        .id("text")
-                        .test_support()
-                        .child(TextView::new(&self.text).selectable(true)),
-                ),
-        )
+        div()
+            // Positions below are measured at 16px text on a 1.618 line.
+            .text_size(px(16.))
+            .line_height(relative(1.618))
+            .size_full()
+            .p_4()
+            .child(
+                div()
+                    .id("box")
+                    .w(px(200.))
+                    .h(px(48.))
+                    .overflow_y_scroll()
+                    .child(
+                        div()
+                            .id("text")
+                            .test_support()
+                            .child(TextView::new(&self.text).selectable(true)),
+                    ),
+            )
     }
 }
 
@@ -167,6 +185,9 @@ struct SwallowingScreen {
 impl Render for SwallowingScreen {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
+            // Positions below are measured at 16px text on a 1.618 line.
+            .text_size(px(16.))
+            .line_height(relative(1.618))
             .size_full()
             .p_4()
             .child(

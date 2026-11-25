@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use isonomic_ui_base::LogicalStyledExt as _;
-use std::{rc::Rc, time::Duration};
+use std::{rc::Rc, sync::Arc, time::Duration};
 
 use crate::{
     ActiveTheme, Colorize as _, Disableable, Icon, Placement, RoleOverride, Selectable, Sizable,
-    Size, StyleSized, StyledExt,
+    Size, StyledExt, TextRole as _,
     button::ButtonIcon,
     h_flex,
     select::Caret,
@@ -18,7 +18,7 @@ use gpui::{
     AnyElement, App, Background, ClickEvent, Corners, Edges, ElementId, FocusHandle, Hsla,
     InteractiveElement, Interactivity, IntoElement, MouseButton, ParentElement, Pixels, RenderOnce,
     Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, relative, transparent_white,
+    prelude::FluentBuilder as _, transparent_white,
 };
 
 /// Ink of the focus line a filled button draws inside its fill: its own
@@ -687,6 +687,51 @@ impl RenderOnce for Button {
         });
         let is_focused = focus_handle.is_focused(window);
 
+        // Hover is tracked here, not left to GPUI's hover style, so that fills,
+        // ink and the raised ring fade over the theme's fast duration instead
+        // of snapping.
+        let hover_state = window.use_keyed_state(
+            ElementId::NamedChild(Arc::new(self.id.clone()), "hovered".into()),
+            cx,
+            |_, _| false,
+        );
+        let hovered_now = interactive && !selected && *hover_state.read(cx);
+        let fade = crate::look::hover_fade(self.id.clone(), hovered_now, window, cx);
+        // The default button is a raised surface: no border, a hairline ring
+        // and a soft shadow that firm up under the pointer.
+        let raised = style.is_default() && !self.outline;
+        let hover_style = style.hovered(self.outline, cx);
+        let (rest_bg, hover_bg) = if raised {
+            let surface = cx.theme().popover;
+            (Background::from(surface), Background::from(surface))
+        } else {
+            (normal_style.bg, hover_style.bg)
+        };
+        let (rest_fg, hover_fg) = if style.is_ghost() && !self.outline {
+            (crate::look::ink::muted(cx), cx.theme().foreground)
+        } else {
+            (normal_style.fg, hover_style.fg)
+        };
+        let ghost_wash = (style.is_ghost() && !self.outline).then(|| crate::look::ink::wash(cx));
+        let bg_now: Background = match ghost_wash {
+            Some(wash) => crate::look::mix(cx.theme().transparent, wash, fade).into(),
+            None => match (rest_bg.as_solid(), hover_bg.as_solid()) {
+                (Some(a), Some(b)) => crate::look::mix(a, b, fade).into(),
+                _ if fade >= 0.5 => hover_bg,
+                _ => rest_bg,
+            },
+        };
+        let fg_now = crate::look::mix(rest_fg, hover_fg, fade);
+        let raised_shadow = raised.then(|| {
+            crate::look::mix_shadows(
+                &crate::look::surface::resting(cx),
+                &crate::look::surface::resting_hover(cx),
+                fade,
+            )
+        });
+        let leading_icon = self.icon.is_some() || self.loading;
+        let has_label = self.label.is_some() || !children.is_empty();
+
         let rounding = match self.rounded {
             ButtonRounded::Small => cx.theme().radius * 0.5,
             ButtonRounded::Medium => cx.theme().radius,
@@ -710,6 +755,9 @@ impl RenderOnce for Button {
                 !disabled && cx.theme().shadow && normal_style.shadow,
                 |this| this.shadow_xs(),
             )
+            .when_some(raised_shadow.filter(|_| !disabled), |this, shadow| {
+                this.shadow(shadow)
+            })
             .when(!style.no_padding(), |this| {
                 if self.label.is_none() && children.is_empty() {
                     // Icon Button
@@ -717,24 +765,30 @@ impl RenderOnce for Button {
                         Size::Size(px) => this.size(px),
                         Size::XSmall => this.size_5(),
                         Size::Small => this.size_6(),
-                        Size::Large | Size::Medium => this.size_8(),
+                        Size::Medium => this.size_7(),
+                        Size::Large => this.size_8(),
                     }
                 } else {
                     // Normal Button
                     match self.size {
                         Size::Size(size) => this.px(size * 0.2),
                         Size::XSmall => this.h_5().px_1().when(self.compact, |this| this.min_w_5()),
+                        // A leading icon takes 2px off the padding on its side,
+                        // so the icon, not the box, looks centred.
                         Size::Small => this
                             .h_6()
                             .px_2()
+                            .when(leading_icon && has_label, |this| this.pl_1p5())
                             .when(self.compact, |this| this.min_w_6().px_1p5()),
                         Size::Medium => this
-                            .h_8()
+                            .h_7()
                             .px_2p5()
-                            .when(self.compact, |this| this.min_w_8().px_2()),
+                            .when(leading_icon && has_label, |this| this.pl_2())
+                            .when(self.compact, |this| this.min_w_7().px_2()),
                         Size::Large => this
                             .h_8()
                             .px_3()
+                            .when(leading_icon && has_label, |this| this.pl_2p5())
                             .when(self.compact, |this| this.min_w_8().px_2()),
                     }
                 }
@@ -745,16 +799,19 @@ impl RenderOnce for Button {
             .when(border_corners.bottom_right, |this| {
                 this.rounded_br(rounding)
             })
-            .when(self.variant.is_default() || self.outline, |this| {
-                this.when(border_edges.left, |this| this.border_l_1())
-                    .when(border_edges.right, |this| this.border_r_1())
-                    .when(border_edges.top, |this| this.border_t_1())
-                    .when(border_edges.bottom, |this| this.border_b_1())
-            })
+            .when(
+                self.outline || (self.variant.is_default() && !raised),
+                |this| {
+                    this.when(border_edges.left, |this| this.border_l_1())
+                        .when(border_edges.right, |this| this.border_r_1())
+                        .when(border_edges.top, |this| this.border_t_1())
+                        .when(border_edges.bottom, |this| this.border_b_1())
+                },
+            )
             .when(!self.disabled && !selected, |this| {
                 this.border_color(normal_style.border)
-                    .bg(normal_style.bg)
-                    .text_color(normal_style.fg)
+                    .bg(bg_now)
+                    .text_color(fg_now)
                     .when(normal_style.underline, |this| this.text_decoration_1())
                     // A loading button keeps its normal colors, but must not react
                     // to the pointer, it is not waiting for another click.
@@ -779,12 +836,10 @@ impl RenderOnce for Button {
                 if !interactive || selected {
                     return this;
                 }
-                let hover_style = style.hovered(self.outline, cx);
-                this.bg(hover_style.bg)
-                    .border_color(hover_style.border)
-                    .text_color(hover_style.fg)
+                // Fill and ink fade in through `fade` above; only the edge
+                // changes here.
+                this.border_color(hover_style.border)
             })
-            .line_height(relative(1.25))
             .refine_style(&instance_style);
 
         // The explicit name wins: it exists precisely for the cases where the
@@ -819,11 +874,10 @@ impl RenderOnce for Button {
             .whitespace_nowrap()
             .items_center()
             .justify_center()
-            .button_text_size(self.size)
             .map(|this| match self.size {
-                Size::XSmall => this.gap_1(),
-                Size::Small => this.gap_1(),
-                _ => this.gap_2(),
+                Size::XSmall | Size::Small => this.text_label_small().gap_1(),
+                Size::Size(size) => this.text_size(size * 0.45).gap_1p5(),
+                _ => this.text_label().gap_1p5(),
             })
             .refine_style(&self.content_style)
             .when(self.truncate_label, |this| this.min_w_0().max_w_full())
@@ -938,22 +992,36 @@ impl RenderOnce for Button {
         .when(loading, |this| {
             this.on_click(|_, _, cx| cx.stop_propagation())
         })
-        .when_some(self.on_hover.filter(|_| hoverable), |this, on_hover| {
-            this.on_hover(move |hovered, window, cx| {
-                on_hover(hovered, window, cx);
-            })
-        })
         .map(|this| {
+            // One hover listener per element: it records the hover for the
+            // fade, calls the caller's listener, and drives the tooltip.
+            let on_hover = self.on_hover.filter(|_| hoverable);
+            let hover_state = hover_state.clone();
+            let hover: crate::tooltip::HoverListener = Rc::new(move |hovered, window, cx| {
+                let hovered = *hovered;
+                hover_state.update(cx, |state, cx| {
+                    if *state != hovered {
+                        *state = hovered;
+                        cx.notify();
+                    }
+                });
+                window.refresh();
+                if let Some(on_hover) = &on_hover {
+                    on_hover(&hovered, window, cx);
+                }
+            });
             if let Some(builder) = self.tooltip_builder {
-                this.managed_tooltip_with(
+                this.managed_tooltip_with_hover(
                     tooltip_placement,
                     tooltip_show_delay,
+                    Some(hover),
                     move |window, cx| builder(window, cx),
                 )
             } else if let Some((tooltip, action)) = self.tooltip {
-                this.managed_tooltip_with(
+                this.managed_tooltip_with_hover(
                     tooltip_placement,
                     tooltip_show_delay,
+                    Some(hover),
                     move |window, cx| {
                         Tooltip::new(tooltip.clone())
                             .when_some(action.clone(), |this, (action, context)| {
@@ -966,7 +1034,7 @@ impl RenderOnce for Button {
                     },
                 )
             } else {
-                this
+                this.on_hover(move |hovered, window, cx| hover(hovered, window, cx))
             }
         })
         .when(is_focused && self.focus_ring_enabled, |this| {

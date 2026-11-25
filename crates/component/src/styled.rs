@@ -97,33 +97,6 @@ pub(crate) fn toast_shadow(strength: f32) -> Vec<BoxShadow> {
     ]
 }
 
-/// The reference design's `shadow-sm`, the elevation it spends on a control raised out of
-/// the container it sits in — the active pill of a segmented tab bar — at full
-/// ink.
-///
-/// Unlike a popover or a toast this surface is not floating over the page: it
-/// sits *inside* a trough only a few pixels wider than itself, and that trough
-/// clips. Both are reasons to keep the falloff tight — there is no room for a
-/// wide one, and a wide one would read as grime against the trough wall rather
-/// than as lift.
-///
-/// The radii are Tailwind's halved, for the reason [`popover_shadow`] explains:
-/// CSS defines a box shadow's blur radius as twice the gaussian's standard
-/// deviation, while GPUI's shader takes the field as the deviation itself
-/// (`gaussian(y, sigma)`). Copying Tailwind's `3px` and `2px` across therefore
-/// spreads the shadow over twice the distance, which is why
-/// [`Styled::shadow_sm`] leaves a haze around a 24px pill where the reference design draws a
-/// compact line.
-pub(crate) fn raised_shadow() -> Vec<BoxShadow> {
-    let ink = hsla(0., 0., 0., SURFACE_SHADOW_INK);
-    vec![
-        BoxShadow::new(px(0.), px(1.), ink).blur_radius(px(1.5)),
-        BoxShadow::new(px(0.), px(1.), ink)
-            .blur_radius(px(1.))
-            .spread_radius(px(-1.)),
-    ]
-}
-
 /// Finished styles that read the theme.
 ///
 /// Separate from [`StyledExt`], which holds neutral helpers that make no
@@ -190,10 +163,17 @@ impl<T: Styled + Sized> ThemeStyled for T {
         let theme = cx.theme();
         // No border: the edge is the ring inside `popover_shadow`, which is how
         // The reference design draws it and the only way the shadow can show through it.
+        // Floating surfaces round a step further than cards: 12px at the
+        // default radii, square when the theme squares its corners.
+        let radius = if theme.radius > px(0.) {
+            theme.radius_lg + px(2.)
+        } else {
+            px(0.)
+        };
         self.bg(theme.popover)
             .text_color(theme.popover_foreground)
-            .shadow(popover_shadow(popover_ring(cx), 1.))
-            .rounded(theme.radius)
+            .shadow(crate::look::surface::floating(cx))
+            .rounded(radius)
     }
 }
 

@@ -197,9 +197,9 @@ impl RenderOnce for Switch {
         let disabled_label_color = cx.theme().muted_foreground;
 
         let (bg_width, bg_height) = match self.size {
-            Size::XSmall | Size::Small => (px(28.), px(16.)),
-            Size::Large => (px(44.), px(24.)),
-            _ => (px(36.), px(20.)),
+            Size::XSmall | Size::Small => (px(26.), px(16.)),
+            Size::Large => (px(40.), px(24.)),
+            _ => (px(32.), px(20.)),
         };
         let bar_width = match self.size {
             Size::XSmall | Size::Small => px(12.),
@@ -230,6 +230,20 @@ impl RenderOnce for Switch {
             cx,
         );
 
+        // The track's colour fades between off and on over the normal
+        // duration rather than switching on the frame the state flips.
+        let on = isonomic_ui_base::motion::transition(
+            (self.id.clone(), "track-fill"),
+            if checked { 1.0_f32 } else { 0.0 },
+            isonomic_ui_base::motion::Transition::new(cx.theme().motion.duration_normal),
+            window,
+            cx,
+        );
+        let track_fill: Background = match (unchecked_bg.as_solid(), checked_bg.as_solid()) {
+            (Some(off), Some(on_color)) => crate::look::mix(off, on_color, on).into(),
+            _ if on >= 0.5 => checked_bg,
+            _ => unchecked_bg,
+        };
         let rtl = LayoutDirection::global(cx).is_rtl();
         div().refine_style(&self.style).child(
             BaseSwitch::new(self.id.clone())
@@ -250,7 +264,7 @@ impl RenderOnce for Switch {
                 .tab_index(self.tab_index)
                 .track_focus(&focus_handle)
                 .h_flex()
-                .gap_2()
+                .gap_3()
                 .items_start()
                 // `label_side` is logical: Right means after the track, which
                 // is its left in a right-to-left layout.
@@ -281,10 +295,10 @@ impl RenderOnce for Switch {
                         .border_1()
                         .border_color(cx.theme().transparent)
                         .p(inset - px(1.))
-                        .when(!checked, |this| this.bg(unchecked_bg))
+                        .bg(track_fill)
                         .styles(|styles| {
                             styles
-                                .checked(|style| style.bg(checked_bg))
+                                .checked(|style| style.bg(track_fill))
                                 .disabled(|style| style.bg(disabled_bg))
                         })
                         // The ring hugs the track, not the row, so the label
@@ -299,7 +313,8 @@ impl RenderOnce for Switch {
                                 .rounded(radius)
                                 .size(bar_width)
                                 .inset_s(thumb_x, cx)
-                                .bg(toggle_bg),
+                                .bg(toggle_bg)
+                                .shadow(crate::look::surface::knob(cx)),
                         ),
                 )
                 .when_some(self.label, |this, label| {
@@ -309,7 +324,7 @@ impl RenderOnce for Switch {
                                 this.debug_selector(|| "switch-label".into())
                             })
                             .min_w_0()
-                            .line_height(bg_height)
+                            .line_height(bg_height.max(px(20.)))
                             .child(label)
                             .map(|this| match self.size {
                                 Size::Size(_) => this.input_text_size(Size::Medium),
@@ -538,7 +553,7 @@ mod tests {
         impl Render for NarrowSwitch {
             fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
                 div()
-                    .w(px(160.))
+                    .w(px(120.))
                     .debug_selector(|| "narrow-switch".into())
                     .child(
                         Switch::new("switch")
@@ -552,9 +567,9 @@ mod tests {
 
         cx.update(crate::init);
         for (size, width, height) in [
-            (Size::Small, 28., 16.),
-            (Size::Medium, 36., 20.),
-            (Size::Large, 44., 24.),
+            (Size::Small, 26., 16.),
+            (Size::Medium, 32., 20.),
+            (Size::Large, 40., 24.),
         ] {
             for checked in [false, true] {
                 for disabled in [false, true] {

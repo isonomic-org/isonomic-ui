@@ -225,7 +225,7 @@ impl Default for DialogProps {
         Self {
             margin_top: None,
             centered: false,
-            width: px(448.),
+            width: px(480.),
             max_width: None,
             overlay: true,
             keyboard: true,
@@ -344,23 +344,31 @@ pub(crate) fn overlay_color(overlay: bool, cx: &App) -> Hsla {
         return hsla(0., 0., 0., 0.);
     }
 
-    cx.theme().overlay
+    // A light scrim: the page stays readable behind a dialog.
+    if cx.theme().mode.is_dark() {
+        cx.theme().overlay
+    } else {
+        hsla(0., 0., 0., 0.16)
+    }
 }
 
+/// A dialog's edge and lift: a 0.5px ring and a long, soft drop, both at
+/// `delta` of their full strength while the dialog animates in.
 fn dialog_shadow(delta: f32) -> Vec<BoxShadow> {
     vec![
         BoxShadow {
             color: hsla(0., 0., 0., 0.1 * delta),
-            offset: point(px(0.), px(20.)),
-            blur_radius: px(25.),
-            spread_radius: px(-5.),
+            offset: point(px(0.), px(0.)),
+            blur_radius: px(0.),
+            spread_radius: px(0.5),
             inset: false,
         },
         BoxShadow {
-            color: hsla(0., 0., 0., 0.1 * delta),
-            offset: point(px(0.), px(8.)),
-            blur_radius: px(10.),
-            spread_radius: px(-6.),
+            // CSS 0 24px 48px -12px; GPUI's blur is half the CSS radius.
+            color: hsla(0., 0., 0., 0.22 * delta),
+            offset: point(px(0.), px(24.)),
+            blur_radius: px(24.),
+            spread_radius: px(-12.),
             inset: false,
         },
     ]
@@ -505,7 +513,7 @@ impl Dialog {
         self
     }
 
-    /// Sets the width of the dialog, defaults to 448px.
+    /// Sets the width of the dialog, defaults to 480px.
     ///
     /// The dialog is never wider than the viewport minus a margin on each side.
     ///
@@ -515,7 +523,7 @@ impl Dialog {
         self
     }
 
-    /// Sets the width of the dialog, defaults to 448px.
+    /// Sets the width of the dialog, defaults to 480px.
     ///
     /// The dialog is never wider than the viewport minus a margin on each side.
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
@@ -699,7 +707,13 @@ impl RenderOnce for Dialog {
         let base_size = window.text_style().font_size;
         let rem_size = window.rem_size();
 
-        let mut paddings = Edges::all(px(16.));
+        // 20px at the sides, 16px above the heading and below the buttons.
+        let mut paddings = Edges {
+            top: px(16.),
+            right: px(20.),
+            bottom: px(16.),
+            left: px(20.),
+        };
         if let Some(pl) = self.style.padding.left {
             paddings.left = pl.to_pixels(base_size, rem_size);
         }
@@ -784,10 +798,12 @@ impl RenderOnce for Dialog {
                                         .id("surface")
                                         .test_support()
                                         .debug_selector(move || format!("dialog-{layer_ix}"))
-                                        .bg(cx.theme().tokens.background)
-                                        .border_1()
-                                        .border_color(cx.theme().border)
-                                        .rounded(cx.theme().radius_lg)
+                                        .bg(cx.theme().popover)
+                                        .rounded(if cx.theme().radius > px(0.) {
+                                            cx.theme().radius_lg + px(4.)
+                                        } else {
+                                            px(0.)
+                                        })
                                         .min_h_24()
                                         .pt(paddings.top)
                                         .pb(paddings.bottom)
@@ -802,7 +818,7 @@ impl RenderOnce for Dialog {
                                             v_flex()
                                                 .flex_1()
                                                 .overflow_hidden()
-                                                .gap_y_2()
+                                                .gap_y_3()
                                                 .when_some(self.header, |this, header| {
                                                     this.child(
                                                         div()
@@ -1026,8 +1042,8 @@ pub(crate) mod tests {
         open(cx, |dialog, _, _| dialog.title("Fits").child("body"));
 
         let bounds = surface(cx, 0);
-        assert_eq!(bounds.size.width, px(448.));
-        assert_eq!(bounds.origin.x, px(276.));
+        assert_eq!(bounds.size.width, px(480.));
+        assert_eq!(bounds.origin.x, px(260.));
         assert_eq!(bounds.origin.y, px(80.));
     }
 

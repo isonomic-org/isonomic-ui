@@ -247,11 +247,10 @@ impl<T: Styled> StyleSized<T> for T {
     #[inline]
     fn input_text_size(self, size: Size) -> Self {
         match size {
-            Size::XSmall => self.text_xs(),
-            Size::Small => self.text_sm(),
-            Size::Medium => self.text_sm(),
-            Size::Large => self.text_base(),
-            Size::Size(size) => self.text_size(size * 0.875),
+            Size::XSmall => self.text_size(px(12.)),
+            Size::Small | Size::Medium => self.text_size(px(13.)),
+            Size::Large => self.text_size(px(14.)),
+            Size::Size(size) => self.text_size(size * 0.8125),
         }
     }
 
@@ -283,7 +282,7 @@ impl<T: Styled> StyleSized<T> for T {
     #[inline]
     fn input_h(self, size: Size) -> Self {
         match size {
-            Size::Large => self.h_11(),
+            Size::Large => self.h_9(),
             Size::Medium => self.h_8(),
             Size::Small => self.h_6(),
             Size::XSmall => self.h_5(),
@@ -339,9 +338,8 @@ impl<T: Styled> StyleSized<T> for T {
 
     fn button_text_size(self, size: Size) -> Self {
         match size {
-            Size::XSmall => self.text_xs(),
-            Size::Small | Size::Medium => self.text_sm(),
-            _ => self.text_base(),
+            Size::XSmall | Size::Small => self.text_size(px(12.)),
+            _ => self.text_size(px(13.)),
         }
     }
 }

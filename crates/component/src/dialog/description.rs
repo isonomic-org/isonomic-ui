@@ -6,7 +6,7 @@ use gpui::{
 };
 use isonomic_ui_base::DialogDescription as BaseDialogDescription;
 
-use crate::{ActiveTheme as _, StyledExt as _};
+use crate::StyledExt as _;
 
 /// Description element for a dialog header.
 ///
@@ -49,8 +49,9 @@ impl Styled for DialogDescription {
 impl RenderOnce for DialogDescription {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         self.base
-            .text_sm()
-            .text_color(cx.theme().muted_foreground)
+            .text_size(gpui::px(13.))
+            .line_height(gpui::px(20.))
+            .text_color(crate::look::ink::muted(cx))
             .refine_style(&self.style)
             .children(self.children)
     }

@@ -25,7 +25,7 @@ use crate::menu::{DropdownMenu as _, PopupMenuItem};
 use crate::scroll::ScrollableMask;
 use crate::{
     ActiveTheme, ElementExt, Icon, InteractiveElementExt as _, Selectable, Sizable, Size,
-    StyledExt, h_flex, styled::raised_shadow,
+    StyledExt, h_flex,
 };
 
 struct TabIndicatorBounds {
@@ -277,9 +277,9 @@ impl TabBar {
                     div()
                         .w_full()
                         .h(inner_height)
-                        .bg(cx.theme().tokens.background)
+                        .bg(cx.theme().popover)
                         .rounded(inner_radius)
-                        .shadow(raised_shadow()),
+                        .shadow(crate::look::surface::resting(cx)),
                 ),
                 TabVariant::Pill => el.flex().items_center().child(
                     div()
