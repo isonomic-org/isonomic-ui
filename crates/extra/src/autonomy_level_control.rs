@@ -386,7 +386,11 @@ impl RenderOnce for AutonomyLevelControl {
                         .min_w_0()
                         .child(div().truncate().child(action.label.clone()))
                         .children(action.detail.clone().map(|detail| {
-                            div().truncate().text_caption().text_color(quiet).child(detail)
+                            div()
+                                .truncate()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child(detail)
                         })),
                 )
                 .children(tag.map(|(word, color, icon)| {
@@ -496,7 +500,12 @@ impl RenderOnce for AutonomyLevelControl {
                             .child(div().text_color(quiet).child(self.subtitle)),
                     )
                     .child(levels)
-                    .child(div().text_caption().text_color(quiet).child(level.meaning())),
+                    .child(
+                        div()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(level.meaning()),
+                    ),
             )
             .child(
                 v_flex()

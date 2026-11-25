@@ -11,8 +11,8 @@
 
 use std::time::{Duration, Instant};
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     shimmer::ShimmerText, spinner::Spinner, tooltip::Tooltip, v_flex,

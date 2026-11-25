@@ -413,7 +413,12 @@ impl RenderOnce for AttemptComparisonList {
                                     _ => this.child(div().text_color(quiet).child("\u{2013}")),
                                 }),
                         )
-                        .child(div().text_caption().text_color(quiet).child(facts.join(", ")))
+                        .child(
+                            div()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child(facts.join(", ")),
+                        )
                         .map(|this| {
                             if is_used {
                                 this.child(

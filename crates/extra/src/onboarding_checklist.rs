@@ -9,8 +9,8 @@
 
 use std::{rc::Rc, time::Duration};
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Checkbox;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     progress::Progress, v_flex,

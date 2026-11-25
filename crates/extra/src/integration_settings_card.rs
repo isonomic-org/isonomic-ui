@@ -411,55 +411,54 @@ impl Render for IntegrationSettingsCard {
                 menu
             });
 
-        let body = on.then(|| {
-            v_flex()
-                .child(section().child(label("API key")).child(key_row))
-                .child(
-                    section()
-                        .child(label("Site address"))
-                        .child(
-                            h_flex()
-                                .h(px(34.))
-                                .pl_3()
-                                .pr_2()
-                                .rounded(radius)
-                                .border_1()
-                                .border_color(if !site_ok && !site_empty {
-                                    danger
-                                } else {
-                                    line
-                                })
-                                .child(div().text_color(quiet).child("https://"))
-                                .child(
-                                    div()
-                                        .flex_1()
-                                        .child(Input::new(&self.site).appearance(false)),
-                                )
-                                .when(site_ok, |this| {
-                                    this.child(
-                                        Icon::new(IconName::Check).small().text_color(success),
+        let body =
+            on.then(|| {
+                v_flex()
+                    .child(section().child(label("API key")).child(key_row))
+                    .child(
+                        section()
+                            .child(label("Site address"))
+                            .child(
+                                h_flex()
+                                    .h(px(34.))
+                                    .pl_3()
+                                    .pr_2()
+                                    .rounded(radius)
+                                    .border_1()
+                                    .border_color(if !site_ok && !site_empty {
+                                        danger
+                                    } else {
+                                        line
+                                    })
+                                    .child(div().text_color(quiet).child("https://"))
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .child(Input::new(&self.site).appearance(false)),
                                     )
-                                }),
-                        )
-                        .map(|this| {
-                            if !site_ok && !site_empty {
-                                this.child(
-                                    div()
-                                        .text_caption()
-                                        .text_color(danger)
-                                        .child("Enter a domain such as yourcompany.com"),
-                                )
-                            } else {
-                                this.children(
-                                    self.site_hint
-                                        .clone()
-                                        .map(|hint| div().text_caption().text_color(quiet).child(hint)),
-                                )
-                            }
-                        }),
-                )
-                .child(section().child(label("Time zone")).child(zone_picker))
-        });
+                                    .when(site_ok, |this| {
+                                        this.child(
+                                            Icon::new(IconName::Check).small().text_color(success),
+                                        )
+                                    }),
+                            )
+                            .map(|this| {
+                                if !site_ok && !site_empty {
+                                    this.child(
+                                        div()
+                                            .text_caption()
+                                            .text_color(danger)
+                                            .child("Enter a domain such as yourcompany.com"),
+                                    )
+                                } else {
+                                    this.children(self.site_hint.clone().map(|hint| {
+                                        div().text_caption().text_color(quiet).child(hint)
+                                    }))
+                                }
+                            }),
+                    )
+                    .child(section().child(label("Time zone")).child(zone_picker))
+            });
 
         let bar = (on && dirty).then(|| {
             h_flex()
@@ -533,9 +532,7 @@ impl Render for IntegrationSettingsCard {
                             .child(
                                 h_flex()
                                     .gap_1p5()
-                                    .child(
-                                        div().font_medium().truncate().child(self.name.clone()),
-                                    )
+                                    .child(div().font_medium().truncate().child(self.name.clone()))
                                     .children(self.count.map(|count| {
                                         div()
                                             .px_1p5()

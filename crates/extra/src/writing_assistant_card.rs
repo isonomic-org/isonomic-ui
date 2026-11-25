@@ -376,12 +376,7 @@ impl Render for WritingAssistantCard {
         let welcome = (!chatting).then(|| {
             v_flex()
                 .gap_3()
-                .child(
-                    div()
-                        .text_base()
-                        .font_medium()
-                        .child(self.greeting.clone()),
-                )
+                .child(div().text_base().font_medium().child(self.greeting.clone()))
                 .child(h_flex().flex_wrap().gap_1p5().children(
                     self.suggestions.iter().enumerate().map(|(ix, suggestion)| {
                         let text = suggestion.clone();

@@ -602,16 +602,13 @@ impl RenderOnce for ChangeLedger {
                     .child(div().font_medium().child(self.title))
                     .children(self.agent.map(|agent| div().text_color(quiet).child(agent)))
                     .child(div().flex_1())
-                    .child(
-                        div()
-                            .text_caption()
-                            .text_color(quiet)
-                            .child(match (count, undone_count) {
-                                (1, 0) => "1 change".to_string(),
-                                (count, 0) => format!("{count} changes"),
-                                (count, undone) => format!("{count} changes, {undone} undone"),
-                            }),
-                    ),
+                    .child(div().text_caption().text_color(quiet).child(
+                        match (count, undone_count) {
+                            (1, 0) => "1 change".to_string(),
+                            (count, 0) => format!("{count} changes"),
+                            (count, undone) => format!("{count} changes, {undone} undone"),
+                        },
+                    )),
             )
             .child(
                 v_flex()

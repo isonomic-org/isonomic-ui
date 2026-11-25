@@ -488,7 +488,13 @@ impl Render for QuestionCard {
                         .min_w_0()
                         .child(div().font_medium().child(row.title.clone()))
                         .when_some(row.summary.clone(), |this, summary| {
-                            this.child(div().truncate().text_caption().text_color(quiet).child(summary))
+                            this.child(
+                                div()
+                                    .truncate()
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child(summary),
+                            )
                         }),
                 )
                 .when(row.recommended, |this| {

@@ -651,7 +651,13 @@ impl RenderOnce for CheckpointTimeline {
                             .child(task)
                     }))
                     .when(no_task, |this| this.child(div().flex_1()))
-                    .child(div().flex_none().text_caption().text_color(quiet).child(summary)),
+                    .child(
+                        div()
+                            .flex_none()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(summary),
+                    ),
             )
             .child(
                 div()

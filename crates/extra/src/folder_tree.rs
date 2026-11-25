@@ -329,7 +329,12 @@ impl Render for FolderTree {
                 )
                 .child(div().flex_1().min_w_0().truncate().child(label))
                 .when_some(count, |this, count| {
-                    this.child(div().text_caption().text_color(quiet).child(count.to_string()))
+                    this.child(
+                        div()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(count.to_string()),
+                    )
                 })
         });
 

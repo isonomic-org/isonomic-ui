@@ -907,96 +907,94 @@ impl Render for StreamedAnswer {
             })
             .unwrap_or_default();
         let thumbs = self.thumbs;
-        let actions = if done {
-            h_flex()
-                .gap_0p5()
-                .pt_2()
-                .border_t_1()
-                .border_color(line)
-                .child(
-                    Button::new("answer-copy")
-                        .ghost()
-                        .xsmall()
-                        .icon(if self.copied {
-                            IconName::Check
-                        } else {
-                            IconName::Copy
-                        })
-                        .accessibility_label("Copy the answer")
-                        .tooltip(if self.copied { "Copied" } else { "Copy" })
-                        .on_click(cx.listener(|this, _, _, cx| this.copy(cx))),
-                )
-                .child(
-                    Button::new("answer-regenerate")
-                        .ghost()
-                        .xsmall()
-                        .icon(IconName::RotateCw)
-                        .accessibility_label("Regenerate")
-                        .tooltip("Regenerate")
-                        .on_click(cx.listener(|_, _, _, cx| {
-                            cx.emit(StreamedAnswerEvent::Regenerate);
-                        })),
-                )
-                .child(
-                    Button::new("answer-up")
-                        .ghost()
-                        .xsmall()
-                        .icon(IconName::ThumbsUp)
-                        .accessibility_label("Good answer")
-                        .tooltip("Good answer")
-                        .when(thumbs == Some(true), |this| this.text_color(accent))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.thumbs = Some(true);
-                            this.reason = None;
-                            cx.emit(StreamedAnswerEvent::Feedback {
-                                up: true,
-                                reason: None,
-                            });
-                            cx.notify();
-                        })),
-                )
-                .child(
-                    Button::new("answer-down")
-                        .ghost()
-                        .xsmall()
-                        .icon(IconName::ThumbsDown)
-                        .accessibility_label("Bad answer")
-                        .tooltip("Bad answer")
-                        .when(thumbs == Some(false), |this| this.text_color(accent))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.thumbs = Some(false);
-                            this.reason = None;
-                            cx.notify();
-                        })),
-                )
-                .child(div().flex_1())
-                .child(
-                    div()
-                        .text_caption()
-                        .text_color(quiet)
-                        .child(match (thumbs, &self.reason) {
+        let actions =
+            if done {
+                h_flex()
+                    .gap_0p5()
+                    .pt_2()
+                    .border_t_1()
+                    .border_color(line)
+                    .child(
+                        Button::new("answer-copy")
+                            .ghost()
+                            .xsmall()
+                            .icon(if self.copied {
+                                IconName::Check
+                            } else {
+                                IconName::Copy
+                            })
+                            .accessibility_label("Copy the answer")
+                            .tooltip(if self.copied { "Copied" } else { "Copy" })
+                            .on_click(cx.listener(|this, _, _, cx| this.copy(cx))),
+                    )
+                    .child(
+                        Button::new("answer-regenerate")
+                            .ghost()
+                            .xsmall()
+                            .icon(IconName::RotateCw)
+                            .accessibility_label("Regenerate")
+                            .tooltip("Regenerate")
+                            .on_click(cx.listener(|_, _, _, cx| {
+                                cx.emit(StreamedAnswerEvent::Regenerate);
+                            })),
+                    )
+                    .child(
+                        Button::new("answer-up")
+                            .ghost()
+                            .xsmall()
+                            .icon(IconName::ThumbsUp)
+                            .accessibility_label("Good answer")
+                            .tooltip("Good answer")
+                            .when(thumbs == Some(true), |this| this.text_color(accent))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.thumbs = Some(true);
+                                this.reason = None;
+                                cx.emit(StreamedAnswerEvent::Feedback {
+                                    up: true,
+                                    reason: None,
+                                });
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        Button::new("answer-down")
+                            .ghost()
+                            .xsmall()
+                            .icon(IconName::ThumbsDown)
+                            .accessibility_label("Bad answer")
+                            .tooltip("Bad answer")
+                            .when(thumbs == Some(false), |this| this.text_color(accent))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.thumbs = Some(false);
+                                this.reason = None;
+                                cx.notify();
+                            })),
+                    )
+                    .child(div().flex_1())
+                    .child(div().text_caption().text_color(quiet).child(
+                        match (thumbs, &self.reason) {
                             (Some(false), None) => "What went wrong?".to_string(),
                             (Some(false), Some(reason)) => format!("Thanks, noted: {reason}"),
                             (Some(true), _) => "Thanks for the feedback".to_string(),
                             _ => took,
-                        }),
-                )
-                .into_any_element()
-        } else {
-            h_flex()
-                .pt_2()
-                .border_t_1()
-                .border_color(line)
-                .child(
-                    Button::new("answer-stop")
-                        .outline()
-                        .xsmall()
-                        .icon(IconName::Square)
-                        .label("Stop")
-                        .on_click(cx.listener(|this, _, _, cx| this.stop(cx))),
-                )
-                .into_any_element()
-        };
+                        },
+                    ))
+                    .into_any_element()
+            } else {
+                h_flex()
+                    .pt_2()
+                    .border_t_1()
+                    .border_color(line)
+                    .child(
+                        Button::new("answer-stop")
+                            .outline()
+                            .xsmall()
+                            .icon(IconName::Square)
+                            .label("Stop")
+                            .on_click(cx.listener(|this, _, _, cx| this.stop(cx))),
+                    )
+                    .into_any_element()
+            };
         let reasons = (thumbs == Some(false) && self.reason.is_none()).then(|| {
             h_flex()
                 .flex_wrap()

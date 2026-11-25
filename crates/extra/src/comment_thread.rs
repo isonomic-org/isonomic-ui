@@ -13,8 +13,8 @@
 
 use std::time::{Duration, SystemTime};
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     ThemeStyled as _,
@@ -316,9 +316,13 @@ impl Render for CommentThread {
                         .font_medium()
                         .child(author.name.clone()),
                 )
-                .children(
-                    time.map(|time| div().flex_none().text_caption().text_color(quiet).child(time)),
-                )
+                .children(time.map(|time| {
+                    div()
+                        .flex_none()
+                        .text_caption()
+                        .text_color(quiet)
+                        .child(time)
+                }))
         };
 
         let messages = self.messages.iter().enumerate().map(|(ix, message)| {

@@ -563,10 +563,17 @@ impl RenderOnce for EliminationBracket {
                                     })),
                             )
                             .children(contender.meta.clone().map(|meta| {
-                                div().truncate().text_caption().text_color(quiet).child(meta)
+                                div()
+                                    .truncate()
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child(meta)
                             }))
                             .children(contender.output.clone().map(|output| {
-                                div().text_caption().line_height(relative(1.5)).child(output)
+                                div()
+                                    .text_caption()
+                                    .line_height(relative(1.5))
+                                    .child(output)
                             })),
                         None => this.child(div().text_color(quiet).child("Not known yet")),
                     })

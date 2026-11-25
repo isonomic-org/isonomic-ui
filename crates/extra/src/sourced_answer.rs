@@ -10,8 +10,8 @@
 
 use std::{ops::Range, rc::Rc, time::Duration};
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},

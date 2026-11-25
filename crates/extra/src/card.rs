@@ -9,8 +9,8 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable, Selectable, StyledExt as _, ThemeStyled as _, h_flex, v_flex,
 };

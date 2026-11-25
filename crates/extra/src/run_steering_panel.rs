@@ -735,7 +735,13 @@ impl Render for RunSteeringPanel {
                         .pl_2()
                         .border_l_2()
                         .border_color(line)
-                        .child(div().flex_1().min_w_0().text_caption().child(note.text.clone()))
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .text_caption()
+                                .child(note.text.clone()),
+                        )
                         .child(
                             Button::new(("steer-now", ix))
                                 .ghost()

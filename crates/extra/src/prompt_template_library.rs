@@ -807,12 +807,7 @@ impl Render for PromptTemplateLibrary {
                 .child(
                     v_flex()
                         .gap_1()
-                        .child(
-                            div()
-                                .text_label_small()
-                                .text_color(quiet)
-                                .child("PREVIEW"),
-                        )
+                        .child(div().text_label_small().text_color(quiet).child("PREVIEW"))
                         .child(
                             div()
                                 .p_2p5()
@@ -879,7 +874,13 @@ impl Render for PromptTemplateLibrary {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .child(div().flex_1().text_caption().text_color(quiet).child(estimate))
+                    .child(
+                        div()
+                            .flex_1()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(estimate),
+                    )
                     .child(
                         Button::new("prompt-copy")
                             .outline()

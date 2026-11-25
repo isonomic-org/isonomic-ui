@@ -288,7 +288,10 @@ impl RenderOnce for CatchUpSummary {
                             .child(div().line_height(relative(1.35)).child(item.text.clone()))
                             .when(!item.when.is_empty(), |this| {
                                 this.child(
-                                    div().text_caption().text_color(quiet).child(item.when.clone()),
+                                    div()
+                                        .text_caption()
+                                        .text_color(quiet)
+                                        .child(item.when.clone()),
                                 )
                             }),
                     )

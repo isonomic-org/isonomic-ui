@@ -241,7 +241,9 @@ impl Render for CheckedTextField {
                         .child(Icon::new(IconName::CircleAlert).xsmall())
                         .child(problem),
                 ),
-                (None, Some(hint)) => this.child(div().text_caption().text_color(quiet).child(hint)),
+                (None, Some(hint)) => {
+                    this.child(div().text_caption().text_color(quiet).child(hint))
+                }
                 (None, None) => this,
             })
     }

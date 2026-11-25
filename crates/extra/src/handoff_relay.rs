@@ -402,141 +402,146 @@ impl RenderOnce for HandoffRelay {
                 .unwrap_or_else(|| id.clone())
         };
 
-        let cards =
-            workers.iter().enumerate().map(|(ix, worker)| {
-                let working = tasks.iter().find(|task| {
-                    task.status == RelayTaskStatus::Working
-                        && task.worker.as_ref() == Some(&worker.id)
-                });
-                let waiting: Vec<&RelayTask> = tasks
-                    .iter()
-                    .filter(|task| task.status == RelayTaskStatus::Todo)
-                    .collect();
-                let worker_words = format!(
-                    "{}{}, {}{}",
-                    worker.name,
-                    worker
-                        .model
-                        .as_ref()
-                        .map(|m| format!(", {m}"))
-                        .unwrap_or_default(),
-                    match working {
-                        Some(task) => format!("working on {}", task.title),
-                        None => "idle".to_string(),
-                    },
-                    if ix == 0 && !waiting.is_empty() {
-                        format!(", {} waiting", waiting.len())
-                    } else {
-                        String::new()
-                    },
-                );
-                let current = match (working, ix == 0 && !waiting.is_empty()) {
-                    (Some(task), _) => h_flex()
-                        .gap_1p5()
-                        .children(task.icon.clone().map(|icon| Icon::new(icon).xsmall()))
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .truncate()
-                                .child(task.title.clone()),
-                        )
-                        .children(
-                            task.note
-                                .clone()
-                                .map(|note| div().flex_none().text_color(quiet).child(note)),
-                        )
-                        .into_any_element(),
-                    (None, true) => h_flex()
-                        .gap_1p5()
-                        .child(div().flex_none().text_color(quiet).child("Up next"))
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .truncate()
-                                .child(waiting[0].title.clone()),
-                        )
-                        .when(waiting.len() > 1, |this| {
-                            this.child(
-                                div()
-                                    .flex_none()
-                                    .text_color(quiet)
-                                    .child(format!("+{}", waiting.len() - 1)),
-                            )
-                        })
-                        .into_any_element(),
-                    (None, false) => div()
-                        .text_color(quiet)
-                        .child("Ready for a task")
-                        .into_any_element(),
-                };
-                let accepts = move |value: &dyn Any, _: &mut Window, _: &mut App| {
-                    value
-                        .downcast_ref::<DraggedTask>()
-                        .is_some_and(|dragged| ix > dragged.column)
-                };
-                let on_assign = self.on_assign.clone();
-                let worker_id = worker.id.clone();
-                v_flex()
-                    .id(("relay-worker", ix))
-                    .role(Role::Group)
-                    .aria_label(worker_words)
-                    .flex_1()
-                    .min_w_0()
-                    .gap_2()
-                    .p_3()
-                    .rounded(radius_lg)
-                    .bg(fill)
-                    .shadow(resting_shadow(cx))
-                    .can_drop(accepts)
-                    .drag_over::<DraggedTask>(move |style, dragged, _, _| {
-                        if ix > dragged.column {
-                            style.border_color(accent).bg(accent.opacity(0.06))
-                        } else {
-                            style.opacity(0.5)
-                        }
-                    })
-                    .on_drop(move |dragged: &DraggedTask, window, cx| {
-                        if let Some(handler) = &on_assign {
-                            handler(&dragged.task, &worker_id, window, cx);
-                        }
-                    })
+        let cards = workers.iter().enumerate().map(|(ix, worker)| {
+            let working = tasks.iter().find(|task| {
+                task.status == RelayTaskStatus::Working && task.worker.as_ref() == Some(&worker.id)
+            });
+            let waiting: Vec<&RelayTask> = tasks
+                .iter()
+                .filter(|task| task.status == RelayTaskStatus::Todo)
+                .collect();
+            let worker_words = format!(
+                "{}{}, {}{}",
+                worker.name,
+                worker
+                    .model
+                    .as_ref()
+                    .map(|m| format!(", {m}"))
+                    .unwrap_or_default(),
+                match working {
+                    Some(task) => format!("working on {}", task.title),
+                    None => "idle".to_string(),
+                },
+                if ix == 0 && !waiting.is_empty() {
+                    format!(", {} waiting", waiting.len())
+                } else {
+                    String::new()
+                },
+            );
+            let current = match (working, ix == 0 && !waiting.is_empty()) {
+                (Some(task), _) => h_flex()
+                    .gap_1p5()
+                    .children(task.icon.clone().map(|icon| Icon::new(icon).xsmall()))
                     .child(
-                        h_flex()
-                            .gap_2()
-                            .child(
-                                div()
-                                    .flex_none()
-                                    .size(px(26.))
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .rounded_full()
-                                    .border_1()
-                                    .border_color(line)
-                                    .child(Icon::new(IconName::Bot).small().text_color(quiet)),
-                            )
-                            .child(
-                                v_flex()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .child(
-                                        div().font_medium().truncate().child(worker.name.clone()),
-                                    )
-                                    .children(worker.model.clone().map(|model| {
-                                        div().text_caption().text_color(quiet).truncate().child(model)
-                                    })),
-                            )
-                            .children(worker.cost.map(|cost| {
-                                div()
-                                    .flex_none()
-                                    .text_caption()
-                                    .text_color(quiet)
-                                    .child(format!("${cost:.2}"))
-                            }))
-                            .child(div().flex_none().px_1p5().rounded(px(4.)).text_caption().map(
-                                |this| {
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .child(task.title.clone()),
+                    )
+                    .children(
+                        task.note
+                            .clone()
+                            .map(|note| div().flex_none().text_color(quiet).child(note)),
+                    )
+                    .into_any_element(),
+                (None, true) => h_flex()
+                    .gap_1p5()
+                    .child(div().flex_none().text_color(quiet).child("Up next"))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .child(waiting[0].title.clone()),
+                    )
+                    .when(waiting.len() > 1, |this| {
+                        this.child(
+                            div()
+                                .flex_none()
+                                .text_color(quiet)
+                                .child(format!("+{}", waiting.len() - 1)),
+                        )
+                    })
+                    .into_any_element(),
+                (None, false) => div()
+                    .text_color(quiet)
+                    .child("Ready for a task")
+                    .into_any_element(),
+            };
+            let accepts = move |value: &dyn Any, _: &mut Window, _: &mut App| {
+                value
+                    .downcast_ref::<DraggedTask>()
+                    .is_some_and(|dragged| ix > dragged.column)
+            };
+            let on_assign = self.on_assign.clone();
+            let worker_id = worker.id.clone();
+            v_flex()
+                .id(("relay-worker", ix))
+                .role(Role::Group)
+                .aria_label(worker_words)
+                .flex_1()
+                .min_w_0()
+                .gap_2()
+                .p_3()
+                .rounded(radius_lg)
+                .bg(fill)
+                .shadow(resting_shadow(cx))
+                .can_drop(accepts)
+                .drag_over::<DraggedTask>(move |style, dragged, _, _| {
+                    if ix > dragged.column {
+                        style.border_color(accent).bg(accent.opacity(0.06))
+                    } else {
+                        style.opacity(0.5)
+                    }
+                })
+                .on_drop(move |dragged: &DraggedTask, window, cx| {
+                    if let Some(handler) = &on_assign {
+                        handler(&dragged.task, &worker_id, window, cx);
+                    }
+                })
+                .child(
+                    h_flex()
+                        .gap_2()
+                        .child(
+                            div()
+                                .flex_none()
+                                .size(px(26.))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded_full()
+                                .border_1()
+                                .border_color(line)
+                                .child(Icon::new(IconName::Bot).small().text_color(quiet)),
+                        )
+                        .child(
+                            v_flex()
+                                .flex_1()
+                                .min_w_0()
+                                .child(div().font_medium().truncate().child(worker.name.clone()))
+                                .children(worker.model.clone().map(|model| {
+                                    div()
+                                        .text_caption()
+                                        .text_color(quiet)
+                                        .truncate()
+                                        .child(model)
+                                })),
+                        )
+                        .children(worker.cost.map(|cost| {
+                            div()
+                                .flex_none()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child(format!("${cost:.2}"))
+                        }))
+                        .child(
+                            div()
+                                .flex_none()
+                                .px_1p5()
+                                .rounded(px(4.))
+                                .text_caption()
+                                .map(|this| {
                                     if working.is_some() {
                                         this.bg(accent.opacity(0.12))
                                             .text_color(accent)
@@ -544,26 +549,26 @@ impl RenderOnce for HandoffRelay {
                                     } else {
                                         this.bg(chip).text_color(quiet).child("Idle")
                                     }
-                                },
-                            )),
-                    )
-                    .children(worker.about.clone().map(|about| {
-                        div()
-                            .text_caption()
-                            .text_color(quiet)
-                            .line_height(relative(1.4))
-                            .child(about)
-                    }))
-                    .child(
-                        div()
-                            .px_2()
-                            .py_1p5()
-                            .rounded(radius)
-                            .bg(chip.opacity(0.6))
-                            .text_caption()
-                            .child(current),
-                    )
-            });
+                                }),
+                        ),
+                )
+                .children(worker.about.clone().map(|about| {
+                    div()
+                        .text_caption()
+                        .text_color(quiet)
+                        .line_height(relative(1.4))
+                        .child(about)
+                }))
+                .child(
+                    div()
+                        .px_2()
+                        .py_1p5()
+                        .rounded(radius)
+                        .bg(chip.opacity(0.6))
+                        .text_caption()
+                        .child(current),
+                )
+        });
         let cards: Vec<_> = cards.collect();
 
         // Columns of handovers, one in each gap.

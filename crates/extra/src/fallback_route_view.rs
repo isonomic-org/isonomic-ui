@@ -368,7 +368,13 @@ impl RenderOnce for FallbackRouteView {
                                         .child(provider)
                                 })),
                         )
-                        .child(div().truncate().text_caption().text_color(color).child(words)),
+                        .child(
+                            div()
+                                .truncate()
+                                .text_caption()
+                                .text_color(color)
+                                .child(words),
+                        ),
                 )
                 .child(
                     v_flex()
@@ -455,10 +461,13 @@ impl RenderOnce for FallbackRouteView {
                                 .child(elapsed_words(total)),
                         )
                     })
-                    .children(
-                        self.total_cost
-                            .map(|cost| div().flex_none().text_caption().text_color(quiet).child(cost)),
-                    ),
+                    .children(self.total_cost.map(|cost| {
+                        div()
+                            .flex_none()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(cost)
+                    })),
             )
             .child(
                 v_flex()

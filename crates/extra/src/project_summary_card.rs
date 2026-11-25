@@ -422,7 +422,13 @@ impl RenderOnce for ProjectSummaryCard {
                 .child(
                     h_flex()
                         .gap_2()
-                        .child(div().w(px(64.)).text_caption().text_color(quiet).child("Status"))
+                        .child(
+                            div()
+                                .w(px(64.))
+                                .text_caption()
+                                .text_color(quiet)
+                                .child("Status"),
+                        )
                         .child(status_menu),
                 )
                 .child(

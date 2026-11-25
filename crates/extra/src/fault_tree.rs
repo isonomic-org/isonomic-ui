@@ -257,7 +257,13 @@ fn draw(
                         .line_height(relative(1.3))
                         .child(node.label.clone()),
                 )
-                .child(div().flex_none().text_caption().text_color(color).child(word)),
+                .child(
+                    div()
+                        .flex_none()
+                        .text_caption()
+                        .text_color(color)
+                        .child(word),
+                ),
         )
         .children(node.evidence.clone().map(|e| {
             div()

@@ -12,8 +12,8 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::TestSupportExt as _;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -586,7 +586,11 @@ impl Menu {
                                 }),
                         )
                         .children(model.tagline.clone().map(|tagline| {
-                            div().truncate().text_caption().text_color(quiet).child(tagline)
+                            div()
+                                .truncate()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child(tagline)
                         })),
                 )
                 .when(!self.columns.is_empty(), |this| {

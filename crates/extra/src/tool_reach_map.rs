@@ -369,12 +369,7 @@ impl RenderOnce for ToolReachMap {
                 Some(
                     v_flex()
                         .gap_1p5()
-                        .child(
-                            div()
-                                .text_label_small()
-                                .text_color(quiet)
-                                .child(service),
-                        )
+                        .child(div().text_label_small().text_color(quiet).child(service))
                         .child(h_flex().flex_wrap().gap_1p5().children(chips)),
                 )
             })
@@ -477,7 +472,12 @@ impl RenderOnce for ToolReachMap {
                         )
                     })
                     .when(tool.allowed && tool.calls.is_empty(), |this| {
-                        this.child(div().text_caption().text_color(quiet).child("Never called."))
+                        this.child(
+                            div()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child("Never called."),
+                        )
                     })
                     .children(rows)
             });

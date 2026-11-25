@@ -17,8 +17,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Rope, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -30,9 +30,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, BoxShadow, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, StyledText, Task, Window, div, point, prelude::FluentBuilder as _, px, relative,
+    App, BoxShadow, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _,
+    IntoElement, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, StyledText, Task, Window, div, point, prelude::FluentBuilder as _, px,
+    relative,
 };
 
 use crate::common::resting_shadow;
@@ -387,7 +388,13 @@ fn code_section(
         .child(
             h_flex()
                 .justify_between()
-                .child(div().text_caption().font_medium().text_color(quiet).child(label))
+                .child(
+                    div()
+                        .text_caption()
+                        .font_medium()
+                        .text_color(quiet)
+                        .child(label),
+                )
                 .child(Clipboard::new((id.clone(), "copy")).value(text.clone())),
         )
         .child(

@@ -6,8 +6,8 @@
 
 use std::rc::Rc;
 
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     avatar::Avatar, h_flex, progress::Progress, v_flex,

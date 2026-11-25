@@ -260,7 +260,12 @@ impl Render for VerificationCodeField {
                     .children(groups),
             )
             .when(self.checking, |this| {
-                this.child(div().text_body().text_color(quiet).child("Checking\u{2026}"))
+                this.child(
+                    div()
+                        .text_body()
+                        .text_color(quiet)
+                        .child("Checking\u{2026}"),
+                )
             })
             .when_some(error, |this, error| {
                 this.child(

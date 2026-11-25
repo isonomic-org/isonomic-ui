@@ -731,7 +731,12 @@ impl RenderOnce for TaskInboxBoard {
                     ),
             )
             .child(body)
-            .child(div().text_caption().text_color(quiet).child(summary(&tasks)))
+            .child(
+                div()
+                    .text_caption()
+                    .text_color(quiet)
+                    .child(summary(&tasks)),
+            )
             .refine_style(&self.style)
     }
 }

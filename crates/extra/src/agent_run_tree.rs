@@ -531,7 +531,13 @@ impl RenderOnce for AgentRunTree {
                 let block = |label: &'static str, text: &SharedString| {
                     v_flex()
                         .gap_1()
-                        .child(div().text_caption().font_medium().text_color(quiet).child(label))
+                        .child(
+                            div()
+                                .text_caption()
+                                .font_medium()
+                                .text_color(quiet)
+                                .child(label),
+                        )
                         .child(
                             div()
                                 .p_2()

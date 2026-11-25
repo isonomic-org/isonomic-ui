@@ -437,10 +437,15 @@ impl RenderOnce for DueDatePicker {
                 })),
             )
             .child(h_flex().flex_wrap().w(px(238.)).children(days))
-            .child(div().text_caption().text_color(quiet).child(match self.picked {
-                Some(day) => SharedString::from(format!("Due {}", day.words())),
-                None => "Pick a day, or a preset.".into(),
-            }))
+            .child(
+                div()
+                    .text_caption()
+                    .text_color(quiet)
+                    .child(match self.picked {
+                        Some(day) => SharedString::from(format!("Due {}", day.words())),
+                        None => "Pick a day, or a preset.".into(),
+                    }),
+            )
             .refine_style(&self.style)
     }
 }

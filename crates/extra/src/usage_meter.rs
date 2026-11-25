@@ -657,7 +657,11 @@ impl RenderOnce for UsageMeter {
                                     .min_w_0()
                                     .child(div().truncate().font_medium().child(self.title))
                                     .children(caption.map(|caption| {
-                                        div().truncate().text_caption().text_color(quiet).child(caption)
+                                        div()
+                                            .truncate()
+                                            .text_caption()
+                                            .text_color(quiet)
+                                            .child(caption)
                                     })),
                             )
                             .children(switch),

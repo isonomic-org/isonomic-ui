@@ -457,13 +457,7 @@ impl RenderOnce for MultiAgentDashboard {
             v_flex()
                 .gap_0p5()
                 .child(div().text_caption().text_color(paint.quiet).child(label))
-                .child(
-                    div()
-                        .text_lg()
-                        .font_medium()
-                        .text_color(color)
-                        .child(value),
-                )
+                .child(div().text_lg().font_medium().text_color(color).child(value))
         };
 
         v_flex()

@@ -27,7 +27,6 @@ use isonomic_ui::{
     Styled, Task, Window, div, point, prelude::FluentBuilder as _, px, relative,
 };
 
-
 const SECOND: Duration = Duration::from_secs(1);
 /// The countdown turns to the warning colour from here on.
 const URGENT_FROM: Duration = Duration::from_secs(10);
@@ -391,7 +390,14 @@ impl RenderOnce for ApprovalCard {
         let edge = |cx: &App| {
             let ink = cx.theme().foreground;
             vec![BoxShadow {
-                color: ink.alpha(ink.a * if cx.theme().mode.is_dark() { 0.12 } else { 0.085 }),
+                color: ink.alpha(
+                    ink.a
+                        * if cx.theme().mode.is_dark() {
+                            0.12
+                        } else {
+                            0.085
+                        },
+                ),
                 offset: point(px(0.), px(0.)),
                 blur_radius: px(0.),
                 spread_radius: px(1.),

@@ -10,7 +10,8 @@
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, button::{Button, ButtonVariants as _},
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _,
+    button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
     popover::Popover,

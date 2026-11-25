@@ -980,7 +980,12 @@ impl Render for StepFormWizard {
                     .child(Icon::new(IconName::CircleAlert).xsmall())
                     .child(error.clone()),
             ),
-            (None, Some(hint)) => Some(h_flex().text_caption().text_color(quiet).child(hint.clone())),
+            (None, Some(hint)) => Some(
+                h_flex()
+                    .text_caption()
+                    .text_color(quiet)
+                    .child(hint.clone()),
+            ),
             _ => None,
         };
 

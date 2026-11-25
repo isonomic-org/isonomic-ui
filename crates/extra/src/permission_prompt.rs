@@ -487,7 +487,13 @@ impl RenderOnce for PermissionPrompt {
                                                 .child(format!("· {}", self.action)),
                                         ),
                                 )
-                                .child(div().truncate().text_caption().text_color(quiet).child(note)),
+                                .child(
+                                    div()
+                                        .truncate()
+                                        .text_caption()
+                                        .text_color(quiet)
+                                        .child(note),
+                                ),
                         )
                         .child(
                             Button::new((self.id.clone(), "again"))

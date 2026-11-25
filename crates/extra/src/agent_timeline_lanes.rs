@@ -380,7 +380,13 @@ impl RenderOnce for AgentTimelineLanes {
                             .gap_1p5()
                             .px_3()
                             .child(Icon::new(IconName::Bot).xsmall().text_color(quiet))
-                            .child(div().truncate().text_caption().font_medium().child(name.clone())),
+                            .child(
+                                div()
+                                    .truncate()
+                                    .text_caption()
+                                    .font_medium()
+                                    .child(name.clone()),
+                            ),
                     )
                     .child(
                         div()

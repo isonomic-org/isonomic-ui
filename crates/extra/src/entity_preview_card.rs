@@ -227,10 +227,7 @@ impl RenderOnce for EntityPreviewCard {
                                     .flex_1()
                                     .min_w_0()
                                     .child(
-                                        div()
-                                            .font_medium()
-                                            .truncate()
-                                            .child(preview.name.clone()),
+                                        div().font_medium().truncate().child(preview.name.clone()),
                                     )
                                     .child(
                                         div()

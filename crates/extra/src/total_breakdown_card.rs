@@ -471,7 +471,13 @@ impl RenderOnce for TotalBreakdownCard {
                                     )
                                     .when(hovered.is_none(), |this| this.children(change)),
                             )
-                            .child(div().truncate().text_caption().text_color(quiet).child(caption)),
+                            .child(
+                                div()
+                                    .truncate()
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child(caption),
+                            ),
                     )
                     .child(bar)
                     .child(
