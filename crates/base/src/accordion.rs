@@ -4,6 +4,7 @@
 use crate::TestSupportExt as _;
 use std::rc::Rc;
 
+use crate::pressable::PressableExt as _;
 use gpui::{
     AnyElement, App, ClickEvent, Div, ElementId, InteractiveElement, Interactivity, IntoElement,
     ParentElement, RenderOnce, Role, StatefulInteractiveElement, StyleRefinement, Styled, Window,
@@ -357,6 +358,7 @@ impl RenderOnce for AccordionTrigger {
                     this.on_click(move |event, window, cx| on_change(next_open, event, window, cx))
                 },
             )
+            .pressable(!self.disabled)
             .children(self.children)
             .refine_style(&self.style)
     }

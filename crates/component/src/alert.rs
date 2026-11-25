@@ -1,7 +1,7 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use isonomic_ui_base::LogicalStyledExt as _;
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _};
 use std::rc::Rc;
 
 use gpui::{
@@ -241,6 +241,7 @@ impl RenderOnce for Alert {
                 this.child(
                     div()
                         .id("close")
+                        .pressable(true)
                         .p_0p5()
                         .rounded(cx.theme().radius)
                         .hover(|this| this.bg(bg.opacity(0.8)))

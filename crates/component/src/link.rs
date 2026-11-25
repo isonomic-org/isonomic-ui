@@ -4,9 +4,21 @@
 use gpui::{
     AnyElement, ClickEvent, ElementId, InteractiveElement, IntoElement, MouseButton, ParentElement,
     RenderOnce, SharedString, StatefulInteractiveElement, StyleRefinement, Styled, div,
+    prelude::FluentBuilder as _,
 };
+use isonomic_ui_base::{PressableExt as _, TestSupportExt as _};
 
 use crate::{ActiveTheme as _, StyledExt};
+
+/// When a [`Link`] draws its underline.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum LinkUnderline {
+    /// Underlined at rest and on hover. The default.
+    #[default]
+    Always,
+    /// No underline at rest; the underline appears on hover and press.
+    Hover,
+}
 
 /// A Link element like a `<a>` tag in HTML.
 #[derive(IntoElement)]
@@ -15,6 +27,7 @@ pub struct Link {
     style: StyleRefinement,
     href: Option<SharedString>,
     disabled: bool,
+    underline: LinkUnderline,
     on_click: Option<Box<dyn Fn(&ClickEvent, &mut gpui::Window, &mut gpui::App) + 'static>>,
     children: Vec<AnyElement>,
 }
@@ -28,6 +41,7 @@ impl Link {
             href: None,
             on_click: None,
             disabled: false,
+            underline: LinkUnderline::Always,
             children: Vec::new(),
         }
     }
@@ -50,7 +64,18 @@ impl Link {
         self
     }
 
+    /// Sets when the underline shows. The default is [`LinkUnderline::Always`];
+    /// [`LinkUnderline::Hover`] suits a "Learn more" link set in running text
+    /// whose colour already marks it.
+    pub fn underline(mut self, underline: LinkUnderline) -> Self {
+        self.underline = underline;
+        self
+    }
+
     /// Set the disabled state, default false.
+    ///
+    /// A disabled link shows the arrow cursor. Its press behaviour is kept as
+    /// it was: it still opens its `href` and calls its handler.
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
@@ -76,9 +101,13 @@ impl RenderOnce for Link {
 
         div()
             .id(self.id)
+            .test_support()
+            .role(gpui::Role::Link)
             .text_color(cx.theme().link)
-            .text_decoration_1()
-            .text_decoration_color(cx.theme().link.opacity(0.5))
+            .when(self.underline == LinkUnderline::Always, |this| {
+                this.text_decoration_1()
+                    .text_decoration_color(cx.theme().link.opacity(0.5))
+            })
             .hover(|this| {
                 this.text_color(cx.theme().link.opacity(0.8))
                     .text_decoration_1()
@@ -89,7 +118,7 @@ impl RenderOnce for Link {
                     .text_decoration_1()
                     .text_decoration_color(cx.theme().link)
             })
-            .cursor_pointer()
+            .pressable(!self.disabled)
             .refine_style(&self.style)
             .on_mouse_down(MouseButton::Left, |_, _, cx| {
                 cx.stop_propagation();

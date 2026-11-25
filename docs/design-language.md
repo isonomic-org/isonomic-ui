@@ -168,9 +168,22 @@ Stacking order, top first: modal, overlays, toasts, page.
 - The ring sits 2px outside a control, and 2px inside a row or cell.
 - Text fields show no ring: their border steps up to the input-border colour.
 
+## Cursor
+
+- Anything a person can press shows the pointing hand while it can be pressed:
+  buttons of every variant, links, checkboxes, switches, radios, toggles, tabs,
+  menu items, select and date triggers, accordion headers, pagination, sidebar
+  rows, list rows and the clickable parts of extras.
+- A disabled or loading control shows the arrow.
+- Text fields and selectable text keep the text cursor; elements that cannot be
+  pressed set no cursor.
+- Components apply this with `PressableExt::pressable(enabled)` from the base
+  crate, before the caller's style, so one instance can still override it.
+  New code uses it rather than `cursor_pointer()`, so disabled is handled too.
+
 ## States
 
-- Disabled: 40% opacity, no hover, no pointer cursor.
+- Disabled: 40% opacity, no hover, no pointer cursor (the arrow).
 - Danger actions: a soft danger fill with danger-coloured text, solid only for
   the final confirmation.
 - Ghost actions: no fill at rest, the hover fill on hover.

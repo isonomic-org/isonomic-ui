@@ -38,6 +38,7 @@ pub struct ElementSnapshot {
     label: Option<SharedString>,
     description: Option<SharedString>,
     placeholder: Option<SharedString>,
+    cursor: Option<gpui::CursorStyle>,
 }
 impl fmt::Debug for ElementSnapshot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -68,6 +69,7 @@ impl fmt::Debug for ElementSnapshot {
             .field("label", &self.label)
             .field("description", &self.description)
             .field("placeholder", &self.placeholder)
+            .field("cursor", &self.cursor)
             .finish()
     }
 }
@@ -132,6 +134,14 @@ impl ElementSnapshot {
     /// The accessibility placeholder: a prompt shown while the element has no value.
     pub fn placeholder(&self) -> Option<&str> {
         self.placeholder.as_deref()
+    }
+    /// The cursor the element shows on hover, when it sets one.
+    pub fn cursor(&self) -> Option<gpui::CursorStyle> {
+        self.cursor
+    }
+    /// Whether hovering the element shows the pointing hand.
+    pub fn shows_pointer(&self) -> bool {
+        self.cursor == Some(gpui::CursorStyle::PointingHand)
     }
 }
 
@@ -226,6 +236,7 @@ impl Registration {
             label: semantics.label.clone(),
             description: semantics.description.clone(),
             placeholder: semantics.placeholder.clone(),
+            cursor: facts.cursor,
         }
     }
 }
@@ -507,6 +518,7 @@ impl<E: Element<PrepaintState = Option<Hitbox>> + InteractiveElement> Element fo
             label: node.label().map(|label| label.to_owned().into()),
             description: node.description().map(|text| text.to_owned().into()),
             placeholder: node.placeholder().map(|text| text.to_owned().into()),
+            cursor: self.inner.interactivity().base_style.mouse_cursor,
         };
         let registration =
             window.with_element_state(global_id, |state: Option<Rc<Registration>>, window| {

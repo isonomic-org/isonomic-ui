@@ -10,6 +10,7 @@ use gpui::{
     SharedString, StatefulInteractiveElement as _, Styled, Subscription, Window, div,
     prelude::FluentBuilder as _,
 };
+use isonomic_ui_base::PressableExt as _;
 
 use crate::{
     ActiveTheme as _, Icon, Sizable as _, h_flex,
@@ -252,6 +253,7 @@ impl Render for InlineEdit {
             )
             // A focused element with a click handler turns Enter and Space
             // into a click, so the keyboard opens the field the same way.
+            .pressable(true)
             .on_click(cx.listener(|this, _, window, cx| this.start_editing(window, cx)))
             .into_any_element()
     }

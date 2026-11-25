@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use isonomic_ui_base::LogicalStyledExt as _;
+use isonomic_ui_base::PressableExt as _;
 use std::{rc::Rc, sync::Arc, time::Duration};
 
 use crate::{
@@ -760,16 +761,13 @@ impl RenderOnce for Button {
         };
 
         let root = base
-            .cursor_default()
+            // Every button shows the pointing hand while it can be pressed; a
+            // disabled or loading one shows the arrow.
+            .pressable(interactive)
             .flex()
             .flex_shrink_0()
             .items_center()
             .justify_center()
-            .cursor_default()
-            .when(
-                interactive && (self.variant.is_link() || self.variant.is_text()),
-                |this| this.cursor_pointer(),
-            )
             .when(
                 !disabled && cx.theme().shadow && normal_style.shadow,
                 |this| this.shadow_xs(),
@@ -2003,7 +2001,7 @@ mod tests {
     }
 
     /// A loading button must be as inert as a disabled one. `interactive` is what
-    /// gates the hover and active styling, the `cursor_pointer` of link buttons and
+    /// gates the hover and active styling, the pointing-hand cursor and
     /// the `mouse_down` handler, none of which depend on a listener being set.
     #[gpui::test]
     fn test_button_loading_is_not_interactive(_cx: &mut gpui::TestAppContext) {

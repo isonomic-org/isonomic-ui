@@ -10,7 +10,7 @@ use gpui::{
 };
 
 use crate::{ActiveTheme, Icon, IconName, StyledExt, h_flex};
-use isonomic_ui_base::{LayoutDirection, LogicalStyledExt as _};
+use isonomic_ui_base::{LayoutDirection, LogicalStyledExt as _, PressableExt as _};
 
 /// A breadcrumb navigation element.
 #[derive(IntoElement)]
@@ -116,7 +116,7 @@ impl RenderOnce for BreadcrumbItem {
             .refine_style(&self.style)
             .when(!self.disabled, |this| {
                 this.when_some(self.on_click, |this, on_click| {
-                    this.cursor_pointer().on_click(move |event, window, cx| {
+                    this.pressable(true).on_click(move |event, window, cx| {
                         on_click(event, window, cx);
                     })
                 })

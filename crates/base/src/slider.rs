@@ -15,7 +15,7 @@ use gpui::{
 
 use crate::{
     LayoutDirection, a11y_disabled::A11yDisabledExt as _, element_ext::ElementExt,
-    geometry::AxisExt,
+    geometry::AxisExt, pressable::PressableExt as _,
 };
 
 /// Events emitted by the [`SliderState`].
@@ -693,6 +693,7 @@ impl RenderOnce for Slider {
         self.base
             .id(("slider", entity_id))
             .test_support()
+            .pressable(!self.disabled)
             .when_some(self.focus, |this, focus| this.track_focus(&focus))
             .role(Role::Slider)
             .when_some(self.accessibility_label, |this, label| {
@@ -1052,6 +1053,7 @@ impl RenderOnce for SliderThumb {
         self.base
             .id(("slider-thumb", start as u32))
             .test_support()
+            .pressable(!self.disabled)
             .children(self.children)
             .when(!self.disabled, |this| {
                 this.on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())

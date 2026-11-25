@@ -298,6 +298,19 @@ impl Render for TabsStory {
                 ),
             )
             .child(
+                section("Segmented Tabs, outlined").w_full().child(
+                    TabBar::new("segmented-outlined")
+                        .w_full()
+                        .segmented_outlined()
+                        .with_size(self.size)
+                        .selected_index(self.active_tab_ix)
+                        .on_click(cx.listener(|this, ix: &usize, window, cx| {
+                            this.set_active_tab(*ix, window, cx);
+                        }))
+                        .children(vec!["Account", "Workspace", "Billing", "Members"]),
+                ),
+            )
+            .child(
                 section("Folder Tabs").w_full().child(
                     v_flex()
                         .w_full()

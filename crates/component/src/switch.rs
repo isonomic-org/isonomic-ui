@@ -249,11 +249,7 @@ impl RenderOnce for Switch {
             BaseSwitch::new(self.id.clone())
                 .checked(checked)
                 .disabled(self.disabled)
-                .styles(|styles| {
-                    styles.disabled(|style| {
-                        style.text_color(disabled_label_color).cursor_not_allowed()
-                    })
-                })
+                .styles(|styles| styles.disabled(|style| style.text_color(disabled_label_color)))
                 .when_some(accessibility_label, |this, label| {
                     this.accessibility_label(label)
                 })

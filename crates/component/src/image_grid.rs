@@ -3,6 +3,7 @@
 
 //! A grid of images in equal tiles, such as attachments or a gallery.
 
+use isonomic_ui_base::PressableExt as _;
 use std::rc::Rc;
 
 use gpui::{
@@ -185,7 +186,7 @@ impl RenderOnce for ImageGrid {
                             .rounded(radius)
                             .when_some(on_click, |this, on_click| {
                                 this.tab_index(0)
-                                    .cursor_pointer()
+                                    .pressable(true)
                                     .focus_visible(move |style| style.border_2().border_color(ring))
                                     .on_click(move |_, window, cx| on_click(&ix, window, cx))
                             })

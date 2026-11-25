@@ -5,6 +5,7 @@ use gpui::{
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
     StyleRefinement, Styled, Window, prelude::FluentBuilder, px,
 };
+use isonomic_ui_base::PressableExt as _;
 
 use crate::{
     ActiveTheme, Disableable, Icon, IconName, Selectable, Sizable, Size, StyleSized, StyledExt,
@@ -137,7 +138,7 @@ impl RenderOnce for SearchableListItemElement {
                     .text_color(cx.theme().accent_foreground)
             })
             .when(self.disabled, |this| {
-                this.cursor_not_allowed()
+                this.pressable(false)
                     .text_color(cx.theme().muted_foreground)
             })
             .child(

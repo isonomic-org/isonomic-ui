@@ -28,7 +28,7 @@ use crate::{
     sizing::DROPDOWN_LIST_PADDING,
     v_flex,
 };
-use isonomic_ui_base::{Combobox as BaseCombobox, GlobalState};
+use isonomic_ui_base::{Combobox as BaseCombobox, GlobalState, PressableExt as _};
 
 // MARK: ComboboxTriggerContext
 
@@ -1058,6 +1058,7 @@ fn render_trigger_container(
         })
         .input_size(size)
         .input_text_size(size)
+        .pressable(!disabled)
         .refine_style(style)
         .when(outline_visible && appearance, |this| {
             this.border_1().border_color(cx.theme().ring)

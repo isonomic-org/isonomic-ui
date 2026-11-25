@@ -15,8 +15,8 @@ use gpui::{
     ParentElement as _, Pixels, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, percentage, prelude::FluentBuilder, px,
 };
-use isonomic_ui_base::LogicalStyledExt as _;
 use isonomic_ui_base::TestSupportExt as _;
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _};
 use std::rc::Rc;
 
 /// Up and Down walk the Tab order, which in a sidebar is its rows and group
@@ -460,6 +460,7 @@ impl SidebarItem for SidebarMenuItem {
                                 )
                             })
                     })
+                    .pressable(!is_disabled)
                     .when(is_disabled, |this| {
                         this.text_color(cx.theme().muted_foreground)
                     })

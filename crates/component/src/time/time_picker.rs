@@ -20,7 +20,7 @@ use crate::{
     input::input_style,
 };
 
-use isonomic_ui_base::{ElementExt as _, TestSupportExt as _};
+use isonomic_ui_base::{ElementExt as _, PressableExt as _, TestSupportExt as _};
 
 use super::time_field::{
     HourCycle, TimeFieldEvent, TimeFieldState, TimePrecision, styled_base_field, tabular_figures,
@@ -445,7 +445,7 @@ impl TimePicker {
                         Size::XSmall | Size::Small => this.text_xs(),
                         _ => this.text_sm(),
                     })
-                    .cursor_pointer()
+                    .pressable(true)
                     .when(!active, |this| {
                         this.hover(|this| {
                             this.bg(cx.theme().tokens.secondary_hover)

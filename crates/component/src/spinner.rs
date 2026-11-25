@@ -11,6 +11,18 @@ use gpui::{
 };
 use instant::Duration;
 
+/// How a [`Spinner`] is drawn.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SpinnerStyle {
+    /// A faint ring with a quarter arc running round it. The default.
+    #[default]
+    Ring,
+    /// Eight short rays brightening in turn: the "thinking" indicator.
+    Rays,
+    /// A plain three-quarter arc, turning, with no ring behind it.
+    Arc,
+}
+
 /// A cycling loading spinner.
 ///
 /// By default a faint ring with a quarter arc running round it, drawn in the
@@ -23,7 +35,7 @@ pub struct Spinner {
     speed: Duration,
     easing: Option<Box<dyn Fn(f32) -> f32>>,
     color: Option<Hsla>,
-    rays: bool,
+    style: SpinnerStyle,
 }
 
 impl Default for Spinner {
@@ -41,14 +53,25 @@ impl Spinner {
             easing: None,
             icon: None,
             color: None,
-            rays: false,
+            style: SpinnerStyle::Ring,
         }
     }
 
     /// Eight short rays instead of the ring, each brightening in turn so the
     /// light runs round clockwise: the "thinking" indicator.
-    pub fn rays(mut self) -> Self {
-        self.rays = true;
+    pub fn rays(self) -> Self {
+        self.style(SpinnerStyle::Rays)
+    }
+
+    /// A plain turning arc with no ring behind it: shorthand for
+    /// `style(SpinnerStyle::Arc)`.
+    pub fn arc(self) -> Self {
+        self.style(SpinnerStyle::Arc)
+    }
+
+    /// Set how the spinner is drawn. The default is [`SpinnerStyle::Ring`].
+    pub fn style(mut self, style: SpinnerStyle) -> Self {
+        self.style = style;
         self
     }
 
@@ -181,6 +204,23 @@ fn paint_segment(
     }
 }
 
+/// The stroke of an arc spinner `d` wide: an eighth of it, never thinner
+/// than one and a half pixels.
+fn arc_stroke(d: Pixels) -> Pixels {
+    (d / 8.).max(px(1.5))
+}
+
+fn paint_arc(bounds: Bounds<Pixels>, turn: f32, color: Hsla, window: &mut Window) {
+    let d = bounds.size.width.min(bounds.size.height);
+    let width = arc_stroke(d);
+    let circle = Circle {
+        center: bounds.center(),
+        radius: (d - width) / 2.,
+        width,
+    };
+    circle.paint_arc(window, -FRAC_PI_2 + turn * TAU, TAU * 0.75, color, false);
+}
+
 fn paint_rays(bounds: Bounds<Pixels>, time: f32, color: Hsla, window: &mut Window) {
     let d = bounds.size.width.min(bounds.size.height);
     let center = bounds.center();
@@ -223,7 +263,7 @@ impl RenderOnce for Spinner {
         let color = self.color.unwrap_or_else(|| crate::look::ink::icon(cx));
         let size = diameter(self.size);
         let easing = self.easing.unwrap_or_else(|| Box::new(linear));
-        let rays = self.rays;
+        let style = self.style;
         div()
             .flex_none()
             .size(size)
@@ -235,10 +275,10 @@ impl RenderOnce for Spinner {
                         canvas(
                             |_, _, _| {},
                             move |bounds, _, window, _| {
-                                if rays {
-                                    paint_rays(bounds, turn, color, window)
-                                } else {
-                                    paint_ring(bounds, turn, color, window)
+                                match style {
+                                    SpinnerStyle::Ring => paint_ring(bounds, turn, color, window),
+                                    SpinnerStyle::Rays => paint_rays(bounds, turn, color, window),
+                                    SpinnerStyle::Arc => paint_arc(bounds, turn, color, window),
                                 }
                             },
                         )
@@ -261,6 +301,42 @@ mod tests {
         fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
             Spinner::new()
         }
+    }
+
+    struct ArcSpinnerHost;
+
+    impl Render for ArcSpinnerHost {
+        fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
+            Spinner::new().arc()
+        }
+    }
+
+    #[test]
+    fn arc_spinner_matches_the_icon_sizes() {
+        assert_eq!(diameter(Size::XSmall), px(12.));
+        assert_eq!(diameter(Size::Small), px(14.));
+        assert_eq!(diameter(Size::Medium), px(16.));
+        assert_eq!(diameter(Size::Large), px(20.));
+        assert_eq!(arc_stroke(px(12.)), px(1.5));
+        assert_eq!(arc_stroke(px(24.)), px(3.));
+        assert_eq!(Spinner::new().arc().style, SpinnerStyle::Arc);
+    }
+
+    #[gpui::test]
+    fn reduced_motion_arc_spinner_requests_no_frame(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            crate::init(cx);
+            cx.set_reduce_motion(true);
+        });
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| ArcSpinnerHost);
+        cx.run_until_parked();
+
+        assert_eq!(
+            window
+                .update(cx, |_, window, cx| window.simulate_next_frame(cx))
+                .unwrap(),
+            0
+        );
     }
 
     #[gpui::test]

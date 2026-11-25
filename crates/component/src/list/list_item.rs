@@ -7,8 +7,8 @@ use gpui::{
     MouseButton, MouseDownEvent, MouseMoveEvent, ParentElement, RenderOnce, SharedString, Stateful,
     StatefulInteractiveElement, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
 };
-use isonomic_ui_base::LogicalStyledExt as _;
 use isonomic_ui_base::TestSupportExt as _;
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _};
 use smallvec::SmallVec;
 use std::collections::HashMap;
 
@@ -211,6 +211,9 @@ impl RenderOnce for ListItem {
             .relative()
             .items_center()
             .justify_between()
+            .when(self.disabled || self.on_click.is_some(), |this| {
+                this.pressable(is_selectable)
+            })
             .refine_style(&self.style)
             .when_some(accessibility_label, |this, label| this.aria_label(label))
             .when(is_selectable, |this| {

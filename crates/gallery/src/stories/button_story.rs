@@ -8,6 +8,7 @@ use isonomic_ui::component::{
     ActiveTheme, Disableable as _, Icon, IconName, Selectable as _, Sizable as _, Size, Theme,
     button::{Button, ButtonCustomVariant, ButtonGroup, ButtonVariants as _},
     h_flex,
+    link::{Link, LinkUnderline},
     progress::ProgressCircle,
     v_flex,
 };
@@ -751,6 +752,30 @@ impl Render for ButtonStory {
                             .selected(selected)
                             .loading(loading)
                             .when(compact, |this| this.compact()),
+                    ),
+            )
+            .child(
+                section("Links")
+                    .description(
+                        "Underlined by default; a link set in running text can underline on hover only.",
+                    )
+                    .gap_x_4()
+                    .child(
+                        Link::new("link-default")
+                            .href("https://isonomic.com")
+                            .child("Read the guide"),
+                    )
+                    .child(
+                        Link::new("link-hover")
+                            .href("https://isonomic.com")
+                            .underline(LinkUnderline::Hover)
+                            .child("Learn more"),
+                    )
+                    .child(
+                        Link::new("link-disabled")
+                            .href("https://isonomic.com")
+                            .disabled(disabled)
+                            .child("Release notes"),
                     ),
             )
             .child(

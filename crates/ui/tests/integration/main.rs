@@ -58,6 +58,8 @@ mod menu;
 mod overlays;
 #[cfg(all(feature = "test-support", feature = "component"))]
 mod painted_text;
+#[cfg(all(feature = "test-support", feature = "component"))]
+mod pressable_cursor;
 #[cfg(feature = "test-support")]
 mod query_helpers;
 #[cfg(all(feature = "test-support", feature = "component"))]
