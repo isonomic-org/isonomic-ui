@@ -19,7 +19,7 @@ use gpui::{
 /// Width of the translucent ring that grows outside a hovered thumb.
 const THUMB_RING_WIDTH: Pixels = px(3.);
 /// Opacity of the fully grown thumb ring.
-const THUMB_RING_OPACITY: f32 = 0.5;
+const THUMB_RING_OPACITY: f32 = 0.12;
 /// The animated hover ring of one thumb.
 struct ThumbRing {
     interaction: Entity<ThumbInteraction>,
@@ -204,7 +204,15 @@ impl RenderOnce for Slider {
             .text
             .color
             .map(Into::into)
-            .unwrap_or_else(|| cx.theme().tokens.slider_thumb.into());
+            // The knob stays a lit object over the track in both modes, never a
+            // dark hole in it.
+            .unwrap_or_else(|| {
+                if cx.theme().mode.is_dark() {
+                    cx.theme().foreground.into()
+                } else {
+                    cx.theme().tokens.switch_thumb.into()
+                }
+            });
         let corner_radii = self.style.corner_radii.clone();
         // The track is a pill by default, and square when the theme squares its
         // corners. A caller's own corner radii still win.
@@ -248,19 +256,19 @@ impl RenderOnce for Slider {
                 .when(!self.disabled, |this| {
                     this.absolute()
                         .when(axis.is_horizontal(), |this| {
-                            this.top(px(-5.)).inset_s(position, cx).ms(-px(8.), cx)
+                            this.top(px(-6.)).inset_s(position, cx).ms(-px(8.), cx)
                         })
                         .when(axis.is_vertical(), |this| {
-                            this.bottom(position).left(px(-5.)).mb(-px(8.))
+                            this.bottom(position).left(px(-6.)).mb(-px(8.))
                         })
                         .flex()
                         .items_center()
                         .justify_center()
                         .flex_shrink_0()
                         .rounded_full_style(cx)
-                        .bg(bar_color.opacity(0.5))
+                        // A white knob lifted by a soft shadow, as on a switch.
+                        .shadow(crate::look::surface::knob(cx))
                         .size_4()
-                        .p(px(1.))
                         .on_hover({
                             let interaction = ring.interaction.clone();
                             move |entered, _, cx| {
@@ -341,10 +349,10 @@ impl RenderOnce for Slider {
                     .child(
                         SliderIndicator::new(&self.state)
                             .relative()
-                            .when(axis.is_horizontal(), |this| this.w_full().h_1p5())
-                            .when(axis.is_vertical(), |this| this.h_full().w_1p5())
-                            .bg(bar_color.opacity(0.2))
-                            .active(|this| this.bg(bar_color.opacity(0.4)))
+                            .when(axis.is_horizontal(), |this| this.w_full().h_1())
+                            .when(axis.is_vertical(), |this| this.h_full().w_1())
+                            .bg(bar_color.opacity(0.12))
+                            .active(|this| this.bg(bar_color.opacity(0.18)))
                             .corner_radii(radius)
                             .child(
                                 div()
