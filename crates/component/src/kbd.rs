@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use gpui::{
-    Action, AsKeystroke, ElementId, FocusHandle, Half, InteractiveElement as _, IntoElement,
-    KeyBinding, KeyContext, Keystroke, ParentElement as _, RenderOnce, Role, SharedString,
+    Action, AsKeystroke, ElementId, FocusHandle, InteractiveElement as _, IntoElement, KeyBinding,
+    KeyContext, Keystroke, ParentElement as _, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, relative,
 };
@@ -298,20 +298,55 @@ impl RenderOnce for Kbd {
             // A `Label` node is named by its value.
             .role(Role::Label)
             .aria_value(spoken)
-            .text_color(cx.theme().muted_foreground)
-            .bg(cx.theme().tokens.muted)
-            .when(self.outline, |this| {
-                this.border_1()
-                    .border_color(cx.theme().border)
-                    .bg(cx.theme().tokens.background)
+            // A key cap is a faint pressed-in chip: a wash with a hairline
+            // inner edge, medium 12px ink at the muted level.
+            .text_color(crate::look::ink::muted(cx))
+            .map(|this| {
+                let dark = cx.theme().mode.is_dark();
+                let wash = if dark {
+                    gpui::hsla(0., 0., 1., 0.08)
+                } else {
+                    gpui::hsla(0., 0., 0., 0.043)
+                };
+                let edge = if dark {
+                    gpui::hsla(0., 0., 1., 0.06)
+                } else {
+                    gpui::hsla(0., 0., 0., 0.037)
+                };
+                if self.outline {
+                    this.bg(cx.theme().tokens.background)
+                        .shadow(vec![gpui::BoxShadow {
+                            color: crate::look::ink::hairline(cx).alpha(0.12),
+                            offset: gpui::point(gpui::px(0.), gpui::px(0.)),
+                            blur_radius: gpui::px(0.),
+                            spread_radius: gpui::px(1.),
+                            inset: true,
+                        }])
+                } else {
+                    this.bg(wash).shadow(vec![gpui::BoxShadow {
+                        color: edge,
+                        offset: gpui::point(gpui::px(0.), gpui::px(0.)),
+                        blur_radius: gpui::px(0.),
+                        spread_radius: gpui::px(0.5),
+                        inset: true,
+                    }])
+                }
             })
-            .py_0p5()
-            .px_1()
-            .min_w_5()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(gpui::px(20.))
+            .px(gpui::px(5.))
+            .min_w(gpui::px(20.))
             .text_center()
-            .rounded(cx.theme().radius.half())
+            .rounded(if cx.theme().radius > gpui::px(0.) {
+                gpui::px(5.)
+            } else {
+                gpui::px(0.)
+            })
             .line_height(relative(1.))
-            .text_xs()
+            .text_size(gpui::px(12.))
+            .font_medium()
             .whitespace_normal()
             .flex_shrink_0()
             .refine_style(&self.style)
