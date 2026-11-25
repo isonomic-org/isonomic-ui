@@ -16,6 +16,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -103,14 +104,16 @@ impl RunStatus {
 
     /// The state's icon. The two states that are waiting on something show a
     /// spinner instead.
-    fn icon(self) -> Option<IconName> {
+    /// A stopped run shows a filled stop mark, so it never reads as an
+    /// empty checkbox.
+    fn icon(self) -> Option<CatalogIcon> {
         match self {
             Self::Running | Self::Reconnecting => None,
-            Self::Stopped => Some(IconName::Square),
-            Self::CutShort => Some(IconName::TriangleAlert),
-            Self::Failed => Some(IconName::CircleAlert),
-            Self::Closed => Some(IconName::Info),
-            Self::Done => Some(IconName::CircleCheck),
+            Self::Stopped => Some(CatalogIcon::StopFilledAlt),
+            Self::CutShort => Some(IconName::TriangleAlert.into()),
+            Self::Failed => Some(IconName::CircleAlert.into()),
+            Self::Closed => Some(IconName::Info.into()),
+            Self::Done => Some(IconName::CircleCheck.into()),
         }
     }
 }
@@ -440,6 +443,11 @@ mod tests {
         assert_eq!(RunStatus::Reconnecting.tone(), Tone::Info);
         assert_eq!(RunStatus::Closed.tone(), Tone::Neutral);
         assert_eq!(RunStatus::Done.tone(), Tone::Success);
+    }
+
+    #[test]
+    fn a_stopped_run_shows_a_filled_stop_not_an_empty_square() {
+        assert_eq!(RunStatus::Stopped.icon(), Some(CatalogIcon::StopFilledAlt));
     }
 
     #[test]

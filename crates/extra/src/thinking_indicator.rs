@@ -9,15 +9,27 @@
 //! draws it. The label beside it shimmers while work goes on. Under reduced
 //! motion the orb holds still and the label doesn't shimmer, and a screen
 //! reader hears the label as a status.
+//!
+//! Once the work is done the row stays as a record of it: a light bulb and
+//! the owner's words, such as "Thought for 2 seconds". Given the reasoning,
+//! the row is a disclosure button, reached with Tab and pressed with Enter or
+//! Space, that shows the reasoning under it in quiet text. A screen reader
+//! hears whether it is expanded.
 
-use std::time::Instant;
+use std::{rc::Rc, time::Instant};
 
+use isonomic_ui::assets::IconName as CatalogIcon;
+use isonomic_ui::base::Button as Pressable;
 use isonomic_ui::component::TextRole as _;
-use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, shimmer::ShimmerText};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
+    shimmer::ShimmerText, v_flex,
+};
 use isonomic_ui::{
-    App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    PathBuilder, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px, size,
+    AnyElement, App, Bounds, ElementId, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, PathBuilder, Pixels, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
+    prelude::FluentBuilder as _, px, size,
 };
 
 /// What kind of work the orb shows.
@@ -264,13 +276,33 @@ impl RenderOnce for ActivityOrb {
     }
 }
 
-/// The row shown while an assistant works before answering.
+type ToggleHandler = Rc<dyn Fn(bool, &mut Window, &mut App)>;
+
+/// The row shown while an assistant works before answering, and after it,
+/// the line that says how long it thought.
+///
+/// While working it shows the orb and a shimmering label, with the time so
+/// far after it when the owner passes one. Once finished it shows a light
+/// bulb and the owner's words, such as "Thought for 2 seconds". Given the
+/// reasoning, the row becomes a disclosure: a chevron button, collapsed at
+/// first, that shows the reasoning under the row in quiet text and hides it
+/// again. The owner formats every word; the indicator formats none.
 #[derive(IntoElement)]
 pub struct ThinkingIndicator {
     id: ElementId,
     style: StyleRefinement,
     state: OrbState,
     label: Option<SharedString>,
+    elapsed: Option<SharedString>,
+    finished: bool,
+    reasoning: Option<AnyElement>,
+    default_expanded: bool,
+    on_toggle: Option<ToggleHandler>,
+}
+
+/// Whether the reasoning shows, kept between draws.
+struct Disclosure {
+    expanded: bool,
 }
 
 impl ThinkingIndicator {
@@ -281,12 +313,53 @@ impl ThinkingIndicator {
             style: StyleRefinement::default(),
             state,
             label: None,
+            elapsed: None,
+            finished: false,
+            reasoning: None,
+            default_expanded: false,
+            on_toggle: None,
         }
     }
 
-    /// Say what's happening, such as "Reading 3 statements…".
+    /// Say what's happening, such as "Reading 3 statements…", or once
+    /// finished, how long it took: "Thought for 2 seconds".
     pub fn label(mut self, label: impl Into<SharedString>) -> Self {
         self.label = Some(label.into());
+        self
+    }
+
+    /// Show the time so far after the label, in quieter text, such as
+    /// "12s". The owner keeps the clock and passes the words on each draw.
+    /// Only shown while working.
+    pub fn elapsed(mut self, elapsed: impl Into<SharedString>) -> Self {
+        self.elapsed = Some(elapsed.into());
+        self
+    }
+
+    /// Mark the work finished. The orb gives way to a light bulb, the label
+    /// stops shimmering, and the label should say how long it took.
+    pub fn finished(mut self, finished: bool) -> Self {
+        self.finished = finished;
+        self
+    }
+
+    /// Give the reasoning, which makes the row a disclosure that shows it
+    /// underneath. The owner draws the text, so it may stream or be styled
+    /// as the owner likes; the indicator only places it and quiets it.
+    pub fn reasoning(mut self, reasoning: impl IntoElement) -> Self {
+        self.reasoning = Some(reasoning.into_any_element());
+        self
+    }
+
+    /// Start with the reasoning showing. It starts hidden otherwise.
+    pub fn default_expanded(mut self, expanded: bool) -> Self {
+        self.default_expanded = expanded;
+        self
+    }
+
+    /// Hear when the reasoning is shown or hidden, with whether it now shows.
+    pub fn on_toggle(mut self, on_toggle: impl Fn(bool, &mut Window, &mut App) + 'static) -> Self {
+        self.on_toggle = Some(Rc::new(on_toggle));
         self
     }
 }
@@ -297,36 +370,131 @@ impl Styled for ThinkingIndicator {
     }
 }
 
+/// What a screen reader hears for the row: the label, then the time so far.
+fn spoken(label: &str, elapsed: Option<&str>) -> String {
+    match elapsed {
+        Some(elapsed) if !elapsed.is_empty() => format!("{label}, {elapsed}"),
+        _ => label.to_string(),
+    }
+}
+
 impl RenderOnce for ThinkingIndicator {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let quiet = cx.theme().muted_foreground;
         let still = cx.reduce_motion();
+        let finished = self.finished;
         let label = self
             .label
             .unwrap_or_else(|| self.state.default_label().into());
-        let working = self.state != OrbState::Waiting;
-        h_flex()
-            .id(self.id.clone())
-            .gap_2()
-            .role(Role::Status)
-            .aria_label(label.clone())
-            .child(
-                ActivityOrb::new(
-                    ElementId::NamedChild(self.id.clone().into(), "orb".into()),
-                    self.state,
-                )
-                .color(quiet),
-            )
-            .child(div().text_body().text_color(quiet).map(|this| {
-                if working && !still {
-                    this.child(ShimmerText::new(label.clone()).id(ElementId::NamedChild(
-                        self.id.clone().into(),
-                        "shine".into(),
-                    )))
-                } else {
-                    this.child(label.clone())
+        let elapsed = self.elapsed.filter(|_| !finished);
+        let words = spoken(&label, elapsed.as_deref());
+        let shimmer = !finished && self.state != OrbState::Waiting && !still;
+        let id = self.id.clone();
+        let part = |name: &str| ElementId::NamedChild(id.clone().into(), name.into());
+
+        let mark = if finished {
+            div()
+                .flex()
+                .flex_none()
+                .items_center()
+                .justify_center()
+                .size(px(20.))
+                .child(Icon::new(CatalogIcon::Idea).size(px(16.)).text_color(quiet))
+                .into_any_element()
+        } else {
+            ActivityOrb::new(part("orb"), self.state)
+                .color(quiet)
+                .into_any_element()
+        };
+        let words_el = div().text_body().text_color(quiet).map(|this| {
+            if shimmer {
+                this.child(ShimmerText::new(label.clone()).id(part("shine")))
+            } else {
+                this.child(label.clone())
+            }
+        });
+        let time_el = elapsed.map(|elapsed| {
+            div()
+                .flex_none()
+                .text_body()
+                .text_color(quiet.opacity(0.7))
+                .child(elapsed)
+        });
+
+        let Some(reasoning) = self.reasoning else {
+            return h_flex()
+                .id(self.id.clone())
+                .gap_2()
+                .role(Role::Status)
+                .aria_label(words)
+                .child(mark)
+                .child(words_el)
+                .children(time_el)
+                .refine_style(&self.style);
+        };
+
+        let default_expanded = self.default_expanded;
+        let state = window.use_keyed_state(self.id.clone(), cx, |_, _| Disclosure {
+            expanded: default_expanded,
+        });
+        let expanded = state.read(cx).expanded;
+        let head_id = part("head");
+        let focus = window
+            .use_keyed_state((head_id.clone(), "focus"), cx, |_, cx| cx.focus_handle())
+            .read(cx)
+            .clone();
+        let focused = focus.is_focused(window);
+        let on_toggle = self.on_toggle;
+        let head = Pressable::new(head_id)
+            .accessibility_label(words)
+            .aria_expanded(expanded)
+            .track_focus(&focus)
+            .on_click(move |_, window, cx| {
+                let now = state.update(cx, |state, cx| {
+                    state.expanded = !state.expanded;
+                    cx.notify();
+                    state.expanded
+                });
+                if let Some(on_toggle) = &on_toggle {
+                    on_toggle(now, window, cx);
                 }
-            }))
+            })
+            .justify_start()
+            .gap_2()
+            .rounded(px(4.))
+            .cursor_pointer()
+            .when(focused, |this| this.focus_ring_style(window, cx))
+            .child(mark)
+            .child(words_el)
+            .children(time_el)
+            .child(
+                Icon::new(if expanded {
+                    IconName::ChevronDown
+                } else {
+                    IconName::ChevronRight
+                })
+                .small()
+                .flex_none()
+                .text_color(quiet),
+            );
+
+        v_flex()
+            .id(self.id.clone())
+            .items_start()
+            .gap_1()
+            .child(head)
+            .when(expanded, |this| {
+                this.child(
+                    div()
+                        .id(part("reasoning"))
+                        .w_full()
+                        // Under the label, past the 20 px mark and its gap.
+                        .pl(px(28.))
+                        .text_body()
+                        .text_color(quiet)
+                        .child(reasoning),
+                )
+            })
             .refine_style(&self.style)
     }
 }
@@ -348,5 +516,12 @@ mod tests {
         let (x, y) = on_circle((10.0, 10.0), 5.0, 0.25);
         assert!((x - 15.0).abs() < 1e-4 && (y - 10.0).abs() < 1e-4);
         assert!(OrbState::Retrying.period() < OrbState::Waiting.period());
+    }
+
+    #[test]
+    fn the_time_so_far_is_spoken_after_the_label() {
+        assert_eq!(spoken("Thinking", None), "Thinking");
+        assert_eq!(spoken("Thinking", Some("")), "Thinking");
+        assert_eq!(spoken("Thinking", Some("12s")), "Thinking, 12s");
     }
 }
