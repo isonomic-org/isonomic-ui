@@ -289,7 +289,8 @@ impl RenderOnce for PhaseLoader {
             }
         } else {
             Spinner::new()
-                .with_size(icon_size)
+                .rays()
+                .with_size(if compact { px(14.) } else { px(16.) })
                 .color(accent)
                 .into_any_element()
         };

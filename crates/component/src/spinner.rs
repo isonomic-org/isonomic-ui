@@ -23,6 +23,7 @@ pub struct Spinner {
     speed: Duration,
     easing: Option<Box<dyn Fn(f32) -> f32>>,
     color: Option<Hsla>,
+    rays: bool,
 }
 
 impl Default for Spinner {
@@ -40,7 +41,15 @@ impl Spinner {
             easing: None,
             icon: None,
             color: None,
+            rays: false,
         }
+    }
+
+    /// Eight short rays instead of the ring, each brightening in turn so the
+    /// light runs round clockwise: the "thinking" indicator.
+    pub fn rays(mut self) -> Self {
+        self.rays = true;
+        self
     }
 
     /// Turn this icon instead of drawing the ring.
@@ -146,6 +155,54 @@ fn paint_ring(bounds: Bounds<Pixels>, turn: f32, color: Hsla, window: &mut Windo
     circle.paint_arc(window, -FRAC_PI_2 + turn * TAU, FRAC_PI_2, color, true);
 }
 
+/// Strokes a straight line from `from` to `to` with round ends.
+fn paint_segment(
+    window: &mut Window,
+    from: Point<Pixels>,
+    to: Point<Pixels>,
+    width: Pixels,
+    color: Hsla,
+) {
+    let mut line = PathBuilder::stroke(width);
+    line.move_to(from);
+    line.line_to(to);
+    if let Ok(path) = line.build() {
+        window.paint_path(path, color);
+    }
+    for end in [from, to] {
+        let points: Vec<_> = (0..12)
+            .map(|ix| on_circle(end, width / 2., ix as f32 / 12. * TAU))
+            .collect();
+        let mut dot = PathBuilder::fill();
+        dot.add_polygon(&points, true);
+        if let Ok(path) = dot.build() {
+            window.paint_path(path, color);
+        }
+    }
+}
+
+fn paint_rays(bounds: Bounds<Pixels>, time: f32, color: Hsla, window: &mut Window) {
+    let d = bounds.size.width.min(bounds.size.height);
+    let center = bounds.center();
+    // On a 16-unit square each ray runs from 3.25 to 6.25 out from the
+    // centre, 1.1 wide.
+    let (inner, outer, width) = (d * (3.25 / 16.), d * (6.25 / 16.), d * (1.1 / 16.));
+    for ray in 0..8 {
+        let angle = -FRAC_PI_2 + ray as f32 * TAU / 8.;
+        // Each ray fades from full to a fifth over a turn, an eighth of a turn
+        // behind the ray before it.
+        let phase = (time - ray as f32 / 8.).rem_euclid(1.);
+        let alpha = 1. - 0.8 * phase;
+        paint_segment(
+            window,
+            on_circle(center, inner, angle),
+            on_circle(center, outer, angle),
+            width,
+            color.alpha(color.a * alpha),
+        );
+    }
+}
+
 impl RenderOnce for Spinner {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         if let Some(icon) = self.icon {
@@ -166,6 +223,7 @@ impl RenderOnce for Spinner {
         let color = self.color.unwrap_or_else(|| crate::look::ink::icon(cx));
         let size = diameter(self.size);
         let easing = self.easing.unwrap_or_else(|| Box::new(linear));
+        let rays = self.rays;
         div()
             .flex_none()
             .size(size)
@@ -176,7 +234,13 @@ impl RenderOnce for Spinner {
                     this.child(
                         canvas(
                             |_, _, _| {},
-                            move |bounds, _, window, _| paint_ring(bounds, turn, color, window),
+                            move |bounds, _, window, _| {
+                                if rays {
+                                    paint_rays(bounds, turn, color, window)
+                                } else {
+                                    paint_ring(bounds, turn, color, window)
+                                }
+                            },
                         )
                         .size_full(),
                     )

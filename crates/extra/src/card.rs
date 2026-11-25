@@ -17,7 +17,7 @@ use isonomic_ui::component::{
 use isonomic_ui::{
     AnyElement, App, BoxShadow, ClickEvent, ElementId, Hsla, InteractiveElement as _, IntoElement,
     ParentElement, Pixels, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, relative,
+    StyleRefinement, Styled, Window, div, hsla, point, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{lifted_shadow, resting_shadow};
@@ -121,7 +121,6 @@ impl Disableable for Card {
 fn surface<E: Styled>(
     element: E,
     fill: Hsla,
-    edge: Hsla,
     ink: Hsla,
     radius: Pixels,
     shadow: Vec<BoxShadow>,
@@ -135,12 +134,9 @@ fn surface<E: Styled>(
         .p_4()
         .min_w_0()
         .rounded(radius)
-        .border_1()
-        .border_color(edge)
         .bg(fill)
         .text_color(ink)
         .text_body()
-        .line_height(relative(1.5))
         .shadow(shadow)
 }
 
@@ -148,17 +144,40 @@ impl RenderOnce for Card {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
-        let radius = theme.radius_lg;
-        let (fill, edge) = if self.selected {
-            (
-                theme.background.blend(theme.foreground.opacity(0.04)),
-                theme.border.blend(theme.foreground.opacity(0.12)),
-            )
+        let radius = if theme.radius_lg > px(0.) {
+            theme.radius_lg + px(2.)
         } else {
-            (theme.background, theme.border)
+            px(0.)
+        };
+        // A chosen card sinks: a faint fill and a firmer hairline, with only
+        // the contact shadow left under it. No card has a border.
+        let fill = if self.selected {
+            theme.background.blend(theme.foreground.opacity(0.03))
+        } else {
+            theme.background
         };
         let resting = if self.selected {
-            Vec::new()
+            let dark = theme.mode.is_dark();
+            vec![
+                BoxShadow {
+                    color: if dark {
+                        hsla(0., 0., 1., 0.2)
+                    } else {
+                        hsla(0., 0., 0., 0.14)
+                    },
+                    offset: point(px(0.), px(0.)),
+                    blur_radius: px(0.),
+                    spread_radius: px(0.5),
+                    inset: false,
+                },
+                BoxShadow {
+                    color: hsla(0., 0., 0., if dark { 0.3 } else { 0.05 }),
+                    offset: point(px(0.), px(1.)),
+                    blur_radius: px(1.),
+                    spread_radius: px(0.),
+                    inset: false,
+                },
+            ]
         } else {
             resting_shadow(cx)
         };
@@ -177,7 +196,7 @@ impl RenderOnce for Card {
             .chain(self.footer.map(IntoElement::into_any_element));
 
         let Some(on_click) = self.on_click else {
-            return surface(div().id(self.id), fill, edge, ink, radius, resting)
+            return surface(div().id(self.id), fill, ink, radius, resting)
                 .children(parts)
                 .refine_style(&self.style)
                 .into_any_element();
@@ -193,7 +212,6 @@ impl RenderOnce for Card {
         surface(
             Pressable::new(self.id).track_focus(&focus_handle),
             fill,
-            edge,
             ink,
             radius,
             resting,
