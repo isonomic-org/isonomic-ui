@@ -10,7 +10,7 @@ from the theme (`cx.theme()`); nothing hard-codes a colour, radius or duration.
 | Colour, light and dark | In the default theme |
 | Radius | In the default theme |
 | Typeface and icons | Bundled and on by default |
-| Type scale and control density | Specified below; not yet applied |
+| Type scale and control density | In the components |
 | Elevation, motion, focus | Specified below; components are being moved onto them |
 
 ## Principles
@@ -32,7 +32,7 @@ from the theme (`cx.theme()`); nothing hard-codes a colour, radius or duration.
 |---|---|---|
 | Background | `#ffffff` | `#121213` |
 | Foreground (ink) | `#1f1f1f` | `#e8e8e8` |
-| Muted foreground | `#8c8c8c` | `#808081` |
+| Muted foreground | `#707070` | `#8a8a8b` |
 | Border | black 8% | white 14% |
 | Input border | black 13% | white 20% |
 | Muted fill | black 3% | white 4% |
@@ -59,7 +59,7 @@ The primary action is ink on the surface, not a brand hue.
 |---|---|---|
 | Danger | `#c4320a` | `#ff8a7a` |
 | Warning | `#b25e00` | `#ffb35c` |
-| Success | `#1e8a4f` | `#7dcf9f` |
+| Success | `#1b8049` | `#7dcf9f` |
 | Info | `#0070d6` | `#4fb0fe` |
 | Text on status | `#ffffff` | `#161618` |
 
@@ -99,16 +99,20 @@ Used in order for chart series.
   serif family (`assets::SERIF`, the theme's `serif_font_family`), in
   regular or medium. Wordmarks, headings, greetings and interface text
   never do.
-- Target scale: 13px body at weight 400, 13px controls at weight 500, 20px
-  line height; 12px for small controls and captions.
+- Interface text: 14px on a 20px line, weight 400 for body and 500 for
+  control labels. Small controls and captions: 12px on 16px. Large controls:
+  16px on 24px. Code: 13px on 20px.
 - Headings step up in size, not weight: 15, 18, 24px at weight 600.
+- Every text colour meets 4.5:1 against the surface it sits on, in both
+  themes. Muted text is the lightest grey that does.
 
 ## Spacing and density
 
 - Everything sits on a 2px grid. The steps are 2, 4, 6, 8, 12, 16 and 24px.
-- Control heights: 24px small, 28px medium (the default), 32px large.
-- Horizontal padding in a control: 10px (8px beside a leading icon), 6px small,
-  12px large. The gap between an icon and its label is 6px.
+- Control heights: 20px extra small, 24px small, 32px medium (the default),
+  44px large. Icon buttons are square at the same heights.
+- Horizontal padding in a control: 10px medium, 8px small, 12px large, 4px
+  extra small. The gap between an icon and its label is 6px.
 
 ## Elevation
 
