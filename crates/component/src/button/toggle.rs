@@ -393,7 +393,6 @@ impl RenderOnce for ToggleGroup {
                     .children(self.items.into_iter().enumerate().map({
                         {
                             let on_change = on_change.clone();
-                            let checks = checks.clone();
                             move |(ix, item)| {
                                 let item = if !self.segmented || items_len == 1 {
                                     item
