@@ -158,9 +158,12 @@ impl RenderOnce for NoticeStack {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
-        let pill = theme.muted;
-        let radius = theme.radius_lg;
+        let pill = isonomic_ui::component::look::ink::wash_strong(cx);
+        let radius = if theme.radius_lg > px(0.) {
+            theme.radius_lg + px(2.)
+        } else {
+            px(0.)
+        };
         let shadow = resting_shadow(cx);
         let animate = !cx.reduce_motion();
 
@@ -183,8 +186,6 @@ impl RenderOnce for NoticeStack {
                 .bottom(PEEK * (behind - depth) as f32)
                 .h(px(40.))
                 .rounded(radius)
-                .border_1()
-                .border_color(line)
                 .bg(fill)
                 .shadow(shadow.clone())
         });
@@ -210,12 +211,9 @@ impl RenderOnce for NoticeStack {
             .gap_1()
             .p_4()
             .rounded(radius)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
             .text_body()
-            .line_height(relative(1.5))
             .shadow(shadow.clone())
             .child(
                 h_flex()
@@ -223,10 +221,11 @@ impl RenderOnce for NoticeStack {
                     .mb_1()
                     .child(div().when_some(front.badge, |this, badge| {
                         this.px_1p5()
+                            .py(px(2.))
                             .rounded(px(5.))
                             .bg(pill)
                             .text_color(quiet)
-                            .text_label_small()
+                            .text_eyebrow()
                             .child(badge.to_uppercase())
                     }))
                     .child(
@@ -238,7 +237,13 @@ impl RenderOnce for NoticeStack {
                             .on_click(dismiss),
                     ),
             )
-            .child(div().text_base().font_medium().child(front.title))
+            .child(
+                div()
+                    .text_size(px(15.))
+                    .line_height(px(24.))
+                    .font_medium()
+                    .child(front.title),
+            )
             .when_some(front.text, |this, text| {
                 this.child(div().text_color(quiet).child(text))
             })
@@ -246,8 +251,6 @@ impl RenderOnce for NoticeStack {
                 this.child(
                     h_flex().mt_2().child(
                         Button::new((self.id.clone(), "action"))
-                            .outline()
-                            .small()
                             .accessibility_label(if external {
                                 format!("{label}, opens outside the app")
                             } else {

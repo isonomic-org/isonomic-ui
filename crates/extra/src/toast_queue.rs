@@ -182,7 +182,6 @@ impl Render for ToastQueue {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
         let fill = theme.popover;
-        let line = theme.border;
         let quiet = theme.muted_foreground;
         let shadow = lifted_shadow(cx);
         let (shown, waiting) = shown_and_waiting(self.entries.len(), self.room);
@@ -208,8 +207,6 @@ impl Render for ToastQueue {
                     .gap_2()
                     .p_3()
                     .rounded(px(10.))
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(shadow.clone())
                     .role(if toast.tone == Tone::Danger {
