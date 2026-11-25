@@ -6,6 +6,7 @@ members = ["isonomic-app", "consumer"]
 [workspace.package]
 edition = "2024"
 publish = false
+license = "Apache-2.0"
 
 # The library workspace carries this patch; a separate workspace repeats it.
 [patch.crates-io]
