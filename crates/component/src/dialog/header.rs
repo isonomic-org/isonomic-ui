@@ -46,7 +46,7 @@ impl Styled for DialogHeader {
 impl RenderOnce for DialogHeader {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         v_flex()
-            .gap_2()
+            .gap_1()
             .refine_style(&self.style)
             .children(self.children)
     }

@@ -7,7 +7,8 @@ use gpui::prelude::FluentBuilder as _;
 use gpui::{
     AnyElement, App, DefiniteLength, Edges, ElementId, Entity, Global, Hsla,
     InteractiveElement as _, IntoElement, MouseButton, ParentElement as _, Rems, RenderOnce, Role,
-    SharedString, StyleRefinement, Styled, TextAlign, TouchPhase, Window, div, px, relative,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, TextAlign, TouchPhase,
+    Window, div, px, relative,
 };
 
 use crate::button::{Button, ButtonRounded, ButtonVariants as _};
@@ -15,7 +16,7 @@ use crate::input::clear_button;
 use crate::native_menu::NativeMenu;
 use crate::spinner::Spinner;
 use crate::touch_selection::{EditMenuItem, TouchSelectionOverlay};
-use crate::{ActiveTheme, Colorize, v_flex};
+use crate::{ActiveTheme, v_flex};
 use crate::{IconName, Size};
 use crate::{RoleOverride, Selectable, StyledExt, h_flex};
 use crate::{Sizable, StyleSized};
@@ -25,7 +26,6 @@ use rust_i18n::t;
 
 use super::state::{TextInputState, sync_focused_input_registry};
 use super::{InputContentType, InputState, sync_native_content_type};
-use crate::ThemeStyled as _;
 
 /// Set when the platform draws the touch selection UI of a focused input.
 #[derive(Default)]
@@ -123,7 +123,12 @@ fn exposes_accessibility_value(content_type: Option<InputContentType>) -> bool {
 pub(crate) fn input_style(disabled: bool, cx: &App) -> (Hsla, Hsla) {
     if disabled {
         (
-            cx.theme().input.mix_oklab(cx.theme().transparent, 0.8),
+            // A disabled field sits back as a faint wash, not a grey slab.
+            if cx.theme().mode.is_dark() {
+                gpui::hsla(0., 0., 1., 0.03)
+            } else {
+                gpui::hsla(0., 0., 0., 0.02)
+            },
             cx.theme().muted_foreground,
         )
     } else {
@@ -735,11 +740,6 @@ impl RenderOnce for Input {
         } else {
             bg
         };
-        let bg = if presentation.is_disabled() {
-            bg.opacity(0.5)
-        } else {
-            bg
-        };
         let prefix = self.prefix;
         let suffix = self.suffix;
         let show_clear_button = self.cleanable
@@ -771,6 +771,27 @@ impl RenderOnce for Input {
         let id = self
             .id
             .unwrap_or_else(|| ("input", state.entity_id()).into());
+        // A field is a raised surface: no border, a hairline ring that firms
+        // under the pointer and steps to a full pixel with the caret in it.
+        let boxed = self.appearance && self.bordered;
+        let hover_state = window.use_keyed_state(
+            ElementId::NamedChild(std::sync::Arc::new(id.clone()), "hovered".into()),
+            cx,
+            |_, _| false,
+        );
+        let hovered = boxed && !disabled && *hover_state.read(cx);
+        let fade = crate::look::hover_fade(id.clone(), hovered, window, cx);
+        let field_shadow = boxed.then(|| {
+            if focused && self.focus_bordered {
+                crate::look::surface::field_focus(cx)
+            } else {
+                crate::look::mix_shadows(
+                    &crate::look::surface::field(cx),
+                    &crate::look::surface::field_hover(cx),
+                    fade,
+                )
+            }
+        });
         BaseInput::new(id)
             .semantic_owner(state.entity_id())
             .focused(focused)
@@ -788,13 +809,17 @@ impl RenderOnce for Input {
             .when(disabled, |this| {
                 this.capture_any_mouse_down(|_, _, cx| cx.stop_propagation())
             })
-            .styles(|styles| {
-                styles.focused(|style| {
-                    style.when(
-                        self.appearance && self.bordered && self.focus_bordered,
-                        |style| style.border_1().border_color(cx.theme().ring),
-                    )
-                })
+            .on_hover({
+                move |hovered, window, cx| {
+                    let hovered = *hovered;
+                    hover_state.update(cx, |state, cx| {
+                        if *state != hovered {
+                            *state = hovered;
+                            cx.notify();
+                        }
+                    });
+                    window.refresh();
+                }
             })
             // The editor owns text semantics. The frame still scopes addon
             // controls, custom IDs and focus styling without registering the
@@ -815,18 +840,12 @@ impl RenderOnce for Input {
             })
             .when(self.appearance, |this| {
                 this.bg(bg)
-                    .rounded(cx.theme().radius)
-                    .when(self.bordered, |this| {
-                        this.border_1().border_color(cx.theme().input)
-                    })
+                    .rounded(cx.theme().radius + px(1.))
+                    .when_some(field_shadow, |this, shadow| this.shadow(shadow))
             })
             .items_center()
             .gap(gap_x)
             .refine_style(&self.style)
-            .when(
-                focused && self.appearance && self.bordered && self.focus_bordered,
-                |this| this.focus_ring_style(window, cx),
-            )
             .children(prefix.map(|p| {
                 div()
                     .when(presentation.is_disabled(), |this| this.opacity(0.5))

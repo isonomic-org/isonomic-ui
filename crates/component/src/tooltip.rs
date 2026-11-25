@@ -21,7 +21,7 @@ use isonomic_ui_base::{
 };
 
 use crate::{
-    ActiveTheme, ElementExt as _, Placement, StyledExt,
+    ActiveTheme, ElementExt as _, Placement, StyledExt, TextRole as _,
     animation::{EffectTransition, ease_in_out_cubic, ease_out_cubic},
     kbd::Kbd,
     text::Text,
@@ -98,6 +98,24 @@ impl Styled for Tooltip {
         &mut self.style
     }
 }
+/// The tooltip's fill: the page's ink at near full strength.
+fn tooltip_fill(cx: &App) -> gpui::Hsla {
+    if cx.theme().mode.is_dark() {
+        gpui::hsla(0., 0., 0.98, 0.94)
+    } else {
+        gpui::hsla(240. / 360., 0.06, 0.1, 0.92)
+    }
+}
+
+/// The tooltip's text: the page's background colour.
+fn tooltip_ink(cx: &App) -> gpui::Hsla {
+    if cx.theme().mode.is_dark() {
+        gpui::hsla(240. / 360., 0.07, 0.07, 1.)
+    } else {
+        gpui::hsla(0., 0., 0.99, 1.)
+    }
+}
+
 impl Render for Tooltip {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let key_binding = if let Some(key_binding) = &self.key_binding {
@@ -114,24 +132,30 @@ impl Render for Tooltip {
             }
         };
 
+        let dark = cx.theme().mode.is_dark();
         div().child(
             // Wrap in a child, to ensure the left margin is applied to the tooltip
             BaseTooltip::new("tooltip-popup")
                 .h_flex()
                 .font_family(cx.theme().font_family.clone())
                 .m_3()
-                .bg(cx.theme().tokens.popover)
-                .text_color(cx.theme().popover_foreground)
-                .bg(cx.theme().tokens.popover)
-                .border_1()
-                .border_color(cx.theme().border)
-                .shadow_md()
+                // A tooltip is an inverted chip: near-black on a light page,
+                // near-white on a dark one, with no border and a short drop.
+                .bg(tooltip_fill(cx))
+                .text_color(tooltip_ink(cx))
+                .shadow(vec![gpui::BoxShadow {
+                    color: gpui::hsla(0., 0., 0., if dark { 0.6 } else { 0.24 }),
+                    offset: gpui::point(px(0.), px(4.)),
+                    blur_radius: px(6.),
+                    spread_radius: px(-4.),
+                    inset: false,
+                }])
                 .rounded(cx.theme().radius)
                 .justify_between()
-                .py_0p5()
+                .py_1()
                 .px_2()
-                .text_sm()
-                .gap_3()
+                .text_label_small()
+                .gap_1p5()
                 .refine_style(&self.style)
                 .map(|this| {
                     this.child(
@@ -149,9 +173,8 @@ impl Render for Tooltip {
                 .when_some(key_binding, |this, kbd| {
                     this.child(
                         div()
-                            .text_xs()
                             .flex_shrink_0()
-                            .text_color(cx.theme().muted_foreground)
+                            .text_color(tooltip_ink(cx).alpha(0.6))
                             .child(kbd.appearance(false)),
                     )
                 }),
@@ -162,7 +185,7 @@ impl Render for Tooltip {
 // ── Managed tooltip system ──────────────────────────────────────────────────
 
 /// Duration of the slide-down enter animation.
-const ENTER_DURATION: Duration = Duration::from_millis(150);
+const ENTER_DURATION: Duration = Duration::from_millis(140);
 /// Duration of the position-slide animation when switching tooltips.
 const SLIDE_DURATION: Duration = Duration::from_millis(200);
 
@@ -287,11 +310,23 @@ pub(crate) struct ComponentTooltip {
 impl ComponentTooltip {
     /// Apply this tooltip to a `Stateful<Div>` (or any `ManagedTooltipExt` element).
     pub fn apply<E: ManagedTooltipExt>(self, el: E) -> E {
+        self.apply_with_hover(el, None)
+    }
+
+    /// As [`Self::apply`], also calling `hover` on every hover change. With
+    /// no tooltip set, `hover` becomes the element's hover listener.
+    pub(crate) fn apply_with_hover<E: ManagedTooltipExt>(
+        self,
+        el: E,
+        hover: Option<HoverListener>,
+    ) -> E {
         let show_delay = self.show_delay;
         if let Some(builder) = self.builder {
-            el.managed_tooltip_with(None, show_delay, move |window, cx| builder(window, cx))
+            el.managed_tooltip_with_hover(None, show_delay, hover, move |window, cx| {
+                builder(window, cx)
+            })
         } else if let Some((text, action)) = self.text {
-            el.managed_tooltip_with(None, show_delay, move |window, cx| {
+            el.managed_tooltip_with_hover(None, show_delay, hover, move |window, cx| {
                 Tooltip::new(text.clone())
                     .when_some(action.clone(), |this, (action, context)| {
                         this.action(
@@ -301,6 +336,8 @@ impl ComponentTooltip {
                     })
                     .build(window, cx)
             })
+        } else if let Some(hover) = hover {
+            el.on_hover(move |hovered, window, cx| hover(hovered, window, cx))
         } else {
             el
         }
@@ -318,6 +355,10 @@ struct TooltipTrigger {
     lifetime: Weak<()>,
     bounds: Bounds<Pixels>,
 }
+
+/// A hover listener that can be shared between an element's own hover
+/// tracking and its tooltip.
+pub(crate) type HoverListener = Rc<dyn Fn(&bool, &mut Window, &mut App)>;
 
 pub(crate) trait ManagedTooltipExt:
     StatefulInteractiveElement + crate::ElementExt + Sized
@@ -343,6 +384,19 @@ pub(crate) trait ManagedTooltipExt:
         show_delay: Option<Duration>,
         build_tooltip: impl Fn(&mut Window, &mut App) -> AnyView + 'static,
     ) -> Self {
+        self.managed_tooltip_with_hover(preferred_placement, show_delay, None, build_tooltip)
+    }
+
+    /// As [`Self::managed_tooltip_with`], also calling `also` on every hover
+    /// change. GPUI keeps one hover listener per element, so an element that
+    /// tracks its own hover passes it here rather than registering a second.
+    fn managed_tooltip_with_hover(
+        self,
+        preferred_placement: Option<Placement>,
+        show_delay: Option<Duration>,
+        also: Option<HoverListener>,
+        build_tooltip: impl Fn(&mut Window, &mut App) -> AnyView + 'static,
+    ) -> Self {
         let build_tooltip = Rc::new(build_tooltip);
         let trigger = Rc::new(RefCell::new(TooltipTrigger::default()));
         let trigger_writer = trigger.clone();
@@ -364,6 +418,9 @@ pub(crate) trait ManagedTooltipExt:
         .on_hover({
             let trigger = trigger.clone();
             move |hovered, window, cx| {
+                if let Some(also) = &also {
+                    also(hovered, window, cx);
+                }
                 let trigger = trigger.borrow();
                 let Some(id) = trigger.id.as_ref() else {
                     return;

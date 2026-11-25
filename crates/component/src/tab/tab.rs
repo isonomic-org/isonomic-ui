@@ -4,7 +4,9 @@
 use std::{rc::Rc, time::Duration};
 
 use crate::animation::{Lerp, ease_in_out_cubic};
-use crate::{ActiveTheme, Icon, IconName, Selectable, Sizable, Size, StyledExt, h_flex};
+use crate::{
+    ActiveTheme, Icon, IconName, Selectable, Sizable, Size, StyledExt, TextRole as _, h_flex,
+};
 use gpui::prelude::FluentBuilder as _;
 use gpui::{
     Animation, AnimationExt as _, AnyElement, App, Background, ClickEvent, Edges, ElementId,
@@ -66,6 +68,15 @@ pub enum TabVariant {
 
 impl TabVariant {
     fn height(&self, size: Size) -> Pixels {
+        // A segmented bar is a control: 28px at medium, like a button.
+        if *self == TabVariant::Segmented {
+            return match size {
+                Size::XSmall => px(20.),
+                Size::Small => px(24.),
+                Size::Large => px(32.),
+                _ => px(28.),
+            };
+        }
         match size {
             Size::XSmall => match self {
                 TabVariant::Underline => px(26.),
@@ -87,6 +98,10 @@ impl TabVariant {
     }
 
     pub(super) fn inner_height(&self, size: Size) -> Pixels {
+        // The lifted pill sits 2px inside the segmented bar.
+        if *self == TabVariant::Segmented {
+            return self.height(size) - px(4.);
+        }
         match size {
             Size::XSmall => match self {
                 TabVariant::Tab | TabVariant::Outline | TabVariant::Pill => px(18.),
@@ -124,6 +139,15 @@ impl TabVariant {
         // A folder tab pads its content itself, see `FolderTabMetrics`.
         if matches!(self, TabVariant::Underline | TabVariant::Folder) {
             padding_x = px(0.);
+        }
+        // Segments pad like buttons of the same size.
+        if *self == TabVariant::Segmented {
+            padding_x = match size {
+                Size::XSmall => px(6.),
+                Size::Small => px(8.),
+                Size::Large => px(12.),
+                _ => px(10.),
+            };
         }
 
         Edges {
@@ -399,14 +423,14 @@ impl TabVariant {
     }
 
     pub(super) fn tab_bar_radius(&self, size: Size, cx: &App) -> Pixels {
-        if *self != TabVariant::Segmented {
+        if *self != TabVariant::Segmented || cx.theme().radius <= px(0.) {
             return px(0.);
         }
 
+        // One step rounder than the pill it holds.
         match size {
             Size::XSmall | Size::Small => cx.theme().radius,
-            Size::Large => cx.theme().radius_lg,
-            _ => cx.theme().radius_lg,
+            _ => cx.theme().radius + px(1.),
         }
     }
 
@@ -427,10 +451,7 @@ impl TabVariant {
             // The inset the active pill sits at, taken off the bar's own radius
             // so the two curves stay concentric. Floored at zero: a square bar
             // has nothing to inset from.
-            TabVariant::Segmented => match size {
-                Size::Large => (self.tab_bar_radius(size, cx) - px(3.)).max(px(0.)),
-                _ => (self.tab_bar_radius(size, cx) - px(2.)).max(px(0.)),
-            },
+            TabVariant::Segmented => (self.tab_bar_radius(size, cx) - px(1.)).max(px(0.)),
             _ => px(0.),
         }
     }
@@ -983,16 +1004,15 @@ impl RenderOnce for Tab {
                 Some(max_width) => this.flex_nowrap().max_w(max_width),
                 None => this.flex_wrap(),
             })
-            .gap_1()
+            .gap_1p5()
             .items_center()
             .flex_shrink_0()
             .h(height)
             // A folder tab's curves reach past its bounds.
             .when(!folder, |this| this.overflow_hidden())
             .map(|this| match self.size {
-                Size::XSmall => this.text_xs(),
-                Size::Large => this.text_base(),
-                _ => this.text_sm(),
+                Size::XSmall | Size::Small => this.text_label_small(),
+                _ => this.text_label(),
             })
             .rounded(radius)
             .when(folder, |this| {

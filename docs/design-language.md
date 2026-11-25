@@ -10,8 +10,8 @@ from the theme (`cx.theme()`); nothing hard-codes a colour, radius or duration.
 | Colour, light and dark | In the default theme |
 | Radius | In the default theme |
 | Typeface and icons | Bundled and on by default |
-| Type scale and control density | In the components |
-| Elevation, motion, focus | Specified below; components are being moved onto them |
+| Type scale and control density | Applied: text roles in `look::TextRole`, a 13/20 default line in the window root, button and field sizes |
+| Elevation, motion, focus | Raised and field surfaces and the hover fade live in `look`; components are being moved onto them (issue #396) |
 
 ## Principles
 
@@ -99,20 +99,34 @@ Used in order for chart series.
   serif family (`assets::SERIF`, the theme's `serif_font_family`), in
   regular or medium. Wordmarks, headings, greetings and interface text
   never do.
-- Interface text: 14px on a 20px line, weight 400 for body and 500 for
-  control labels. Small controls and captions: 12px on 16px. Large controls:
-  16px on 24px. Code: 13px on 20px.
+- Text roles (`look::TextRole`), each a size, a line height and a weight:
+
+| Role | Size / line | Weight | Used for |
+|---|---|---|---|
+| `text_body` | 13 / 20 | 400 | Running text; the window's default |
+| `text_label` | 13 / 20 | 500 | Control labels, row and card titles |
+| `text_caption` | 12 / 16 | 400 | Hints, meta, secondary lines |
+| `text_label_small` | 12 / 16 | 500 | Small controls |
+| `text_badge` | 11 / 16 | 500 | Counts and status pills |
+| `text_eyebrow` | 10 / 16 | 500 | Small section headings, in capitals, spaced |
+| `text_title` | 15 / 22 | 500 | Panel and dialog titles |
+
 - Headings step up in size, not weight: 15, 18, 24px at weight 600.
+- Ink levels (`look::ink`) are the foreground at fixed strengths: strong
+  (titles, values), muted (quiet controls at rest, about 61% black), icon,
+  subtle (hints, the muted-foreground token) and faint (shortcuts, counters).
 - Every text colour meets 4.5:1 against the surface it sits on, in both
   themes. Muted text is the lightest grey that does.
 
 ## Spacing and density
 
 - Everything sits on a 2px grid. The steps are 2, 4, 6, 8, 12, 16 and 24px.
-- Control heights: 20px extra small, 24px small, 32px medium (the default),
-  44px large. Icon buttons are square at the same heights.
-- Horizontal padding in a control: 10px medium, 8px small, 12px large, 4px
-  extra small. The gap between an icon and its label is 6px.
+- Button heights: 24px small, 28px medium (the default), 32px large. Text
+  fields are 32px at medium and 36px at large.
+- Horizontal padding in a button: 10px (8px beside a leading icon), 8px small
+  (6px beside an icon), 12px large (10px beside an icon). The gap between an
+  icon and its label is 6px, 4px in a small button. Icons are 16px, 14px in a
+  small button. A text field pads 10px each side.
 
 ## Elevation
 
@@ -121,8 +135,12 @@ drawn on raised surfaces.
 
 | Level | Used for | Shadow |
 |---|---|---|
-| Card | Raised controls, cards | 0.5px ring, plus 0 1px 2px at low alpha |
-| Popover | Menus, popovers, tooltips | 0.5px ring, plus 0 12px 32px -8px |
+| Card (`look::surface::resting`) | Raised controls, cards, the default button | 0.5px ring (black 6%, white 10% in dark), 0 1px 1px -1px at 10% and 0 1px 2px at 5%; the ring firms to 10% (16%) under the pointer |
+| Field (`look::surface::field`) | Text fields | 0.5px ring at 8% (14%), firming to 13% (20%) on hover and a full 1px at 28% (30%) with the caret in it; no blue halo |
+| Popover (`look::surface::floating`) | Menus, popovers, tooltips | 0.5px ring at 10%, plus 0 12px 32px -8px at 16% |
+
+GPUI's shadow blur is the gaussian's deviation, half of what CSS calls the
+blur radius, so `look` halves every CSS blur it stands for.
 | Modal | Dialogs, sheets | Popover shadow over a dimmed page |
 
 Stacking order, top first: modal, overlays, toasts, page.
@@ -133,10 +151,11 @@ Stacking order, top first: modal, overlays, toasts, page.
 |---|---|
 | Ease | `cubic-bezier(0.22, 1, 0.36, 1)` |
 | Spring (pop only) | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
-| Durations | 120, 160, 220, 320, 420ms |
+| Durations | 140 (fast), 200 (normal), 320ms (slow) in the theme's motion tokens |
 | Long duration | 600ms |
 
-- Hover and press: 120-160ms.
+- Hover: fills, ink and rings fade over 140ms on the plain ease curve
+  (`look::hover_fade`); they never snap.
 - Overlays rise 4px and fade in over 160-220ms.
 - A pop scales from 0.86 to 1 with the spring curve.
 - Rolling digits use the long duration with the ease curve, each digit

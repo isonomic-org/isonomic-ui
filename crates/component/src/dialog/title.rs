@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use gpui::{
-    AnyElement, App, IntoElement, ParentElement, RenderOnce, StyleRefinement, Styled, Window,
-    relative,
+    AnyElement, App, IntoElement, ParentElement, RenderOnce, StyleRefinement, Styled, Window, px,
 };
 use isonomic_ui_base::DialogTitle as BaseDialogTitle;
 
@@ -42,9 +41,9 @@ impl Styled for DialogTitle {
 impl RenderOnce for DialogTitle {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         self.base
-            .text_base()
-            .font_semibold()
-            .line_height(relative(1.25))
+            .text_size(px(15.))
+            .line_height(px(22.))
+            .font_weight(gpui::FontWeight::MEDIUM)
             .refine_style(&self.style)
             .children(self.children)
     }

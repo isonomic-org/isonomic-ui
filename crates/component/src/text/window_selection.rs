@@ -137,6 +137,8 @@ mod tests {
     impl Render for MixedAdapterView {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
                 .size_full()
                 .pt(px(10.))
                 .child(div().h(px(40.)).child(PlainSelectableText::new(
@@ -180,6 +182,8 @@ mod tests {
     impl Render for CrossRendererVirtualView {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
                 .size_full()
                 .pt(px(10.))
                 .child(
@@ -342,11 +346,16 @@ mod tests {
 
     impl Render for BaseOwnedTextViewSelection {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().pt(px(10.)).child(
-                div()
-                    .h(px(40.))
-                    .child(TextView::new(&self.text_view).selectable(true)),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .pt(px(10.))
+                .child(
+                    div()
+                        .h(px(40.))
+                        .child(TextView::new(&self.text_view).selectable(true)),
+                )
         }
     }
 
@@ -388,6 +397,8 @@ mod tests {
             // `suppress_text_selection` mechanism guarantees because blank-space
             // presses never set that flag.
             div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
                 .track_focus(&self.focus_handle)
                 .size_full()
                 .pt(self.top_offset)
@@ -618,44 +629,56 @@ mod tests {
 
     impl Render for SourceTextViewTest {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                div().h(px(60.)).child(
-                    TextView::new(&self.text_view)
-                        .selectable(true)
-                        .scrollable(true)
-                        .selection_format(crate::text::SelectionFormat::Source),
-                ),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    div().h(px(60.)).child(
+                        TextView::new(&self.text_view)
+                            .selectable(true)
+                            .scrollable(true)
+                            .selection_format(crate::text::SelectionFormat::Source),
+                    ),
+                )
         }
     }
 
     impl Render for ScrollableTextViewTest {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                div().h(px(60.)).child(
-                    TextView::new(&self.text_view)
-                        .selectable(true)
-                        .scrollable(true),
-                ),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    div().h(px(60.)).child(
+                        TextView::new(&self.text_view)
+                            .selectable(true)
+                            .scrollable(true),
+                    ),
+                )
         }
     }
 
     impl Render for AutoScrollTextViewTest {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                div()
-                    .debug_selector(|| "scrollable-text-view".into())
-                    .h(px(300.))
-                    .overflow_hidden()
-                    .child(
-                        TextView::new(&self.text_view)
-                            .flex_none()
-                            .px_5()
-                            .selectable(true)
-                            .scrollable(true),
-                    ),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    div()
+                        .debug_selector(|| "scrollable-text-view".into())
+                        .h(px(300.))
+                        .overflow_hidden()
+                        .child(
+                            TextView::new(&self.text_view)
+                                .flex_none()
+                                .px_5()
+                                .selectable(true)
+                                .scrollable(true),
+                        ),
+                )
         }
     }
 
@@ -833,27 +856,31 @@ mod tests {
     /// scrolls it.
     impl Render for PaddedReaderAutoScrollTest {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                div()
-                    .debug_selector(|| "reader".into())
-                    .flex()
-                    .flex_row()
-                    .h(px(300.))
-                    .min_w(px(0.))
-                    .overflow_hidden()
-                    .justify_center()
-                    .child(
-                        TextView::new(&self.text_view)
-                            .scrollable(true)
-                            .selectable(true)
-                            .px_5()
-                            .py_3()
-                            .h_full()
-                            .w_full()
-                            .max_w(relative(0.85))
-                            .mx_auto(),
-                    ),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    div()
+                        .debug_selector(|| "reader".into())
+                        .flex()
+                        .flex_row()
+                        .h(px(300.))
+                        .min_w(px(0.))
+                        .overflow_hidden()
+                        .justify_center()
+                        .child(
+                            TextView::new(&self.text_view)
+                                .scrollable(true)
+                                .selectable(true)
+                                .px_5()
+                                .py_3()
+                                .h_full()
+                                .w_full()
+                                .max_w(relative(0.85))
+                                .mx_auto(),
+                        ),
+                )
         }
     }
 
@@ -908,26 +935,30 @@ mod tests {
     // A TextView taller than its clipping ancestor.
     impl Render for ClippedReaderAutoScrollTest {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                div()
-                    .debug_selector(|| "reader".into())
-                    .flex()
-                    .flex_row()
-                    .h(px(300.))
-                    .min_w(px(0.))
-                    .overflow_hidden()
-                    .justify_center()
-                    .child(
-                        TextView::new(&self.text_view)
-                            .scrollable(true)
-                            .selectable(true)
-                            .h(px(600.))
-                            .flex_none()
-                            .w_full()
-                            .max_w(relative(0.85))
-                            .mx_auto(),
-                    ),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    div()
+                        .debug_selector(|| "reader".into())
+                        .flex()
+                        .flex_row()
+                        .h(px(300.))
+                        .min_w(px(0.))
+                        .overflow_hidden()
+                        .justify_center()
+                        .child(
+                            TextView::new(&self.text_view)
+                                .scrollable(true)
+                                .selectable(true)
+                                .h(px(600.))
+                                .flex_none()
+                                .w_full()
+                                .max_w(relative(0.85))
+                                .mx_auto(),
+                        ),
+                )
         }
     }
 
@@ -973,13 +1004,17 @@ mod tests {
 
     impl Render for PaddedScrollableTextViewTest {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                TextView::new(&self.text_view)
-                    .selectable(true)
-                    .scrollable(true)
-                    .h(px(300.))
-                    .p(px(100.)),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    TextView::new(&self.text_view)
+                        .selectable(true)
+                        .scrollable(true)
+                        .h(px(300.))
+                        .p(px(100.)),
+                )
         }
     }
 
@@ -1063,13 +1098,18 @@ mod tests {
 
     impl Render for InlineImageSourceTestView {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().pt(px(10.)).child(
-                div().h(px(80.)).child(
-                    TextView::new(&self.text_view)
-                        .selectable(true)
-                        .selection_format(crate::text::SelectionFormat::Source),
-                ),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .pt(px(10.))
+                .child(
+                    div().h(px(80.)).child(
+                        TextView::new(&self.text_view)
+                            .selectable(true)
+                            .selection_format(crate::text::SelectionFormat::Source),
+                    ),
+                )
         }
     }
 
@@ -1533,6 +1573,8 @@ mod tests {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             self.renders.set(self.renders.get() + 1);
             div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
                 .size_full()
                 .debug_selector(|| "cached-text-view".into())
                 .child(SelectionPaintProbe {
@@ -1544,11 +1586,15 @@ mod tests {
 
     impl Render for CachedPanelRoot {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                self.inner
-                    .clone()
-                    .cached(gpui::StyleRefinement::default().size_full()),
-            )
+            div()
+                .text_size(px(16.))
+                .line_height(gpui::relative(1.618))
+                .size_full()
+                .child(
+                    self.inner
+                        .clone()
+                        .cached(gpui::StyleRefinement::default().size_full()),
+                )
         }
     }
 

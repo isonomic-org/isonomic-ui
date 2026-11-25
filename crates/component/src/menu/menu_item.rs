@@ -1,11 +1,11 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{ActiveTheme, Disableable, StyledExt, h_flex};
+use crate::{ActiveTheme, Disableable, StyledExt, TextRole as _, h_flex};
 use gpui::{
     AnyElement, App, ClickEvent, ElementId, InteractiveElement, IntoElement, MouseButton,
     ParentElement, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Window, accesskit::Toggled, prelude::FluentBuilder as _,
+    StyleRefinement, Styled, Window, accesskit::Toggled, prelude::FluentBuilder as _, px,
 };
 use isonomic_ui_base::{LogicalStyledExt as _, TestSupportExt as _};
 use smallvec::SmallVec;
@@ -118,11 +118,11 @@ impl RenderOnce for MenuItemElement {
                     Toggled::False
                 })
             })
-            .gap_x_1()
+            .gap_x(px(9.))
             .py_1()
             .px_2()
-            .text_base()
-            .text_color(cx.theme().foreground)
+            .text_body()
+            .text_color(crate::look::ink::muted(cx))
             .relative()
             .items_center()
             .justify_between()
@@ -135,12 +135,12 @@ impl RenderOnce for MenuItemElement {
                 // element before registering its group, and that fallback keeps
                 // the pointer's item lit after a key moves the highlight away.
                 this.hover(|this| {
-                    this.bg(cx.theme().tokens.accent)
-                        .text_color(cx.theme().accent_foreground)
+                    this.bg(crate::look::ink::wash_strong(cx))
+                        .text_color(cx.theme().foreground)
                 })
                 .when(self.selected, |this| {
-                    this.bg(cx.theme().tokens.accent)
-                        .text_color(cx.theme().accent_foreground)
+                    this.bg(crate::look::ink::wash_strong(cx))
+                        .text_color(cx.theme().foreground)
                 })
                 .when_some(self.on_click, |this, on_click| {
                     this.on_mouse_down(MouseButton::Left, move |_, _, cx| {

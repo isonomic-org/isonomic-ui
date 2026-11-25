@@ -256,7 +256,41 @@ impl RenderOnce for Checkbox {
         } else {
             unchecked_border.opacity(0.5)
         };
-        let radius = cx.theme().radius.min(px(4.));
+        let radius = cx.theme().radius.min(px(4.5));
+        // The box is a recessed square: a 1px inner edge and a hairline drop.
+        // Checked, it fills with ink and loses the edge.
+        let dark = cx.theme().mode.is_dark();
+        let edge = |alpha: f32| gpui::BoxShadow {
+            color: if dark {
+                gpui::hsla(0., 0., 1., alpha + 0.04)
+            } else {
+                gpui::hsla(0., 0., 0., alpha)
+            },
+            offset: gpui::point(px(0.), px(0.)),
+            blur_radius: px(0.),
+            spread_radius: px(1.),
+            inset: true,
+        };
+        let drop = gpui::BoxShadow {
+            color: gpui::hsla(0., 0., 0., if dark { 0.3 } else { 0.04 }),
+            offset: gpui::point(px(0.), px(1.)),
+            blur_radius: px(0.5),
+            spread_radius: px(0.),
+            inset: false,
+        };
+        let hover_state = window.use_keyed_state(
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "hovered".into()),
+            cx,
+            |_, _| false,
+        );
+        let edge_alpha = 0.18
+            + 0.12
+                * crate::look::hover_fade(
+                    self.id.clone(),
+                    !self.disabled && *hover_state.read(cx),
+                    window,
+                    cx,
+                );
         let disabled_text_color = cx.theme().muted_foreground;
         let instance_style = self.style.clone();
         base.role(self.role)
@@ -284,7 +318,7 @@ impl RenderOnce for Checkbox {
             .h_flex()
             // The indicator leads, on the start edge.
             .flex_row_dir(cx)
-            .gap_2()
+            .gap_2p5()
             .items_start()
             .line_height(relative(1.))
             .text_color(cx.theme().foreground)
@@ -303,26 +337,23 @@ impl RenderOnce for Checkbox {
                     .disabled(self.disabled)
                     .relative()
                     .size(indicator_size)
-                    // Center on the first 1.25em line, including when the label wraps.
-                    .when(has_content, |this| this.mt(indicator_size * 0.125))
+                    // Center on the label's first 20px line, including when it wraps.
+                    .when(has_content, |this| {
+                        this.mt((px(20.) - indicator_size.to_pixels(window.rem_size())) / 2.)
+                    })
                     .flex_shrink_0()
-                    .border_1()
                     .rounded(radius)
                     .when(!checked, |this| {
-                        this.bg(cx.theme().input_background())
-                            .when(!self.disabled, |this| this.border_color(unchecked_border))
+                        this.bg(cx.theme().popover).shadow(vec![
+                            edge(if self.disabled { 0.1 } else { edge_alpha }),
+                            drop.clone(),
+                        ])
                     })
                     .styles(|styles| {
                         styles
-                            .checked(|style| {
-                                style
-                                    .border_color(checked_color)
-                                    .bg(cx.theme().tokens.primary)
-                            })
+                            .checked(|style| style.bg(cx.theme().tokens.primary).shadow(vec![]))
                             .disabled(|style| {
-                                style
-                                    .border_color(disabled_indicator_color)
-                                    .when(checked, |style| style.bg(disabled_indicator_color))
+                                style.when(checked, |style| style.bg(disabled_indicator_color))
                             })
                     })
                     .child(checkbox_check_icon(
@@ -339,8 +370,8 @@ impl RenderOnce for Checkbox {
                     v_flex()
                         .flex_1()
                         .overflow_hidden()
-                        .line_height(relative(1.25))
-                        .gap_1()
+                        .line_height(px(20.))
+                        .gap_0p5()
                         .map(|this| {
                             if let Some(label) = self.label {
                                 this.child(
@@ -364,7 +395,19 @@ impl RenderOnce for Checkbox {
                 // not move focus, including while disabled.
                 window.prevent_default();
             })
-            .map(|this| self.tooltip.apply(this))
+            .map(|this| {
+                let hover: crate::tooltip::HoverListener = Rc::new(move |hovered, window, cx| {
+                    let hovered = *hovered;
+                    hover_state.update(cx, |state, cx| {
+                        if *state != hovered {
+                            *state = hovered;
+                            cx.notify();
+                        }
+                    });
+                    window.refresh();
+                });
+                self.tooltip.apply_with_hover(this, Some(hover))
+            })
     }
 }
 

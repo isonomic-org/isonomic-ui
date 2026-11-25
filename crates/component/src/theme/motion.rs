@@ -29,11 +29,11 @@ impl Default for MotionTokens {
     fn default() -> Self {
         Self {
             duration_instant: Duration::ZERO,
-            duration_fast: Duration::from_millis(120),
-            duration_normal: Duration::from_millis(180),
-            duration_slow: Duration::from_millis(280),
+            duration_fast: Duration::from_millis(140),
+            duration_normal: Duration::from_millis(200),
+            duration_slow: Duration::from_millis(320),
             duration_long: Duration::from_millis(600),
-            easing_enter: Easing::cubic_bezier(0.16, 1.0, 0.3, 1.0)
+            easing_enter: Easing::cubic_bezier(0.22, 1.0, 0.36, 1.0)
                 .expect("static enter curve is valid"),
             easing_exit: Easing::cubic_bezier(0.4, 0.0, 1.0, 1.0)
                 .expect("static exit curve is valid"),

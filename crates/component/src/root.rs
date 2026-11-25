@@ -742,6 +742,11 @@ impl isonomic_ui_base::RootPlugin for WindowState {
         surface.style().refine(
             &gpui::StyleRefinement::default()
                 .font_family(cx.theme().font_family.clone())
+                // Body text: 13px on a 20px line. Text that sets its own size
+                // keeps this ratio, rather than GPUI's default of 1.618,
+                // which spaces every unstyled line too loosely.
+                .text_size(gpui::px(13.))
+                .line_height(gpui::relative(20. / 13.))
                 .bg(cx.theme().tokens.background)
                 .text_color(cx.theme().foreground)
                 .rounded_tl(radii.top_left)

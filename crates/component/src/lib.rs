@@ -67,6 +67,7 @@ pub mod label;
 pub mod link;
 pub mod list;
 pub mod loading_overlay;
+pub mod look;
 pub mod marker;
 pub mod menu;
 pub mod message;
@@ -124,6 +125,7 @@ pub use isonomic_ui_base::{
     Placement, Side, measure, measure_if,
 };
 pub use isonomic_ui_macros::icon_named;
+pub use look::TextRole;
 pub use resizable::{
     ResizablePanel, ResizablePanelEvent, ResizablePanelGroup, ResizableState, h_resizable,
     resizable_panel, resize_handle, resize_handle_appearance, v_resizable,
