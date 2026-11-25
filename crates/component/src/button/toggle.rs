@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use isonomic_ui_base::LogicalStyledExt as _;
-use std::{cell::Cell, rc::Rc, time::Duration};
+use std::{rc::Rc, time::Duration};
 
 use gpui::{
     AnyElement, App, Axis, Corners, Edges, ElementId, InteractiveElement, IntoElement,
-    ParentElement, RenderOnce, SharedString, StatefulInteractiveElement, StyleRefinement, Styled,
-    Window, prelude::FluentBuilder as _, relative,
+    ParentElement, RenderOnce, SharedString, StyleRefinement, Styled, Window,
+    prelude::FluentBuilder as _, relative,
 };
 use isonomic_ui_base::{Toggle as BaseToggle, ToggleGroup as BaseToggleGroup};
 use smallvec::{SmallVec, smallvec};
@@ -267,6 +267,7 @@ pub struct ToggleGroup {
     segmented: bool,
     single: bool,
     items: Vec<Toggle>,
+    accessibility_label: Option<SharedString>,
     on_click: Option<Rc<dyn Fn(&Vec<bool>, &mut Window, &mut App) + 'static>>,
 }
 
@@ -282,8 +283,15 @@ impl ToggleGroup {
             segmented: false,
             single: false,
             items: Vec::new(),
+            accessibility_label: None,
             on_click: None,
         }
+    }
+
+    /// Names the group for screen readers, such as "Text alignment".
+    pub fn accessibility_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.accessibility_label = Some(label.into());
+        self
     }
 
     /// Add a child [`Toggle`] to the group.
@@ -369,10 +377,13 @@ impl RenderOnce for ToggleGroup {
             .iter()
             .map(|item| item.checked)
             .collect::<Vec<bool>>();
-        let clicked_index = Rc::new(Cell::new(None));
+        let on_change = (!disabled).then_some(self.on_click).flatten();
 
         BaseToggleGroup::new(self.id)
             .axis(Axis::Horizontal)
+            .when_some(self.accessibility_label, |this, label| {
+                this.accessibility_label(label)
+            })
             .child(
                 crate::h_flex()
                     .flex_row_dir(cx)
@@ -381,7 +392,7 @@ impl RenderOnce for ToggleGroup {
                     .refine_style(&self.style)
                     .children(self.items.into_iter().enumerate().map({
                         {
-                            let clicked_index = clicked_index.clone();
+                            let on_change = on_change.clone();
                             move |(ix, item)| {
                                 let item = if !self.segmented || items_len == 1 {
                                     item
@@ -427,36 +438,33 @@ impl RenderOnce for ToggleGroup {
                                 };
 
                                 let effective_disabled = disabled || item.disabled;
-                                let clicked_index = clicked_index.clone();
+                                let on_change = on_change.clone();
+                                let checks = checks.clone();
+                                // The group reports from each toggle's own
+                                // activation, so a key press on a toggle reaches
+                                // it as a click does, and the group itself is
+                                // not something to press.
                                 item.disabled(effective_disabled)
                                     .with_size(self.size)
                                     .with_variant(self.variant)
-                                    .on_click(move |_, _, cx| {
-                                        clicked_index.set(Some(ix));
-                                        cx.propagate();
+                                    .on_click(move |_, window, cx| {
+                                        let Some(on_change) = on_change.as_ref() else {
+                                            return;
+                                        };
+                                        // A single group clears every other item;
+                                        // pressing its checked item still flips
+                                        // that one off.
+                                        let mut next = if single {
+                                            vec![false; checks.len()]
+                                        } else {
+                                            checks.clone()
+                                        };
+                                        next[ix] = !checks[ix];
+                                        on_change(&next, window, cx);
                                     })
                             }
                         }
                     })),
-            )
-            .when_some(
-                (!disabled).then_some(self.on_click).flatten(),
-                |this, on_click| {
-                    this.on_click(move |_, window, cx| {
-                        let Some(ix) = clicked_index.take() else {
-                            return;
-                        };
-                        // A single group clears every other item; clicking its
-                        // checked item still flips that one off.
-                        let mut next = if single {
-                            vec![false; checks.len()]
-                        } else {
-                            checks.clone()
-                        };
-                        next[ix] = !checks[ix];
-                        on_click(&next, window, cx);
-                    })
-                },
             )
     }
 }
@@ -626,14 +634,12 @@ mod tests {
     }
 
     #[gpui::test]
-    fn legacy_toggle_group_keyboard_click_does_not_reach_the_group_callback(
-        cx: &mut TestAppContext,
-    ) {
+    fn toggle_group_keyboard_press_reaches_the_group_callback(cx: &mut TestAppContext) {
         let (cx, child_clicks, changes) = toggle_group_harness(cx, true);
         cx.update(|window, cx| window.focus_next(cx));
         activate_key(cx, "enter");
         assert_eq!(child_clicks.get(), 0);
-        assert!(changes.borrow().is_empty());
+        assert_eq!(changes.borrow().as_slice(), &[vec![false, false]]);
     }
 
     /// Three 60 px items with no gap, so the pointer reaches each of them at

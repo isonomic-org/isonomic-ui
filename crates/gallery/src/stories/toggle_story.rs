@@ -117,6 +117,7 @@ impl Render for ToggleStory {
                             .child(div().text_sm().font_medium().child("Ghost"))
                             .child(
                                 ToggleGroup::new("ghost-group")
+                                    .accessibility_label("Text style")
                                     .with_size(self.size)
                                     .child(
                                         Toggle::new(0)
@@ -149,6 +150,7 @@ impl Render for ToggleStory {
                             .child(div().text_sm().font_medium().child("Outline"))
                             .child(
                                 ToggleGroup::new("outline-group")
+                                    .accessibility_label("Text style, outlined")
                                     .outline()
                                     .with_size(self.size)
                                     .child(
@@ -184,6 +186,7 @@ impl Render for ToggleStory {
                     .items_center()
                     .child(
                         ToggleGroup::new("segmented-group")
+                            .accessibility_label("Text style, segmented")
                             .segmented()
                             .outline()
                             .with_size(self.size)
@@ -205,6 +208,7 @@ impl Render for ToggleStory {
                     .gap_3()
                     .child(
                         ToggleGroup::new("period")
+                            .accessibility_label("Period")
                             .single()
                             .segmented()
                             .outline()
@@ -223,6 +227,7 @@ impl Render for ToggleStory {
                     )
                     .child(
                         ToggleGroup::new("density")
+                            .accessibility_label("Density")
                             .single()
                             .with_size(self.size)
                             .child(

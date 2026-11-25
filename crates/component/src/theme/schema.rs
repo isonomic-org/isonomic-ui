@@ -48,22 +48,23 @@ pub struct ThemeConfig {
     /// The mode of the theme, default is light.
     pub mode: ThemeMode,
 
-    /// The base font size, default is 16.
+    /// The base font size, default is 16. Interface text is set at 14 px
+    /// (0.875 of this size) and captions at 12 px.
     #[serde(rename = "font.size")]
     pub font_size: Option<f32>,
-    /// The base font family, default is system font: `.SystemUIFont`.
+    /// The interface font family, default is the bundled IBM Plex Sans.
     #[serde(rename = "font.family")]
     pub font_family: Option<SharedString>,
-    /// The monospace font family, default is platform specific:
-    /// - macOS: `Menlo`
-    /// - Windows: `Consolas`
-    /// - Linux: `DejaVu Sans Mono`
+    /// The font family for code, default is the bundled IBM Plex Mono.
     ///
-    /// The default falls back to an installed monospace font, then to
-    /// `.SystemUIFont`, when the machine lacks it. A family named here is used
-    /// as-is, so name one that is installed or embedded with `add_fonts`.
+    /// A family named here is used as-is, so name one that is installed or
+    /// embedded with `add_fonts`.
     #[serde(rename = "mono_font.family")]
     pub mono_font_family: Option<SharedString>,
+    /// The font family for long-form reading, such as an article body,
+    /// default is the bundled IBM Plex Serif. Interface text never uses it.
+    #[serde(rename = "serif_font.family")]
+    pub serif_font_family: Option<SharedString>,
     /// The monospace font size, default is 13.
     #[serde(rename = "mono_font.size")]
     pub mono_font_size: Option<f32>,
@@ -1115,6 +1116,9 @@ impl Theme {
         if let Some(mono_font_family) = &config.mono_font_family {
             self.mono_font_family = mono_font_family.clone();
         }
+        if let Some(serif_font_family) = &config.serif_font_family {
+            self.serif_font_family = serif_font_family.clone();
+        }
         if let Some(mono_font_size) = config.mono_font_size {
             self.mono_font_size = px(mono_font_size);
         }
@@ -1230,6 +1234,20 @@ mod tests {
         assert_eq!(theme.window_radius, px(0.));
         theme.apply_config(&std::rc::Rc::new(config));
         assert_eq!(theme.window_radius, px(10.));
+    }
+
+    #[test]
+    fn test_apply_config_reads_the_serif_family() {
+        let config = serde_json::from_value::<ThemeConfig>(serde_json::json!({
+            "name": "Reader",
+            "mode": "light",
+            "serif_font.family": "Reader Serif"
+        }))
+        .unwrap();
+        let mut theme = Theme::default();
+        assert_eq!(theme.serif_font_family.as_ref(), isonomic_ui_assets::SERIF);
+        theme.apply_config(&std::rc::Rc::new(config));
+        assert_eq!(theme.serif_font_family.as_ref(), "Reader Serif");
     }
 
     #[test]

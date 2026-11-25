@@ -2151,6 +2151,9 @@ struct TableColumnWidths {
     inline_code: HighlightStyle,
     /// Maxima from ordinary text only. Custom cells may shrink after an update.
     widths: Vec<f32>,
+    /// The widest single word of each column, with the cell's padding and
+    /// border: below this a column would break a word or number apart.
+    word_widths: Vec<f32>,
     custom_cells: Vec<(usize, usize)>,
 }
 
@@ -3554,6 +3557,7 @@ const CELL_BORDER_PX: f32 = 1.0; // border_r_1 drawn by every column but the las
 /// shaped with the runs the cell renders with, plus the cell's padding and
 /// border. Never capped: a cap would clip overflowing text *and* leave it
 /// outside the scrollable width, making it unreachable.
+#[cfg(test)]
 fn measure_table_columns(
     table: &Table,
     col_count: usize,
@@ -3561,6 +3565,18 @@ fn measure_table_columns(
     window: &mut Window,
     cx: &mut App,
 ) -> Vec<f32> {
+    measure_table_columns_and_words(table, col_count, node_cx, window, cx).0
+}
+
+/// Like [`measure_table_columns`], with the widest word of each column as
+/// well: the width below which a column would break a word apart.
+fn measure_table_columns_and_words(
+    table: &Table,
+    col_count: usize,
+    node_cx: &NodeContext,
+    window: &mut Window,
+    cx: &mut App,
+) -> (Vec<f32>, Vec<f32>) {
     let text_styles = TableTextStyles::new(&node_cx.style, window);
     let rem_size = window.rem_size();
     let mono_family = cx.theme().tokens.typography.mono;
@@ -3579,7 +3595,7 @@ fn measure_table_columns(
             .cloned()
     });
     let measured = cached.unwrap_or_else(|| {
-        let (widths, custom_cells) =
+        let (widths, word_widths, custom_cells) =
             measure_table_text_columns(table, col_count, &text_styles, node_cx, window, cx);
         let measured = Arc::new(TableColumnWidths {
             text_system: text_system_id(window),
@@ -3588,6 +3604,7 @@ fn measure_table_columns(
             mono_family,
             inline_code,
             widths,
+            word_widths,
             custom_cells,
         });
         if let Ok(mut cache) = table.column_widths_cache.0.lock() {
@@ -3614,7 +3631,7 @@ fn measure_table_columns(
         };
         col_w[ix] = col_w[ix].max(f32::from(width) + CELL_PAD_PX + border);
     }
-    col_w
+    (col_w, measured.word_widths.clone())
 }
 
 // The first measurement still visits all ordinary cells. This cache avoids
@@ -3626,8 +3643,9 @@ fn measure_table_text_columns(
     node_cx: &NodeContext,
     window: &mut Window,
     cx: &mut App,
-) -> (Vec<f32>, Vec<(usize, usize)>) {
+) -> (Vec<f32>, Vec<f32>, Vec<(usize, usize)>) {
     let mut col_w = vec![CELL_MIN_PX; col_count];
+    let mut word_w = vec![0.0_f32; col_count];
     let mut custom_cells = Vec::new();
     for (row_ix, row) in table.children.iter().enumerate() {
         let text_style = text_styles.row(row_ix);
@@ -3670,6 +3688,18 @@ fn measure_table_text_columns(
                         })
                     })
                     .collect::<Vec<_>>();
+                // The widest word, so a narrow column wraps between words and
+                // never inside one.
+                let plain_runs = |len: usize| text_runs(len, text_style, &[]);
+                for word in line.split_whitespace() {
+                    let width = window
+                        .text_system()
+                        .layout_line(word, font_size, &plain_runs(word.len()), None)
+                        .width;
+                    if let Some(widest) = word_w.get_mut(ix) {
+                        *widest = widest.max(f32::from(width));
+                    }
+                }
                 let mut line_w = gpui::Pixels::ZERO;
                 for (range, scale) in
                     text_size_ranges(line.len(), &line_highlights, font_size, window.rem_size())
@@ -3700,7 +3730,16 @@ fn measure_table_text_columns(
             *slot = slot.max(w + CELL_PAD_PX + border);
         }
     }
-    (col_w, custom_cells)
+    for (ix, word) in word_w.iter_mut().enumerate() {
+        let border = if ix + 1 < col_count {
+            CELL_BORDER_PX
+        } else {
+            0.
+        };
+        // A column of words still fits within its own content width.
+        *word = (*word + CELL_PAD_PX + border).min(col_w[ix]);
+    }
+    (col_w, word_w, custom_cells)
 }
 
 impl Paragraph {
@@ -4186,9 +4225,11 @@ impl BlockNode {
     ///   [`Self::render_table_rows`]). Shrinking every column by the same
     ///   ratio would wrap the last word or character of a column that nearly
     ///   fits onto a line of its own.
-    /// - Narrower than the column floors: the default layout clips, while
-    ///   `style.table` overflow-x: scroll keeps the floors and scrolls
-    ///   horizontally, so no content ever becomes unreachable.
+    /// - Narrower than the column floors: the table keeps the floors and
+    ///   scrolls sideways, so no content is clipped. In the default layout a
+    ///   column's floor is its widest word, so text wraps between words and
+    ///   never inside a word or a number; `style.table` overflow-x: scroll
+    ///   raises the floors further, to about two lines of wrapping.
     ///
     /// `white_space: nowrap` on `style.table_cell` composes like in CSS: the
     /// refinement keeps cell text on a single line, and the scroll layout
@@ -4224,7 +4265,8 @@ impl BlockNode {
             .map(|row| row.children.len())
             .max()
             .unwrap_or(0);
-        let col_w = measure_table_columns(table, col_count, node_cx, window, cx);
+        let (col_w, word_w) =
+            measure_table_columns_and_words(table, col_count, node_cx, window, cx);
         let scroll = matches!(style.table().overflow.x, Some(Overflow::Scroll));
         let nowrap = style.table_cell().text.white_space == Some(WhiteSpace::Nowrap);
         let rem_size = window.rem_size();
@@ -4248,7 +4290,10 @@ impl BlockNode {
                         .clamp(CELL_WRAP_MIN_PX, CELL_WRAP_MAX_PX)
                         .min(w)
                 } else {
-                    w.min(wrap_min_px)
+                    // Wrap between words, never inside one: a column stops
+                    // shrinking at its widest word.
+                    let word = word_w.get(ix).copied().unwrap_or(0.) + padding_delta;
+                    w.min(wrap_min_px).max(word)
                 };
                 let divider = if ix + 1 < col_count {
                     CELL_BORDER_PX
@@ -4273,7 +4318,9 @@ impl BlockNode {
             .border_1()
             .border_color(style.border())
             .refine_style(style.table());
-        let body = if scroll {
+        // Both layouts scroll sideways once the columns reach their floors,
+        // so a narrow window never clips a column or breaks a word.
+        let body = {
             let scroll_handle = window
                 .use_keyed_state(
                     block_element_id("table-scroll", table.span, options.ix),
@@ -4308,16 +4355,6 @@ impl BlockNode {
                 div().min_w_full().w(px(min_total_w)).children(rows),
             )
             .into_any_element()
-        } else {
-            div()
-                // Scopes the row ids to this table, as the scroll area's id
-                // does, so rows of two tables never share hover state.
-                .id(block_element_id("table", table.span, options.ix))
-                .w_full()
-                .overflow_hidden()
-                .refine_style(&frame)
-                .children(rows)
-                .into_any_element()
         };
 
         div()
