@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -355,7 +356,7 @@ impl RenderOnce for CostBreakdownWaterfall {
                             .w(px(64.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if heavy { ink } else { quiet })
                             .child(measure_words(row.value, tokens)),
                     )
@@ -374,7 +375,7 @@ impl RenderOnce for CostBreakdownWaterfall {
                 .py_0p5()
                 .rounded(px(5.))
                 .cursor_pointer()
-                .text_xs()
+                .text_caption()
                 .when(active, |this| {
                     this.bg(fill).shadow(resting_shadow(cx)).font_medium()
                 })
@@ -410,11 +411,9 @@ impl RenderOnce for CostBreakdownWaterfall {
             .w_full()
             .max_w(px(760.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -447,7 +446,7 @@ impl RenderOnce for CostBreakdownWaterfall {
                     .h(px(30.))
                     .border_t_1()
                     .border_color(line)
-                    .child(div().w(px(190.)).flex_none().font_semibold().child("Total"))
+                    .child(div().w(px(190.)).flex_none().font_medium().child("Total"))
                     .child(
                         div()
                             .flex_1()
@@ -460,8 +459,7 @@ impl RenderOnce for CostBreakdownWaterfall {
                             .w(px(64.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
-                            .font_semibold()
+                            .text_label_small()
                             .child(measure_words(total, tokens)),
                     ),
             )
@@ -471,7 +469,7 @@ impl RenderOnce for CostBreakdownWaterfall {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(detail),
             )

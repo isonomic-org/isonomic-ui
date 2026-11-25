@@ -14,6 +14,7 @@ use std::{
     rc::Rc,
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -311,7 +312,7 @@ impl Render for IntegrationSettingsCard {
                                     .min_w_0()
                                     .truncate()
                                     .font_family(mono)
-                                    .text_xs()
+                                    .text_caption()
                                     .child(key.clone()),
                             )
                             .child(
@@ -329,7 +330,7 @@ impl Render for IntegrationSettingsCard {
                     )
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(warning)
                             .child("Copy it now. Once saved, only its last characters show."),
                     )
@@ -346,7 +347,7 @@ impl Render for IntegrationSettingsCard {
                     div()
                         .flex_1()
                         .font_family(mono)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(masked(key)),
                 )
@@ -410,55 +411,54 @@ impl Render for IntegrationSettingsCard {
                 menu
             });
 
-        let body = on.then(|| {
-            v_flex()
-                .child(section().child(label("API key")).child(key_row))
-                .child(
-                    section()
-                        .child(label("Site address"))
-                        .child(
-                            h_flex()
-                                .h(px(34.))
-                                .pl_3()
-                                .pr_2()
-                                .rounded(radius)
-                                .border_1()
-                                .border_color(if !site_ok && !site_empty {
-                                    danger
-                                } else {
-                                    line
-                                })
-                                .child(div().text_color(quiet).child("https://"))
-                                .child(
-                                    div()
-                                        .flex_1()
-                                        .child(Input::new(&self.site).appearance(false)),
-                                )
-                                .when(site_ok, |this| {
-                                    this.child(
-                                        Icon::new(IconName::Check).small().text_color(success),
+        let body =
+            on.then(|| {
+                v_flex()
+                    .child(section().child(label("API key")).child(key_row))
+                    .child(
+                        section()
+                            .child(label("Site address"))
+                            .child(
+                                h_flex()
+                                    .h(px(34.))
+                                    .pl_3()
+                                    .pr_2()
+                                    .rounded(radius)
+                                    .border_1()
+                                    .border_color(if !site_ok && !site_empty {
+                                        danger
+                                    } else {
+                                        line
+                                    })
+                                    .child(div().text_color(quiet).child("https://"))
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .child(Input::new(&self.site).appearance(false)),
                                     )
-                                }),
-                        )
-                        .map(|this| {
-                            if !site_ok && !site_empty {
-                                this.child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(danger)
-                                        .child("Enter a domain such as yourcompany.com"),
-                                )
-                            } else {
-                                this.children(
-                                    self.site_hint
-                                        .clone()
-                                        .map(|hint| div().text_xs().text_color(quiet).child(hint)),
-                                )
-                            }
-                        }),
-                )
-                .child(section().child(label("Time zone")).child(zone_picker))
-        });
+                                    .when(site_ok, |this| {
+                                        this.child(
+                                            Icon::new(IconName::Check).small().text_color(success),
+                                        )
+                                    }),
+                            )
+                            .map(|this| {
+                                if !site_ok && !site_empty {
+                                    this.child(
+                                        div()
+                                            .text_caption()
+                                            .text_color(danger)
+                                            .child("Enter a domain such as yourcompany.com"),
+                                    )
+                                } else {
+                                    this.children(self.site_hint.clone().map(|hint| {
+                                        div().text_caption().text_color(quiet).child(hint)
+                                    }))
+                                }
+                            }),
+                    )
+                    .child(section().child(label("Time zone")).child(zone_picker))
+            });
 
         let bar = (on && dirty).then(|| {
             h_flex()
@@ -472,7 +472,7 @@ impl Render for IntegrationSettingsCard {
                     h_flex()
                         .flex_1()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().size(px(6.)).rounded_full().bg(warning))
                         .child("Unsaved changes"),
@@ -499,11 +499,9 @@ impl Render for IntegrationSettingsCard {
             .w_full()
             .max_w(px(460.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.35))
             .overflow_hidden()
             .shadow(resting_shadow(cx))
@@ -534,20 +532,18 @@ impl Render for IntegrationSettingsCard {
                             .child(
                                 h_flex()
                                     .gap_1p5()
-                                    .child(
-                                        div().font_semibold().truncate().child(self.name.clone()),
-                                    )
+                                    .child(div().font_medium().truncate().child(self.name.clone()))
                                     .children(self.count.map(|count| {
                                         div()
                                             .px_1p5()
                                             .rounded(px(4.))
                                             .bg(chip)
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(quiet)
                                             .child(count.to_string())
                                     })),
                             )
-                            .child(div().text_xs().text_color(quiet).child(if on {
+                            .child(div().text_caption().text_color(quiet).child(if on {
                                 self.meta.clone().unwrap_or_default()
                             } else {
                                 SharedString::from(

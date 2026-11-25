@@ -12,9 +12,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
-    button::{Button, ButtonVariants as _},
+    button::{Button, ButtonCustomVariant, ButtonVariants as _},
     h_flex,
     kbd::Kbd,
     v_flex,
@@ -322,7 +323,6 @@ impl RenderOnce for PermissionPrompt {
         let success = theme.success;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
-        let ring = theme.ring;
 
         let scopes = offered_scopes(&self.scopes, self.risk);
         let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| PromptState {
@@ -407,11 +407,9 @@ impl RenderOnce for PermissionPrompt {
             .max_w(px(400.))
             .overflow_hidden()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(if focus.is_focused(window) { ring } else { line })
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx));
 
@@ -489,7 +487,13 @@ impl RenderOnce for PermissionPrompt {
                                                 .child(format!("· {}", self.action)),
                                         ),
                                 )
-                                .child(div().truncate().text_xs().text_color(quiet).child(note)),
+                                .child(
+                                    div()
+                                        .truncate()
+                                        .text_caption()
+                                        .text_color(quiet)
+                                        .child(note),
+                                ),
                         )
                         .child(
                             Button::new((self.id.clone(), "again"))
@@ -597,8 +601,7 @@ impl RenderOnce for PermissionPrompt {
                                 .rounded(radius)
                                 .border_1()
                                 .border_color(line)
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .text_color(quiet)
                                 .child(initials(&self.who)),
                         )
@@ -631,8 +634,7 @@ impl RenderOnce for PermissionPrompt {
                                 .px_1p5()
                                 .rounded(px(5.))
                                 .bg(color.opacity(0.16))
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .child(Icon::new(icon).size_3().text_color(color))
                                 .child(word)
                         })),
@@ -667,7 +669,7 @@ impl RenderOnce for PermissionPrompt {
                                     .rounded(px(4.))
                                     .border_1()
                                     .border_color(line)
-                                    .text_xs()
+                                    .text_caption()
                                     .child(self.items.len().to_string()),
                             ),
                     )
@@ -737,7 +739,7 @@ impl RenderOnce for PermissionPrompt {
                 .when(self.risk == PermissionRisk::Destructive, |this| {
                     this.child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("What cannot be undone is never allowed for good"),
                     )
@@ -748,16 +750,30 @@ impl RenderOnce for PermissionPrompt {
                         .gap_2()
                         .child(
                             Button::new((self.id.clone(), "deny"))
-                                .outline()
-                                .small()
+                                .large()
                                 .accessibility_label("Deny")
                                 .child(h_flex().gap_1p5().child("Deny").children(hint("escape")))
                                 .on_click(move |_, window, cx| deny(window, cx)),
                         )
                         .child({
-                            let button = Button::new((self.id.clone(), "allow")).small();
+                            let button = Button::new((self.id.clone(), "allow")).large();
+                            // Allowing something that cannot be undone is the one
+                            // place a danger action is solid.
+                            let on_fill = if self.risk == PermissionRisk::Destructive {
+                                cx.theme().danger_foreground
+                            } else {
+                                cx.theme().primary_foreground
+                            };
                             let button = if self.risk == PermissionRisk::Destructive {
-                                button.danger()
+                                let danger = cx.theme().danger;
+                                button.custom(
+                                    ButtonCustomVariant::new(cx)
+                                        .color(danger)
+                                        .solid(true)
+                                        .foreground(cx.theme().danger_foreground)
+                                        .hover(danger.opacity(0.9))
+                                        .active(danger.opacity(0.82)),
+                                )
                             } else {
                                 button.primary()
                             };
@@ -767,7 +783,13 @@ impl RenderOnce for PermissionPrompt {
                                     h_flex()
                                         .gap_1p5()
                                         .child(allow_label)
-                                        .children(hint("enter")),
+                                        // The hint takes the filled button's
+                                        // own ink so it sits on the colour
+                                        // instead of punching a grey hole in it.
+                                        .children(hint("enter").map(|kbd| {
+                                            kbd.bg(on_fill.opacity(0.16))
+                                                .text_color(on_fill.opacity(0.72))
+                                        })),
                                 )
                                 .on_click(move |_, window, cx| allow(window, cx))
                         }),

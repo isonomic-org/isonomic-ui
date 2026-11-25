@@ -13,6 +13,7 @@
 
 use std::time::{Duration, Instant};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -543,7 +544,7 @@ impl Render for StreamedAnswer {
                 .bg(palette[ix % palette.len()])
                 .text_color(isonomic_ui::white())
                 .text_size(px(size * 0.62))
-                .font_semibold()
+                .font_medium()
                 .map(|this| match &source.icon {
                     Some(icon) => this.child(
                         Icon::new(icon.clone())
@@ -591,7 +592,7 @@ impl Render for StreamedAnswer {
                 .child(
                     h_flex()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(mark(source, ix, 14.))
                         .child(
@@ -605,8 +606,7 @@ impl Render for StreamedAnswer {
                 )
                 .child(
                     div()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .line_height(relative(1.35))
                         .line_clamp(2)
                         .text_ellipsis()
@@ -653,8 +653,8 @@ impl Render for StreamedAnswer {
                                 this.all_sources = true;
                                 cx.notify();
                             }))
-                            .child(div().font_semibold().child(format!("+{hidden}")))
-                            .child(div().text_xs().text_color(quiet).child("more")),
+                            .child(div().font_medium().child(format!("+{hidden}")))
+                            .child(div().text_caption().text_color(quiet).child("more")),
                     )
                 })
         });
@@ -686,7 +686,7 @@ impl Render for StreamedAnswer {
                                 &mut glue,
                                 div()
                                     .whitespace_nowrap()
-                                    .when(*bold, |this| this.font_semibold().text_color(ink))
+                                    .when(*bold, |this| this.font_medium().text_color(ink))
                                     .child(word.to_string())
                                     .into_any_element(),
                                 !word.ends_with(' '),
@@ -717,8 +717,6 @@ impl Render for StreamedAnswer {
                                 .w(px(300.))
                                 .p_1()
                                 .rounded(radius)
-                                .border_1()
-                                .border_color(line)
                                 .bg(popover)
                                 .shadow(resting_shadow(cx))
                                 .children(known.iter().map(|ix| {
@@ -730,7 +728,7 @@ impl Render for StreamedAnswer {
                                         .child(
                                             h_flex()
                                                 .gap_1p5()
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(quiet)
                                                 .child(mark(source, *ix, 12.))
                                                 .child(
@@ -745,14 +743,13 @@ impl Render for StreamedAnswer {
                                         )
                                         .child(
                                             div()
-                                                .text_xs()
-                                                .font_semibold()
+                                                .text_label_small()
                                                 .text_color(ink)
                                                 .child(source.title.clone()),
                                         )
                                         .children(source.snippet.clone().map(|snippet| {
                                             div()
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(quiet)
                                                 .line_clamp(2)
                                                 .text_ellipsis()
@@ -771,7 +768,7 @@ impl Render for StreamedAnswer {
                                         .id(("answer-cite", this_chip))
                                         .px_1p5()
                                         .rounded(px(4.))
-                                        .text_xs()
+                                        .text_caption()
                                         .line_height(relative(1.5))
                                         .bg(if lit { accent.opacity(0.16) } else { chip })
                                         .text_color(if lit { accent } else { quiet })
@@ -880,8 +877,7 @@ impl Render for StreamedAnswer {
                 .child(
                     div()
                         .pb_1()
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .text_color(quiet)
                         .child("RELATED"),
                 )
@@ -911,96 +907,94 @@ impl Render for StreamedAnswer {
             })
             .unwrap_or_default();
         let thumbs = self.thumbs;
-        let actions = if done {
-            h_flex()
-                .gap_0p5()
-                .pt_2()
-                .border_t_1()
-                .border_color(line)
-                .child(
-                    Button::new("answer-copy")
-                        .ghost()
-                        .xsmall()
-                        .icon(if self.copied {
-                            IconName::Check
-                        } else {
-                            IconName::Copy
-                        })
-                        .accessibility_label("Copy the answer")
-                        .tooltip(if self.copied { "Copied" } else { "Copy" })
-                        .on_click(cx.listener(|this, _, _, cx| this.copy(cx))),
-                )
-                .child(
-                    Button::new("answer-regenerate")
-                        .ghost()
-                        .xsmall()
-                        .icon(IconName::RotateCw)
-                        .accessibility_label("Regenerate")
-                        .tooltip("Regenerate")
-                        .on_click(cx.listener(|_, _, _, cx| {
-                            cx.emit(StreamedAnswerEvent::Regenerate);
-                        })),
-                )
-                .child(
-                    Button::new("answer-up")
-                        .ghost()
-                        .xsmall()
-                        .icon(IconName::ThumbsUp)
-                        .accessibility_label("Good answer")
-                        .tooltip("Good answer")
-                        .when(thumbs == Some(true), |this| this.text_color(accent))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.thumbs = Some(true);
-                            this.reason = None;
-                            cx.emit(StreamedAnswerEvent::Feedback {
-                                up: true,
-                                reason: None,
-                            });
-                            cx.notify();
-                        })),
-                )
-                .child(
-                    Button::new("answer-down")
-                        .ghost()
-                        .xsmall()
-                        .icon(IconName::ThumbsDown)
-                        .accessibility_label("Bad answer")
-                        .tooltip("Bad answer")
-                        .when(thumbs == Some(false), |this| this.text_color(accent))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.thumbs = Some(false);
-                            this.reason = None;
-                            cx.notify();
-                        })),
-                )
-                .child(div().flex_1())
-                .child(
-                    div()
-                        .text_xs()
-                        .text_color(quiet)
-                        .child(match (thumbs, &self.reason) {
+        let actions =
+            if done {
+                h_flex()
+                    .gap_0p5()
+                    .pt_2()
+                    .border_t_1()
+                    .border_color(line)
+                    .child(
+                        Button::new("answer-copy")
+                            .ghost()
+                            .xsmall()
+                            .icon(if self.copied {
+                                IconName::Check
+                            } else {
+                                IconName::Copy
+                            })
+                            .accessibility_label("Copy the answer")
+                            .tooltip(if self.copied { "Copied" } else { "Copy" })
+                            .on_click(cx.listener(|this, _, _, cx| this.copy(cx))),
+                    )
+                    .child(
+                        Button::new("answer-regenerate")
+                            .ghost()
+                            .xsmall()
+                            .icon(IconName::RotateCw)
+                            .accessibility_label("Regenerate")
+                            .tooltip("Regenerate")
+                            .on_click(cx.listener(|_, _, _, cx| {
+                                cx.emit(StreamedAnswerEvent::Regenerate);
+                            })),
+                    )
+                    .child(
+                        Button::new("answer-up")
+                            .ghost()
+                            .xsmall()
+                            .icon(IconName::ThumbsUp)
+                            .accessibility_label("Good answer")
+                            .tooltip("Good answer")
+                            .when(thumbs == Some(true), |this| this.text_color(accent))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.thumbs = Some(true);
+                                this.reason = None;
+                                cx.emit(StreamedAnswerEvent::Feedback {
+                                    up: true,
+                                    reason: None,
+                                });
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        Button::new("answer-down")
+                            .ghost()
+                            .xsmall()
+                            .icon(IconName::ThumbsDown)
+                            .accessibility_label("Bad answer")
+                            .tooltip("Bad answer")
+                            .when(thumbs == Some(false), |this| this.text_color(accent))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.thumbs = Some(false);
+                                this.reason = None;
+                                cx.notify();
+                            })),
+                    )
+                    .child(div().flex_1())
+                    .child(div().text_caption().text_color(quiet).child(
+                        match (thumbs, &self.reason) {
                             (Some(false), None) => "What went wrong?".to_string(),
                             (Some(false), Some(reason)) => format!("Thanks, noted: {reason}"),
                             (Some(true), _) => "Thanks for the feedback".to_string(),
                             _ => took,
-                        }),
-                )
-                .into_any_element()
-        } else {
-            h_flex()
-                .pt_2()
-                .border_t_1()
-                .border_color(line)
-                .child(
-                    Button::new("answer-stop")
-                        .outline()
-                        .xsmall()
-                        .icon(IconName::Square)
-                        .label("Stop")
-                        .on_click(cx.listener(|this, _, _, cx| this.stop(cx))),
-                )
-                .into_any_element()
-        };
+                        },
+                    ))
+                    .into_any_element()
+            } else {
+                h_flex()
+                    .pt_2()
+                    .border_t_1()
+                    .border_color(line)
+                    .child(
+                        Button::new("answer-stop")
+                            .outline()
+                            .xsmall()
+                            .icon(IconName::Square)
+                            .label("Stop")
+                            .on_click(cx.listener(|this, _, _, cx| this.stop(cx))),
+                    )
+                    .into_any_element()
+            };
         let reasons = (thumbs == Some(false) && self.reason.is_none()).then(|| {
             h_flex()
                 .flex_wrap()
@@ -1028,20 +1022,18 @@ impl Render for StreamedAnswer {
             .max_w(px(640.))
             .gap_3()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.55))
             .when(self.framed, |this| {
                 this.p_4()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(resting_shadow(cx))
             })
             .child(
                 div()
                     .text_base()
-                    .font_semibold()
+                    .font_medium()
                     .line_height(relative(1.35))
                     .child(self.question.clone()),
             )
@@ -1049,7 +1041,7 @@ impl Render for StreamedAnswer {
             .child(
                 h_flex()
                     .gap_1p5()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .map(|this| {
                         if done {

@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -502,11 +503,9 @@ impl RenderOnce for FilterMenu {
             .w_full()
             .max_w(px(400.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -596,7 +595,7 @@ impl RenderOnce for FilterMenu {
                         .py_2()
                         .border_t_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(
                             h_flex()

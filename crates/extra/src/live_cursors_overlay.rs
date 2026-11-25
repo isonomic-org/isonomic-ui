@@ -12,6 +12,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -312,7 +313,7 @@ impl RenderOnce for LiveCursorsOverlay {
                     .unwrap_or_else(|| "away".into());
                 h_flex()
                     .gap_2()
-                    .text_xs()
+                    .text_caption()
                     .child(
                         div()
                             .size(px(20.))
@@ -370,7 +371,7 @@ impl RenderOnce for LiveCursorsOverlay {
                     .border_color(line)
                     .border_l_2()
                     .border_color(color(who))
-                    .text_xs()
+                    .text_caption()
                     .child(div().font_medium().child(name))
                     .child(
                         h_flex()
@@ -423,11 +424,9 @@ impl RenderOnce for LiveCursorsOverlay {
             .items_start()
             .flex_wrap()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 v_flex()
@@ -436,7 +435,7 @@ impl RenderOnce for LiveCursorsOverlay {
                     .max_w_full()
                     .gap_4()
                     .p_5()
-                    .child(div().text_lg().font_semibold().child(self.title.clone()))
+                    .child(div().text_lg().font_medium().child(self.title.clone()))
                     .children(paragraphs),
             )
             .child(
@@ -450,8 +449,7 @@ impl RenderOnce for LiveCursorsOverlay {
                     .border_color(line)
                     .child(
                         div()
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .text_color(quiet)
                             .child(format!("{} here", self.people.len())),
                     )
@@ -460,8 +458,7 @@ impl RenderOnce for LiveCursorsOverlay {
                         this.child(
                             div()
                                 .pt_2()
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .text_color(quiet)
                                 .child(format!("{} suggestions", self.suggestions.len())),
                         )
@@ -488,8 +485,7 @@ fn cursor(who: usize, people: &[Collaborator], color: Hsla, fill: Hsla) -> AnyEl
                 .rounded(px(3.))
                 .bg(color)
                 .text_color(fill)
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .whitespace_nowrap()
                 .child(name),
         )

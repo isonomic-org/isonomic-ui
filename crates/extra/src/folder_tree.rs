@@ -10,6 +10,7 @@
 
 use std::collections::HashSet;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, v_flex};
 use isonomic_ui::{
     App, Context, ElementId, EventEmitter, FocusHandle, Focusable, InteractiveElement as _,
@@ -256,7 +257,7 @@ impl Render for FolderTree {
                 .h(px(26.))
                 .pr_2()
                 .rounded(px(4.))
-                .text_sm()
+                .text_body()
                 .cursor_pointer()
                 .when(picked, |this| this.bg(picked_bg))
                 .when(picked && focused, |this| this.border_1().border_color(ring))
@@ -328,7 +329,12 @@ impl Render for FolderTree {
                 )
                 .child(div().flex_1().min_w_0().truncate().child(label))
                 .when_some(count, |this, count| {
-                    this.child(div().text_xs().text_color(quiet).child(count.to_string()))
+                    this.child(
+                        div()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(count.to_string()),
+                    )
                 })
         });
 

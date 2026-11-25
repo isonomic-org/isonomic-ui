@@ -14,6 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -515,7 +516,7 @@ impl RenderOnce for TaskInboxBoard {
                     .children(task.agent.clone().map(|agent| {
                         h_flex()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(Icon::new(IconName::Bot).xsmall())
                             .child(agent)
@@ -524,7 +525,7 @@ impl RenderOnce for TaskInboxBoard {
                         let last = at + 1 == task.steps.len();
                         h_flex()
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .child(div().flex_none().size(px(6.)).rounded_full().bg(if last {
                                 color
                             } else {
@@ -583,7 +584,7 @@ impl RenderOnce for TaskInboxBoard {
                             this.child(
                                 div()
                                     .flex_none()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(color)
                                     .child(state_words(task)),
                             )
@@ -591,7 +592,7 @@ impl RenderOnce for TaskInboxBoard {
                 )
                 .children(task.description.clone().map(|description| {
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .line_height(relative(1.45))
                         .line_clamp(if compact { 1 } else { 2 })
@@ -603,7 +604,7 @@ impl RenderOnce for TaskInboxBoard {
                         h_flex()
                             .gap_2()
                             .pt_1()
-                            .text_xs()
+                            .text_caption()
                             .child(div().flex_1().child(state))
                             .child(usage),
                     )
@@ -624,8 +625,7 @@ impl RenderOnce for TaskInboxBoard {
             h_flex()
                 .gap_2()
                 .px_1()
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .text_color(quiet)
                 .child(div().flex_1().child(section.heading()))
                 .child(
@@ -660,7 +660,7 @@ impl RenderOnce for TaskInboxBoard {
                                 div()
                                     .px_1()
                                     .py_2()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child("Nothing here"),
                             )
@@ -710,12 +710,12 @@ impl RenderOnce for TaskInboxBoard {
             .w_full()
             .gap_3()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.3))
             .child(
                 h_flex()
                     .gap_2()
-                    .child(div().flex_1().font_semibold().child(self.title))
+                    .child(div().flex_1().font_medium().child(self.title))
                     .child(
                         h_flex()
                             .gap_0p5()
@@ -731,7 +731,12 @@ impl RenderOnce for TaskInboxBoard {
                     ),
             )
             .child(body)
-            .child(div().text_xs().text_color(quiet).child(summary(&tasks)))
+            .child(
+                div()
+                    .text_caption()
+                    .text_color(quiet)
+                    .child(summary(&tasks)),
+            )
             .refine_style(&self.style)
     }
 }

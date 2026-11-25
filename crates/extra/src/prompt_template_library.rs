@@ -11,6 +11,7 @@
 
 use std::{collections::HashMap, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -579,7 +580,7 @@ impl Render for PromptTemplateLibrary {
                     .rounded(px(4.))
                     .bg(tone.opacity(0.13))
                     .text_color(tone)
-                    .text_xs()
+                    .text_caption()
                     .child(category)
             })
         };
@@ -627,10 +628,10 @@ impl Render for PromptTemplateLibrary {
                     .gap_1p5()
                     .px_1()
                     .pb_1()
-                    .child(div().font_semibold().child(self.title.clone()))
+                    .child(div().font_medium().child(self.title.clone()))
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(self.templates.len().to_string()),
                     ),
@@ -656,7 +657,7 @@ impl Render for PromptTemplateLibrary {
                     div()
                         .px_2()
                         .py_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child("No template matches"),
                 )
@@ -782,7 +783,7 @@ impl Render for PromptTemplateLibrary {
                                 .flex_1()
                                 .min_w_0()
                                 .truncate()
-                                .font_semibold()
+                                .font_medium()
                                 .child(template.title.clone()),
                         )
                         .children(tag(&template))
@@ -796,7 +797,7 @@ impl Render for PromptTemplateLibrary {
                             })))
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(format!("{filled} of {total} filled")),
                             )
@@ -806,13 +807,7 @@ impl Render for PromptTemplateLibrary {
                 .child(
                     v_flex()
                         .gap_1()
-                        .child(
-                            div()
-                                .text_xs()
-                                .font_medium()
-                                .text_color(quiet)
-                                .child("PREVIEW"),
-                        )
+                        .child(div().text_label_small().text_color(quiet).child("PREVIEW"))
                         .child(
                             div()
                                 .p_2p5()
@@ -860,11 +855,9 @@ impl Render for PromptTemplateLibrary {
             .w_full()
             .max_w(px(700.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .overflow_hidden()
             .shadow(resting_shadow(cx))
             .child(
@@ -881,7 +874,13 @@ impl Render for PromptTemplateLibrary {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .child(div().flex_1().text_xs().text_color(quiet).child(estimate))
+                    .child(
+                        div()
+                            .flex_1()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(estimate),
+                    )
                     .child(
                         Button::new("prompt-copy")
                             .outline()

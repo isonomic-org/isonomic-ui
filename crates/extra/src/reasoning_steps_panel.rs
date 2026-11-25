@@ -12,6 +12,7 @@
 use std::time::{Duration, Instant};
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     shimmer::ShimmerText, spinner::Spinner, tooltip::Tooltip, v_flex,
@@ -346,7 +347,7 @@ impl RenderOnce for ReasoningStepsPanel {
                 .border_1()
                 .border_color(line)
                 .bg(fill)
-                .text_xs()
+                .text_caption()
                 .text_color(ink)
                 .child(Icon::new(IconName::Globe).xsmall().text_color(quiet))
                 .child(div().max_w(px(220.)).truncate().child(source.title))
@@ -447,7 +448,7 @@ impl RenderOnce for ReasoningStepsPanel {
                                 .rounded(radius)
                                 .border_1()
                                 .border_color(line)
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .cursor_pointer()
                                 .child(format!("+{hidden} more"))
@@ -495,7 +496,7 @@ impl RenderOnce for ReasoningStepsPanel {
             .id(self.id.clone())
             .w_full()
             .max_w(px(520.))
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .text_color(ink)
             .child(h_flex().child(header))

@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -186,7 +187,7 @@ impl RenderOnce for PageNavigator {
                     div()
                         .id(child(format!("gap-{n}")))
                         .px_1()
-                        .text_sm()
+                        .text_body()
                         .text_color(quiet)
                         .role(Role::Label)
                         .aria_label("More pages")
@@ -242,7 +243,7 @@ impl RenderOnce for PageNavigator {
             .child(
                 h_flex()
                     .gap_2()
-                    .text_sm()
+                    .text_body()
                     .text_color(quiet)
                     .child(range_label(page, self.per_page, self.total))
                     .children(size_menu),

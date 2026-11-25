@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -289,11 +290,9 @@ impl RenderOnce for RunMonitorCard {
                 .pr_1()
                 .py_1p5()
                 .rounded(radius_lg)
-                .border_1()
-                .border_color(line)
                 .bg(fill)
                 .text_color(ink)
-                .text_sm()
+                .text_body()
                 .shadow(resting_shadow(cx))
                 .role(Role::Group)
                 .aria_label(format!(
@@ -321,7 +320,7 @@ impl RenderOnce for RunMonitorCard {
                                 .child(
                                     div()
                                         .flex_none()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child(clock(self.elapsed_secs)),
                                 ),
@@ -373,10 +372,10 @@ impl RenderOnce for RunMonitorCard {
             v_flex()
                 .flex_1()
                 .min_w(px(80.))
-                .child(div().text_xs().text_color(quiet).child(label))
+                .child(div().text_caption().text_color(quiet).child(label))
                 .child(
                     div()
-                        .font_semibold()
+                        .font_medium()
                         .when(warn, |this| this.text_color(danger))
                         .child(value),
                 )
@@ -387,11 +386,9 @@ impl RenderOnce for RunMonitorCard {
             .w_full()
             .max_w(px(420.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .role(Role::Group)
             .aria_label(format!("{}, {}", self.title, self.state.word()))
@@ -416,7 +413,7 @@ impl RenderOnce for RunMonitorCard {
                             .px_1p5()
                             .rounded(px(4.))
                             .bg(tint)
-                            .text_xs()
+                            .text_caption()
                             .text_color(tone_color)
                             .child(self.state.word()),
                     )
@@ -435,7 +432,7 @@ impl RenderOnce for RunMonitorCard {
                                 v_flex()
                                     .flex_1()
                                     .min_w_0()
-                                    .child(div().text_xs().text_color(quiet).child(
+                                    .child(div().text_caption().text_color(quiet).child(
                                         match self.state {
                                             MonitorState::Done => "Finished with",
                                             MonitorState::Failed => "Stopped at",
@@ -484,8 +481,7 @@ impl RenderOnce for RunMonitorCard {
                                 .child(
                                     div()
                                         .pt_2()
-                                        .text_xs()
-                                        .font_medium()
+                                        .text_label_small()
                                         .text_color(quiet)
                                         .child("Finished"),
                                 )
@@ -493,7 +489,7 @@ impl RenderOnce for RunMonitorCard {
                                     let tone = if step.ok { Tone::Success } else { Tone::Danger };
                                     h_flex()
                                         .gap_2()
-                                        .text_xs()
+                                        .text_caption()
                                         .child(
                                             Icon::new(if step.ok {
                                                 IconName::Check
@@ -515,7 +511,7 @@ impl RenderOnce for RunMonitorCard {
                                 .when(self.steps.len() > 5, |this| {
                                     this.child(
                                         div()
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(quiet)
                                             .child(format!("and {} earlier", self.steps.len() - 5)),
                                     )

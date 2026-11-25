@@ -9,6 +9,7 @@
 
 use std::{collections::HashMap, rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
@@ -471,7 +472,7 @@ impl RenderOnce for CheckpointTimeline {
             } else {
                 h_flex()
                     .gap_3()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .children(checkpoint.files.map(|files| {
                         h_flex()
@@ -628,11 +629,9 @@ impl RenderOnce for CheckpointTimeline {
             .w_full()
             .max_w(px(480.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill_color)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.3))
             .shadow(resting_shadow(cx))
             .child(
@@ -642,7 +641,7 @@ impl RenderOnce for CheckpointTimeline {
                     .pt_3()
                     .pb_2()
                     .child(Icon::new(IconName::Redo2).small().text_color(quiet))
-                    .child(div().flex_none().font_semibold().child(self.title))
+                    .child(div().flex_none().font_medium().child(self.title))
                     .children(self.task.map(|task| {
                         div()
                             .flex_1()
@@ -652,7 +651,13 @@ impl RenderOnce for CheckpointTimeline {
                             .child(task)
                     }))
                     .when(no_task, |this| this.child(div().flex_1()))
-                    .child(div().flex_none().text_xs().text_color(quiet).child(summary)),
+                    .child(
+                        div()
+                            .flex_none()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(summary),
+                    ),
             )
             .child(
                 div()
@@ -683,7 +688,7 @@ fn small_tag(label: String, bg: Hsla, color: Hsla) -> impl IntoElement {
         .px_1p5()
         .rounded(px(4.))
         .bg(bg)
-        .text_xs()
+        .text_caption()
         .text_color(color)
         .child(label)
 }

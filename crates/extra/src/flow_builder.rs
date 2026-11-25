@@ -20,6 +20,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     ThemeStyled as _,
@@ -443,7 +444,7 @@ impl Ctx<'_> {
             h_flex()
                 .flex_none()
                 .gap_1()
-                .text_xs()
+                .text_caption()
                 .text_color(color)
                 .child(icon)
                 .child(word),
@@ -520,7 +521,7 @@ impl Ctx<'_> {
                             .child(
                                 div()
                                     .flex_none()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(paint.quiet)
                                     .child(step.kind.word()),
                             )
@@ -530,7 +531,7 @@ impl Ctx<'_> {
                     .child(div().truncate().font_medium().child(step.title.clone()))
                     .children(step.detail.clone().map(|detail| {
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(paint.quiet)
                             .line_clamp(2)
                             .child(detail)
@@ -542,7 +543,7 @@ impl Ctx<'_> {
                             .py_0p5()
                             .rounded(px(5.))
                             .bg(paint.chip)
-                            .text_xs()
+                            .text_caption()
                             .text_color(color)
                             .line_clamp(2)
                             .child(text)
@@ -595,8 +596,7 @@ impl Ctx<'_> {
                                     } else {
                                         paint.chip
                                     })
-                                    .text_xs()
-                                    .font_medium()
+                                    .text_label_small()
                                     .child(label),
                             )
                             .child(self.lane(
@@ -740,7 +740,7 @@ impl RenderOnce for FlowBuilder {
                         .flex_1()
                         .min_w_0()
                         .truncate()
-                        .text_xs()
+                        .text_caption()
                         .text_color(paint.quiet)
                         .child(format!("{} {}", step.kind.word(), step.title)),
                 )
@@ -802,7 +802,7 @@ impl RenderOnce for FlowBuilder {
             .border_color(paint.line)
             .bg(paint.chip.opacity(0.35))
             .text_color(paint.ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .child(
                 h_flex()
@@ -824,7 +824,7 @@ impl RenderOnce for FlowBuilder {
                     .child(
                         div()
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if failed > 0 {
                                 paint.danger
                             } else {

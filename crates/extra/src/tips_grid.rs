@@ -8,6 +8,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -250,11 +251,9 @@ impl RenderOnce for TipsGrid {
             .w_full()
             .overflow_hidden()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .child(
@@ -277,7 +276,7 @@ impl RenderOnce for TipsGrid {
                     .child(
                         div()
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(format!("{done_count}/{total} done")),
                     ),

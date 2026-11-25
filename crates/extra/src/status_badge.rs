@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
 };
@@ -133,8 +134,7 @@ impl RenderOnce for StatusBadge {
             .rounded_full()
             .bg(bg)
             .text_color(fg)
-            .text_xs()
-            .font_medium()
+            .text_label_small()
             .role(Role::Status)
             .aria_label(match self.count {
                 Some(n) => format!(

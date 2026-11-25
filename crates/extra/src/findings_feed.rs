@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -318,13 +319,13 @@ impl RenderOnce for FindingsFeed {
             .border_b_1()
             .border_color(line)
             .child(Icon::new(IconName::Bot).small().text_color(accent))
-            .child(div().flex_none().font_semibold().child(self.title))
+            .child(div().flex_none().font_medium().child(self.title))
             .child(
                 div()
                     .flex_1()
                     .min_w_0()
                     .truncate()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(format!("{done} of {total} checks")),
             )
@@ -338,7 +339,7 @@ impl RenderOnce for FindingsFeed {
                         h_flex()
                             .flex_none()
                             .gap_1()
-                            .text_xs()
+                            .text_caption()
                             .text_color(tone(severity))
                             .child(div().size(px(6.)).rounded_full().bg(tone(severity)))
                             .child(count_words(count, severity))
@@ -423,7 +424,7 @@ impl RenderOnce for FindingsFeed {
                         .min_w_0()
                         .child(div().font_medium().truncate().child(worker.name.clone()))
                         .children(worker.step.clone().map(|step| {
-                            div().text_xs().text_color(quiet).truncate().child(
+                            div().text_caption().text_color(quiet).truncate().child(
                                 if worker.finished() {
                                     SharedString::from("Done")
                                 } else {
@@ -452,7 +453,7 @@ impl RenderOnce for FindingsFeed {
                         .flex_none()
                         .w(px(40.))
                         .text_right()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!(
                             "{}/{}",
@@ -466,7 +467,7 @@ impl RenderOnce for FindingsFeed {
                         .flex_none()
                         .w(px(26.))
                         .gap_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(if found > 0 {
                             tone(severity)
                         } else {
@@ -542,7 +543,7 @@ impl RenderOnce for FindingsFeed {
                         .flex_1()
                         .min_w_0()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().flex_none().child(who))
                         .children(finding.location.clone().map(|location| {
@@ -556,7 +557,7 @@ impl RenderOnce for FindingsFeed {
                 .child(
                     div()
                         .flex_none()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(ago_words(now.saturating_duration_since(finding.found_at))),
                 )
@@ -571,11 +572,9 @@ impl RenderOnce for FindingsFeed {
             .w_full()
             .max_w(px(640.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.3))
             .overflow_hidden()
             .shadow(resting_shadow(cx))
@@ -592,8 +591,7 @@ impl RenderOnce for FindingsFeed {
                             .px_4()
                             .pt_2p5()
                             .pb_1()
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .text_color(quiet)
                             .child(match &picked_name {
                                 Some(name) => format!("Found by {name}"),
@@ -626,7 +624,7 @@ impl RenderOnce for FindingsFeed {
                             div()
                                 .px_4()
                                 .py_2()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("Nothing found yet"),
                         )

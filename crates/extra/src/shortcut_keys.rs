@@ -8,6 +8,7 @@
 //! the steps of a sequence. Each step shows as key caps; a screen reader
 //! hears it in words, such as "Command K, then P".
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
@@ -166,7 +167,7 @@ impl RenderOnce for ShortcutKeys {
                 parts.push(
                     div()
                         .px_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child("or")
                         .into_any_element(),
@@ -177,7 +178,7 @@ impl RenderOnce for ShortcutKeys {
                     parts.push(
                         div()
                             .px_0p5()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("then")
                             .into_any_element(),
@@ -199,8 +200,7 @@ impl RenderOnce for ShortcutKeys {
                                 .border_b_2()
                                 .border_color(line)
                                 .bg(chip.opacity(0.5))
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .child(key_cap(k, platform).0)
                         }))
                         .into_any_element(),

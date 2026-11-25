@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -350,7 +351,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
                         .child(
                             div()
                                 .truncate()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(paint.quiet)
                                 .child(node.role.clone()),
                         ),
@@ -359,7 +360,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
         .child(
             h_flex()
                 .gap_1p5()
-                .text_xs()
+                .text_caption()
                 .child(div().flex_none().child(mark))
                 .child(
                     div()
@@ -373,7 +374,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
         .child(
             h_flex()
                 .gap_2()
-                .text_xs()
+                .text_caption()
                 .text_color(paint.quiet)
                 .child(format!("{} steps", node.steps))
                 .children(node.spent.clone())
@@ -494,14 +495,14 @@ impl RenderOnce for AgentHierarchyCards {
             .id(id.clone())
             .w_full()
             .gap_3()
-            .text_sm()
+            .text_body()
             .text_color(ctx.paint.ink)
             .role(Role::Tree)
             .aria_label(format!("{total} assistants, {summary}"))
             .child(
                 h_flex()
                     .gap_2()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(format!("{total} assistants"))
                     .when(!summary.is_empty(), |this| {

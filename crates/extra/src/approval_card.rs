@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -21,12 +22,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, Keystroke,
+    AnyElement, App, BoxShadow, ElementId, InteractiveElement as _, IntoElement, Keystroke,
     ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    Styled, Task, Window, div, point, prelude::FluentBuilder as _, px, relative,
 };
-
-use crate::common::resting_shadow;
 
 const SECOND: Duration = Duration::from_secs(1);
 /// The countdown turns to the warning colour from here on.
@@ -302,7 +301,6 @@ impl RenderOnce for ApprovalCard {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let chip = theme.muted;
         let warning = theme.warning;
         let danger = theme.danger;
@@ -387,18 +385,37 @@ impl RenderOnce for ApprovalCard {
             )
         });
 
+        // A request is a card with a hairline inner edge rather than a lift:
+        // it sits in a conversation, among messages, not above them.
+        let edge = |cx: &App| {
+            let ink = cx.theme().foreground;
+            vec![BoxShadow {
+                color: ink.alpha(
+                    ink.a
+                        * if cx.theme().mode.is_dark() {
+                            0.12
+                        } else {
+                            0.085
+                        },
+                ),
+                offset: point(px(0.), px(0.)),
+                blur_radius: px(0.),
+                spread_radius: px(1.),
+                inset: true,
+            }]
+        };
+        let hairline = isonomic_ui::component::look::ink::hairline(cx);
+        let muted = isonomic_ui::component::look::ink::muted(cx);
         let card = v_flex()
             .id(self.id.clone())
             .w_full()
             .max_w(px(440.))
-            .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
+            .rounded(radius_lg + px(6.))
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
-            .shadow(resting_shadow(cx));
+            .shadow(edge(cx));
 
         if status != ApprovalStatus::Pending {
             let approved = status == ApprovalStatus::Approved;
@@ -412,8 +429,8 @@ impl RenderOnce for ApprovalCard {
                 .child(
                     h_flex()
                         .gap_2p5()
-                        .h(px(44.))
-                        .px_3()
+                        .h(px(48.))
+                        .px_4()
                         .child(
                             Icon::new(if approved {
                                 IconName::CircleCheck
@@ -486,9 +503,9 @@ impl RenderOnce for ApprovalCard {
         };
 
         let (badge_color, badge_fill) = match self.risk {
-            Some(ApprovalRisk::High) => (danger, danger.opacity(0.14)),
-            Some(ApprovalRisk::Medium) => (warning, warning.opacity(0.18)),
-            _ => (quiet, chip),
+            Some(ApprovalRisk::High) => (danger, danger.opacity(0.1)),
+            Some(ApprovalRisk::Medium) => (warning, warning.opacity(0.12)),
+            _ => (muted, chip),
         };
         let hint = |keys: &'static str| {
             self.shortcuts
@@ -517,11 +534,11 @@ impl RenderOnce for ApprovalCard {
                 }
             }
         })
+        .p_4()
         .child(
             h_flex()
                 .items_start()
                 .gap_3()
-                .p_4()
                 .child(
                     div()
                         .flex()
@@ -529,9 +546,8 @@ impl RenderOnce for ApprovalCard {
                         .items_center()
                         .justify_center()
                         .size_8()
-                        .rounded(radius)
-                        .border_1()
-                        .border_color(line)
+                        .rounded(radius + px(3.))
+                        .shadow(edge(cx))
                         .text_color(quiet)
                         .child(Icon::new(self.icon).small()),
                 )
@@ -539,41 +555,54 @@ impl RenderOnce for ApprovalCard {
                     v_flex()
                         .flex_1()
                         .min_w_0()
-                        .child(div().truncate().font_medium().child(self.title))
+                        .pt(px(1.))
+                        .child(
+                            div()
+                                .truncate()
+                                .text_size(px(14.))
+                                .line_height(px(20.))
+                                .font_medium()
+                                .child(self.title),
+                        )
                         .children(self.description.map(|description| {
-                            div().truncate().text_color(quiet).child(description)
+                            div()
+                                .truncate()
+                                .mt(px(1.))
+                                .line_height(px(18.))
+                                .text_color(muted)
+                                .child(description)
                         })),
                 )
                 .children(self.risk.map(|risk| {
                     h_flex()
                         .flex_none()
-                        .gap_1()
-                        .px_1p5()
-                        .rounded(px(5.))
+                        .mt(px(1.))
+                        .h(px(22.))
+                        .px(px(7.))
+                        .rounded(radius)
                         .bg(badge_fill)
-                        .text_xs()
-                        .font_medium()
-                        .child(div().size(px(6.)).rounded(px(3.)).bg(badge_color))
+                        .text_color(badge_color)
+                        .text_label_small()
                         .child(risk.label())
                 })),
         )
         .when(has_preview, |this| {
             this.child(
                 v_flex()
-                    .gap_2()
-                    .mx_4()
-                    .py_3()
+                    .gap_1p5()
+                    .mt(px(14.))
+                    .pt(px(14.))
                     .border_t_1()
-                    .border_color(line)
+                    .border_color(hairline)
                     .children(self.preview)
                     .children(self.details.into_iter().map(|(label, value)| {
                         h_flex()
                             .items_start()
-                            .gap_3()
+                            .gap_4()
                             .child(
                                 div()
                                     .flex_none()
-                                    .w(px(72.))
+                                    .w(px(56.))
                                     .truncate()
                                     .text_color(quiet)
                                     .child(label),
@@ -585,16 +614,17 @@ impl RenderOnce for ApprovalCard {
         .child(
             h_flex()
                 .flex_wrap()
-                .gap_2()
-                .px_4()
-                .py_3()
+                .gap_x_3()
+                .gap_y_2()
+                .mt_4()
+                .pt(px(14.))
                 .border_t_1()
-                .border_color(line)
+                .border_color(hairline)
                 .when(self.allow_always, |this| {
                     // Never narrower than its label: in a narrow card the
                     // buttons move to a row of their own instead.
                     this.child(
-                        div().flex_1().min_w(px(200.)).child(
+                        div().flex_none().text_color(muted).child(
                             Checkbox::new((self.id.clone(), "always"))
                                 .label(self.always_label)
                                 .checked(always)
@@ -617,11 +647,11 @@ impl RenderOnce for ApprovalCard {
                         .max_w_full()
                         .flex_wrap()
                         .justify_end()
-                        .gap_2()
+                        .gap_1()
                         .children(remaining.map(|left| {
                             div()
                                 .flex_none()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(if left <= URGENT_FROM { warning } else { quiet })
                                 .child(format!("Expires in {}", clock(left)))
                         }))
@@ -638,7 +668,6 @@ impl RenderOnce for ApprovalCard {
                         .child(
                             Button::new((self.id.clone(), "deny"))
                                 .ghost()
-                                .small()
                                 .disabled(self.busy)
                                 .accessibility_label(self.deny_label.clone())
                                 .child(
@@ -652,7 +681,6 @@ impl RenderOnce for ApprovalCard {
                         .child(
                             Button::new((self.id.clone(), "approve"))
                                 .primary()
-                                .small()
                                 .loading(self.busy)
                                 .accessibility_label(self.approve_label.clone())
                                 .child(

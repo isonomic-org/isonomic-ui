@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Selectable as _, Sizable as _, StyledExt as _,
     ThemeStyled as _,
@@ -385,7 +386,11 @@ impl RenderOnce for AutonomyLevelControl {
                         .min_w_0()
                         .child(div().truncate().child(action.label.clone()))
                         .children(action.detail.clone().map(|detail| {
-                            div().truncate().text_xs().text_color(quiet).child(detail)
+                            div()
+                                .truncate()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child(detail)
                         })),
                 )
                 .children(tag.map(|(word, color, icon)| {
@@ -395,8 +400,7 @@ impl RenderOnce for AutonomyLevelControl {
                         .px_1p5()
                         .rounded(px(5.))
                         .bg(color.opacity(0.16))
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .child(Icon::new(icon).size_3().text_color(color))
                         .child(word)
                 }))
@@ -457,7 +461,7 @@ impl RenderOnce for AutonomyLevelControl {
                                 .rounded(px(4.))
                                 .border_1()
                                 .border_color(line)
-                                .text_xs()
+                                .text_caption()
                                 .child(rows.len().to_string()),
                         ),
                 )
@@ -481,11 +485,9 @@ impl RenderOnce for AutonomyLevelControl {
             .w_full()
             .max_w(px(400.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -498,7 +500,12 @@ impl RenderOnce for AutonomyLevelControl {
                             .child(div().text_color(quiet).child(self.subtitle)),
                     )
                     .child(levels)
-                    .child(div().text_xs().text_color(quiet).child(level.meaning())),
+                    .child(
+                        div()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(level.meaning()),
+                    ),
             )
             .child(
                 v_flex()

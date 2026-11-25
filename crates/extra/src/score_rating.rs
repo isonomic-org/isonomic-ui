@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
 };
@@ -282,7 +283,7 @@ impl RenderOnce for ScoreRating {
             })
             .children(stars)
             .when_some(self.count, |this, count| {
-                this.child(div().ml_1().text_sm().text_color(quiet).child(format!(
+                this.child(div().ml_1().text_body().text_color(quiet).child(format!(
                     "{} ({count})",
                     if score > 0.0 {
                         format!("{score:.1}")

@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -227,8 +228,7 @@ impl RenderOnce for ProjectSummaryCard {
                 .border_color(fill)
                 .bg(chip)
                 .when(ix > 0, |this| this.ml(px(-6.)))
-                .text_xs()
-                .font_semibold()
+                .text_label_small()
                 .child(initials(name))
         }));
 
@@ -237,7 +237,7 @@ impl RenderOnce for ProjectSummaryCard {
             .px_1p5()
             .rounded(px(4.))
             .bg(tint)
-            .text_xs()
+            .text_caption()
             .text_color(tone_color)
             .child(div().size(px(6.)).rounded_full().bg(tone_color))
             .child(self.status.word());
@@ -271,11 +271,11 @@ impl RenderOnce for ProjectSummaryCard {
                         .flex_1()
                         .min_w_0()
                         .gap_1()
-                        .child(div().font_semibold().truncate().child(self.name.clone()))
+                        .child(div().font_medium().truncate().child(self.name.clone()))
                         .child(
                             h_flex()
                                 .gap_2()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .when(!self.open, |this| this.child(status_chip))
                                 .when(!self.due.is_empty(), |this| {
@@ -335,7 +335,7 @@ impl RenderOnce for ProjectSummaryCard {
                         .rounded_full()
                         .border_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .child(
                             div()
                                 .size(px(18.))
@@ -344,7 +344,7 @@ impl RenderOnce for ProjectSummaryCard {
                                 .justify_center()
                                 .rounded_full()
                                 .bg(chip)
-                                .text_xs()
+                                .text_caption()
                                 .child(initials(name)),
                         )
                         .child(name.clone())
@@ -422,7 +422,13 @@ impl RenderOnce for ProjectSummaryCard {
                 .child(
                     h_flex()
                         .gap_2()
-                        .child(div().w(px(64.)).text_xs().text_color(quiet).child("Status"))
+                        .child(
+                            div()
+                                .w(px(64.))
+                                .text_caption()
+                                .text_color(quiet)
+                                .child("Status"),
+                        )
                         .child(status_menu),
                 )
                 .child(
@@ -433,7 +439,7 @@ impl RenderOnce for ProjectSummaryCard {
                             div()
                                 .w(px(64.))
                                 .pt_0p5()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("People"),
                         )
@@ -448,7 +454,7 @@ impl RenderOnce for ProjectSummaryCard {
                                 .child(
                                     div()
                                         .w(px(64.))
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child("Subtasks"),
                                 )
@@ -463,7 +469,7 @@ impl RenderOnce for ProjectSummaryCard {
                                 )
                                 .child(
                                     div()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child(format!("{done}/{total}")),
                                 ),
@@ -477,11 +483,9 @@ impl RenderOnce for ProjectSummaryCard {
             .w_full()
             .max_w(px(520.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(head)
             .children(body)

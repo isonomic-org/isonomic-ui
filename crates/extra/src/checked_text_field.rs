@@ -9,8 +9,9 @@
 //! mistake clears at once. A good value shows a check; a bad one shows the
 //! first rule it breaks, in red, under the field.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, h_flex,
     input::{Input, InputEvent, InputState},
     v_flex,
 };
@@ -215,14 +216,13 @@ impl Render for CheckedTextField {
                     .justify_between()
                     .child(
                         div()
-                            .text_sm()
-                            .font_medium()
+                            .text_label()
                             .child(self.label.clone())
                             .when(self.rules.required, |this| {
                                 this.child(div().text_color(danger).child(" *"))
                             }),
                     )
-                    .children(count.map(|c| div().text_xs().text_color(quiet).child(c))),
+                    .children(count.map(|c| div().text_caption().text_color(quiet).child(c))),
             )
             .child(
                 Input::new(&self.field)
@@ -236,12 +236,14 @@ impl Render for CheckedTextField {
                 (Some(problem), _) => this.child(
                     h_flex()
                         .gap_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(danger)
                         .child(Icon::new(IconName::CircleAlert).xsmall())
                         .child(problem),
                 ),
-                (None, Some(hint)) => this.child(div().text_xs().text_color(quiet).child(hint)),
+                (None, Some(hint)) => {
+                    this.child(div().text_caption().text_color(quiet).child(hint))
+                }
                 (None, None) => this,
             })
     }

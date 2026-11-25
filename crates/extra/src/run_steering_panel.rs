@@ -10,6 +10,7 @@
 
 use std::time::{Duration, Instant};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -541,9 +542,9 @@ impl Render for RunSteeringPanel {
                 v_flex()
                     .flex_1()
                     .min_w_0()
-                    .child(div().font_semibold().child(self.title.clone()))
+                    .child(div().font_medium().child(self.title.clone()))
                     .child(
-                        div().text_xs().text_color(quiet).truncate().child(
+                        div().text_caption().text_color(quiet).truncate().child(
                             [
                                 self.agent.clone().map(String::from),
                                 position_words(&self.steps),
@@ -559,7 +560,7 @@ impl Render for RunSteeringPanel {
                 h_flex()
                     .flex_none()
                     .gap_1p5()
-                    .text_xs()
+                    .text_caption()
                     .child(div().size_2().rounded_full().bg(dot))
                     .child(format!("{state_words}, {}", clock(self.run_time()))),
             )
@@ -617,7 +618,7 @@ impl Render for RunSteeringPanel {
                     } else {
                         accent.opacity(0.06)
                     })
-                    .text_xs()
+                    .text_caption()
                     .child(div().flex_1().min_w_0().child(note.text.clone()))
                     .child(
                         div()
@@ -693,7 +694,7 @@ impl Render for RunSteeringPanel {
                                 .children(time.map(|time| {
                                     div()
                                         .flex_none()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .child(clock(time))
                                 })),
@@ -712,7 +713,7 @@ impl Render for RunSteeringPanel {
                 .child(
                     h_flex()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child("Waiting for the next step")
                         .child(
@@ -734,7 +735,13 @@ impl Render for RunSteeringPanel {
                         .pl_2()
                         .border_l_2()
                         .border_color(line)
-                        .child(div().flex_1().min_w_0().text_xs().child(note.text.clone()))
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .text_caption()
+                                .child(note.text.clone()),
+                        )
                         .child(
                             Button::new(("steer-now", ix))
                                 .ghost()
@@ -793,7 +800,7 @@ impl Render for RunSteeringPanel {
                 .child(
                     h_flex()
                         .gap_1()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(key_chip("Enter", line))
                         .child("next step")
@@ -813,11 +820,9 @@ impl Render for RunSteeringPanel {
             .w_full()
             .max_w(px(460.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .shadow(resting_shadow(cx))
             .child(header)

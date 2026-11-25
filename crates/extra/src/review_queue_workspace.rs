@@ -14,6 +14,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -442,7 +443,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                     .child(
                         div()
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(proposal.age.clone()),
                     )
@@ -507,8 +508,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                                 .px_1p5()
                                 .rounded(px(5.))
                                 .bg(risk_color(proposal.risk, cx).opacity(0.14))
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .child(
                                     div()
                                         .size(px(6.))
@@ -522,7 +522,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                                 .flex_1()
                                 .min_w_0()
                                 .truncate()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(format!("{} \u{b7} {} ago", proposal.source, proposal.age)),
                         ),
@@ -530,7 +530,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                 .child(
                     div()
                         .text_base()
-                        .font_semibold()
+                        .font_medium()
                         .line_height(relative(1.3))
                         .child(proposal.title.clone()),
                 )
@@ -553,7 +553,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                                         div()
                                             .w(px(110.))
                                             .flex_none()
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(quiet)
                                             .child(change.label.clone()),
                                     )
@@ -613,11 +613,9 @@ impl RenderOnce for ReviewQueueWorkspace {
             .w_full()
             .max_w(px(820.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .when(is_focused, |this| this.focus_ring_style(window, cx))
@@ -634,7 +632,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                             .gap_2()
                             .child(Icon::new(IconName::Inbox).small().text_color(quiet))
                             .child(div().flex_1().font_medium().child(self.title))
-                            .child(div().text_xs().text_color(quiet).child(if done {
+                            .child(div().text_caption().text_color(quiet).child(if done {
                                 format!("All {total} reviewed")
                             } else if high_open > 0 {
                                 format!("{} to go, {high_open} high risk", total - decided)
@@ -687,7 +685,7 @@ impl RenderOnce for ReviewQueueWorkspace {
                         .py_2()
                         .border_t_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(
                             Icon::new(IconName::CircleCheck)

@@ -7,6 +7,7 @@
 use std::rc::Rc;
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     avatar::Avatar, h_flex, progress::Progress, v_flex,
@@ -258,8 +259,7 @@ impl RenderOnce for ProfileMenu {
                                 .rounded(px(5.))
                                 .bg(alert_tint)
                                 .text_color(alert)
-                                .text_xs()
-                                .font_medium()
+                                .text_label_small()
                                 .child(badge),
                         )
                     })
@@ -326,7 +326,7 @@ impl RenderOnce for ProfileMenu {
             .border_1()
             .border_color(line)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .child(
                 h_flex()
                     .gap_3()

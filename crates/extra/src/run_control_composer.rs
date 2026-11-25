@@ -10,6 +10,7 @@
 //! runs, resume while paused, retry after a failure. The composer holds
 //! only the text being written; everything else comes from its owner.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -157,7 +158,6 @@ impl Render for RunControlComposer {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let chip = theme.muted;
         let radius_lg = theme.radius_lg;
         let phase = self.phase;
@@ -223,7 +223,7 @@ impl Render for RunControlComposer {
                     .pl_2()
                     .rounded(px(6.))
                     .bg(chip)
-                    .text_xs()
+                    .text_caption()
                     .child(div().text_color(quiet).child(format!("{}.", ix + 1)))
                     .child(div().min_w_0().truncate().child(text.clone()))
                     .child(
@@ -245,17 +245,15 @@ impl Render for RunControlComposer {
             .gap_2()
             .p_2()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
                     .gap_2()
                     .px_1()
-                    .text_xs()
+                    .text_caption()
                     .child(mark)
                     .child(div().font_medium().text_color(color).child(word))
                     .child(
@@ -275,7 +273,7 @@ impl Render for RunControlComposer {
                         .px_1()
                         .child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("Queued for the next step"),
                         )
@@ -297,7 +295,7 @@ impl Render for RunControlComposer {
                         div()
                             .flex_1()
                             .px_1()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(if live {
                                 "Enter queues it for the next step"

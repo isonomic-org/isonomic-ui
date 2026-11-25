@@ -17,6 +17,7 @@ use std::{
     sync::Arc,
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Rope, StyledExt as _, clipboard::Clipboard, h_flex,
     highlighter::SyntaxHighlighter, v_flex,
@@ -358,7 +359,7 @@ impl RenderOnce for CodeBlock {
                     .overflow_y_scroll()
                     .when_some(self.max_height, |this, max_height| this.max_h(max_height))
                     .font_family(mono)
-                    .text_xs()
+                    .text_caption()
                     .line_height(LINE_HEIGHT)
                     .child(body),
             )
@@ -386,7 +387,7 @@ fn header(
                 .flex_1()
                 .min_w_0()
                 .truncate()
-                .text_xs()
+                .text_caption()
                 .line_height(relative(1.35))
                 .font_medium()
                 .text_color(quiet)

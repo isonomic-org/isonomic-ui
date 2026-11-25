@@ -5,6 +5,7 @@
 
 use std::time::Duration;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, StyledExt as _, h_flex, v_flex};
 use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
@@ -261,11 +262,9 @@ impl RenderOnce for MetricChangeList {
             .max_w(px(480.))
             .overflow_hidden()
             .rounded(radius)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .child(
@@ -293,7 +292,7 @@ impl RenderOnce for MetricChangeList {
                             div()
                                 .max_w(relative(0.5))
                                 .truncate()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(period),
                         )

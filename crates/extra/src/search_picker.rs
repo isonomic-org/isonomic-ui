@@ -8,6 +8,7 @@
 //! in an empty field removes the last chip. When nothing matches exactly,
 //! the last row offers to create the typed name.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, h_flex,
     input::{Input, InputEvent, InputState},
@@ -189,7 +190,7 @@ impl Render for SearchPicker {
                         .h(px(22.))
                         .rounded(px(5.))
                         .bg(chip)
-                        .text_xs()
+                        .text_caption()
                         .child(p.clone())
                         .child(
                             div()
@@ -285,11 +286,9 @@ impl Render for SearchPicker {
             .gap_1p5()
             .p_1p5()
             .rounded(theme.radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .on_key_down(cx.listener(move |this, event: &KeyDownEvent, _, cx| {
                 match event.keystroke.key.as_str() {
@@ -330,7 +329,7 @@ impl Render for SearchPicker {
                             div()
                                 .px_2()
                                 .py_2()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("Nothing left to pick."),
                         )

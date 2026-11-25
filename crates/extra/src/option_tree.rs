@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -226,7 +227,7 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
         )
         .child(
             div()
-                .text_xs()
+                .text_caption()
                 .text_color(paint.quiet)
                 .line_height(relative(1.4))
                 .child(branch.detail.clone()),
@@ -234,7 +235,7 @@ fn node(tree: &OptionTree, paint: &Paint, branch: &Branch, top: bool, cx: &mut A
         .children(branch.risk_note.clone().zip(flag).map(|(note, color)| {
             h_flex()
                 .gap_1()
-                .text_xs()
+                .text_caption()
                 .text_color(color)
                 .child(Icon::new(IconName::TriangleAlert).xsmall())
                 .child(div().min_w_0().child(note))
@@ -344,11 +345,9 @@ impl RenderOnce for OptionTree {
             .id(self.id.clone())
             .w_full()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(paint.line)
             .bg(paint.fill)
             .text_color(paint.ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 v_flex()
@@ -357,8 +356,8 @@ impl RenderOnce for OptionTree {
                     .py_3()
                     .border_b_1()
                     .border_color(paint.line)
-                    .child(div().font_semibold().child(self.question.clone()))
-                    .child(div().text_xs().text_color(paint.quiet).child(format!(
+                    .child(div().font_medium().child(self.question.clone()))
+                    .child(div().text_caption().text_color(paint.quiet).child(format!(
                         "{} options{}",
                         self.options.len(),
                         if flagged > 0 {

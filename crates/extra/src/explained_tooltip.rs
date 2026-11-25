@@ -8,6 +8,7 @@
 //! reason instead and the note leads with it, so people learn why rather
 //! than guessing. Long notes wrap at a readable width.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, tooltip::Tooltip,
     v_flex,
@@ -122,7 +123,7 @@ impl RenderOnce for ExplainedTooltip {
                             h_flex()
                                 .gap_3()
                                 .justify_between()
-                                .child(div().text_sm().font_medium().child(title.clone()))
+                                .child(div().text_body().font_medium().child(title.clone()))
                                 .when_some(shortcut.clone(), |this, keys| {
                                     this.child(ShortcutKeys::new(shortcut_id.clone(), keys))
                                 }),
@@ -132,14 +133,14 @@ impl RenderOnce for ExplainedTooltip {
                                 h_flex()
                                     .items_start()
                                     .gap_1()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(warning)
                                     .child(Icon::new(IconName::Info).xsmall())
                                     .child(div().flex_1().child(reason)),
                             )
                         })
                         .when_some(body.clone(), |this, body| {
-                            this.child(div().text_xs().text_color(quiet).child(body))
+                            this.child(div().text_caption().text_color(quiet).child(body))
                         })
                 })
                 .build(window, cx)

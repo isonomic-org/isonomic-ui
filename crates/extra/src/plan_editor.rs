@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -161,7 +162,7 @@ impl Render for DraggedStep {
             .border_1()
             .border_color(theme.border)
             .bg(theme.popover)
-            .text_sm()
+            .text_body()
             .text_color(theme.foreground)
             .shadow_md()
             .child(self.title.clone())
@@ -605,7 +606,7 @@ impl Render for PlanEditor {
                         .rounded_full()
                         .border_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child((ix + 1).to_string())
                         .into_any_element(),
@@ -687,7 +688,7 @@ impl Render for PlanEditor {
                                 .flex_wrap()
                                 .gap_x_1p5()
                                 .gap_y_0p5()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .children(step.detail.clone())
                                 .children(step.tool.clone().map(|tool| {
@@ -704,7 +705,7 @@ impl Render for PlanEditor {
                     .children(
                         step.error
                             .clone()
-                            .map(|error| div().text_xs().text_color(danger).child(error)),
+                            .map(|error| div().text_caption().text_color(danger).child(error)),
                     )
                     .children(retry.map(|retry| h_flex().pt_1().child(retry)));
 
@@ -781,7 +782,7 @@ impl Render for PlanEditor {
                                 div()
                                     .flex_none()
                                     .pt_0p5()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(if step.status == PlanStepStatus::Running {
                                         ink
                                     } else {
@@ -815,7 +816,7 @@ impl Render for PlanEditor {
                         .flex_1()
                         .min_w_0()
                         .truncate()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child("Drag to move, Enter to rename"),
                 )
@@ -860,14 +861,14 @@ impl Render for PlanEditor {
                 };
                 h_flex()
                     .gap_2()
-                    .text_xs()
+                    .text_caption()
                     .child(Icon::new(icon).small().text_color(color))
                     .child(div().flex_1().text_color(color).child(words))
                     .child(div().text_color(quiet).child(clock(elapsed)))
             }
             PlanPhase::Finished => h_flex()
                 .gap_2()
-                .text_xs()
+                .text_caption()
                 .child(Icon::new(IconName::CircleCheck).small().text_color(success))
                 .child(div().flex_1().text_color(quiet).child(match self.run_took {
                     Some(took) => format!("Done in {}", clock(took)),
@@ -893,11 +894,9 @@ impl Render for PlanEditor {
             .w_full()
             .max_w(px(460.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .shadow(resting_shadow(cx))
             .child(
@@ -909,14 +908,14 @@ impl Render for PlanEditor {
                     .child(
                         h_flex()
                             .gap_1p5()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(Icon::new(IconName::Menu).xsmall())
                             .child(format!("Plan, {}", steps_words(total)))
                             .child(div().flex_1())
                             .when(review, |this| this.children(self.estimate.clone())),
                     )
-                    .child(div().text_base().font_semibold().child(self.title.clone())),
+                    .child(div().text_base().font_medium().child(self.title.clone())),
             )
             .child(
                 v_flex()

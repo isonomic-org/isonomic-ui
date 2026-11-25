@@ -18,6 +18,7 @@ use std::{
 };
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Rope, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -29,9 +30,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, StyledText, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    App, BoxShadow, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _,
+    IntoElement, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, StyledText, Task, Window, div, point, prelude::FluentBuilder as _, px,
+    relative,
 };
 
 use crate::common::resting_shadow;
@@ -386,7 +388,13 @@ fn code_section(
         .child(
             h_flex()
                 .justify_between()
-                .child(div().text_xs().font_medium().text_color(quiet).child(label))
+                .child(
+                    div()
+                        .text_caption()
+                        .font_medium()
+                        .text_color(quiet)
+                        .child(label),
+                )
                 .child(Clipboard::new((id.clone(), "copy")).value(text.clone())),
         )
         .child(
@@ -395,7 +403,7 @@ fn code_section(
                 .rounded(radius)
                 .bg(panel)
                 .font_family(mono)
-                .text_xs()
+                .text_caption()
                 .line_height(relative(1.5))
                 .when(is_long && !show_all, |this| {
                     this.max_h(px(CAPPED_LINES as f32 * 18. + 20.))
@@ -422,7 +430,6 @@ impl RenderOnce for ToolCallCard {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let accent = theme.info;
         let danger = theme.danger;
         let radius = theme.radius;
@@ -592,7 +599,7 @@ impl RenderOnce for ToolCallCard {
                     })
                     .children(time.map(|time| {
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if status == ToolCallStatus::Failed {
                                 danger
                             } else {
@@ -694,11 +701,9 @@ impl RenderOnce for ToolCallCard {
             .id(self.id.clone())
             .w_full()
             .rounded(radius)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(head)
@@ -786,7 +791,6 @@ impl RenderOnce for ToolCallGroup {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let danger = theme.danger;
         let radius = theme.radius;
 
@@ -892,19 +896,33 @@ impl RenderOnce for ToolCallGroup {
             .cursor_pointer()
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(
+                // The tools overlap like a hand of cards, each tile lifted off
+                // the one before it by a ring in the page colour.
                 h_flex()
                     .flex_none()
-                    .gap(px(2.))
-                    .children(icons.into_iter().map(|icon| {
+                    .children(icons.into_iter().enumerate().map(|(ix, icon)| {
                         div()
                             .flex()
                             .items_center()
                             .justify_center()
                             .size(px(22.))
+                            .when(ix > 0, |this| this.ml(px(-4.)))
                             .rounded(px(6.))
-                            .border_1()
-                            .border_color(line)
                             .bg(fill)
+                            .shadow({
+                                let mut ring = resting_shadow(cx);
+                                ring.insert(
+                                    0,
+                                    BoxShadow {
+                                        color: fill,
+                                        offset: point(px(0.), px(0.)),
+                                        blur_radius: px(0.),
+                                        spread_radius: px(1.5),
+                                        inset: false,
+                                    },
+                                );
+                                ring
+                            })
                             .text_color(quiet)
                             .child(Icon::new(icon).xsmall())
                     })),
@@ -940,7 +958,7 @@ impl RenderOnce for ToolCallGroup {
             .w_full()
             .gap_1p5()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .child(h_flex().child(head))
             .when(open, |this| {

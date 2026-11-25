@@ -8,8 +8,9 @@
 //! change. While the owner saves, the buttons wait; if the save fails its
 //! reason shows in the popover and the text stays for another go.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{Input, InputEvent, InputState},
@@ -187,8 +188,7 @@ impl Render for QuickEditPopover {
                     })
                     .child(
                         div()
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .text_color(quiet)
                             .child(label.clone()),
                     )
@@ -202,7 +202,7 @@ impl Render for QuickEditPopover {
                         this.child(
                             h_flex()
                                 .gap_1()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(danger)
                                 .child(Icon::new(IconName::CircleAlert).xsmall())
                                 .child(error),

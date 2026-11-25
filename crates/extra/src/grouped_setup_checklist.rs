@@ -11,6 +11,7 @@
 use std::rc::Rc;
 
 use isonomic_ui::base::{Button as Pressable, Toggle};
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -410,11 +411,9 @@ impl RenderOnce for GroupedSetupChecklist {
             .w_full()
             .max_w(px(340.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .child(
@@ -490,7 +489,7 @@ impl RenderOnce for GroupedSetupChecklist {
                             .child(
                                 div()
                                     .flex_none()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(format!("{count}/{total}")),
                             ),

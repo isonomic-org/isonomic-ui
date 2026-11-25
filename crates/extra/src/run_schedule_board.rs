@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
 };
@@ -87,7 +88,7 @@ impl Render for DraggedSession {
             .rounded(px(6.))
             .bg(self.fill)
             .text_color(self.ink)
-            .text_xs()
+            .text_caption()
             .shadow_lg()
             .child(self.label.clone())
     }
@@ -200,7 +201,7 @@ impl RenderOnce for RunScheduleBoard {
                 .on_drag(dragged, |d, _, _, cx| cx.new(|_| d.clone()))
                 .child(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .truncate()
                         .text_color(ink)
                         .child(s.label.clone()),
@@ -208,7 +209,7 @@ impl RenderOnce for RunScheduleBoard {
                 .when(tall && s.hours > 1, |this| {
                     this.child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(format!("{}h", s.hours)),
                     )
@@ -239,7 +240,7 @@ impl RenderOnce for RunScheduleBoard {
                 .when(waiting.is_empty(), |this| {
                     this.child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child("Everything is placed. Drag a session here to unschedule it."),
                     )
@@ -247,7 +248,7 @@ impl RenderOnce for RunScheduleBoard {
                 .children(waiting.iter().map(|s| {
                     session_chip(s, false).child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(format!("{}h", s.hours)),
                     )
@@ -332,10 +333,10 @@ impl RenderOnce for RunScheduleBoard {
                             .h(px(38.))
                             .items_center()
                             .justify_center()
-                            .child(div().text_xs().font_medium().child(name.clone()))
+                            .child(div().text_caption().font_medium().child(name.clone()))
                             .child(
                                 div()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(if over { danger } else { quiet })
                                     .child(format!("{load} of {}h", self.cap)),
                             ),
@@ -349,7 +350,7 @@ impl RenderOnce for RunScheduleBoard {
                 div()
                     .h(px(ROW))
                     .pr_2()
-                    .text_xs()
+                    .text_caption()
                     .text_right()
                     .text_color(quiet)
                     .child(format!(
@@ -376,11 +377,9 @@ impl RenderOnce for RunScheduleBoard {
             .gap_3()
             .p_3()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -427,7 +426,7 @@ impl RenderOnce for RunScheduleBoard {
                             .children(columns),
                     ),
             )
-            .child(div().text_xs().text_color(quiet).child(format!(
+            .child(div().text_caption().text_color(quiet).child(format!(
                 "Each day takes at most {} hours of sessions across {rows} hours shown.",
                 self.cap
             )))

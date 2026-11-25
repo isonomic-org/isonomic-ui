@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
@@ -328,7 +329,7 @@ impl RenderOnce for TraceTimeline {
                                 div()
                                     .min_w_0()
                                     .truncate()
-                                    .text_xs()
+                                    .text_caption()
                                     .when(span.failed, |this| this.text_color(danger))
                                     .child(span.label.clone()),
                             ),
@@ -353,7 +354,7 @@ impl RenderOnce for TraceTimeline {
                             .w(px(58.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(
                                 span.end
@@ -366,7 +367,7 @@ impl RenderOnce for TraceTimeline {
                             .w(px(52.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(if tokens >= 1000 {
                                 format!("{:.1}k", tokens as f64 / 1000.)
@@ -379,7 +380,7 @@ impl RenderOnce for TraceTimeline {
                             .w(px(52.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(cost_words(cost)),
                     )
@@ -411,11 +412,9 @@ impl RenderOnce for TraceTimeline {
             .w_full()
             .max_w(px(900.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -434,20 +433,20 @@ impl RenderOnce for TraceTimeline {
                     .when(running > 0, |this| {
                         this.child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(accent)
                                 .child(format!("{running} running")),
                         )
                     })
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(format!("{all_tokens} tokens")),
                     )
                     .child(
                         div()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(cost_words(all_cost)),
                     ),
@@ -457,7 +456,7 @@ impl RenderOnce for TraceTimeline {
                     .gap_2()
                     .px_4()
                     .pt_2()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(div().w(px(200.)).flex_none().child("Span"))
                     .child(
@@ -477,7 +476,7 @@ impl RenderOnce for TraceTimeline {
                     .py_2()
                     .border_t_1()
                     .border_color(line)
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(detail),
             )

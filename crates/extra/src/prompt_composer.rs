@@ -21,6 +21,7 @@
 
 use std::path::PathBuf;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -649,7 +650,7 @@ impl PromptComposer {
             .border_1()
             .border_color(theme.border)
             .bg(theme.muted.opacity(0.5))
-            .text_xs()
+            .text_caption()
             .child(if attachment.loading {
                 Icon::new(IconName::LoaderCircle)
                     .xsmall()
@@ -706,12 +707,6 @@ impl Render for PromptComposer {
         let danger = theme.danger;
         let radius = theme.radius_lg;
         let focused = self.field.focus_handle(cx).contains_focused(window, cx);
-        let edge = match (focused, self.quiet_focus) {
-            (true, false) => theme.ring,
-            // The input edge is the next neutral up from the plain border.
-            (true, true) => theme.input,
-            (false, _) => line,
-        };
 
         let text = self.field.read(cx).value();
         let over = self.over_limit(&text);
@@ -761,7 +756,7 @@ impl Render for PromptComposer {
                             choice
                                 .note
                                 .clone()
-                                .map(|note| div().text_xs().text_color(quiet).child(note)),
+                                .map(|note| div().text_caption().text_color(quiet).child(note)),
                         )
                 }))
         });
@@ -1013,12 +1008,16 @@ impl Render for PromptComposer {
                     .pl(px(16.))
             })
             .rounded(radius)
-            .border_1()
-            .border_color(edge)
             .bg(fill)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
-            .shadow(resting_shadow(cx))
+            // The composer is a field: its ring firms while it holds the caret,
+            // a full pixel unless the caller asked for a quiet focus.
+            .shadow(match (focused, self.quiet_focus) {
+                (true, false) => isonomic_ui::component::look::surface::field_focus(cx),
+                (true, true) => isonomic_ui::component::look::surface::field_hover(cx),
+                (false, _) => resting_shadow(cx),
+            })
             .when(disabled, |this| this.opacity(0.6))
             .children(self.above.clone())
             .when(!chips.is_empty(), |this| {
@@ -1068,7 +1067,7 @@ impl Render for PromptComposer {
                                 div()
                                     .flex_none()
                                     .px_1()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(if left < 0 { danger } else { quiet })
                                     .child(left.to_string())
                             }))

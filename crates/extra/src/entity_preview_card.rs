@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex,
     hover_card::HoverCard, v_flex,
@@ -194,7 +195,7 @@ impl RenderOnce for EntityPreviewCard {
                         .px_1p5()
                         .rounded(px(4.))
                         .bg(tone.tint(cx))
-                        .text_xs()
+                        .text_caption()
                         .text_color(tone.color(cx))
                         .child(label)
                 });
@@ -204,7 +205,7 @@ impl RenderOnce for EntityPreviewCard {
                     .aria_label(words.clone())
                     .w(px(280.))
                     .gap_3()
-                    .text_sm()
+                    .text_body()
                     .child(
                         h_flex()
                             .gap_2p5()
@@ -226,14 +227,11 @@ impl RenderOnce for EntityPreviewCard {
                                     .flex_1()
                                     .min_w_0()
                                     .child(
-                                        div()
-                                            .font_semibold()
-                                            .truncate()
-                                            .child(preview.name.clone()),
+                                        div().font_medium().truncate().child(preview.name.clone()),
                                     )
                                     .child(
                                         div()
-                                            .text_xs()
+                                            .text_caption()
                                             .text_color(quiet)
                                             .truncate()
                                             .child(preview.subtitle.clone()),
@@ -244,7 +242,7 @@ impl RenderOnce for EntityPreviewCard {
                     .children(preview.facts.iter().map(|(label, value)| {
                         h_flex()
                             .gap_3()
-                            .text_xs()
+                            .text_caption()
                             .child(
                                 div()
                                     .w(px(84.))

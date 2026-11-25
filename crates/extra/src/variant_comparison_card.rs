@@ -12,6 +12,7 @@
 use std::rc::Rc;
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -439,8 +440,7 @@ impl RenderOnce for VariantComparisonCard {
                 .px_1p5()
                 .rounded(px(5.))
                 .bg(color.opacity(0.14))
-                .text_xs()
-                .font_medium()
+                .text_label_small()
                 .child(lift_words(lift))
         };
 
@@ -500,7 +500,7 @@ impl RenderOnce for VariantComparisonCard {
                     .child(
                         h_flex()
                             .gap_2()
-                            .text_xs()
+                            .text_caption()
                             .children(self.status.map(|(label, tone)| {
                                 h_flex()
                                     .flex_none()
@@ -532,8 +532,7 @@ impl RenderOnce for VariantComparisonCard {
                         .px_1p5()
                         .rounded(px(5.))
                         .bg(success.opacity(0.14))
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .child(self.variants[ix].key.clone())
                         .child(lift_words(lift)),
                 )
@@ -554,11 +553,9 @@ impl RenderOnce for VariantComparisonCard {
             .w_full()
             .max_w(px(360.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(head);
@@ -701,8 +698,7 @@ impl RenderOnce for VariantComparisonCard {
                         .size(px(20.))
                         .rounded(px(5.))
                         .bg(colors[ix].opacity(0.18))
-                        .text_xs()
-                        .font_medium()
+                        .text_label_small()
                         .map(|this| {
                             if is_picked {
                                 this.child(Icon::new(IconName::Check).xsmall())
@@ -741,7 +737,7 @@ impl RenderOnce for VariantComparisonCard {
                                                 .px_1p5()
                                                 .rounded(px(5.))
                                                 .bg(chip)
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(quiet)
                                                 .child("Control"),
                                         )
@@ -816,7 +812,7 @@ impl RenderOnce for VariantComparisonCard {
                 .py_2()
                 .border_t_1()
                 .border_color(line)
-                .text_xs()
+                .text_caption()
                 .text_color(quiet)
                 .child(div().flex_1().min_w_0().map(|this| match about {
                     Some(about) => this.child(about),

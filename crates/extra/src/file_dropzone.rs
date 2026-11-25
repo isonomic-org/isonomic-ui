@@ -15,6 +15,7 @@ use std::{
 };
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -485,7 +486,7 @@ impl Render for FileDropzone {
                         .child(
                             div()
                                 .truncate()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(detail_color)
                                 .child(detail),
                         )
@@ -575,11 +576,9 @@ impl Render for FileDropzone {
             .max_w(px(520.))
             .overflow_hidden()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(
@@ -631,7 +630,7 @@ impl Render for FileDropzone {
                                         .child("Drop files here or")
                                         .child(div().text_color(accent).child("browse")),
                                 )
-                                .child(div().text_xs().text_color(quiet).child(hint)),
+                                .child(div().text_caption().text_color(quiet).child(hint)),
                         ),
                 ),
             )

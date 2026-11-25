@@ -14,6 +14,7 @@
 use std::time::{Duration, SystemTime};
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     ThemeStyled as _,
@@ -315,9 +316,13 @@ impl Render for CommentThread {
                         .font_medium()
                         .child(author.name.clone()),
                 )
-                .children(
-                    time.map(|time| div().flex_none().text_xs().text_color(quiet).child(time)),
-                )
+                .children(time.map(|time| {
+                    div()
+                        .flex_none()
+                        .text_caption()
+                        .text_color(quiet)
+                        .child(time)
+                }))
         };
 
         let messages = self.messages.iter().enumerate().map(|(ix, message)| {
@@ -410,7 +415,7 @@ impl Render for CommentThread {
                                             .bg(chip)
                                             .text_color(quiet)
                                             .font_family(mono.clone())
-                                            .text_xs()
+                                            .text_caption()
                                             .child(command.to_string())
                                     }))
                                     .child(div().flex_1().min_w_0().child(text.to_string())),
@@ -444,11 +449,9 @@ impl Render for CommentThread {
             .max_w(px(420.))
             .overflow_hidden()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .child(
@@ -466,7 +469,7 @@ impl Render for CommentThread {
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child(count),
                     )

@@ -15,6 +15,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     v_flex,
@@ -231,7 +232,7 @@ impl Render for DraggedWork {
             .border_color(self.line)
             .bg(self.fill)
             .text_color(self.ink)
-            .text_sm()
+            .text_body()
             .shadow_lg()
             .child(
                 div()
@@ -242,7 +243,7 @@ impl Render for DraggedWork {
             )
             .child(
                 div()
-                    .text_xs()
+                    .text_caption()
                     .opacity(0.7)
                     .child(format!("{} pt", self.points)),
             )
@@ -480,8 +481,7 @@ impl RenderOnce for AssignmentBoard {
                         .justify_center()
                         .rounded_full()
                         .bg(chip)
-                        .text_xs()
-                        .font_semibold()
+                        .text_label_small()
                         .child(initials(&lane.name)),
                 };
                 let meter = lane.capacity.map(|capacity| {
@@ -503,7 +503,7 @@ impl RenderOnce for AssignmentBoard {
                         )
                         .child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(if over { danger } else { quiet })
                                 .child(if over {
                                     format!("{load} of {capacity} pt, over by {}", load - capacity)
@@ -589,7 +589,7 @@ impl RenderOnce for AssignmentBoard {
                             .child(
                                 h_flex()
                                     .gap_1p5()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .children(flag.map(|flag| {
                                         div().text_color(flag_color).font_medium().child(flag)
@@ -603,7 +603,7 @@ impl RenderOnce for AssignmentBoard {
                             .children(item.blocked_by.clone().map(|reason| {
                                 h_flex()
                                     .gap_1()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(warning)
                                     .child(Icon::new(IconName::Ban).xsmall())
                                     .child(
@@ -667,7 +667,7 @@ impl RenderOnce for AssignmentBoard {
                                 .child(
                                     h_flex()
                                         .gap_1()
-                                        .text_xs()
+                                        .text_caption()
                                         .text_color(quiet)
                                         .when(lane.kind != AssigneeKind::Unassigned, |this| {
                                             this.child(
@@ -695,7 +695,7 @@ impl RenderOnce for AssignmentBoard {
                                 .border_1()
                                 .border_dashed()
                                 .border_color(line)
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .text_center()
                                 .child("Drop work here"),
@@ -714,17 +714,15 @@ impl RenderOnce for AssignmentBoard {
             .gap_3()
             .p_3()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(
                 h_flex()
                     .gap_2()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .child(format!("{} items, {total} pt", items.len()))
                     .when(unassigned > 0, |this| {

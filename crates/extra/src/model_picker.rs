@@ -13,6 +13,7 @@
 use std::rc::Rc;
 
 use isonomic_ui::TestSupportExt as _;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -382,7 +383,7 @@ fn tile(model: &ModelOption, cx: &App) -> isonomic_ui::Div {
         .rounded(px(5.))
         .border_1()
         .border_color(theme.border)
-        .text_xs()
+        .text_caption()
         .text_color(theme.muted_foreground)
         .map(|this| match model.icon.clone() {
             Some(icon) => this.child(Icon::new(icon).xsmall()),
@@ -585,7 +586,11 @@ impl Menu {
                                 }),
                         )
                         .children(model.tagline.clone().map(|tagline| {
-                            div().truncate().text_xs().text_color(quiet).child(tagline)
+                            div()
+                                .truncate()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child(tagline)
                         })),
                 )
                 .when(!self.columns.is_empty(), |this| {
@@ -595,7 +600,7 @@ impl Menu {
                                 .flex_none()
                                 .w(columns_width)
                                 .text_center()
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child("Not fixed"),
                         )
@@ -696,7 +701,7 @@ impl Menu {
                                                 .px_2()
                                                 .rounded(radius)
                                                 .cursor_pointer()
-                                                .text_xs()
+                                                .text_caption()
                                                 .map(|this| {
                                                     if n == level {
                                                         this.bg(fill).font_medium()
@@ -726,7 +731,7 @@ impl Menu {
                 move |popover, event, window, cx| menu.key_down(popover, event, window, cx)
             }))
             .w_full()
-            .text_sm()
+            .text_body()
             .line_height(relative(1.4))
             .text_color(ink)
             .child(
@@ -744,7 +749,7 @@ impl Menu {
                                 h_flex()
                                     .h(px(24.))
                                     .px_2()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(div().flex_1().child(
                                         self.look.header.clone().unwrap_or_else(|| "Model".into()),
@@ -779,7 +784,7 @@ impl Menu {
                         .px_3()
                         .border_t_1()
                         .border_color(line)
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().flex_1().min_w_0().truncate().children(note))
                         .children(hint("up"))

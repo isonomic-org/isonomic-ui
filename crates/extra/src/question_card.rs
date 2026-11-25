@@ -9,6 +9,7 @@
 //! click or a number key answers at once and brings up the next question;
 //! "Not now" folds the card to one line.
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -404,11 +405,9 @@ impl Render for QuestionCard {
             .w_full()
             .max_w(px(600.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx));
 
@@ -451,7 +450,7 @@ impl Render for QuestionCard {
                 .rounded(px(5.))
                 .border_1()
                 .border_color(line)
-                .text_xs()
+                .text_caption()
                 .text_color(quiet)
                 .child(n.to_string())
         };
@@ -489,7 +488,13 @@ impl Render for QuestionCard {
                         .min_w_0()
                         .child(div().font_medium().child(row.title.clone()))
                         .when_some(row.summary.clone(), |this, summary| {
-                            this.child(div().truncate().text_xs().text_color(quiet).child(summary))
+                            this.child(
+                                div()
+                                    .truncate()
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child(summary),
+                            )
                         }),
                 )
                 .when(row.recommended, |this| {
@@ -499,7 +504,7 @@ impl Render for QuestionCard {
                             .px_1p5()
                             .rounded(px(5.))
                             .bg(accent.opacity(0.14))
-                            .text_xs()
+                            .text_caption()
                             .child("Recommended"),
                     )
                 })
@@ -523,7 +528,7 @@ impl Render for QuestionCard {
                 )
                 .child(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("{} of {count}", current + 1)),
                 )
@@ -562,8 +567,7 @@ impl Render for QuestionCard {
                             .px_1p5()
                             .rounded(px(5.))
                             .bg(warning.opacity(0.18))
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .child("Your call"),
                     )
                     .child(
@@ -571,7 +575,7 @@ impl Render for QuestionCard {
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .children(question.task.clone()),
                     )

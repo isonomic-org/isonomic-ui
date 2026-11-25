@@ -9,6 +9,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
 };
@@ -199,7 +200,7 @@ impl RenderOnce for SegmentedSwitcher {
                 .h(px(26.))
                 .px_3()
                 .rounded(px(6.))
-                .text_sm()
+                .text_body()
                 .when(self.fill, |this| this.flex_1())
                 .role(Role::RadioButton)
                 .aria_label(segment_label(&segment.label, segment.count))
@@ -233,7 +234,7 @@ impl RenderOnce for SegmentedSwitcher {
                             .min_w(px(18.))
                             .rounded(px(4.))
                             .bg(if on { track } else { raised.opacity(0.6) })
-                            .text_xs()
+                            .text_caption()
                             .text_center()
                             .child(short_count(count)),
                     )

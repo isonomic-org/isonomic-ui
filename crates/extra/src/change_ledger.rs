@@ -13,6 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -480,14 +481,13 @@ impl RenderOnce for ChangeLedger {
                     .rounded(px(4.))
                     .bg(color.opacity(0.14))
                     .text_color(color)
-                    .text_xs()
-                    .font_medium()
+                    .text_label_small()
                     .child(words)
                     .into_any_element(),
                 (None, Some(button)) => button,
                 (None, None) => h_flex()
                     .gap_1()
-                    .text_xs()
+                    .text_caption()
                     .text_color(quiet)
                     .when(!entry.reversible, |this| {
                         this.child(Icon::new(IconName::Ban).xsmall())
@@ -504,7 +504,7 @@ impl RenderOnce for ChangeLedger {
                 (Some((before, after)), _) => Some(
                     h_flex()
                         .gap_1p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().line_through().child(before.clone()))
                         .child(Icon::new(IconName::ArrowRight).xsmall())
@@ -517,7 +517,7 @@ impl RenderOnce for ChangeLedger {
                 ),
                 (None, Some(detail)) => Some(
                     div()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(detail.clone())
                         .into_any_element(),
@@ -592,7 +592,7 @@ impl RenderOnce for ChangeLedger {
             .max_w(px(640.))
             .gap_2()
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.3))
             .child(
                 h_flex()
@@ -602,22 +602,17 @@ impl RenderOnce for ChangeLedger {
                     .child(div().font_medium().child(self.title))
                     .children(self.agent.map(|agent| div().text_color(quiet).child(agent)))
                     .child(div().flex_1())
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(quiet)
-                            .child(match (count, undone_count) {
-                                (1, 0) => "1 change".to_string(),
-                                (count, 0) => format!("{count} changes"),
-                                (count, undone) => format!("{count} changes, {undone} undone"),
-                            }),
-                    ),
+                    .child(div().text_caption().text_color(quiet).child(
+                        match (count, undone_count) {
+                            (1, 0) => "1 change".to_string(),
+                            (count, 0) => format!("{count} changes"),
+                            (count, undone) => format!("{count} changes, {undone} undone"),
+                        },
+                    )),
             )
             .child(
                 v_flex()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .overflow_hidden()
                     .shadow(resting_shadow(cx))

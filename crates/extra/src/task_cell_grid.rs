@@ -10,6 +10,7 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -337,7 +338,6 @@ impl RenderOnce for TaskCellGrid {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
         let chip = theme.muted;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
@@ -459,7 +459,7 @@ impl RenderOnce for TaskCellGrid {
                 .py_2()
                 .rounded(radius)
                 .bg(chip)
-                .text_xs()
+                .text_caption()
                 .child(
                     h_flex()
                         .gap_2()
@@ -594,7 +594,7 @@ impl RenderOnce for TaskCellGrid {
                                     .px_1p5()
                                     .rounded(radius)
                                     .cursor_pointer()
-                                    .text_xs()
+                                    .text_caption()
                                     .hover(|this| this.bg(chip))
                                     .when(is_on, |this| this.bg(chip).font_medium())
                                     .on_click(move |_, _, cx| {
@@ -632,7 +632,7 @@ impl RenderOnce for TaskCellGrid {
             .id(self.id.clone())
             .w_full()
             .gap_2()
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .text_color(ink)
             .child(
@@ -674,8 +674,6 @@ impl RenderOnce for TaskCellGrid {
                     .gap_2()
                     .p_3()
                     .rounded(radius_lg)
-                    .border_1()
-                    .border_color(line)
                     .bg(fill)
                     .shadow(resting_shadow(cx))
                     .child(grid)

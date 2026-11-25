@@ -9,6 +9,7 @@
 
 use std::{f32::consts::TAU, rc::Rc, time::Duration};
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Selectable as _, Sizable as _, Size,
     StyledExt as _,
@@ -573,7 +574,7 @@ impl RenderOnce for MessageActionBar {
                 .child(
                     div()
                         .px_0p5()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(format!("{} / {count}", version + 1)),
                 )
@@ -768,7 +769,7 @@ impl RenderOnce for MessageActionBar {
         v_flex()
             .id(self.id.clone())
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.45))
             .child(bar.when(!lit, |this| {
                 this.opacity(0.55)

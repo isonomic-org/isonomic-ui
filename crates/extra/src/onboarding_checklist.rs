@@ -10,6 +10,7 @@
 use std::{rc::Rc, time::Duration};
 
 use isonomic_ui::base::Checkbox;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
     progress::Progress, v_flex,
@@ -334,11 +335,9 @@ impl RenderOnce for OnboardingChecklist {
             .gap_3()
             .p_4()
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .on_mouse_down(MouseButton::Left, move |_, _, cx| stop(cx))

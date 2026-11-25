@@ -11,6 +11,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
@@ -230,7 +231,7 @@ impl RenderOnce for JobQueueView {
                         .child(
                             h_flex()
                                 .gap_1p5()
-                                .text_xs()
+                                .text_caption()
                                 .child(div().size(px(7.)).rounded_full().bg(color))
                                 .child(
                                     div()
@@ -244,7 +245,7 @@ impl RenderOnce for JobQueueView {
                         )
                         .child(
                             div()
-                                .text_xs()
+                                .text_caption()
                                 .truncate()
                                 .text_color(if worker.job.is_some() { ink } else { quiet })
                                 .child(
@@ -294,7 +295,7 @@ impl RenderOnce for JobQueueView {
                         div()
                             .w(px(18.))
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child((ix + 1).to_string()),
                     )
@@ -310,14 +311,14 @@ impl RenderOnce for JobQueueView {
                                         this.child(
                                             div()
                                                 .flex_none()
-                                                .text_xs()
+                                                .text_caption()
                                                 .text_color(warning)
                                                 .font_medium()
                                                 .child("Urgent"),
                                         )
                                     }),
                             )
-                            .child(div().text_xs().text_color(quiet).child(format!(
+                            .child(div().text_caption().text_color(quiet).child(format!(
                                 "waited {}{}",
                                 waited_words(job.waited_secs),
                                 match eta {
@@ -381,7 +382,7 @@ impl RenderOnce for JobQueueView {
                 .gap_1()
                 .child(
                     h_flex()
-                        .text_xs()
+                        .text_caption()
                         .text_color(quiet)
                         .child(div().flex_1().child("Backlog over time"))
                         .child(format!(
@@ -454,7 +455,7 @@ impl RenderOnce for JobQueueView {
                                 .absolute()
                                 .right_0()
                                 .bottom(relative(limit_share.min(1.)))
-                                .text_xs()
+                                .text_caption()
                                 .text_color(quiet)
                                 .child(format!("{online} workers")),
                         ),
@@ -466,11 +467,9 @@ impl RenderOnce for JobQueueView {
             .w_full()
             .max_w(px(720.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -481,7 +480,7 @@ impl RenderOnce for JobQueueView {
                     .border_color(line)
                     .child(Icon::new(IconName::Inbox).small().text_color(quiet))
                     .child(div().flex_1().font_medium().child("Job queue"))
-                    .child(div().text_xs().text_color(quiet).child(format!(
+                    .child(div().text_caption().text_color(quiet).child(format!(
                         "{} waiting, {busy} of {online} workers busy",
                         self.jobs.len()
                     ))),

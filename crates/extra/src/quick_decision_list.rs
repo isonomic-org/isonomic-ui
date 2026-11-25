@@ -9,6 +9,7 @@
 use std::{rc::Rc, time::Duration};
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
@@ -348,11 +349,9 @@ impl RenderOnce for QuickDecisionList {
             .max_w(px(440.))
             .overflow_hidden()
             .rounded(radius)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .line_height(relative(1.5))
             .shadow(resting_shadow(cx))
             .child(

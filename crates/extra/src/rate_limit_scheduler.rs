@@ -15,6 +15,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     ThemeStyled as _,
@@ -335,7 +336,7 @@ impl RenderOnce for RateLimitScheduler {
                             .w(px(150.))
                             .flex_none()
                             .child(div().truncate().font_medium().child(limit.name.clone()))
-                            .child(div().text_xs().text_color(quiet).child(format!(
+                            .child(div().text_caption().text_color(quiet).child(format!(
                                 "{} per {}",
                                 limit.limit,
                                 if limit.window_secs % 60 == 0 {
@@ -364,7 +365,7 @@ impl RenderOnce for RateLimitScheduler {
                             )
                             .child(
                                 h_flex()
-                                    .text_xs()
+                                    .text_caption()
                                     .text_color(quiet)
                                     .child(
                                         div()
@@ -382,7 +383,7 @@ impl RenderOnce for RateLimitScheduler {
                         div()
                             .w(px(64.))
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(if paused { warning } else { quiet })
                             .child(if paused {
                                 "Paused".to_string()
@@ -482,8 +483,7 @@ impl RenderOnce for RateLimitScheduler {
                             .rounded_full()
                             .bg(colors[ix])
                             .text_color(fill)
-                            .text_xs()
-                            .font_semibold()
+                            .text_label_small()
                             .child(count.to_string())
                     }))
             })
@@ -624,7 +624,7 @@ impl RenderOnce for RateLimitScheduler {
                         div()
                             .w(px(18.))
                             .flex_none()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .child((row + 1).to_string()),
                     )
@@ -634,7 +634,7 @@ impl RenderOnce for RateLimitScheduler {
                             .flex_1()
                             .min_w_0()
                             .child(div().truncate().child(call.label.clone()))
-                            .child(div().truncate().text_xs().text_color(quiet).child(
+                            .child(div().truncate().text_caption().text_color(quiet).child(
                                 match (&call.source, call.cost) {
                                     (Some(source), 1) => format!("{limit_name} \u{b7} {source}"),
                                     (Some(source), cost) => {
@@ -650,8 +650,7 @@ impl RenderOnce for RateLimitScheduler {
                             .w(px(72.))
                             .flex_none()
                             .text_right()
-                            .text_xs()
-                            .font_medium()
+                            .text_label_small()
                             .text_color(when_color)
                             .child(when),
                     )
@@ -664,11 +663,9 @@ impl RenderOnce for RateLimitScheduler {
             .w_full()
             .max_w(px(760.))
             .rounded(radius_lg)
-            .border_1()
-            .border_color(line)
             .bg(fill)
             .text_color(ink)
-            .text_sm()
+            .text_body()
             .shadow(resting_shadow(cx))
             .child(
                 h_flex()
@@ -679,7 +676,7 @@ impl RenderOnce for RateLimitScheduler {
                     .border_color(line)
                     .child(Icon::new(IconName::Time).small().text_color(quiet))
                     .child(div().flex_1().font_medium().child(self.title))
-                    .child(div().text_xs().text_color(quiet).child(
+                    .child(div().text_caption().text_color(quiet).child(
                         match (self.calls.len(), last) {
                             (0, _) => "Nothing queued".to_string(),
                             (n, Some(last)) if last > 0 => format!(
@@ -716,7 +713,7 @@ impl RenderOnce for RateLimitScheduler {
                             .relative()
                             .h(px(14.))
                             .w_full()
-                            .text_xs()
+                            .text_caption()
                             .text_color(quiet)
                             .children(ticks.into_iter().map(|at| {
                                 let words = match at {

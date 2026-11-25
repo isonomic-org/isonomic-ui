@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, StyledExt as _, kbd::Kbd, tooltip::Tooltip,
 };
@@ -173,8 +174,7 @@ impl RenderOnce for LabelledIconButton {
                     .border_color(fill)
                     .bg(theme_danger(cx))
                     .text_color(fill)
-                    .text_xs()
-                    .font_semibold()
+                    .text_label_small()
                     .child(if count > 99 {
                         "99+".to_string()
                     } else {
