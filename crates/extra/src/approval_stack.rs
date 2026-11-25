@@ -272,7 +272,8 @@ impl RenderOnce for ApprovalStack {
                             .bottom(px((peeks - depth) as f32 * 8.))
                             .h(px(40.))
                             .rounded(radius_lg)
-                            .bg(if depth == 1 { fill } else { chip })
+                            // Every card behind is a plain surface; only its edge shows.
+                            .bg(fill)
                             .shadow(resting_shadow(cx))
                     }))
                     .child(
@@ -281,8 +282,6 @@ impl RenderOnce for ApprovalStack {
                             .gap_3()
                             .p_4()
                             .rounded(radius_lg)
-                            .border_1()
-                            .border_color(line)
                             .bg(fill)
                             .shadow(lifted_shadow(cx))
                             .child(

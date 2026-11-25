@@ -30,10 +30,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, BoxShadow, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _,
-    IntoElement, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, StyledText, Task, Window, div, point, prelude::FluentBuilder as _, px,
-    relative,
+    App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, StyledText, Task, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -573,6 +572,7 @@ impl RenderOnce for ToolCallCard {
                     .max_w(relative(0.5))
                     .truncate()
                     .font_family(mono)
+                    .text_size(px(12.))
                     .font_medium()
                     .child(self.name),
             )
@@ -790,7 +790,9 @@ impl RenderOnce for ToolCallGroup {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
-        let fill = theme.background;
+        let subtle = isonomic_ui::component::look::ink::subtle(cx);
+        let faint = isonomic_ui::component::look::ink::faint(cx);
+        let raised = theme.popover;
         let danger = theme.danger;
         let radius = theme.radius;
 
@@ -896,8 +898,8 @@ impl RenderOnce for ToolCallGroup {
             .cursor_pointer()
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(
-                // The tools overlap like a hand of cards, each tile lifted off
-                // the one before it by a ring in the page colour.
+                // The tools overlap like a hand of cards: raised tiles, each
+                // tucked 4px under the next.
                 h_flex()
                     .flex_none()
                     .children(icons.into_iter().enumerate().map(|(ix, icon)| {
@@ -908,21 +910,8 @@ impl RenderOnce for ToolCallGroup {
                             .size(px(22.))
                             .when(ix > 0, |this| this.ml(px(-4.)))
                             .rounded(px(6.))
-                            .bg(fill)
-                            .shadow({
-                                let mut ring = resting_shadow(cx);
-                                ring.insert(
-                                    0,
-                                    BoxShadow {
-                                        color: fill,
-                                        offset: point(px(0.), px(0.)),
-                                        blur_radius: px(0.),
-                                        spread_radius: px(1.5),
-                                        inset: false,
-                                    },
-                                );
-                                ring
-                            })
+                            .bg(raised)
+                            .shadow(resting_shadow(cx))
                             .text_color(quiet)
                             .child(Icon::new(icon).xsmall())
                     })),
@@ -931,7 +920,7 @@ impl RenderOnce for ToolCallGroup {
                 if running {
                     this.child(ShimmerText::new(title).id((self.id.clone(), "title")))
                 } else {
-                    this.child(div().font_medium().child(title))
+                    this.child(div().font_medium().text_color(subtle).child(title))
                 }
             })
             .when(!running && failed > 0, |this| {
@@ -939,7 +928,7 @@ impl RenderOnce for ToolCallGroup {
             })
             .children(total.map(|total| {
                 div()
-                    .text_color(quiet)
+                    .text_color(faint)
                     .child(format!("· {}", format_duration(total, running)))
             }))
             .child(
