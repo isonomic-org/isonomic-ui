@@ -8,6 +8,7 @@
 //! Folded, it shrinks to one bar with the current step and a progress line,
 //! for a corner of the screen. Pause, resume, stop and folding go to the owner.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -17,10 +18,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Transformation, Window, div, percentage, prelude::FluentBuilder as _,
-    px, relative,
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -227,15 +227,7 @@ impl RenderOnce for RunMonitorCard {
         let live = matches!(self.state, MonitorState::Running | MonitorState::Paused);
 
         let mark: AnyElement = match self.state {
-            MonitorState::Running => Icon::new(IconName::LoaderCircle)
-                .small()
-                .text_color(tone_color)
-                .with_animation(
-                    ElementId::NamedChild(self.id.clone().into(), "spin".into()),
-                    Animation::new(std::time::Duration::from_secs(1)).repeat(),
-                    |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
-                )
-                .into_any_element(),
+            MonitorState::Running => Spinner::new().small().color(tone_color).into_any_element(),
             MonitorState::Paused => Icon::new(IconName::Pause)
                 .small()
                 .text_color(tone_color)

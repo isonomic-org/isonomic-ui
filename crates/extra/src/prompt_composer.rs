@@ -19,6 +19,7 @@
 //! the suggestions, whether the assistant is busy and whether dictation is
 //! listening.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::path::PathBuf;
 
 use isonomic_ui::component::TextRole as _;
@@ -652,19 +653,7 @@ impl PromptComposer {
             .bg(theme.muted.opacity(0.5))
             .text_caption()
             .child(if attachment.loading {
-                Icon::new(IconName::LoaderCircle)
-                    .xsmall()
-                    .text_color(quiet)
-                    .with_animation(
-                        SharedString::from(format!("loading-{}", attachment.id)),
-                        Animation::new(std::time::Duration::from_millis(900)).repeat(),
-                        |icon, time| {
-                            icon.transform(isonomic_ui::Transformation::rotate(
-                                isonomic_ui::percentage(time),
-                            ))
-                        },
-                    )
-                    .into_any_element()
+                Spinner::new().xsmall().color(quiet).into_any_element()
             } else {
                 Icon::new(IconName::File)
                     .xsmall()

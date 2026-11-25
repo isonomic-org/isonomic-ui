@@ -10,6 +10,7 @@
 //!
 //! Keyboard: the pill is a button; Escape closes the panel.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -19,10 +20,9 @@ use isonomic_ui::component::{
     h_flex, v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, RenderOnce, Role, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Transformation, Window, div,
-    percentage, prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, lifted_shadow};
@@ -224,15 +224,10 @@ impl RenderOnce for BackgroundTasksPill {
             .clone();
         let is_focused = focus.is_focused(window);
 
-        let spinner = |key: &str| -> AnyElement {
-            Icon::new(IconName::LoaderCircle)
+        let spinner = |_: &str| -> AnyElement {
+            Spinner::new()
                 .xsmall()
-                .text_color(Tone::Info.color(cx))
-                .with_animation(
-                    ElementId::NamedChild(self.id.clone().into(), format!("spin-{key}").into()),
-                    Animation::new(std::time::Duration::from_secs(1)).repeat(),
-                    |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
-                )
+                .color(Tone::Info.color(cx))
                 .into_any_element()
         };
 

@@ -8,6 +8,7 @@
 //! Cmd with Enter applies a note to the current step right away. Every note
 //! stays with the step it changed, so the run is easy to follow later.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::time::{Duration, Instant};
 
 use isonomic_ui::component::TextRole as _;
@@ -582,7 +583,7 @@ impl Render for RunSteeringPanel {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .child(Icon::new(IconName::LoaderCircle).small().text_color(accent)),
+                    .child(Spinner::new().small().color(accent)),
                 SteerStepStatus::Pending => div()
                     .size(px(16.))
                     .rounded_full()

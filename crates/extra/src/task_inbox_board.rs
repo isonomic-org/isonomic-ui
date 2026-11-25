@@ -8,6 +8,7 @@
 //! last steps and the one thing that can be done now: approve or reject,
 //! retry, or open. The same tasks can be read as a list instead.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::{
     collections::HashMap,
     rc::Rc,
@@ -418,11 +419,7 @@ impl RenderOnce for TaskInboxBoard {
             let state: isonomic_ui::AnyElement = match task.status {
                 InboxStatus::Running => h_flex()
                     .gap_1()
-                    .child(
-                        Icon::new(IconName::LoaderCircle)
-                            .xsmall()
-                            .text_color(accent),
-                    )
+                    .child(Spinner::new().xsmall().color(accent))
                     .children(task.started.map(|at| clock(at.elapsed())))
                     .into_any_element(),
                 InboxStatus::Done => h_flex()
