@@ -762,6 +762,7 @@ impl StoryState {
             "PopoverStory" => story!(PopoverStory),
             "ProgressStory" => story!(ProgressStory),
             "ResizableStory" => story!(ResizableStory),
+            "RollingNumberStory" => story!(RollingNumberStory),
             "ScrollbarStory" => story!(ScrollbarStory),
             "SwitchStory" => story!(SwitchStory),
             "DataTableStory" => story!(DataTableStory),

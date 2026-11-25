@@ -76,6 +76,7 @@ pub mod questionnaire;
 pub mod radio;
 pub mod rating;
 pub mod resizable;
+pub mod rolling_number;
 pub mod scroll;
 pub mod searchable_list;
 pub mod select;

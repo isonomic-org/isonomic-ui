@@ -130,10 +130,13 @@ Stacking order, top first: modal, overlays, toasts, page.
 | Ease | `cubic-bezier(0.22, 1, 0.36, 1)` |
 | Spring (pop only) | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
 | Durations | 120, 160, 220, 320, 420ms |
+| Long duration | 600ms |
 
 - Hover and press: 120-160ms.
 - Overlays rise 4px and fade in over 160-220ms.
 - A pop scales from 0.86 to 1 with the spring curve.
+- Rolling digits use the long duration with the ease curve, each digit
+  starting 24ms after the one to its right. Nothing else is this slow.
 - Under reduced motion the state still changes; the movement does not play.
 
 ## Focus

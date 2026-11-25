@@ -14,6 +14,8 @@ pub struct MotionTokens {
     pub duration_fast: Duration,
     pub duration_normal: Duration,
     pub duration_slow: Duration,
+    /// Counted changes that should be watched, such as rolling digits.
+    pub duration_long: Duration,
     pub easing_enter: Easing,
     pub easing_exit: Easing,
     pub easing_move: Easing,
@@ -30,6 +32,7 @@ impl Default for MotionTokens {
             duration_fast: Duration::from_millis(120),
             duration_normal: Duration::from_millis(180),
             duration_slow: Duration::from_millis(280),
+            duration_long: Duration::from_millis(600),
             easing_enter: Easing::cubic_bezier(0.16, 1.0, 0.3, 1.0)
                 .expect("static enter curve is valid"),
             easing_exit: Easing::cubic_bezier(0.4, 0.0, 1.0, 1.0)

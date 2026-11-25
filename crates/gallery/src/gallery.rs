@@ -125,6 +125,7 @@ impl Gallery {
                 StoryContainer::panel::<RadioStory>(window, cx),
                 StoryContainer::panel::<RatingStory>(window, cx),
                 StoryContainer::panel::<ResizableStory>(window, cx),
+                StoryContainer::panel::<RollingNumberStory>(window, cx),
                 StoryContainer::panel::<ScrollbarStory>(window, cx),
                 StoryContainer::panel::<SelectStory>(window, cx),
                 StoryContainer::panel::<SeparatorStory>(window, cx),
