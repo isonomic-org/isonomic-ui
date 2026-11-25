@@ -3,7 +3,7 @@
 
 use gpui::{
     AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
-    StyleRefinement, Styled, Window, prelude::FluentBuilder,
+    StyleRefinement, Styled, Window, prelude::FluentBuilder, px,
 };
 
 use crate::{
@@ -111,6 +111,18 @@ impl RenderOnce for SearchableListItemElement {
             .justify_between()
             .input_text_size(self.size)
             .list_size(self.size)
+            // A row is a 32px target (28 small, 36 large) with 8px sides, so
+            // a 4px list inset puts the text 12px in from the panel's edge.
+            .min_h(px(match self.size {
+                Size::XSmall => 24.,
+                Size::Small => 28.,
+                Size::Large => 36.,
+                _ => 32.,
+            }))
+            .when(!matches!(self.size, Size::Size(_)), |this| {
+                this.px(px(8.)).py(px(4.)).gap_x_2()
+            })
+            .when(self.checked, |this| this.font_medium())
             .refine_style(&self.style)
             .when(!self.disabled, |this| {
                 this.when(!self.selected, |this| {
@@ -134,7 +146,7 @@ impl RenderOnce for SearchableListItemElement {
                     .min_w_0()
                     .items_center()
                     .justify_between()
-                    .gap_x_1()
+                    .gap_x_2()
                     .child(
                         h_flex()
                             .flex_1()

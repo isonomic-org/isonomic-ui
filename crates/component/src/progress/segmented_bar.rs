@@ -148,10 +148,12 @@ impl Sizable for SegmentedBar {
 impl RenderOnce for SegmentedBar {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let (height, pill_radius) = match self.size {
-            Size::XSmall => (px(4.), px(2.)),
-            Size::Small => (px(6.), px(3.)),
-            Size::Medium => (px(8.), px(4.)),
-            Size::Large => (px(10.), px(5.)),
+            // A thin rule by default: 4px, with 2 and 3 for dense rows and 6
+            // where the bar is the headline.
+            Size::XSmall => (px(2.), px(1.)),
+            Size::Small => (px(3.), px(1.5)),
+            Size::Medium => (px(4.), px(2.)),
+            Size::Large => (px(6.), px(3.)),
             Size::Size(s) => (s, s / 2.),
         };
         let radius = if cx.theme().radius.is_zero() {
@@ -159,7 +161,7 @@ impl RenderOnce for SegmentedBar {
         } else {
             pill_radius
         };
-        let track = cx.theme().tokens.progress_bar.opacity(0.2);
+        let track = crate::look::ink::hairline(cx);
         let stripes = self.striped.then(|| stripe_pattern(cx));
         let motion = cx.theme().motion_tokens();
         let grow = Transition::new(motion.duration_slow).easing(motion.easing_move.clone());

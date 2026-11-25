@@ -3,13 +3,12 @@
 
 use gpui::{
     App, Hsla, ImageSource, InteractiveElement, Interactivity, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder,
+    RenderOnce, SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 use isonomic_ui_base::{Avatar as BaseAvatar, AvatarFallback, AvatarImage, TestTextExt as _};
 
 use crate::{
-    ActiveTheme, Icon, IconName, Sizable, Size, StyledExt, ThemeStyled as _,
-    avatar::{AvatarSized as _, avatar_size},
+    ActiveTheme, Icon, IconName, Sizable, Size, StyledExt, ThemeStyled as _, avatar::avatar_size,
     oklch,
 };
 
@@ -93,12 +92,14 @@ impl RenderOnce for Avatar {
             .is_some()
             .then(|| IdentityColor::new(&self.short_name, cx));
 
-        // The tinted outline belongs to the initials. An image, or the anonymous
-        // placeholder, keeps the neutral border.
-        let border_color = match (identity, &self.src) {
-            (Some(identity), None) => identity.border,
-            _ => cx.theme().border,
+        // A face has no border. Initials carry a hairline in their own tint; an
+        // image or the anonymous placeholder a neutral one, so a white photo
+        // still has an edge on a white page.
+        let edge = match (identity, &self.src) {
+            (Some(identity), None) => identity.border.alpha(0.5),
+            _ => crate::look::ink::hairline(cx),
         };
+        let diameter = avatar_size(self.size);
 
         let fallback = AvatarFallback::new()
             .size_full()
@@ -108,13 +109,21 @@ impl RenderOnce for Avatar {
             .rounded_full_style(cx)
             .overflow_hidden()
             .when_none(&identity, |this| {
-                this.text_size(avatar_size(self.size) * 0.6)
+                this.text_size(diameter * 0.55)
+                    .text_color(crate::look::ink::icon(cx))
                     .child(self.placeholder)
             })
             .when_some(identity, |this, identity| {
                 this.bg(identity.background)
                     .text_color(identity.foreground)
-                    .child(div().avatar_text_size(self.size).child(self.short_name))
+                    .child(
+                        div()
+                            // Initials are 3/8 of the face, never under 10px.
+                            .text_size((diameter * 0.375).max(px(10.)))
+                            .line_height(gpui::relative(1.))
+                            .font_medium()
+                            .child(self.short_name),
+                    )
             })
             .refine_style(&inner_style);
 
@@ -125,10 +134,15 @@ impl RenderOnce for Avatar {
             .flex_shrink_0()
             .rounded_full_style(cx)
             .overflow_hidden()
-            .bg(cx.theme().tokens.secondary)
-            .text_color(cx.theme().background)
-            .border_1()
-            .border_color(border_color)
+            .bg(crate::look::ink::wash_strong(cx))
+            .text_color(crate::look::ink::icon(cx))
+            .shadow(vec![gpui::BoxShadow {
+                color: edge,
+                offset: gpui::point(px(0.), px(0.)),
+                blur_radius: px(0.),
+                spread_radius: px(0.5),
+                inset: true,
+            }])
             .fallback(fallback)
             .when_some(self.src, |this, src| {
                 this.image(
@@ -180,8 +194,8 @@ impl IdentityColor {
             )
         } else {
             (
-                oklch(0.97, 0.032, hue),
-                oklch(0.50, 0.145, hue),
+                oklch(0.935, 0.04, hue),
+                oklch(0.46, 0.13, hue),
                 oklch(0.89, 0.05, hue),
             )
         };

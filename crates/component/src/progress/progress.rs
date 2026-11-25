@@ -108,10 +108,12 @@ impl RenderOnce for Progress {
         inner_style.corner_radii = radius;
 
         let (height, pill_radius) = match self.size {
-            Size::XSmall => (px(4.), px(2.)),
-            Size::Small => (px(6.), px(3.)),
-            Size::Medium => (px(8.), px(4.)),
-            Size::Large => (px(10.), px(5.)),
+            // A thin rule by default: 4px, with 2 and 3 for dense rows and 6
+            // where the bar is the headline.
+            Size::XSmall => (px(2.), px(1.)),
+            Size::Small => (px(3.), px(1.5)),
+            Size::Medium => (px(4.), px(2.)),
+            Size::Large => (px(6.), px(3.)),
             Size::Size(s) => (s, s / 2.),
         };
         // The bar reads as a pill of half its own height, and squares off with
@@ -146,7 +148,7 @@ impl RenderOnce for Progress {
                 ProgressTrack::new()
                     .absolute()
                     .size_full()
-                    .bg(bg.opacity(0.2))
+                    .bg(crate::look::ink::hairline(cx))
                     .rounded(radius)
                     .refine_style(&inner_style),
             )

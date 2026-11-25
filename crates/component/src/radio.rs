@@ -4,14 +4,14 @@
 use std::{rc::Rc, time::Duration};
 
 use crate::{
-    ActiveTheme, AxisExt, Sizable, Size, StyledExt, checkbox::checkbox_check_icon, h_flex,
-    text::Text, tooltip::ComponentTooltip, v_flex,
+    ActiveTheme, AxisExt, Sizable, Size, StyledExt, h_flex, text::Text, tooltip::ComponentTooltip,
+    v_flex,
 };
 use crate::{StyleSized as _, ThemeStyled as _};
 use gpui::{
     AnyElement, App, Axis, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce,
     SharedString, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder, relative, rems,
+    prelude::FluentBuilder, px, relative, rems,
 };
 use isonomic_ui_base::{LogicalStyledExt as _, Radio as BaseRadio, RadioGroup as BaseRadioGroup};
 
@@ -193,15 +193,55 @@ impl RenderOnce for Radio {
             .clone()
             .or_else(|| self.label.as_ref().map(|label| label.get_text(cx)));
 
-        let (border_color, bg) = if checked {
-            (cx.theme().primary, cx.theme().primary)
-        } else {
-            (cx.theme().input, cx.theme().input.opacity(0.5))
+        // The same recessed well as a checkbox, round: a 1px inner edge that
+        // firms under the pointer and a hairline drop. Chosen, it fills with
+        // ink and a dot grows out of the middle.
+        let dark = cx.theme().mode.is_dark();
+        let edge = |alpha: f32| gpui::BoxShadow {
+            color: if dark {
+                gpui::hsla(0., 0., 1., alpha + 0.04)
+            } else {
+                gpui::hsla(0., 0., 0., alpha)
+            },
+            offset: gpui::point(px(0.), px(0.)),
+            blur_radius: px(0.),
+            spread_radius: px(1.),
+            inset: true,
         };
-        let (border_color, bg) = if disabled {
-            (border_color.opacity(0.5), bg.opacity(0.5))
+        let drop = gpui::BoxShadow {
+            color: gpui::hsla(0., 0., 0., if dark { 0.3 } else { 0.04 }),
+            offset: gpui::point(px(0.), px(1.)),
+            blur_radius: px(0.5),
+            spread_radius: px(0.),
+            inset: false,
+        };
+        let hover_state = window.use_keyed_state(
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "hovered".into()),
+            cx,
+            |_, _| false,
+        );
+        let edge_alpha = 0.18
+            + 0.12
+                * crate::look::hover_fade(
+                    self.id.clone(),
+                    !disabled && *hover_state.read(cx),
+                    window,
+                    cx,
+                );
+        let grown = isonomic_ui_base::motion::transition(
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "dot".into()),
+            if checked { 1.0_f32 } else { 0.0 },
+            isonomic_ui_base::motion::Transition::new(cx.theme().motion.duration_normal)
+                .easing(cx.theme().motion.easing_enter.clone()),
+            window,
+            cx,
+        );
+        let indicator_px = indicator_size.to_pixels(window.rem_size());
+        let dot = indicator_px * 0.375 * grown;
+        let fill = if disabled {
+            cx.theme().primary.opacity(0.5)
         } else {
-            (border_color, bg)
+            *cx.theme().tokens.primary
         };
 
         self.base
@@ -221,7 +261,7 @@ impl RenderOnce for Radio {
             .h_flex()
             // The indicator leads, on the start edge.
             .flex_row_dir(cx)
-            .gap_x_2()
+            .gap_x_2p5()
             .text_color(cx.theme().foreground)
             .items_start()
             .line_height(relative(1.))
@@ -238,27 +278,38 @@ impl RenderOnce for Radio {
                 div()
                     .relative()
                     .size(indicator_size)
-                    // Center on the first 1.25em line, including when the label wraps.
-                    .when(has_content, |this| this.mt(indicator_size * 0.125))
+                    // Center on the label's first 20px line, including when it wraps.
+                    .when(has_content, |this| this.mt((px(20.) - indicator_px) / 2.))
                     .flex_shrink_0()
-                    .rounded_full_style(cx)
-                    .border_1()
-                    .border_color(border_color)
-                    .map(|this| match self.checked {
-                        false => this.bg(cx.theme().input_background()),
-                        true if disabled => this.bg(bg),
-                        true => this.bg(cx.theme().tokens.primary),
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .rounded_full()
+                    .map(|this| {
+                        if checked {
+                            this.bg(fill)
+                        } else {
+                            this.bg(cx.theme().popover).shadow(vec![
+                                edge(if disabled { 0.1 } else { edge_alpha }),
+                                drop.clone(),
+                            ])
+                        }
                     })
-                    .child(checkbox_check_icon(
-                        self.id, self.size, checked, disabled, window, cx,
-                    )),
+                    .when(dot > px(0.), |this| {
+                        this.child(
+                            div()
+                                .size(dot)
+                                .rounded_full()
+                                .bg(cx.theme().primary_foreground),
+                        )
+                    }),
             )
             .when(!self.children.is_empty() || self.label.is_some(), |this| {
                 this.child(
                     v_flex()
                         .w_full()
-                        .line_height(relative(1.25))
-                        .gap_1()
+                        .line_height(px(20.))
+                        .gap_0p5()
                         .when_some(self.label, |this, label| {
                             this.child(
                                 div()
@@ -281,7 +332,19 @@ impl RenderOnce for Radio {
                     on_click(&next, window, cx);
                 })
             })
-            .map(|this| self.tooltip.apply(this))
+            .map(|this| {
+                let hover: crate::tooltip::HoverListener = Rc::new(move |hovered, window, cx| {
+                    let hovered = *hovered;
+                    hover_state.update(cx, |state, cx| {
+                        if *state != hovered {
+                            *state = hovered;
+                            cx.notify();
+                        }
+                    });
+                    window.refresh();
+                });
+                self.tooltip.apply_with_hover(this, Some(hover))
+            })
     }
 }
 
