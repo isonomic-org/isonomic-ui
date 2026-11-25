@@ -11,18 +11,17 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, Icon, Sizable as _, StyledExt as _, TextRole as _,
     button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
+    h_flex, look, v_flex,
 };
 use isonomic_ui::{
     Animation, AnimationExt as _, AnyElement, App, ElementId, InteractiveElement as _, IntoElement,
     ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
-use isonomic_ui::assets::IconName as CatalogIcon;
-use isonomic_ui::base::{Transition, transition};
 
 /// How long one suggestion takes to appear.
 const APPEAR: Duration = Duration::from_millis(220);
@@ -219,10 +218,9 @@ impl RenderOnce for PromptSuggestions {
         let theme = cx.theme();
         let quiet = theme.muted_foreground;
         let ink = theme.foreground;
-        let tile = theme.secondary;
         let surface = theme.muted;
         let surface_hover = theme.secondary_hover;
-        let hover_time = theme.motion_tokens().duration_fast;
+        let tile = look::ink::wash_strong(cx);
 
         let child_id =
             |part: String| ElementId::NamedChild(self.id.clone().into(), SharedString::from(part));
@@ -248,8 +246,7 @@ impl RenderOnce for PromptSuggestions {
                             div()
                                 .min_w_0()
                                 .truncate()
-                                .text_size(px(13.))
-                                .line_height(px(20.))
+                                .text_body()
                                 .font_normal()
                                 .child(suggestion.title.clone()),
                         )
@@ -291,9 +288,7 @@ impl RenderOnce for PromptSuggestions {
                         this.child(
                             div()
                                 .px_1()
-                                .text_size(px(12.))
-                                .line_height(px(16.))
-                                .font_medium()
+                                .text_label_small()
                                 .text_color(quiet)
                                 .child(heading),
                         )
@@ -318,15 +313,15 @@ impl RenderOnce for PromptSuggestions {
                     let id = suggestion.id.clone();
                     let text = suggestion.text_to_send();
                     // The arrow shows while the pointer is over the card.
-                    let hovered = window
-                        .use_keyed_state(child_id(format!("hover-{}", suggestion.id)), cx, |_, _| {
-                            false
-                        });
+                    let hovered = window.use_keyed_state(
+                        child_id(format!("hover-{}", suggestion.id)),
+                        cx,
+                        |_, _| false,
+                    );
                     let over = *hovered.read(cx);
-                    let arrow = transition(
+                    let arrow = look::hover_fade(
                         child_id(format!("arrow-{}", suggestion.id)),
-                        if over { 1_f32 } else { 0. },
-                        Transition::new(hover_time),
+                        over,
                         window,
                         cx,
                     );
@@ -344,7 +339,7 @@ impl RenderOnce for PromptSuggestions {
                         .p(px(6.))
                         .pr(px(14.))
                         .gap(px(12.))
-                        .bg(if over { surface_hover } else { surface })
+                        .bg(look::mix(surface, surface_hover, arrow))
                         .font_normal()
                         .when_some(suggestion.icon.clone(), |this, icon| {
                             this.child(
@@ -371,9 +366,7 @@ impl RenderOnce for PromptSuggestions {
                                     div()
                                         .w_full()
                                         .truncate()
-                                        .text_size(px(13.))
-                                        .line_height(px(20.))
-                                        .font_medium()
+                                        .text_label()
                                         .text_color(ink)
                                         .child(suggestion.title.clone()),
                                 )
@@ -382,8 +375,7 @@ impl RenderOnce for PromptSuggestions {
                                         div()
                                             .w_full()
                                             .truncate()
-                                            .text_size(px(12.))
-                                            .line_height(px(16.))
+                                            .text_caption()
                                             .text_color(quiet)
                                             .child(hint),
                                     )
@@ -422,9 +414,7 @@ impl RenderOnce for PromptSuggestions {
                     div()
                         .when(columns == 1, |this| this.w_full())
                         // Two columns share the row less the 8px gap between them.
-                        .when(columns == 2, |this| {
-                            this.min_w_0()
-                        })
+                        .when(columns == 2, |this| this.min_w_0())
                         .child(slot)
                 });
 
@@ -434,22 +424,13 @@ impl RenderOnce for PromptSuggestions {
                     .max_w(px(576.))
                     .gap_3()
                     .when_some(self.heading.clone(), |this, heading| {
-                        this.child(
-                            div()
-                                .px_1()
-                                .text_size(px(15.))
-                                .line_height(px(22.))
-                                .font_medium()
-                                .child(heading),
-                        )
+                        this.child(div().px_1().text_title().child(heading))
                     })
                     .child(
                         div()
                             .id(child_id("list".into()))
                             .when(columns == 1, |this| this.flex().flex_col().gap_2())
-                            .when(columns == 2, |this| {
-                                this.grid().grid_cols(2).gap_2()
-                            })
+                            .when(columns == 2, |this| this.grid().grid_cols(2).gap_2())
                             .role(Role::List)
                             .aria_label(list_name)
                             .children(cards),
@@ -469,7 +450,8 @@ mod tests {
     fn a_suggestion_sends_its_prompt_or_its_title() {
         let plain = Suggestion::new("a", "Plan the week");
         assert_eq!(plain.text_to_send(), "Plan the week");
-        let long = Suggestion::new("b", "Plan the week").prompt("Plan my week around two deadlines");
+        let long =
+            Suggestion::new("b", "Plan the week").prompt("Plan my week around two deadlines");
         assert_eq!(long.text_to_send(), "Plan my week around two deadlines");
     }
 
@@ -493,10 +475,15 @@ mod tests {
         assert_eq!(cards.list_name(), "Suggested prompts");
         let chips = PromptSuggestions::new("s", Vec::new()).chips();
         assert_eq!(chips.list_name(), "Suggested follow-ups");
-        let loading = PromptSuggestions::new("s", Vec::new()).chips().refreshing(true);
+        let loading = PromptSuggestions::new("s", Vec::new())
+            .chips()
+            .refreshing(true);
         assert!(loading.list_name().contains("loading"));
         let named = PromptSuggestions::new("s", Vec::new()).heading("Try asking");
         assert_eq!(named.list_name(), "Try asking");
-        assert_eq!(PromptSuggestions::new("s", Vec::new()).columns(5).columns, 2);
+        assert_eq!(
+            PromptSuggestions::new("s", Vec::new()).columns(5).columns,
+            2
+        );
     }
 }

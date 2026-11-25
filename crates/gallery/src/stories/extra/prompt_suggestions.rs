@@ -142,11 +142,6 @@ impl Render for PromptSuggestionsStory {
                         })
                     }),
             )
-            .child(
-                div()
-                    .text_sm()
-                    .text_color(quiet)
-                    .child(self.sent.clone()),
-            )
+            .child(div().text_sm().text_color(quiet).child(self.sent.clone()))
     }
 }

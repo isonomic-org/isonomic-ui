@@ -236,8 +236,7 @@ impl Styled for TerminalOutput {
 
 impl RenderOnce for TerminalOutput {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let part =
-            |name: &'static str| ElementId::NamedChild(self.id.clone().into(), name.into());
+        let part = |name: &'static str| ElementId::NamedChild(self.id.clone().into(), name.into());
         let theme = cx.theme();
         let quiet = theme.muted_foreground;
         let danger = theme.danger;
@@ -393,31 +392,30 @@ impl RenderOnce for TerminalOutput {
                 cx,
             ))
             .child(
-                panel(cx).relative().child(
-                    div()
-                        .id(part("output"))
-                        .max_h(self.max_height)
-                        .overflow_y_scroll()
-                        .track_scroll(&handle)
-                        .on_scroll(|_, window, _| window.refresh())
-                        .rounded(px(16.))
-                        .py_3()
-                        .font_family(mono.clone())
-                        .text_size(px(12.))
-                        .line_height(px(20.))
-                        .role(Role::Log)
-                        .aria_label(format!("Output of {}", self.command))
-                        .when(count == 0, |this| {
-                            this.child(
-                                div()
-                                    .px_4()
-                                    .text_color(quiet)
-                                    .child("Waiting for output…"),
-                            )
-                        })
-                        .children(rows),
-                )
-                .children(jump),
+                panel(cx)
+                    .relative()
+                    .child(
+                        div()
+                            .id(part("output"))
+                            .max_h(self.max_height)
+                            .overflow_y_scroll()
+                            .track_scroll(&handle)
+                            .on_scroll(|_, window, _| window.refresh())
+                            .rounded(px(16.))
+                            .py_3()
+                            .font_family(mono.clone())
+                            .text_size(px(12.))
+                            .line_height(px(20.))
+                            .role(Role::Log)
+                            .aria_label(format!("Output of {}", self.command))
+                            .when(count == 0, |this| {
+                                this.child(
+                                    div().px_4().text_color(quiet).child("Waiting for output…"),
+                                )
+                            })
+                            .children(rows),
+                    )
+                    .children(jump),
             )
             .child(
                 h_flex()
@@ -442,11 +440,7 @@ impl RenderOnce for TerminalOutput {
                     .child(
                         h_flex()
                             .gap(px(6.))
-                            .child(
-                                Clipboard::new(part("copy"))
-                                    .label("Copy")
-                                    .value(copy_text),
-                            )
+                            .child(Clipboard::new(part("copy")).label("Copy").value(copy_text))
                             .children(stop),
                     ),
             )
