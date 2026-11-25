@@ -18,10 +18,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
+    AppContext as _, BoxShadow, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
     InteractiveElement as _, IntoElement, KeyDownEvent, MouseButton, ParentElement as _, Render,
     Role, SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, div,
-    prelude::FluentBuilder as _, px, relative,
+    hsla, point, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
@@ -388,9 +388,8 @@ impl Render for QuestionCard {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let line = theme.border;
-        let chip = theme.muted;
-        let accent = theme.info;
+        let chip = isonomic_ui::component::look::ink::wash_strong(cx);
+        let subtle = isonomic_ui::component::look::ink::subtle(cx);
         let warning = theme.warning;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
@@ -404,12 +403,27 @@ impl Render for QuestionCard {
             .id("question-card")
             .w_full()
             .max_w(px(600.))
-            .rounded(radius_lg)
+            .rounded(if radius_lg > px(0.) {
+                radius_lg + px(6.)
+            } else {
+                px(0.)
+            })
             .bg(fill)
             .text_color(ink)
             .text_body()
-            .line_height(relative(1.45))
-            .shadow(resting_shadow(cx));
+            // A question waits above the page: the raised edge plus a long,
+            // soft drop.
+            .shadow({
+                let mut shadow = resting_shadow(cx);
+                shadow.push(BoxShadow {
+                    color: hsla(0., 0., 0., if theme.mode.is_dark() { 0.5 } else { 0.16 }),
+                    offset: point(px(0.), px(10.)),
+                    blur_radius: px(14.),
+                    spread_radius: px(-12.),
+                    inset: false,
+                });
+                shadow
+            });
 
         if self.folded {
             return card
@@ -446,12 +460,12 @@ impl Render for QuestionCard {
                 .flex_none()
                 .items_center()
                 .justify_center()
-                .size(px(20.))
-                .rounded(px(5.))
-                .border_1()
-                .border_color(line)
+                .size(px(22.))
+                .rounded(px(6.))
+                .bg(chip)
                 .text_caption()
-                .text_color(quiet)
+                .font_medium()
+                .text_color(subtle)
                 .child(n.to_string())
         };
 
@@ -469,10 +483,11 @@ impl Render for QuestionCard {
                     (None, false) => format!("{}. {}", ix + 1, row.title),
                 })
                 .gap_3()
-                .min_h(px(36.))
-                .px_2()
-                .py_1p5()
-                .rounded(radius)
+                .min_h(px(44.))
+                .pl(px(6.))
+                .pr_2()
+                .py_1()
+                .rounded(radius + px(2.))
                 .cursor_pointer()
                 .hover(|this| this.bg(chip))
                 .when(ix == selected && on_rows, |this| {
@@ -492,7 +507,7 @@ impl Render for QuestionCard {
                                 div()
                                     .truncate()
                                     .text_caption()
-                                    .text_color(quiet)
+                                    .text_color(subtle)
                                     .child(summary),
                             )
                         }),
@@ -503,8 +518,10 @@ impl Render for QuestionCard {
                             .flex_none()
                             .px_1p5()
                             .rounded(px(5.))
-                            .bg(accent.opacity(0.14))
-                            .text_caption()
+                            .bg(chip)
+                            .text_color(subtle)
+                            .text_badge()
+                            .line_height(px(18.))
                             .child("Recommended"),
                     )
                 })
@@ -566,8 +583,10 @@ impl Render for QuestionCard {
                             .flex_none()
                             .px_1p5()
                             .rounded(px(5.))
-                            .bg(warning.opacity(0.18))
-                            .text_label_small()
+                            .bg(warning.opacity(0.16))
+                            .text_color(warning)
+                            .text_badge()
+                            .line_height(px(18.))
                             .child("Your call"),
                     )
                     .child(
@@ -576,7 +595,8 @@ impl Render for QuestionCard {
                             .min_w_0()
                             .truncate()
                             .text_caption()
-                            .text_color(quiet)
+                            .line_height(px(20.))
+                            .text_color(subtle)
                             .children(question.task.clone()),
                     )
                     .children(pager)
@@ -588,7 +608,13 @@ impl Render for QuestionCard {
                             .on_click(cx.listener(|this, _, _, cx| this.later(cx))),
                     ),
             )
-            .child(div().text_base().font_medium().child(question.text.clone()))
+            .child(
+                div()
+                    .text_size(px(14.))
+                    .line_height(px(20.))
+                    .font_medium()
+                    .child(question.text.clone()),
+            )
             .when(!question.facts.is_empty(), |this| {
                 this.child(v_flex().gap_0p5().children(question.facts.iter().map(
                     |(label, value)| {
