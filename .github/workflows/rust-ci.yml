@@ -352,7 +352,8 @@ jobs:
 
           # The allow-list. Anything not listed is refused, which covers SSPL,
           # BUSL and crates that declare no licence. Do not add to this list to
-          # make a run pass: report the dependency instead.
+          # make a run pass: report the dependency instead. CDLA-Permissive-2.0
+          # was approved on 25 Nov 2026 for root-certificate data.
           mkdir -p "$RUNNER_TEMP/deny-config"
           cat > "$RUNNER_TEMP/deny-config/deny.toml" <<'TOML'
           [licenses]
@@ -361,6 +362,7 @@ jobs:
               "MIT",
               "BSD-2-Clause",
               "BSD-3-Clause",
+              "CDLA-Permissive-2.0",
               "ISC",
               "Zlib",
               "Unicode-3.0",
