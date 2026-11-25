@@ -53,10 +53,18 @@ mod filmstrip {
     }
 
     /// `card` is an element's own id; `list/card` is the part `card` of the
-    /// element `list`, the way components name their parts.
+    /// element `list`, the way components name their parts; `row#3` is the
+    /// numbered element `("row", 3)`.
     fn element_id(path: &str) -> ElementId {
+        let named = |part: &str| match part.split_once('#') {
+            Some((name, ix)) => ElementId::NamedInteger(
+                name.to_string().into(),
+                ix.parse().expect("an element id like `row#3`"),
+            ),
+            None => ElementId::Name(part.to_string().into()),
+        };
         let mut parts = path.split('/');
-        let mut id = ElementId::Name(parts.next().unwrap_or_default().to_string().into());
+        let mut id = named(parts.next().unwrap_or_default());
         for part in parts {
             id = ElementId::NamedChild(id.into(), part.to_string().into());
         }
