@@ -201,7 +201,10 @@ mod tests {
 
     #[gpui::test]
     fn reduced_motion_spinner_is_static_and_requests_no_frame(cx: &mut TestAppContext) {
-        cx.update(|cx| cx.set_reduce_motion(true));
+        cx.update(|cx| {
+            crate::init(cx);
+            cx.set_reduce_motion(true);
+        });
         let window = cx.open_window(size(px(100.), px(100.)), |_, _| SpinnerHost);
         cx.run_until_parked();
 

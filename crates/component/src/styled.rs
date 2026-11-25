@@ -77,23 +77,28 @@ pub(crate) fn popover_shadow(ring: Hsla, strength: f32) -> Vec<BoxShadow> {
     ]
 }
 
-/// The reference design's `shadow-lg`, the elevation it lifts a toast to, at `strength` of
-/// its full ink.
+/// A toast's elevation at `strength` of its full ink: the raised card's
+/// hairline ring and contact shadow, plus a long soft drop that lifts it over
+/// the page. Like the other surfaces it has no border.
 ///
-/// A toast sits higher than a popover and is built differently: The reference design gives it
-/// a real 1px border rather than the translucent ring it puts on a popup, so
-/// there is no ring layer here. Its corner radius is left to the caller.
-///
-/// The radii are Tailwind's halved, for the reason [`popover_shadow`] explains.
-pub(crate) fn toast_shadow(strength: f32) -> Vec<BoxShadow> {
-    let ink = hsla(0., 0., 0., SURFACE_SHADOW_INK * strength.clamp(0., 1.));
+/// Blurs are half their CSS values: GPUI's blur is the gaussian's deviation.
+pub(crate) fn toast_shadow(strength: f32, dark: bool) -> Vec<BoxShadow> {
+    let k = strength.clamp(0., 1.);
+    let ring = if dark {
+        hsla(0., 0., 1., 0.12 * k)
+    } else {
+        hsla(0., 0., 0., 0.08 * k)
+    };
+    let drop = |alpha: f32| hsla(0., 0., 0., alpha * k);
     vec![
-        BoxShadow::new(px(0.), px(10.), ink)
-            .blur_radius(px(7.5))
-            .spread_radius(px(-3.)),
-        BoxShadow::new(px(0.), px(4.), ink)
-            .blur_radius(px(3.))
-            .spread_radius(px(-4.)),
+        BoxShadow::new(px(0.), px(0.), ring).spread_radius(px(0.5)),
+        BoxShadow::new(px(0.), px(1.), drop(if dark { 0.3 } else { 0.10 }))
+            .blur_radius(px(0.5))
+            .spread_radius(px(-1.)),
+        BoxShadow::new(px(0.), px(1.), drop(if dark { 0.3 } else { 0.05 })).blur_radius(px(1.)),
+        BoxShadow::new(px(0.), px(10.), drop(if dark { 0.5 } else { 0.14 }))
+            .blur_radius(px(12.))
+            .spread_radius(px(-10.)),
     ]
 }
 

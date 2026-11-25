@@ -78,8 +78,11 @@ fn pulse<E>(el: E, color: gpui::Hsla, style: &StyleRefinement) -> gpui::AnyEleme
 where
     E: Styled + IntoElement + 'static,
 {
+    // A text bar by default: 10px tall, so it sits inside a 20px line with
+    // room above and below, with soft 6px ends.
     el.w_full()
-        .h_4()
+        .h(gpui::px(10.))
+        .rounded(gpui::px(6.))
         .bg(color)
         .refine_style(style)
         .with_animation(
