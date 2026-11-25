@@ -11,17 +11,18 @@
 //! only the text being written; everything else comes from its owner.
 
 use isonomic_ui::component::TextRole as _;
+use isonomic_ui::component::spinner::Spinner;
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     input::{InputEvent, Textarea, TextareaState},
     v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, AnyElement, App, AppContext as _, Context, Entity, EventEmitter,
-    FocusHandle, Focusable, IntoElement, ParentElement as _, Render, SharedString, Styled as _,
-    Subscription, Transformation, Window, div, percentage, prelude::FluentBuilder as _, px,
+    AnyElement, App, AppContext as _, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    IntoElement, ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div,
+    prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -173,15 +174,7 @@ impl Render for RunControlComposer {
         let color = tone.color(cx);
 
         let mark: AnyElement = if phase == RunPhase::Running {
-            Icon::new(IconName::LoaderCircle)
-                .xsmall()
-                .text_color(color)
-                .with_animation(
-                    "run-spin",
-                    Animation::new(std::time::Duration::from_secs(1)).repeat(),
-                    |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
-                )
-                .into_any_element()
+            Spinner::new().xsmall().color(color).into_any_element()
         } else {
             div()
                 .size(px(7.))

@@ -9,6 +9,7 @@
 //! colour with its failure words and can be clicked to try again. A
 //! destructive action asks for a second click, saying what will happen.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::rc::Rc;
 
 use isonomic_ui::component::{
@@ -16,8 +17,8 @@ use isonomic_ui::component::{
     button::{Button, ButtonVariants as _},
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, App, ElementId, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, Styled as _, Transformation, Window, percentage, prelude::FluentBuilder as _,
+    App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, Styled as _, Window,
+    prelude::FluentBuilder as _,
 };
 
 /// Where the action is.
@@ -144,7 +145,6 @@ impl RenderOnce for ActionButton {
             ActionState::Done => self.done.clone(),
             ActionState::Failed => self.failed.clone(),
         };
-        let spinner_id = ElementId::NamedChild(self.id.clone().into(), "spin".into());
         Button::new(self.id.clone())
             .small()
             .map(|b| match (state, destructive, self.primary) {
@@ -163,11 +163,7 @@ impl RenderOnce for ActionButton {
                 b.icon(IconName::RefreshCw)
             })
             .when(state == ActionState::Working, |b| {
-                b.child(Icon::new(IconName::LoaderCircle).xsmall().with_animation(
-                    spinner_id,
-                    Animation::new(std::time::Duration::from_secs(1)).repeat(),
-                    |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
-                ))
+                b.child(Spinner::new().xsmall())
             })
             .label(label.clone())
             .disabled(matches!(state, ActionState::Working | ActionState::Done))

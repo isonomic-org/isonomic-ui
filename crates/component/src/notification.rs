@@ -24,6 +24,7 @@ use isonomic_ui_base::{
 
 use crate::{
     ActiveTheme as _, Edges, Icon, IconName, Sizable as _, StyledExt, TITLE_BAR_HEIGHT,
+    TextRole as _,
     animation::cubic_bezier,
     button::{Button, ButtonVariants as _},
     styled::toast_shadow,
@@ -33,7 +34,7 @@ use crate::{
 const NOTIFICATION_TRANSITION_DURATION: Duration = Duration::from_millis(400);
 const NOTIFICATION_EXIT_DURATION: Duration = Duration::from_millis(200);
 const NOTIFICATION_TRANSITION_OFFSET: Pixels = px(96.);
-const DEFAULT_NOTIFICATION_WIDTH: Pixels = px(382.);
+const DEFAULT_NOTIFICATION_WIDTH: Pixels = px(356.);
 const NOTIFICATION_ADVANCE_INTERVAL: Duration = Duration::from_millis(50);
 struct DismissRequest;
 
@@ -421,6 +422,7 @@ impl Render for Notification {
         };
         let has_icon = icon.is_some();
         let placement = self.placement.unwrap_or(cx.theme().notification.placement);
+        let dark = cx.theme().mode.is_dark();
 
         BaseToast::new("notification")
             .transition_status(transition_status)
@@ -430,21 +432,25 @@ impl Render for Notification {
             .occlude()
             .relative()
             .w_full()
-            .border_1()
-            .border_color(cx.theme().border)
             .bg(cx.theme().tokens.popover)
-            .rounded(cx.theme().radius_lg)
-            .shadow(toast_shadow(1.))
-            .py_3p5()
-            .px_4()
-            .gap_3()
+            .rounded(if cx.theme().radius_lg > px(0.) {
+                cx.theme().radius_lg + px(2.)
+            } else {
+                px(0.)
+            })
+            .shadow(toast_shadow(1., cx.theme().mode.is_dark()))
+            .py_3()
+            .ps(px(12.), cx)
+            .pe(px(14.), cx)
+            .gap_2()
             .refine_style(&self.style)
             .when_some(icon, |this, icon| {
                 this.child(
                     div()
                         .absolute()
-                        .top(px(18.))
-                        .inset_s(rems(1.), cx)
+                        // On the title's 20px line, 12px in from the edge.
+                        .top(px(14.))
+                        .inset_s(px(12.), cx)
                         .child(icon),
                 )
             })
@@ -452,12 +458,18 @@ impl Render for Notification {
                 v_flex()
                     .flex_1()
                     .overflow_hidden()
-                    .when(has_icon, |this| this.ps(rems(1.5), cx))
+                    // The icon's 16px and an 8px gap.
+                    .when(has_icon, |this| this.ps(px(24.), cx))
                     .when_some(self.title.clone(), |this, title| {
-                        this.child(div().text_sm().font_semibold().child(title))
+                        this.child(div().text_label().child(title))
                     })
                     .when_some(self.message.clone(), |this, message| {
-                        this.child(div().text_sm().child(message))
+                        this.child(
+                            div()
+                                .text_body()
+                                .text_color(crate::look::ink::muted(cx))
+                                .child(message),
+                        )
                     })
                     .when_some(content, |this, content| this.child(content)),
             )
@@ -503,7 +515,9 @@ impl Render for Notification {
                 move |this, delta| {
                     if closing {
                         let opacity = 1. - delta;
-                        let that = this.opacity(opacity).shadow(toast_shadow(opacity.powi(3)));
+                        let that = this
+                            .opacity(opacity)
+                            .shadow(toast_shadow(opacity.powi(3), dark));
                         let y_offset = match placement {
                             Anchor::TopLeft | Anchor::TopRight | Anchor::TopCenter => {
                                 -delta * NOTIFICATION_TRANSITION_OFFSET
@@ -536,7 +550,7 @@ impl Render for Notification {
                         // threshold, which popped.
                         this.top(px(0.) + y_offset)
                             .opacity(opacity)
-                            .shadow(toast_shadow(opacity.powi(3)))
+                            .shadow(toast_shadow(opacity.powi(3), dark))
                     }
                 },
             )

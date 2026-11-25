@@ -9,6 +9,7 @@
 //! Decline. What comes next is faded, and a step that needs approval says so
 //! before it is reached.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::{
     collections::HashMap,
     rc::Rc,
@@ -399,11 +400,10 @@ impl RenderOnce for StepTrail {
                     TrailState::Done => ring
                         .bg(accent.opacity(0.16))
                         .child(Icon::new(IconName::Check).xsmall().text_color(accent)),
-                    TrailState::Running => ring.border_2().border_color(accent.opacity(0.3)).child(
-                        Icon::new(IconName::LoaderCircle)
-                            .xsmall()
-                            .text_color(accent),
-                    ),
+                    TrailState::Running => ring
+                        .border_2()
+                        .border_color(accent.opacity(0.3))
+                        .child(Spinner::new().xsmall().color(accent)),
                     TrailState::Waiting => ring
                         .bg(warning)
                         .child(Icon::new(IconName::Pause).xsmall().text_color(fill)),

@@ -7,7 +7,7 @@ use std::{rc::Rc, time::Duration};
 use gpui::{
     AnyElement, App, Axis, Corners, Edges, ElementId, InteractiveElement, IntoElement,
     ParentElement, RenderOnce, SharedString, StyleRefinement, Styled, Window,
-    prelude::FluentBuilder as _, relative,
+    prelude::FluentBuilder as _, px, relative,
 };
 use isonomic_ui_base::{Toggle as BaseToggle, ToggleGroup as BaseToggleGroup};
 use smallvec::{SmallVec, smallvec};
@@ -208,13 +208,16 @@ impl RenderOnce for Toggle {
             })
             .flex_row_dir(cx)
             .line_height(relative(1.25))
+            .font_medium()
             .items_center()
             .justify_center()
             .map(|this| match self.size {
-                Size::XSmall => this.min_w_5().h_5().px_0p5().text_xs(),
-                Size::Small => this.min_w_6().h_6().px_1().text_sm(),
-                Size::Large => this.min_w_9().h_9().px_3().text_base(),
-                _ => this.min_w_8().h_8().px_2().text_sm(),
+                // The button's heights and type: 20, 24, 28 and 32px, medium
+                // 12px on the two small sizes and 13px above.
+                Size::XSmall => this.min_w_5().h_5().px_1().text_size(px(12.)),
+                Size::Small => this.min_w_6().h_6().px_2().text_size(px(12.)),
+                Size::Large => this.min_w_8().h_8().px_3().text_size(px(13.)),
+                _ => this.min_w_7().h_7().px_2p5().text_size(px(13.)),
             })
             .when(border_corners.top_left, |this| this.rounded_tl(rounding))
             .when(border_corners.top_right, |this| this.rounded_tr(rounding))
@@ -227,7 +230,7 @@ impl RenderOnce for Toggle {
                     .when(border_edges.right, |this| this.border_r_1())
                     .when(border_edges.top, |this| this.border_t_1())
                     .when(border_edges.bottom, |this| this.border_b_1())
-                    .border_color(cx.theme().border)
+                    .border_color(crate::look::ink::hairline(cx).alpha(0.1))
                     .bg(cx.theme().tokens.background)
             })
             // Always register the hover style: GPUI only refreshes the cached

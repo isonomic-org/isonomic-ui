@@ -7,6 +7,7 @@
 //! The same card then follows the run: which step is going, how long each one
 //! took, and where it stopped, with a way to try again from a failed step.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
@@ -615,7 +616,7 @@ impl Render for PlanEditor {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .child(Icon::new(IconName::LoaderCircle).small().text_color(accent))
+                        .child(Spinner::new().small().color(accent))
                         .into_any_element(),
                     PlanStepStatus::Done => div()
                         .size_5()

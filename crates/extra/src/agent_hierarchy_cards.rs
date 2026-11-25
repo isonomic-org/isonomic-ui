@@ -8,6 +8,7 @@
 //! started them, joined by lines, and any branch can be folded away. The
 //! owner keeps which branches are folded and which card is selected.
 
+use isonomic_ui::component::spinner::Spinner;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -15,10 +16,9 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, AnyElement, App, ElementId, Hsla, InteractiveElement as _,
-    IntoElement, ParentElement as _, RenderOnce, Role, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Transformation, Window, div,
-    percentage, prelude::FluentBuilder as _, px,
+    AnyElement, App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -256,15 +256,7 @@ fn card(ctx: &Ctx, node: &AgentNode, depth: usize, cx: &mut App) -> AnyElement {
             .xsmall()
             .text_color(tone_color)
             .into_any_element(),
-        AgentState::Working(_) => Icon::new(IconName::LoaderCircle)
-            .xsmall()
-            .text_color(tone_color)
-            .with_animation(
-                ElementId::NamedChild(tree.id.clone().into(), format!("spin-{}", node.id).into()),
-                Animation::new(std::time::Duration::from_secs(1)).repeat(),
-                |icon, delta| icon.transform(Transformation::rotate(percentage(delta))),
-            )
-            .into_any_element(),
+        AgentState::Working(_) => Spinner::new().xsmall().color(tone_color).into_any_element(),
         AgentState::Idle => div()
             .size(px(8.))
             .rounded_full()
