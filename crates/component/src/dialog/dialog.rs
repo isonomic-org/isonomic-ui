@@ -513,7 +513,7 @@ impl Dialog {
         self
     }
 
-    /// Sets the width of the dialog, defaults to 448px.
+    /// Sets the width of the dialog, defaults to 480px.
     ///
     /// The dialog is never wider than the viewport minus a margin on each side.
     ///
@@ -523,7 +523,7 @@ impl Dialog {
         self
     }
 
-    /// Sets the width of the dialog, defaults to 448px.
+    /// Sets the width of the dialog, defaults to 480px.
     ///
     /// The dialog is never wider than the viewport minus a margin on each side.
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
@@ -1042,8 +1042,8 @@ pub(crate) mod tests {
         open(cx, |dialog, _, _| dialog.title("Fits").child("body"));
 
         let bounds = surface(cx, 0);
-        assert_eq!(bounds.size.width, px(448.));
-        assert_eq!(bounds.origin.x, px(276.));
+        assert_eq!(bounds.size.width, px(480.));
+        assert_eq!(bounds.origin.x, px(260.));
         assert_eq!(bounds.origin.y, px(80.));
     }
 
