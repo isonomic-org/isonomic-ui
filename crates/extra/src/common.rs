@@ -232,6 +232,43 @@ pub fn tracked_hovers(
         .collect()
 }
 
+/// A small progress ring: a thin edge with a wedge filled up to `share`
+/// (0 to 1), starting at twelve o'clock.
+pub fn paint_share_ring(bounds: Bounds<Pixels>, share: f32, color: Hsla, window: &mut Window) {
+    use std::f32::consts::{FRAC_PI_2, TAU};
+    let d = bounds.size.width.min(bounds.size.height);
+    let center = bounds.center();
+    let at = |r: Pixels, angle: f32| point(center.x + r * angle.cos(), center.y + r * angle.sin());
+    let edge_width = d * 0.15;
+    let outer = d / 2. - edge_width / 2.;
+    let mut edge = PathBuilder::stroke(edge_width);
+    edge.move_to(at(outer, 0.));
+    for step in 1..=48 {
+        edge.line_to(at(outer, step as f32 / 48. * TAU));
+    }
+    if let Ok(path) = edge.build() {
+        window.paint_path(path, color);
+    }
+    let share = share.clamp(0., 1.);
+    if share <= 0. {
+        return;
+    }
+    let inner = d / 2. - edge_width * 1.8;
+    let steps = ((share * 48.).ceil() as usize).max(2);
+    let mut points = vec![center];
+    for step in 0..=steps {
+        points.push(at(
+            inner,
+            -FRAC_PI_2 + share * TAU * step as f32 / steps as f32,
+        ));
+    }
+    let mut wedge = PathBuilder::fill();
+    wedge.add_polygon(&points, true);
+    if let Ok(path) = wedge.build() {
+        window.paint_path(path, color);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Tone;

@@ -254,3 +254,60 @@ fn the_finder_opens_folders_and_quick_looks_documents_from_the_keyboard(cx: &mut
     press(cx, "backspace");
     assert!(found(cx, "Ledger"));
 }
+
+struct FleetHarness {
+    fleet: Entity<isonomic_ui_extra::agent_fleet::AgentFleet>,
+}
+
+impl Render for FleetHarness {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().p_4().child(self.fleet.clone())
+    }
+}
+
+#[isonomic_ui::test]
+fn the_fleet_moves_between_leads_and_opens_one_with_enter(cx: &mut TestAppContext) {
+    use isonomic_ui::Focusable as _;
+    use isonomic_ui_extra::agent_fleet::{AgentFleet, FleetAgent};
+
+    let slot = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let keep = slot.clone();
+    let window = open_view(cx, move |cx| {
+        let fleet = cx.new(|cx| {
+            AgentFleet::new(
+                vec![
+                    FleetAgent::new("books", "Books lead", "Close the books")
+                        .child(FleetAgent::new("matcher", "Matcher", "Match lines")),
+                    FleetAgent::new("support", "Support lead", "Answer tickets")
+                        .child(FleetAgent::new("triage", "Triage", "Sort tickets")),
+                ],
+                cx,
+            )
+        });
+        *keep.borrow_mut() = Some(fleet.clone());
+        cx.new(|_| FleetHarness { fleet })
+    });
+    let fleet = slot.borrow().clone().expect("fleet built");
+    cx.update_window(window.into(), |_, window, cx| {
+        window.render_frame(cx);
+        fleet.read(cx).focus_handle(cx).focus(window, cx);
+    })
+    .unwrap();
+    let opened = |cx: &mut TestAppContext| cx.update(|cx| fleet.read(cx).opened().cloned());
+    assert_eq!(opened(cx).as_deref(), Some("books"));
+    for key in ["down", "enter"] {
+        cx.update_window(window.into(), |_, window, cx| {
+            window.press(key, cx);
+            window.render_frame(cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    }
+    assert_eq!(opened(cx).as_deref(), Some("support"));
+    cx.update_window(window.into(), |_, window, cx| {
+        window.press("enter", cx);
+        window.render_frame(cx);
+    })
+    .unwrap();
+    assert_eq!(opened(cx), None);
+}
