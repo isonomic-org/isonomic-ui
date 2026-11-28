@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Isometric stacked bars: rows of boxes seen from above at an angle, each box
 //! split into layers, one per series.
