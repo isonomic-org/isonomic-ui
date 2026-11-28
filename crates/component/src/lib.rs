@@ -109,6 +109,7 @@ pub mod toolbar;
 pub mod tooltip;
 pub mod tour;
 pub mod tree;
+pub mod typeahead;
 
 pub use crate::Disableable;
 pub use element_ext::*;

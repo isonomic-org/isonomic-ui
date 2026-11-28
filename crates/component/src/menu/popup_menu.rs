@@ -57,6 +57,9 @@ pub enum PopupMenuItem {
         destructive: bool,
         /// An id of its own, so a test can find the item whatever its place.
         id: Option<gpui::ElementId>,
+        /// A shortcut hint to show when the item has no action whose key
+        /// binding could be shown instead.
+        shortcut: Option<gpui::Keystroke>,
     },
     /// A menu item with custom element render.
     ElementItem {
@@ -91,6 +94,7 @@ impl PopupMenuItem {
             handler: None,
             destructive: false,
             id: None,
+            shortcut: None,
         }
     }
 
@@ -211,6 +215,18 @@ impl PopupMenuItem {
         self
     }
 
+    /// Show a shortcut hint, such as `"cmd-shift-d"`, at the end of the
+    /// row. An action's own key binding wins when the item has one. A
+    /// keystroke that does not parse is ignored.
+    ///
+    /// Only works for [`PopupMenuItem::Item`].
+    pub fn shortcut(mut self, keystroke: &'static str) -> Self {
+        if let PopupMenuItem::Item { shortcut, .. } = &mut self {
+            *shortcut = gpui::Keystroke::parse(keystroke).ok();
+        }
+        self
+    }
+
     /// Set checked state for the menu item.
     ///
     /// NOTE: If `check_side` is [`Side::Left`], the icon will replace with a check icon.
@@ -260,6 +276,7 @@ impl PopupMenuItem {
             handler: Some(Rc::new(move |_, _, cx| cx.open_url(&href))),
             destructive: false,
             id: None,
+            shortcut: None,
         }
     }
 
@@ -371,6 +388,8 @@ pub struct PopupMenu {
     /// content mask, so the items container's `overflow_y_scroll` clip never
     /// reaches it, while the scroll offset is still baked into its anchor.
     priority: usize,
+    /// Letters typed while the menu is open, to jump to an item.
+    typeahead: crate::typeahead::Typeahead,
 
     _subscriptions: Vec<Subscription>,
 }
@@ -398,6 +417,7 @@ impl PopupMenu {
             size: Size::default(),
             submenu_anchor: (Anchor::TopLeft, Pixels::ZERO),
             priority: isonomic_ui_base::POPUP_PRIORITY,
+            typeahead: crate::typeahead::Typeahead::default(),
             _subscriptions: vec![],
         }
     }
@@ -613,6 +633,28 @@ impl PopupMenu {
     }
 
     /// Add Menu Item with check icon
+    /// Add a destructive menu item, such as Delete, drawn in the danger
+    /// colour. Put destructive items together at the end of the menu, after
+    /// a [`separator`](Self::separator), so they read as their own group.
+    pub fn menu_destructive(self, label: impl Into<SharedString>, action: Box<dyn Action>) -> Self {
+        self.item(PopupMenuItem::new(label).action(action).destructive())
+    }
+
+    /// Add a destructive menu item with an icon.
+    pub fn menu_destructive_with_icon(
+        self,
+        label: impl Into<SharedString>,
+        icon: impl Into<Icon>,
+        action: Box<dyn Action>,
+    ) -> Self {
+        self.item(
+            PopupMenuItem::new(label)
+                .icon(icon)
+                .action(action)
+                .destructive(),
+        )
+    }
+
     pub fn menu_with_check(
         self,
         label: impl Into<SharedString>,
@@ -1028,6 +1070,32 @@ impl PopupMenu {
                 self.scroll_to_checked_frames -= 1;
                 cx.notify();
             }
+        }
+    }
+
+    /// Typing letters moves to the item whose label begins with them.
+    fn on_typeahead_key(
+        &mut self,
+        event: &gpui::KeyDownEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let now = instant::Instant::now();
+        let Some(ch) =
+            crate::typeahead::typeahead_char(&event.keystroke, self.typeahead.in_progress(now))
+        else {
+            return;
+        };
+        let query = self.typeahead.push(ch, now).to_string();
+        let labels: Vec<Option<SharedString>> = self
+            .menu_items
+            .iter()
+            .map(|item| item.is_clickable().then(|| item.a11y_label()).flatten())
+            .collect();
+        let labels: Vec<Option<&str>> = labels.iter().map(|label| label.as_deref()).collect();
+        if let Some(ix) = crate::typeahead::typeahead_match(&labels, self.selected_index, &query) {
+            cx.stop_propagation();
+            self.set_selected_index(ix, cx);
         }
     }
 
@@ -1469,13 +1537,22 @@ impl PopupMenu {
                 disabled,
                 is_link,
                 destructive,
+                shortcut,
                 ..
             } => {
                 let show_link_icon = *is_link && self.external_link_icon;
                 // A disabled item stays quiet even when it is destructive.
                 let danger = (*destructive && !*disabled).then(|| cx.theme().danger);
                 let action = action.as_ref().map(|action| action.boxed_clone());
-                let key = self.render_key_binding(action, window, cx);
+                let key = self.render_key_binding(action, window, cx).or_else(|| {
+                    shortcut.clone().map(|stroke| {
+                        Kbd::new(stroke)
+                            .p_0()
+                            .flex_nowrap()
+                            .border_0()
+                            .bg(gpui::transparent_white())
+                    })
+                });
 
                 this.when(!disabled, |this| {
                     this.on_click(cx.listener(move |this, event, window, cx| {
@@ -1666,6 +1743,7 @@ impl Render for PopupMenu {
             .on_action(cx.listener(Self::select_right))
             .on_action(cx.listener(Self::confirm))
             .on_action(cx.listener(Self::dismiss))
+            .on_key_down(cx.listener(Self::on_typeahead_key))
             .on_mouse_down_out(cx.listener(Self::on_mouse_down_out))
             .popover_style(cx)
             .text_color(cx.theme().popover_foreground)
