@@ -9,21 +9,26 @@
 
 use std::rc::Rc;
 
+use std::time::Duration;
+
+use isonomic_ui::assets::IconName as AssetIcon;
+use isonomic_ui::base::{
+    Easing, MotionReveal, Presence, PressableExt as _, Transition, transition,
+};
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
-    h_flex,
-    kbd::Kbd,
-    v_flex,
+    h_flex, look, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
-    Window, div, prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, Bounds, ElementId, Entity, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, PathBuilder, Pixels, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, percentage,
+    point, prelude::FluentBuilder as _, px, relative,
 };
 
-use crate::common::resting_shadow;
+use crate::common::{panel, resting_shadow, shell};
 
 /// A group of options that filter by the same thing, such as "Stage".
 #[derive(Debug, Clone)]
@@ -59,7 +64,8 @@ impl FilterGroup {
     }
 }
 
-/// The picked options, in the order they were picked.
+/// The picked options, in the order they were picked. The menu shows them
+/// in group and option order.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FilterSelection(Vec<(SharedString, SharedString)>);
 
@@ -241,6 +247,24 @@ fn move_cursor(cursor: usize, count: usize, key: &str) -> Option<usize> {
     }
 }
 
+/// Where each picked option's chip goes: in group and option order, whatever
+/// order they were picked in, as `(group, option)` positions.
+fn chip_order(groups: &[FilterGroup], value: &FilterSelection) -> Vec<(usize, usize)> {
+    let mut picked: Vec<(usize, usize)> = value
+        .iter()
+        .filter_map(|(group_id, option_id)| {
+            let g = groups.iter().position(|group| &group.id == group_id)?;
+            let o = groups[g]
+                .options
+                .iter()
+                .position(|(id, _)| id == option_id)?;
+            Some((g, o))
+        })
+        .collect();
+    picked.sort_unstable();
+    picked
+}
+
 /// How many filters a group has picked, in words. Nothing for none.
 fn picked_label(count: usize) -> Option<String> {
     match count {
@@ -271,18 +295,87 @@ struct MenuState {
     cursor: usize,
 }
 
+/// The reference's ease-out for heights, turns and strokes.
+fn ease_out() -> Easing {
+    Easing::cubic_bezier(0.22, 1.0, 0.36, 1.0).expect("static curve is valid")
+}
+
+/// The plain `ease` curve fills, fades and hovers ride on.
+fn ease() -> Easing {
+    Easing::cubic_bezier(0.25, 0.1, 0.25, 1.0).expect("static curve is valid")
+}
+
+fn over(ms: u64, easing: Easing) -> Transition {
+    Transition::new(Duration::from_millis(ms)).easing(easing)
+}
+
+/// Where a key hint's cap and words go.
+fn key_cap(icon: AssetIcon, cx: &App) -> impl IntoElement {
+    div()
+        .flex()
+        .flex_none()
+        .items_center()
+        .justify_center()
+        .size(px(20.))
+        .rounded(px(6.))
+        .bg(cx.theme().background)
+        .shadow(resting_shadow(cx))
+        .text_color(look::ink::icon(cx))
+        .child(Icon::new(icon).size(px(12.)))
+}
+
+/// The tick in a 20px box, drawn up to `drawn` (0 to 1) of its length.
+fn paint_tick(bounds: Bounds<Pixels>, drawn: f32, color: Hsla, window: &mut Window) {
+    if drawn <= 0.01 {
+        return;
+    }
+    let unit = bounds.size.width / 20.;
+    let at = |x: f32, y: f32| point(bounds.origin.x + unit * x, bounds.origin.y + unit * y);
+    let (a, b, c): ((f32, f32), (f32, f32), (f32, f32)) = ((5.5, 10.5), (8.5, 13.5), (14.5, 6.5));
+    let first = ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt();
+    let second = ((c.0 - b.0).powi(2) + (c.1 - b.1).powi(2)).sqrt();
+    let length = (first + second) * drawn.clamp(0., 1.);
+    let mut line = PathBuilder::stroke(unit * 1.75);
+    line.move_to(at(a.0, a.1));
+    if length <= first {
+        let t = length / first;
+        line.line_to(at(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t));
+    } else {
+        let t = (length - first) / second;
+        line.line_to(at(b.0, b.1));
+        line.line_to(at(b.0 + (c.0 - b.0) * t, b.1 + (c.1 - b.1) * t));
+    }
+    if let Ok(path) = line.build() {
+        window.paint_path(path, color);
+    }
+}
+
+/// Whether the pointer is over `id`, kept between frames.
+fn hover_state(id: ElementId, window: &mut Window, cx: &mut App) -> Entity<bool> {
+    window.use_keyed_state(id, cx, |_, _| false)
+}
+
+fn track_hover(state: Entity<bool>) -> impl Fn(&bool, &mut Window, &mut App) + 'static {
+    move |hovered, window, cx| {
+        let hovered = *hovered;
+        state.update(cx, |state, cx| {
+            if *state != hovered {
+                *state = hovered;
+                cx.notify();
+            }
+        });
+        window.refresh();
+    }
+}
+
 impl RenderOnce for FilterMenu {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let theme = cx.theme();
-        let ink = theme.foreground;
-        let quiet = theme.muted_foreground;
-        let fill = theme.background;
-        let line = theme.border;
-        let chip = theme.muted;
-        let accent = theme.info;
-        let on_accent = theme.info_foreground;
-        let radius = theme.radius;
-        let radius_lg = theme.radius_lg;
+        let ink = look::ink::strong(cx);
+        let quiet = cx.theme().muted_foreground;
+        let wash = look::ink::wash(cx);
+        let box_rest = look::ink::wash_strong(cx);
+        let on_ink = cx.theme().background;
+        let radius = cx.theme().radius;
 
         let state = window.use_keyed_state(self.id.clone(), cx, |_, _| MenuState::default());
         let (kept, open, cursor) = state.update(cx, |state, _| {
@@ -369,15 +462,18 @@ impl RenderOnce for FilterMenu {
             })
         };
 
-        let chips = value.iter().filter_map(|(group_id, option_id)| {
-            let g = self.groups.iter().position(|group| &group.id == group_id)?;
-            let group = &self.groups[g];
-            let o = group.options.iter().position(|(id, _)| id == option_id)?;
-            let label: SharedString = match &group.chip_prefix {
-                Some(prefix) => format!("{prefix}{}", group.options[o].1).into(),
-                None => group.options[o].1.clone(),
-            };
-            Some(
+        let picked = chip_order(&self.groups, &value);
+        let chips: Vec<_> = picked
+            .into_iter()
+            .map(|(g, o)| {
+                let group = &self.groups[g];
+                let label: SharedString = match &group.chip_prefix {
+                    Some(prefix) => format!("{prefix}{}", group.options[o].1).into(),
+                    None => group.options[o].1.clone(),
+                };
+                let enter = Presence::new(child_id(format!("chip-{g}-{o}")), true)
+                    .transition(over(260, Easing::Linear))
+                    .sample(window, cx);
                 h_flex()
                     .flex_none()
                     .gap_0p5()
@@ -385,228 +481,334 @@ impl RenderOnce for FilterMenu {
                     .pl_2()
                     .pr_0p5()
                     .rounded(radius)
-                    .bg(chip)
-                    .font_medium()
+                    .bg(wash)
+                    .opacity(enter.progress)
                     .child(label.clone())
                     .child(
                         Button::new(child_id(format!("remove-{g}-{o}")))
                             .ghost()
                             .xsmall()
-                            .icon(IconName::Close)
+                            .icon(Icon::new(IconName::Close).text_color(quiet))
                             .accessibility_label(format!("Remove filter {label}"))
                             .on_click({
                                 let act = act.clone();
                                 move |_, window, cx| act(Action::Toggle(g, o), window, cx)
                             }),
-                    ),
-            )
-        });
-        let chips: Vec<_> = chips.collect();
+                    )
+            })
+            .collect();
+        let chip_row = Presence::new(child_id("chips".into()), !chips.is_empty())
+            .transition(over(320, ease_out()))
+            .sample(window, cx);
+        let clear = Presence::new(child_id("clear-shown".into()), !value.is_empty())
+            .transition(over(200, ease()))
+            .sample(window, cx);
 
-        let row_elements = rows.iter().enumerate().map(|(ix, row)| {
-            let (key, action) = match *row {
-                Row::Group(g) => (format!("group-{g}"), Action::ToggleOpen(g)),
-                Row::Option(g, o) => (format!("option-{g}-{o}"), Action::Toggle(g, o)),
+        // One line of the list: a group's head or an option, with its hover
+        // fading in and the keyboard cursor drawn on it.
+        let line =
+            |key: String, ix: Option<usize>, action: Action, window: &mut Window, cx: &mut App| {
+                let id = child_id(key);
+                let hovered = hover_state(
+                    ElementId::NamedChild(id.clone().into(), "hover".into()),
+                    window,
+                    cx,
+                );
+                let lit = *hovered.read(cx) || (Some(cursor) == ix && is_focused);
+                let fade = transition(
+                    ElementId::NamedChild(id.clone().into(), "hover-fade".into()),
+                    if lit { 1.0_f32 } else { 0. },
+                    over(160, ease()),
+                    window,
+                    cx,
+                );
+                h_flex()
+                    .id(id)
+                    .gap_2()
+                    .h(px(35.))
+                    .pr_3()
+                    .rounded(radius)
+                    .bg(look::mix(wash.opacity(0.), wash, fade))
+                    .pressable(true)
+                    .on_hover(track_hover(hovered))
+                    .when(ix.is_some() && ix == Some(cursor) && is_focused, |this| {
+                        this.focus_ring_style(window, cx)
+                    })
+                    .on_click({
+                        let act = act.clone();
+                        let focus = focus.clone();
+                        move |_, window, cx| {
+                            focus.focus(window, cx);
+                            if let Some(ix) = ix {
+                                act(Action::Cursor(ix), window, cx);
+                            }
+                            act(action, window, cx);
+                        }
+                    })
             };
-            let base = h_flex()
-                .id(child_id(key))
-                .gap_2()
-                .h(px(34.))
-                .pr_3()
-                .rounded(radius)
-                .cursor_pointer()
-                .hover(|this| this.bg(chip))
-                .when(ix == cursor && is_focused, |this| {
-                    this.bg(chip).focus_ring_style(window, cx)
+
+        let mut list_children: Vec<AnyElement> = Vec::new();
+        for (g, group) in self.groups.iter().enumerate() {
+            let is_open = open.contains(&group.id);
+            let head_ix = rows.iter().position(|row| *row == Row::Group(g));
+            let turn = transition(
+                child_id(format!("chevron-{g}")),
+                if is_open { 0.25_f32 } else { 0. },
+                over(260, ease_out()),
+                window,
+                cx,
+            );
+            let count = value.in_group(&group.id).count();
+            let picked = picked_label(count);
+            list_children.push(
+                line(
+                    format!("group-{g}"),
+                    head_ix,
+                    Action::ToggleOpen(g),
+                    window,
+                    cx,
+                )
+                .pl_2()
+                .role(Role::ListBoxOption)
+                .aria_label(match &picked {
+                    Some(picked) => format!(
+                        "{}, {} options, {picked} picked",
+                        group.label,
+                        group.options.len()
+                    ),
+                    None => format!("{}, {} options", group.label, group.options.len()),
                 })
-                .on_click({
-                    let act = act.clone();
-                    let focus = focus.clone();
-                    move |_, window, cx| {
-                        focus.focus(window, cx);
-                        act(Action::Cursor(ix), window, cx);
-                        act(action, window, cx);
-                    }
-                });
+                .aria_expanded(is_open)
+                .child(
+                    Icon::new(IconName::ChevronRight)
+                        .xsmall()
+                        .flex_none()
+                        .text_color(quiet)
+                        .rotate(percentage(turn)),
+                )
+                .child(div().font_medium().child(group.label.clone()))
+                .child(
+                    div()
+                        .flex_1()
+                        .text_color(quiet)
+                        .child(group.options.len().to_string()),
+                )
+                .children(picked.map(|picked| div().text_color(quiet).child(picked)))
+                .into_any_element(),
+            );
 
-            match *row {
-                Row::Group(g) => {
-                    let group = &self.groups[g];
-                    let picked = picked_label(value.in_group(&group.id).count());
-                    base.pl_2()
-                        .role(Role::ListBoxOption)
-                        .aria_label(match &picked {
-                            Some(picked) => format!(
-                                "{}, {} options, {picked} picked",
-                                group.label,
-                                group.options.len()
-                            ),
-                            None => format!("{}, {} options", group.label, group.options.len()),
-                        })
-                        .aria_expanded(open.contains(&group.id))
-                        .child(
-                            Icon::new(if open.contains(&group.id) {
-                                IconName::ChevronDown
-                            } else {
-                                IconName::ChevronRight
-                            })
-                            .xsmall()
-                            .flex_none()
-                            .text_color(quiet),
-                        )
-                        .child(div().font_medium().child(group.label.clone()))
-                        .child(
-                            div()
-                                .flex_1()
-                                .text_color(quiet)
-                                .child(group.options.len().to_string()),
-                        )
-                        .children(picked.map(|picked| div().text_color(quiet).child(picked)))
-                }
-                Row::Option(g, o) => {
-                    let group = &self.groups[g];
-                    let (option_id, label) = &group.options[o];
-                    let is_picked = value.contains(&group.id, option_id);
-                    base.pl(px(30.))
-                        .role(Role::ListBoxOption)
-                        .aria_label(format!("{}: {label}", group.label))
-                        .aria_selected(is_picked)
-                        .child(
-                            div()
-                                .flex()
-                                .flex_none()
-                                .items_center()
-                                .justify_center()
-                                .size_4()
-                                .rounded(px(4.))
-                                .border_1()
-                                .map(|this| {
-                                    if is_picked {
-                                        this.border_color(accent)
-                                            .bg(accent)
-                                            .text_color(on_accent)
-                                            .child(Icon::new(IconName::Check).size_3())
-                                    } else {
-                                        this.border_color(line)
-                                    }
-                                }),
-                        )
-                        .child(div().flex_1().min_w_0().truncate().child(label.clone()))
-                }
+            let height = transition(
+                child_id(format!("panel-{g}")),
+                if is_open { 1.0_f32 } else { 0. },
+                over(320, ease_out()),
+                window,
+                cx,
+            );
+            let shown = transition(
+                child_id(format!("panel-fade-{g}")),
+                if is_open { 1.0_f32 } else { 0. },
+                over(220, ease()),
+                window,
+                cx,
+            );
+            if !is_open && height == 0. {
+                continue;
             }
-        });
-        let row_elements: Vec<_> = row_elements.collect();
+            let mut options: Vec<AnyElement> = Vec::new();
+            for (o, (option_id, label)) in group.options.iter().enumerate() {
+                let is_picked = value.contains(&group.id, option_id);
+                let ix = rows.iter().position(|row| *row == Row::Option(g, o));
+                let filled = transition(
+                    child_id(format!("box-{g}-{o}")),
+                    if is_picked { 1.0_f32 } else { 0. },
+                    over(180, ease()),
+                    window,
+                    cx,
+                );
+                let drawn = transition(
+                    child_id(format!("tick-{g}-{o}")),
+                    if is_picked { 1.0_f32 } else { 0. },
+                    over(260, ease_out()),
+                    window,
+                    cx,
+                );
+                options.push(
+                    line(
+                        format!("option-{g}-{o}"),
+                        ix,
+                        Action::Toggle(g, o),
+                        window,
+                        cx,
+                    )
+                    .pl(px(30.))
+                    .role(Role::ListBoxOption)
+                    .aria_label(format!("{}: {label}", group.label))
+                    .aria_selected(is_picked)
+                    .child(
+                        div()
+                            .flex_none()
+                            .size(px(20.))
+                            .rounded(px(6.))
+                            .bg(look::mix(box_rest, ink, filled))
+                            .child(
+                                canvas(
+                                    |_, _, _| {},
+                                    move |bounds, _, window, _| {
+                                        paint_tick(bounds, drawn, on_ink, window)
+                                    },
+                                )
+                                .size_full(),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .text_size(px(15.))
+                            .line_height(px(20.))
+                            .child(label.clone()),
+                    )
+                    .into_any_element(),
+                );
+            }
+            list_children.push(
+                MotionReveal::new(
+                    child_id(format!("reveal-{g}")),
+                    height,
+                    v_flex().opacity(shown).children(options).into_any_element(),
+                )
+                .into_any_element(),
+            );
+        }
 
-        let key = |name: &'static str| Keystroke::parse(name).ok().map(Kbd::new);
-        v_flex()
+        let hints = self.hints.then(|| {
+            h_flex()
+                .justify_between()
+                .px_3()
+                .pt_2()
+                .pb_1()
+                .text_caption()
+                .text_color(quiet)
+                .child(
+                    h_flex()
+                        .gap_1()
+                        .child(key_cap(AssetIcon::ArrowDown, cx))
+                        .child(key_cap(AssetIcon::ArrowUp, cx))
+                        .child(div().pl_1().child("To navigate")),
+                )
+                .child(
+                    h_flex()
+                        .gap_1()
+                        .child(key_cap(AssetIcon::Return, cx))
+                        .child(div().pl_1().child("To select")),
+                )
+        });
+
+        shell(cx)
             .id(self.id.clone())
-            .w_full()
-            .max_w(px(400.))
-            .rounded(radius_lg)
-            .bg(fill)
+            .max_w(px(432.))
             .text_color(ink)
             .text_body()
             .line_height(relative(1.45))
-            .shadow(resting_shadow(cx))
             .child(
-                v_flex()
-                    .gap_2()
-                    .px_4()
-                    .pt_3()
-                    .pb_3()
+                panel(cx)
+                    .v_flex()
                     .child(
-                        h_flex()
-                            .justify_between()
-                            .min_h(px(26.))
-                            .child(div().text_base().font_medium().child(self.title))
-                            .when(!value.is_empty(), |this| {
-                                this.child(
-                                    Button::new(child_id("clear".into()))
-                                        .ghost()
-                                        .xsmall()
-                                        .label("Clear all")
-                                        .on_click({
-                                            let act = act.clone();
-                                            move |_, window, cx| act(Action::Clear, window, cx)
-                                        }),
-                                )
+                        v_flex()
+                            .gap_2()
+                            .px_4()
+                            .pt_3()
+                            .pb_2()
+                            .child(
+                                h_flex()
+                                    .justify_between()
+                                    .min_h(px(26.))
+                                    .child(div().text_base().font_medium().child(self.title))
+                                    .when(clear.should_render(), |this| {
+                                        this.child(
+                                            Button::new(child_id("clear".into()))
+                                                .ghost()
+                                                .xsmall()
+                                                .label("Clear all")
+                                                .text_base()
+                                                .font_normal()
+                                                .text_color(quiet)
+                                                .opacity(clear.progress)
+                                                .when(!value.is_empty(), |this| {
+                                                    this.on_click({
+                                                        let act = act.clone();
+                                                        move |_, window, cx| {
+                                                            act(Action::Clear, window, cx)
+                                                        }
+                                                    })
+                                                }),
+                                        )
+                                    }),
+                            )
+                            .when(chip_row.should_render(), |this| {
+                                this.child(MotionReveal::new(
+                                    child_id("chip-row".into()),
+                                    chip_row.progress,
+                                    h_flex()
+                                        .flex_wrap()
+                                        .gap_1()
+                                        .children(chips)
+                                        .into_any_element(),
+                                ))
                             }),
                     )
-                    .when(!chips.is_empty(), |this| {
-                        this.child(h_flex().flex_wrap().gap_1().children(chips))
-                    }),
-            )
-            .child(
-                v_flex()
-                    .id(child_id("list".into()))
-                    .track_focus(&focus)
-                    .role(Role::ListBox)
-                    .aria_label(list_name)
-                    .on_key_down({
-                        let act = act.clone();
-                        let rows = rows.clone();
-                        move |event, window, cx| {
-                            if event.keystroke.modifiers.modified() {
-                                return;
-                            }
-                            let Some(row) = rows.get(cursor).copied() else {
-                                return;
-                            };
-                            let key = event.keystroke.key.as_str();
-                            match (key, row) {
-                                ("enter" | "space", Row::Group(g)) => {
-                                    act(Action::ToggleOpen(g), window, cx)
-                                }
-                                ("enter" | "space", Row::Option(g, o)) => {
-                                    act(Action::Toggle(g, o), window, cx)
-                                }
-                                ("right", Row::Group(g)) => {
-                                    act(Action::SetOpen(g, true), window, cx)
-                                }
-                                ("left", Row::Group(g)) => {
-                                    act(Action::SetOpen(g, false), window, cx)
-                                }
-                                ("left", Row::Option(g, _)) => {
-                                    // Fold the group and go back to its header.
-                                    let header = rows.iter().position(|row| *row == Row::Group(g));
-                                    act(Action::SetOpen(g, false), window, cx);
-                                    if let Some(header) = header {
-                                        act(Action::Cursor(header), window, cx);
+                    .child(
+                        v_flex()
+                            .id(child_id("list".into()))
+                            .track_focus(&focus)
+                            .role(Role::ListBox)
+                            .aria_label(list_name)
+                            .on_key_down({
+                                let act = act.clone();
+                                move |event, window, cx| {
+                                    if event.keystroke.modifiers.modified() {
+                                        return;
                                     }
+                                    let Some(row) = rows.get(cursor).copied() else {
+                                        return;
+                                    };
+                                    let key = event.keystroke.key.as_str();
+                                    match (key, row) {
+                                        ("enter" | "space", Row::Group(g)) => {
+                                            act(Action::ToggleOpen(g), window, cx)
+                                        }
+                                        ("enter" | "space", Row::Option(g, o)) => {
+                                            act(Action::Toggle(g, o), window, cx)
+                                        }
+                                        ("right", Row::Group(g)) => {
+                                            act(Action::SetOpen(g, true), window, cx)
+                                        }
+                                        ("left", Row::Group(g)) => {
+                                            act(Action::SetOpen(g, false), window, cx)
+                                        }
+                                        ("left", Row::Option(g, _)) => {
+                                            // Fold the group and go back to its header.
+                                            let header =
+                                                rows.iter().position(|row| *row == Row::Group(g));
+                                            act(Action::SetOpen(g, false), window, cx);
+                                            if let Some(header) = header {
+                                                act(Action::Cursor(header), window, cx);
+                                            }
+                                        }
+                                        _ => match move_cursor(cursor, rows.len(), key) {
+                                            Some(next) => act(Action::Cursor(next), window, cx),
+                                            None => return,
+                                        },
+                                    }
+                                    cx.stop_propagation();
                                 }
-                                _ => match move_cursor(cursor, rows.len(), key) {
-                                    Some(next) => act(Action::Cursor(next), window, cx),
-                                    None => return,
-                                },
-                            }
-                            cx.stop_propagation();
-                        }
-                    })
-                    .p_1()
-                    .border_t_1()
-                    .border_color(line)
-                    .children(row_elements),
+                            })
+                            .p_1()
+                            .children(list_children),
+                    ),
             )
-            .when(self.hints, |this| {
-                this.child(
-                    h_flex()
-                        .justify_between()
-                        .px_3()
-                        .py_2()
-                        .border_t_1()
-                        .border_color(line)
-                        .text_caption()
-                        .text_color(quiet)
-                        .child(
-                            h_flex()
-                                .gap_1()
-                                .children(key("up"))
-                                .children(key("down"))
-                                .child("to navigate"),
-                        )
-                        .child(h_flex().gap_1().children(key("enter")).child("to select")),
-                )
-            })
+            .children(hints)
             .refine_style(&self.style)
     }
 }
@@ -660,6 +862,16 @@ mod tests {
         assert_eq!(move_cursor(2, 3, "home"), Some(0));
         assert_eq!(move_cursor(0, 3, "tab"), None);
         assert_eq!(move_cursor(0, 0, "down"), None);
+    }
+
+    #[test]
+    fn chips_follow_group_and_option_order() {
+        let picked = FilterSelection::new()
+            .with("region", "north")
+            .with("stage", "won")
+            .with("stage", "new")
+            .with("stage", "gone");
+        assert_eq!(chip_order(&groups(), &picked), [(0, 0), (0, 1), (1, 0)]);
     }
 
     #[test]
