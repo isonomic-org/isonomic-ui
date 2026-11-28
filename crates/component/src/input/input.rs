@@ -165,6 +165,7 @@ pub struct Input {
     role: RoleOverride,
     accessibility_id: Option<SharedString>,
     aria_label: Option<SharedString>,
+    gutter_style: isonomic_ui_base::input::GutterStyle,
 
     /// An optional context menu builder to allow a custom context menu on the input.
     ///
@@ -236,6 +237,14 @@ impl Input {
         self
     }
 
+    /// How a code editor draws its line numbers: their ink, the ink of the
+    /// caret's line, their font, size and the space before the text. Anything
+    /// left unset follows the editor.
+    pub fn gutter_style(mut self, style: isonomic_ui_base::input::GutterStyle) -> Self {
+        self.gutter_style = style;
+        self
+    }
+
     /// Sets the GPUI identity of the input frame. By default it uses the state entity ID.
     pub fn id(mut self, id: impl Into<ElementId>) -> Self {
         self.id = Some(id.into());
@@ -277,6 +286,7 @@ impl Input {
             role: RoleOverride::default(),
             accessibility_id: None,
             aria_label: None,
+            gutter_style: Default::default(),
             context_menu_builder: None,
             paste_handler: None,
             token_renderer: None,
@@ -616,6 +626,7 @@ impl RenderOnce for Input {
                         .selected(is_folded)
                         .into_any_element()
                 })),
+                gutter: self.gutter_style.clone(),
             },
             cx,
         );
