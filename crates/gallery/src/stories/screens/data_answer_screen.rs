@@ -11,7 +11,7 @@ use isonomic_ui::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
 };
-use isonomic_ui_extra::metric_trend_card::{MetricTrendCard, TrendSeries};
+use isonomic_ui_extra::chart_card::{ChartCard, ChartKind, ChartSeries};
 use isonomic_ui_extra::prompt_composer::PromptComposer;
 use isonomic_ui_extra::prompt_suggestions::{PromptSuggestions, Suggestion};
 use isonomic_ui_extra::sortable_table::{SortableTable, TableColumn, TableRow};
@@ -180,25 +180,31 @@ impl Render for DataAnswerScreenStory {
         let line = theme.border;
         let quiet = theme.muted_foreground;
 
-        let chart = MetricTrendCard::new("repeat-trend", "Repeat orders a month", "694")
-            .delta(-118.)
-            .labels(["Apr", "May", "Jun", "Jul", "Aug", "Sep"])
-            .long_labels(["April", "May", "June", "July", "August", "September"])
-            .series(TrendSeries::new(
-                "City",
-                [440., 452., 447., 451., 438., 446.],
-            ))
-            .series(TrendSeries::new(
-                "Coast",
-                [210., 215., 212., 196., 184., 179.],
-            ))
-            .series(TrendSeries::new(
-                "North",
-                [128., 131., 126., 104., 92., 84.],
-            ))
-            .series(TrendSeries::new("Other", [61., 63., 60., 49., 44., 41.]))
-            .default_point(5)
-            .footer("Orders from people on their second box or later");
+        let chart = ChartCard::new(
+            "repeat-trend",
+            "Repeat orders a month",
+            ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+        )
+        .subtitle("People on their second box or later")
+        .kind(ChartKind::Line)
+        .series(ChartSeries::new(
+            "City",
+            vec![440., 452., 447., 451., 438., 446.],
+        ))
+        .series(ChartSeries::new(
+            "Coast",
+            vec![210., 215., 212., 196., 184., 179.],
+        ))
+        .series(ChartSeries::new(
+            "North",
+            vec![128., 131., 126., 104., 92., 84.],
+        ))
+        .series(ChartSeries::new(
+            "Islands",
+            vec![61., 63., 60., 42., 37., 33.],
+        ))
+        .height(px(140.))
+        .format(|orders| format!("{orders:.0}"));
 
         let header = v_flex()
             .flex_none()
