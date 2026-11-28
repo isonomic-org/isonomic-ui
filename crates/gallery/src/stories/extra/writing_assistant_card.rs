@@ -4,12 +4,15 @@
 //! Gallery story for the writing assistant card.
 
 use crate::Story;
+use isonomic_ui::component::h_flex;
 use isonomic_ui::component::{ActiveTheme as _, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
-use isonomic_ui_extra::writing_assistant_card::{WritingAssistantCard, WritingAssistantEvent};
+use isonomic_ui_extra::writing_assistant_card::{
+    RewriteLength, Tone, WritingAssistantCard, WritingAssistantEvent,
+};
 
 /// Made-up replies for a bookkeeping app's writing helper.
 fn reply(message: &str) -> String {
@@ -31,9 +34,13 @@ fn reply(message: &str) -> String {
     }
 }
 
-/// A writing helper with four suggestions and simulated dictation.
+/// A writing helper with four suggestions and simulated dictation, and
+/// beside it the same card in tone rewrite: a late-payment note loaded in
+/// the field, three models, a length switch and the tone pad leaning
+/// formal and warm. Its rewrites use the card's own sample writer.
 pub struct WritingAssistantCardStory {
     card: Entity<WritingAssistantCard>,
+    rewriter: Entity<WritingAssistantCard>,
     last: SharedString,
     _events: Subscription,
 }
@@ -52,6 +59,21 @@ impl WritingAssistantCardStory {
                     .suggestion("Draft a reply")
                     .respond(reply)
             });
+            let rewriter = cx.new(|cx| {
+                let mut card = WritingAssistantCard::new(window, cx)
+                    .name("Tone")
+                    .tagline("Rewrites a message in the voice you pick.")
+                    .greeting("Set the tone, then rewrite.")
+                    .tone_rewrite(["Quick", "Balanced", "Careful"], window, cx)
+                    .tone(Tone::new(0.5, 0.75))
+                    .length(RewriteLength::Shorter);
+                card.set_text(
+                    "hey, the march invoice is still open, can you pay it this week; we need it for the close",
+                    window,
+                    cx,
+                );
+                card
+            });
             let events = cx.subscribe(&card, |this: &mut Self, _, event, cx| {
                 this.last = match event {
                     WritingAssistantEvent::Sent(message) => format!("Sent: {message}"),
@@ -65,6 +87,7 @@ impl WritingAssistantCardStory {
             });
             Self {
                 card,
+                rewriter,
                 last: "Nothing yet".into(),
                 _events: events,
             }
@@ -88,11 +111,21 @@ impl Story for WritingAssistantCardStory {
 
 impl Render for WritingAssistantCardStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        v_flex().gap_3().child(self.card.clone()).child(
-            div()
-                .text_xs()
-                .text_color(cx.theme().muted_foreground)
-                .child(self.last.clone()),
-        )
+        v_flex()
+            .gap_3()
+            .child(
+                h_flex()
+                    .items_start()
+                    .flex_wrap()
+                    .gap_4()
+                    .child(self.card.clone())
+                    .child(self.rewriter.clone()),
+            )
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(self.last.clone()),
+            )
     }
 }
