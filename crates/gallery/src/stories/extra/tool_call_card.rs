@@ -110,6 +110,39 @@ impl Render for ToolCallCardStory {
                     .text_color(cx.theme().muted_foreground)
                     .child("The last call fails after four seconds. Retry lets it through."),
             )
+            .child(
+                ToolCallCard::new("invoices", "invoices.list", ToolCallStatus::Success)
+                    .icon(IconName::FileText)
+                    .summary("Listed open invoices for Harbour Supply")
+                    .arguments(
+                        r#"{"customer":"harbour-supply","status":"open","sort":"due","limit":20}"#,
+                    )
+                    .result(
+                        r#"[{"id":"inv_2291","due":"2026-03-14","amount":1240.5},{"id":"inv_2307","due":"2026-03-28","amount":310},{"id":"inv_2315","due":"2026-04-04","amount":87.25}]"#,
+                    )
+                    .duration(Duration::from_millis(640))
+                    .result_preview(true),
+            )
+            .child(
+                ToolCallCard::new("note", "notes.read", ToolCallStatus::Success)
+                    .icon(IconName::BookOpen)
+                    .summary("Read the close checklist")
+                    .arguments(r#"{"path":"finance/close-checklist.md"}"#)
+                    .result("Lock the period after accruals post.\nSend the summary to the owner.")
+                    .duration(Duration::from_millis(95))
+                    .result_preview(true)
+                    .foldable_arguments(false)
+                    .default_open(true),
+            )
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(
+                        "Folded cards can preview what came back; open ones can fold their \
+                         arguments down to the names of their fields.",
+                    ),
+            )
     }
 }
 
