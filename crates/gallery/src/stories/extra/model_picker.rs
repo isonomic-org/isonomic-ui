@@ -9,7 +9,9 @@ use isonomic_ui::{
     App, AppContext as _, Context, Edges, Entity, IntoElement, ParentElement as _, Render,
     SharedString, Styled as _, Window, div, px,
 };
-use isonomic_ui_extra::model_picker::{ModelOption, ModelPicker, PickerSetting, SettingChange};
+use isonomic_ui_extra::model_picker::{
+    MeterStyle, ModelOption, ModelPicker, PickerSetting, SettingChange,
+};
 
 /// Shows the picker in the toolbar of a composer and reports every change.
 pub struct ModelPickerStory {
@@ -152,6 +154,59 @@ impl Render for ModelPickerStory {
                         .model(ModelOption::new("medium", "Medium").tagline("8 GB, balanced"))
                         .model(ModelOption::new("large", "Large").tagline("16 GB, most careful"))
                         .default_value("medium"),
+                ),
+            )
+            .child(div().pt_4().text_xs().text_color(quiet).child(
+                "Search, grouped by provider, bar meters and a context column. Type to narrow it",
+            ))
+            .child(
+                h_flex().child(
+                    ModelPicker::new("search-model")
+                        .searchable("Search models")
+                        .columns(["Speed", "Price"])
+                        .meter_style(MeterStyle::Bar)
+                        .context_column("Context")
+                        .model(
+                            ModelOption::new("ledger-quick", "Ledger Quick")
+                                .provider("Harbor Labs")
+                                .tagline("Fast lookups")
+                                .ratings([5, 1])
+                                .context_window(32_000)
+                                .note("Starts at once, 0.40 per million words"),
+                        )
+                        .model(
+                            ModelOption::new("ledger-deep", "Ledger Deep")
+                                .provider("Harbor Labs")
+                                .tagline("Careful reviews")
+                                .ratings([2, 4])
+                                .context_window(200_000)
+                                .note("Starts in about 2 s, 12.00 per million words"),
+                        )
+                        .model(
+                            ModelOption::new("audit-long", "Audit Long")
+                                .provider("Quarry Works")
+                                .tagline("Whole-year files")
+                                .ratings([1, 5])
+                                .context_window(1_000_000)
+                                .note("Starts in about 4 s, 20.00 per million words"),
+                        )
+                        .model(
+                            ModelOption::new("audit-lite", "Audit Lite")
+                                .provider("Quarry Works")
+                                .tagline("Receipts and small books")
+                                .ratings([4, 2])
+                                .context_window(128_000)
+                                .note("Starts in about 1 s, 2.10 per million words"),
+                        )
+                        .model(
+                            ModelOption::new("on-device", "On device")
+                                .provider("This computer")
+                                .tagline("Stays offline")
+                                .ratings([3, 0])
+                                .context_window(8_000)
+                                .note("Free, runs on this computer"),
+                        )
+                        .default_value("ledger-deep"),
                 ),
             )
     }

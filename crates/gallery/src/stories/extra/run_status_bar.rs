@@ -156,6 +156,35 @@ impl Render for RunStatusBarStory {
             .child(
                 v_flex()
                     .gap_2()
+                    .child(heading(
+                        "An agent's status line: the step, details that turn over, its own clock and Stop",
+                    ))
+                    .child(
+                        RunStatusBar::new("agent-step", RunStatus::Running)
+                            .step(3, Some(7))
+                            .message("Matching the bank feed")
+                            .rotating_details([
+                                "Reading 214 card transactions",
+                                "Pairing payments with invoices",
+                                "Checking three that do not match",
+                            ])
+                            .since(self.started)
+                            .on_stop(cx.listener(|this, _, _, cx| {
+                                this.last = "Stop pressed".into();
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        RunStatusBar::new("agent-open-step", RunStatus::Running)
+                            .step(2, None)
+                            .message("Drafting the reminder emails")
+                            .detail("Four customers, oldest invoice first")
+                            .since(self.started),
+                    ),
+            )
+            .child(
+                v_flex()
+                    .gap_2()
                     .child(heading("The one-button shorthand"))
                     .child(self.shorthand("failed-shorthand", RunStatus::Failed, cx)),
             )

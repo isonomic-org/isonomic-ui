@@ -18,6 +18,17 @@
 //! does. Its owner keeps the attachments, the models, the folder, the apps,
 //! the suggestions, whether the assistant is busy and whether dictation is
 //! listening.
+//!
+//! It can also offer ways of working, such as ask, plan and act, as a switch
+//! at the start of the toolbar that Shift+Tab turns over; a context tray over
+//! the field that sums what the assistant will read in tokens against a
+//! budget and opens into a row per item; and, while the assistant is busy, a
+//! queue: Enter then holds the message back in a list over the field, each
+//! with edit, send now and remove.
+
+mod tray;
+
+pub use tray::{ComposerMode, ContextItem, QueuedMessage, token_words};
 
 use isonomic_ui::component::spinner::Spinner;
 use std::path::PathBuf;
@@ -217,6 +228,26 @@ pub enum PromptComposerEvent {
     DropFiles(Vec<PathBuf>),
     /// Images were pasted into the field.
     PasteImages(Vec<Image>),
+    /// Another mode was picked, by click or with Shift+Tab.
+    SelectMode(SharedString),
+    /// An item's remove button in the context tray was pressed.
+    RemoveContext(SharedString),
+    /// Enter or Queue was pressed while the assistant was busy and queueing
+    /// is on. Add the message to the list passed to
+    /// [`PromptComposer::set_queue`]. The field clears itself.
+    Queue {
+        /// The message, trimmed.
+        text: SharedString,
+        /// The attachments sent with it.
+        attachments: Vec<SharedString>,
+    },
+    /// A queued message's remove button was pressed.
+    RemoveQueued(SharedString),
+    /// A queued message's send now button was pressed.
+    SendQueuedNow(SharedString),
+    /// A queued message's edit button was pressed. Take it out of the queue
+    /// and put its text back with [`PromptComposer::set_text`].
+    EditQueued(SharedString),
 }
 
 /// The field where a person writes to an assistant.
@@ -243,6 +274,14 @@ pub struct PromptComposer {
     leading: Option<AnyView>,
     trailing: Option<AnyView>,
     above: Option<AnyView>,
+    modes: Vec<ComposerMode>,
+    mode: Option<SharedString>,
+    context: Vec<ContextItem>,
+    token_budget: Option<u64>,
+    tray_open: bool,
+    tray_hovered: bool,
+    queue: Vec<QueuedMessage>,
+    queue_while_busy: bool,
     _field_events: Subscription,
 }
 
@@ -322,6 +361,14 @@ impl PromptComposer {
             leading: None,
             trailing: None,
             above: None,
+            modes: Vec::new(),
+            mode: None,
+            context: Vec::new(),
+            token_budget: None,
+            tray_open: false,
+            tray_hovered: false,
+            queue: Vec::new(),
+            queue_while_busy: false,
             _field_events: field_events,
         }
     }
@@ -381,6 +428,59 @@ impl PromptComposer {
     pub fn set_above_slot(&mut self, view: Option<AnyView>, cx: &mut Context<Self>) {
         self.above = view;
         cx.notify();
+    }
+
+    /// Offer these modes on a switch at the start of the toolbar, with
+    /// `selected` on. Shift+Tab in the field turns to the next one.
+    pub fn set_modes(
+        &mut self,
+        modes: Vec<ComposerMode>,
+        selected: Option<SharedString>,
+        cx: &mut Context<Self>,
+    ) {
+        self.modes = modes;
+        self.mode = selected;
+        cx.notify();
+    }
+
+    /// Show these items in the context tray over the field, and measure
+    /// them against `budget` tokens when there is one. An empty list hides
+    /// the tray.
+    pub fn set_context(
+        &mut self,
+        items: Vec<ContextItem>,
+        budget: Option<u64>,
+        cx: &mut Context<Self>,
+    ) {
+        self.context = items;
+        self.token_budget = budget;
+        cx.notify();
+    }
+
+    /// Open or close the context tray's list of items. Closed by default,
+    /// where only its summary line shows.
+    pub fn set_context_open(&mut self, open: bool, cx: &mut Context<Self>) {
+        self.tray_open = open;
+        cx.notify();
+    }
+
+    /// Let messages be written while the assistant is busy: Enter then sends
+    /// [`PromptComposerEvent::Queue`] instead of nothing. Off by default.
+    pub fn set_queue_while_busy(&mut self, queue: bool, cx: &mut Context<Self>) {
+        self.queue_while_busy = queue;
+        cx.notify();
+    }
+
+    /// Show these messages, in order, as waiting to be sent.
+    pub fn set_queue(&mut self, queue: Vec<QueuedMessage>, cx: &mut Context<Self>) {
+        self.queue = queue;
+        cx.notify();
+    }
+
+    fn current_mode(&self) -> Option<usize> {
+        self.mode
+            .as_ref()
+            .and_then(|id| self.modes.iter().position(|mode| &mode.id == id))
     }
 
     fn track_query(&mut self, text: &str, cx: &mut Context<Self>) {
@@ -453,6 +553,19 @@ impl PromptComposer {
             return;
         }
         let count = self.suggestions.len();
+        if keys.key == "tab"
+            && keys.modifiers.shift
+            && !self.modes.is_empty()
+            && !self.disabled
+            && (self.query.is_none() || count == 0)
+        {
+            // Shift+Tab turns to the next mode while there is no menu.
+            if let Some(next) = tray::next_mode(self.current_mode(), self.modes.len(), false) {
+                cx.emit(PromptComposerEvent::SelectMode(self.modes[next].id.clone()));
+                cx.stop_propagation();
+            }
+            return;
+        }
         if self.query.is_none() || count == 0 {
             return;
         }
@@ -612,7 +725,8 @@ impl PromptComposer {
     }
 
     fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.busy || self.disabled || self.readonly {
+        let queueing = self.busy && self.queue_while_busy;
+        if (self.busy && !queueing) || self.disabled || self.readonly {
             return;
         }
         let text = self.field.read(cx).value();
@@ -622,9 +736,11 @@ impl PromptComposer {
         let attachments = self.attachments.iter().map(|a| a.id.clone()).collect();
         self.field
             .update(cx, |field, cx| field.set_value("", window, cx));
-        cx.emit(PromptComposerEvent::Submit {
-            text: text.trim().to_string().into(),
-            attachments,
+        let text: SharedString = text.trim().to_string().into();
+        cx.emit(if queueing {
+            PromptComposerEvent::Queue { text, attachments }
+        } else {
+            PromptComposerEvent::Submit { text, attachments }
         });
     }
 
@@ -970,6 +1086,20 @@ impl Render for PromptComposer {
                 .on_click(cx.listener(|this, _, window, cx| this.submit(window, cx)))
         };
         let send = round(send);
+        // While busy with queueing on, a message can wait its turn.
+        let queue_button = (self.busy && self.queue_while_busy && sendable).then(|| {
+            Button::new("queue")
+                .small()
+                .ghost()
+                .icon(IconName::Plus)
+                .label("Queue")
+                .tooltip("Send when the answer is done  \u{21b5}")
+                .accessibility_label("Queue this message")
+                .on_click(cx.listener(|this, _, window, cx| this.submit(window, cx)))
+        });
+        let modes = self.render_modes(cx);
+        let tray = self.render_tray(window, cx);
+        let queue = self.render_queue(cx);
 
         v_flex()
             .id("prompt-composer")
@@ -1009,6 +1139,8 @@ impl Render for PromptComposer {
             })
             .when(disabled, |this| this.opacity(0.6))
             .children(self.above.clone())
+            .children(queue)
+            .children(tray)
             .when(!chips.is_empty(), |this| {
                 this.child(h_flex().flex_wrap().gap_1p5().px_1().pt_1().children(chips))
             })
@@ -1043,6 +1175,7 @@ impl Render for PromptComposer {
                         h_flex()
                             .gap_1()
                             .children(plus)
+                            .children(modes)
                             .children(self.leading.clone())
                             .children(folder)
                             .children(apps),
@@ -1063,6 +1196,7 @@ impl Render for PromptComposer {
                             .children(self.trailing.clone())
                             .children(model)
                             .children(mic)
+                            .children(queue_button)
                             .child(send),
                     ),
             )

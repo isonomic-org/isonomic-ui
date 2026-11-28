@@ -13,8 +13,15 @@
 //!
 //! Every state has the same quiet fill and edge except a failure, which is
 //! pale red with red words.
+//!
+//! While it works, the bar can say which step the run is on ("Step 3 of 7"),
+//! turn through a list of details on its second line, fading each one in,
+//! count its own time from a start the owner gives, and offer Stop.
 
-use std::{rc::Rc, time::Duration};
+use std::{
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::component::TextRole as _;
@@ -26,9 +33,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ClickEvent, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
-    Window, div, prelude::FluentBuilder as _, px,
+    Animation, AnimationExt as _, App, ClickEvent, ElementId, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::Tone;
@@ -124,6 +131,38 @@ pub fn elapsed_words(elapsed: Duration) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
+/// The step a run is on, as the bar shows it: "3/7", or "Step 3" with no
+/// total.
+fn step_badge(step: usize, of: Option<usize>) -> String {
+    match of {
+        Some(of) => format!("{step}/{of}"),
+        None => format!("Step {step}"),
+    }
+}
+
+/// The step in words for a screen reader: "Step 3 of 7".
+fn step_words(step: usize, of: Option<usize>) -> String {
+    match of {
+        Some(of) => format!("Step {step} of {of}"),
+        None => format!("Step {step}"),
+    }
+}
+
+/// Which of `count` rotating details shows after `elapsed`, each one held
+/// for `every`.
+fn rotation_index(elapsed: Duration, every: Duration, count: usize) -> usize {
+    if count == 0 || every.is_zero() {
+        return 0;
+    }
+    (elapsed.as_millis() / every.as_millis()) as usize % count
+}
+
+/// The bar's own clock, which ticks while it counts time or turns details.
+struct Clock {
+    started: Instant,
+    _ticker: Option<Task<()>>,
+}
+
 /// What a screen reader hears for the bar, such as "Something went wrong.
 /// The model ran out of memory."
 fn spoken(message: &str, detail: Option<&str>) -> String {
@@ -207,6 +246,11 @@ pub struct RunStatusBar {
     action_label: Option<SharedString>,
     action_busy: bool,
     on_action: Option<ActionHandler>,
+    step: Option<(usize, Option<usize>)>,
+    details: Vec<SharedString>,
+    detail_every: Duration,
+    since: Option<Instant>,
+    on_stop: Option<ClickHandler>,
 }
 
 impl RunStatusBar {
@@ -223,7 +267,53 @@ impl RunStatusBar {
             action_label: None,
             action_busy: false,
             on_action: None,
+            step: None,
+            details: Vec::new(),
+            detail_every: Duration::from_millis(2400),
+            since: None,
+            on_stop: None,
         }
+    }
+
+    /// Say which step the run is on, counted from 1, and of how many when
+    /// that is known. It shows as "3/7" before the message, which can name
+    /// the step, such as "Reading the ledger".
+    pub fn step(mut self, step: usize, of: Option<usize>) -> Self {
+        self.step = Some((step.max(1), of));
+        self
+    }
+
+    /// While it works, turn through these details on the second line, one
+    /// at a time, each fading in. They take the place of
+    /// [`Self::detail`] while the run is working.
+    pub fn rotating_details(
+        mut self,
+        details: impl IntoIterator<Item = impl Into<SharedString>>,
+    ) -> Self {
+        self.details = details.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// How long each rotating detail stays. 2.4 seconds by default.
+    pub fn detail_every(mut self, every: Duration) -> Self {
+        self.detail_every = every.max(Duration::from_millis(200));
+        self
+    }
+
+    /// Count the time from this start by itself while it works, instead of
+    /// being passed it with [`Self::elapsed`] on each draw.
+    pub fn since(mut self, started: Instant) -> Self {
+        self.since = Some(started);
+        self
+    }
+
+    /// While it works, add a Stop button at the end of the bar.
+    pub fn on_stop(
+        mut self,
+        on_stop: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_stop = Some(Rc::new(on_stop));
+        self
     }
 
     /// Say it in other words than the state's own.
@@ -295,9 +385,49 @@ impl Styled for RunStatusBar {
 }
 
 impl RenderOnce for RunStatusBar {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
-        let theme = cx.theme();
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let status = self.status;
+        let working = status == RunStatus::Running;
+        // The clock ticks only while there is something to count or turn.
+        let live = working && (self.since.is_some() || self.details.len() > 1);
+        let clock = window.use_keyed_state((self.id.clone(), "clock"), cx, |_, _| Clock {
+            started: Instant::now(),
+            _ticker: None,
+        });
+        let started = clock.update(cx, |clock, cx| {
+            match (live, clock._ticker.is_some()) {
+                (true, false) => {
+                    clock._ticker = Some(cx.spawn(async move |this, cx| {
+                        loop {
+                            cx.background_executor()
+                                .timer(Duration::from_millis(500))
+                                .await;
+                            if this.update(cx, |_, cx| cx.notify()).is_err() {
+                                break;
+                            }
+                        }
+                    }))
+                }
+                (false, true) => clock._ticker = None,
+                _ => {}
+            }
+            clock.started
+        });
+        let elapsed = match (self.elapsed, self.since) {
+            (Some(elapsed), _) => Some(elapsed),
+            (None, Some(since)) if working => Some(since.elapsed()),
+            _ => None,
+        };
+        let rotating = (working && !self.details.is_empty()).then(|| {
+            let ix = rotation_index(started.elapsed(), self.detail_every, self.details.len());
+            (ix, self.details[ix].clone())
+        });
+        let detail = match &rotating {
+            Some((_, detail)) => Some(detail.clone()),
+            None => self.detail.clone(),
+        };
+        let still = cx.reduce_motion();
+        let theme = cx.theme();
         let failed = status == RunStatus::Failed;
         // One quiet look for every state; a failure is pale red with red words.
         let (fill, edge, words_color) = if failed {
@@ -314,11 +444,15 @@ impl RenderOnce for RunStatusBar {
         let message: SharedString = self
             .message
             .unwrap_or_else(|| status.default_message().into());
-        let message: SharedString = match self.elapsed {
+        let message: SharedString = match elapsed {
             Some(elapsed) => format!("{message} \u{b7} {}", elapsed_words(elapsed)).into(),
             None => message,
         };
-        let words = spoken(&message, self.detail.as_deref());
+        let heard: String = match self.step {
+            Some((step, of)) => format!("{}: {message}", step_words(step, of)),
+            None => message.to_string(),
+        };
+        let words = spoken(&heard, detail.as_deref());
 
         // The shorthand button goes after the ones the owner passed, under
         // the id it has always had.
@@ -331,6 +465,13 @@ impl RenderOnce for RunStatusBar {
         let action_label: Option<SharedString> = self
             .action_label
             .or_else(|| status.default_action().map(Into::into));
+        if let Some(on_stop) = self.on_stop.filter(|_| working) {
+            buttons.push((
+                "stop".into(),
+                RunStatusButton::new("Stop")
+                    .on_click(move |event, window, cx| on_stop(event, window, cx)),
+            ));
+        }
         if let Some((on_action, label)) = self.on_action.zip(action_label) {
             buttons.push((
                 "action".into(),
@@ -394,9 +535,42 @@ impl RenderOnce for RunStatusBar {
                 v_flex()
                     .flex_1()
                     .min_w(px(140.))
-                    .child(div().font_medium().child(message))
-                    .when_some(self.detail, |this, detail| {
-                        this.child(div().text_caption().text_color(quiet).child(detail))
+                    .child(
+                        h_flex()
+                            .gap_1p5()
+                            .when_some(self.step, |this, (step, of)| {
+                                this.child(
+                                    div()
+                                        .flex_none()
+                                        .px_1()
+                                        .rounded(px(4.))
+                                        .bg(theme.foreground.opacity(0.06))
+                                        .text_badge()
+                                        .line_height(px(18.))
+                                        .text_color(quiet)
+                                        .child(step_badge(step, of)),
+                                )
+                            })
+                            .child(div().min_w_0().font_medium().child(message)),
+                    )
+                    .when_some(detail, |this, detail| {
+                        let line = div()
+                            .truncate()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(detail);
+                        match rotating {
+                            // Each new detail fades in under its own id.
+                            Some((ix, _)) if !still => this.child(line.with_animation(
+                                ElementId::NamedChild(
+                                    self.id.clone().into(),
+                                    format!("detail-{ix}").into(),
+                                ),
+                                Animation::new(Duration::from_millis(240)),
+                                |this, delta| this.opacity(delta),
+                            )),
+                            _ => this.child(line),
+                        }
                     }),
             )
             .child(h_flex().flex_none().ml_auto().gap_1p5().children(buttons))
@@ -483,6 +657,25 @@ mod tests {
             ),
             "Something went wrong. The model ran out of memory."
         );
+    }
+
+    #[test]
+    fn the_step_reads_short_on_the_bar_and_whole_when_spoken() {
+        assert_eq!(step_badge(3, Some(7)), "3/7");
+        assert_eq!(step_badge(2, None), "Step 2");
+        assert_eq!(step_words(3, Some(7)), "Step 3 of 7");
+        assert_eq!(step_words(2, None), "Step 2");
+    }
+
+    #[test]
+    fn details_turn_over_in_order_and_wrap() {
+        let every = Duration::from_secs(2);
+        assert_eq!(rotation_index(Duration::ZERO, every, 3), 0);
+        assert_eq!(rotation_index(Duration::from_millis(1999), every, 3), 0);
+        assert_eq!(rotation_index(Duration::from_secs(2), every, 3), 1);
+        assert_eq!(rotation_index(Duration::from_secs(6), every, 3), 0);
+        assert_eq!(rotation_index(Duration::from_secs(9), every, 0), 0);
+        assert_eq!(rotation_index(Duration::from_secs(9), Duration::ZERO, 3), 0);
     }
 
     #[test]

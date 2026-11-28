@@ -9,8 +9,18 @@
 //! what a choice costs is on screen before it is made. Under the models sit
 //! switches for whatever travels with the model; a switch can unfold a choice
 //! of levels while it is on.
+//!
+//! A long list can carry a search field over it, which keeps the models
+//! whose name, tagline or provider hold every word typed. Models that name a
+//! provider are grouped under it. Meters can be drawn as five steps or as
+//! one bar, and a context column draws each model's context window as a bar
+//! against the largest one on offer, with its size in short words.
 
-use std::rc::Rc;
+mod list;
+
+pub use list::context_words;
+
+use std::{cell::RefCell, rc::Rc};
 
 use isonomic_ui::TestSupportExt as _;
 use isonomic_ui::component::TextRole as _;
@@ -18,22 +28,37 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     h_flex,
+    input::{Input, InputEvent, InputState},
     kbd::Kbd,
+    look,
     popover::{Popover, PopoverState},
+    progress::Progress,
     switch::Switch,
     v_flex,
 };
 use isonomic_ui::{
-    Anchor, AnyElement, App, Context, Edges, ElementId, Entity, FocusHandle,
-    InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke, ParentElement as _, Pixels,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
-    Window, div, prelude::FluentBuilder as _, px, relative,
+    Anchor, AnyElement, App, AppContext as _, Context, Edges, ElementId, Entity, FocusHandle,
+    Focusable as _, InteractiveElement as _, IntoElement, KeyDownEvent, Keystroke,
+    ParentElement as _, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Subscription, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 /// How many steps a meter has.
 const STEPS: usize = 5;
 /// The width of one meter column.
 const COLUMN: f32 = 46.;
+/// The width of the context column.
+const CONTEXT_COLUMN: f32 = 64.;
+
+/// How a model's ratings are drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MeterStyle {
+    /// Five short steps, as many lit as the rating. The default.
+    #[default]
+    Steps,
+    /// One thin bar, filled as far as the rating goes.
+    Bar,
+}
 
 /// A model on offer.
 #[derive(Clone)]
@@ -44,6 +69,8 @@ pub struct ModelOption {
     icon: Option<IconName>,
     ratings: Vec<u8>,
     note: Option<SharedString>,
+    provider: Option<SharedString>,
+    context: Option<u64>,
 }
 
 impl ModelOption {
@@ -56,7 +83,24 @@ impl ModelOption {
             icon: None,
             ratings: Vec::new(),
             note: None,
+            provider: None,
+            context: None,
         }
+    }
+
+    /// Name who offers the model. Models with a provider are grouped under
+    /// it, in the order each provider first appears, and the search finds
+    /// them by it.
+    pub fn provider(mut self, provider: impl Into<SharedString>) -> Self {
+        self.provider = Some(provider.into());
+        self
+    }
+
+    /// How many tokens the model can hold at once. It shows in the context
+    /// column, when the picker has one.
+    pub fn context_window(mut self, tokens: u64) -> Self {
+        self.context = Some(tokens);
+        self
     }
 
     /// Two or three words on what the model is for.
@@ -187,6 +231,7 @@ pub struct ModelPicker {
     above: bool,
     align_end: bool,
     look: Look,
+    search: Option<SharedString>,
     on_change: Option<ChangeHandler>,
     on_setting_change: Option<SettingHandler>,
 }
@@ -205,6 +250,7 @@ impl ModelPicker {
             above: false,
             align_end: false,
             look: Look::default(),
+            search: None,
             on_change: None,
             on_setting_change: None,
         }
@@ -262,6 +308,29 @@ impl ModelPicker {
     /// hints. Shown by default.
     pub fn footer(mut self, footer: bool) -> Self {
         self.look.footer = footer;
+        self
+    }
+
+    /// Put a search field over the models, with this placeholder, such as
+    /// "Search models". It takes the keyboard when the menu opens: typing
+    /// narrows the list, Up and Down move through what is left and Enter
+    /// picks. Off by default.
+    pub fn searchable(mut self, placeholder: impl Into<SharedString>) -> Self {
+        self.search = Some(placeholder.into());
+        self
+    }
+
+    /// Draw the ratings as five steps (the default) or as one bar.
+    pub fn meter_style(mut self, style: MeterStyle) -> Self {
+        self.look.meter_style = style;
+        self
+    }
+
+    /// Add a column after the meters that draws each model's context window
+    /// as a bar, against the largest on offer, with its size in short words,
+    /// under this heading, such as "Context".
+    pub fn context_column(mut self, heading: impl Into<SharedString>) -> Self {
+        self.look.context_column = Some(heading.into());
         self
     }
 
@@ -398,6 +467,11 @@ struct PickerState {
     /// Each setting's switch and level, in order.
     settings: Vec<(bool, usize)>,
     focus: FocusHandle,
+    search: Entity<InputState>,
+    /// What Enter in the search does, set by the open menu on each draw:
+    /// the field takes Enter itself, so the menu cannot hear the key.
+    enter: Rc<RefCell<Option<Rc<dyn Fn(&mut Window, &mut App)>>>>,
+    _search_events: Subscription,
 }
 
 /// How the picker is drawn, apart from what it holds.
@@ -411,6 +485,8 @@ struct Look {
     row_padding: Option<Edges<Pixels>>,
     row_gap: Option<Pixels>,
     footer: bool,
+    meter_style: MeterStyle,
+    context_column: Option<SharedString>,
 }
 
 impl Default for Look {
@@ -424,15 +500,9 @@ impl Default for Look {
             row_padding: None,
             row_gap: None,
             footer: true,
+            meter_style: MeterStyle::Steps,
+            context_column: None,
         }
-    }
-}
-
-/// What a screen reader hears for a model's row: its name, then its tagline.
-fn row_words(model: &ModelOption) -> String {
-    match &model.tagline {
-        Some(tagline) => format!("{}, {tagline}", model.name),
-        None => model.name.to_string(),
     }
 }
 
@@ -459,11 +529,29 @@ struct Menu {
     active: Option<usize>,
     state: Entity<PickerState>,
     focus: FocusHandle,
+    /// The search field, when the picker has one, and its placeholder.
+    search: Option<Entity<InputState>>,
     pick: ChangeHandler,
     set: SetHandler,
 }
 
 impl Menu {
+    /// The models the search leaves, by position, in the order drawn.
+    fn visible(&self, cx: &App) -> Vec<usize> {
+        let query = self
+            .search
+            .as_ref()
+            .map(|search| search.read(cx).value().to_string())
+            .unwrap_or_default();
+        list::visible_models(&self.models, &query)
+    }
+
+    fn search_focused(&self, window: &Window, cx: &App) -> bool {
+        self.search
+            .as_ref()
+            .is_some_and(|search| search.focus_handle(cx).is_focused(window))
+    }
+
     fn key_down(
         self: &Rc<Self>,
         popover: &mut PopoverState,
@@ -471,19 +559,26 @@ impl Menu {
         window: &mut Window,
         cx: &mut Context<PopoverState>,
     ) {
-        // Keys pressed on a switch or a level belong to that control.
-        if !self.focus.is_focused(window) || event.keystroke.modifiers.modified() {
+        // Keys pressed on a switch or a level belong to that control; in the
+        // search only Up and Down move the list, the rest is typing.
+        let in_search = self.search_focused(window, cx);
+        if !(self.focus.is_focused(window) || in_search) || event.keystroke.modifiers.modified() {
             return;
         }
-        let at = self.active.or(self.chosen);
+        let visible = self.visible(cx);
+        let at = self
+            .active
+            .or(self.chosen)
+            .filter(|ix| visible.contains(ix));
         match event.keystroke.key.as_str() {
-            "enter" | "space" => {
+            "enter" | "space" if !in_search => {
                 if let Some(model) = at.and_then(|ix| self.models.get(ix)) {
                     (self.pick)(&model.id, window, cx);
                 }
                 popover.dismiss(window, cx);
             }
-            key => match step_active(at, self.models.len(), key) {
+            "home" | "end" if in_search => return,
+            key => match list::step_visible(at, &visible, key) {
                 Some(next) => self.state.update(cx, |state, cx| {
                     state.active = Some(next);
                     cx.notify();
@@ -494,20 +589,13 @@ impl Menu {
         cx.stop_propagation();
     }
 
-    fn render(self: &Rc<Self>, cx: &mut Context<PopoverState>) -> AnyElement {
+    fn meter(&self, id: ElementId, column: &str, rating: u8, is_lit: bool, cx: &App) -> AnyElement {
         let theme = cx.theme();
-        let ink = theme.foreground;
-        let quiet = theme.muted_foreground;
-        let fill = theme.background;
-        let line = theme.border;
-        let chip = theme.muted;
         let accent = theme.info;
-        let radius = theme.radius;
-
-        let lit_row = self.active.or(self.chosen);
-        let columns_width = px(COLUMN * self.columns.len() as f32);
-        let meter = |rating: u8, is_lit: bool| {
-            h_flex()
+        let quiet = theme.muted_foreground;
+        let line = theme.border;
+        match self.look.meter_style {
+            MeterStyle::Steps => h_flex()
                 .flex_none()
                 .w(px(COLUMN))
                 .justify_center()
@@ -521,112 +609,248 @@ impl Menu {
                         },
                     )
                 }))
-        };
+                .into_any_element(),
+            MeterStyle::Bar => h_flex()
+                .flex_none()
+                .w(px(COLUMN))
+                .justify_center()
+                .child(
+                    Progress::new(id)
+                        .small()
+                        .w(px(34.))
+                        .value(lit_steps(rating) as f32 * 100. / STEPS as f32)
+                        .color(if is_lit { accent } else { quiet.opacity(0.6) })
+                        .accessibility_label(format!("{column}, {} of {STEPS}", lit_steps(rating))),
+                )
+                .into_any_element(),
+        }
+    }
 
-        let rows = self.models.iter().enumerate().map(|(ix, model)| {
+    fn render(self: &Rc<Self>, window: &mut Window, cx: &mut Context<PopoverState>) -> AnyElement {
+        let theme = cx.theme();
+        let ink = theme.foreground;
+        let quiet = theme.muted_foreground;
+        let fill = theme.background;
+        let line = theme.border;
+        let chip = theme.muted;
+        let accent = theme.info;
+        let radius = theme.radius;
+
+        let visible = self.visible(cx);
+        let lit_row = self.active.or(self.chosen);
+        let columns_width = px(COLUMN * self.columns.len() as f32);
+        let largest = self
+            .models
+            .iter()
+            .filter_map(|model| model.context)
+            .max()
+            .unwrap_or(0);
+        let context_heading = self.look.context_column.clone();
+
+        // Enter in the search picks the model the arrows are on, or the first
+        // one left, and closes the menu.
+        if self.search.is_some() {
+            let menu = self.clone();
+            let popover = cx.entity();
+            let target = lit_row
+                .filter(|ix| visible.contains(ix))
+                .or(visible.first().copied());
+            let enter: Rc<dyn Fn(&mut Window, &mut App)> = Rc::new(move |window, cx| {
+                if let Some(model) = target.and_then(|ix| menu.models.get(ix)) {
+                    (menu.pick)(&model.id, window, cx);
+                }
+                popover.update(cx, |popover, cx| popover.dismiss(window, cx));
+            });
+            *self.state.read(cx).enter.borrow_mut() = Some(enter);
+        }
+
+        let mut rows = Vec::new();
+        for (at, &ix) in visible.iter().enumerate() {
+            let model = &self.models[ix];
+            if list::starts_group(&self.models, &visible, at) {
+                rows.push(
+                    div()
+                        .h(px(24.))
+                        .px_2()
+                        .pt_1()
+                        .text_eyebrow()
+                        .text_color(quiet)
+                        .children(model.provider.clone())
+                        .into_any_element(),
+                );
+            }
             let is_lit = lit_row == Some(ix);
             let is_chosen = self.chosen == Some(ix);
-            h_flex()
-                .id(row_id(self.id.clone(), &model.id))
-                .test_support()
-                .role(Role::ListBoxOption)
-                .aria_label(row_words(model))
-                .aria_selected(is_chosen)
-                .gap_2p5()
-                .min_h(px(44.))
-                .px_2()
-                .when_some(self.look.row_padding, |this, edges| {
-                    this.pt(edges.top)
-                        .pr(edges.right)
-                        .pb(edges.bottom)
-                        .pl(edges.left)
-                })
-                .rounded(radius)
-                .cursor_pointer()
-                .when(
-                    self.active == Some(ix) || (self.look.chosen_fill && is_chosen),
-                    |this| this.bg(chip),
-                )
-                .on_hover({
-                    let state = self.state.clone();
-                    move |hovered, _, cx| {
-                        if !*hovered {
-                            return;
-                        }
-                        state.update(cx, |state, cx| {
-                            if state.active != Some(ix) {
-                                state.active = Some(ix);
-                                cx.notify();
+            let row_id = row_id(self.id.clone(), &model.id);
+            let wash = look::hover_fade(row_id.clone(), self.active == Some(ix), window, cx);
+            let rest = if self.look.chosen_fill && is_chosen {
+                chip
+            } else {
+                chip.opacity(0.)
+            };
+            rows.push(
+                h_flex()
+                    .id(row_id.clone())
+                    .test_support()
+                    .role(Role::ListBoxOption)
+                    .aria_label(list::row_words(model, &self.columns))
+                    .aria_selected(is_chosen)
+                    .gap_2p5()
+                    .min_h(px(44.))
+                    .px_2()
+                    .when_some(self.look.row_padding, |this, edges| {
+                        this.pt(edges.top)
+                            .pr(edges.right)
+                            .pb(edges.bottom)
+                            .pl(edges.left)
+                    })
+                    .rounded(radius)
+                    .cursor_pointer()
+                    .bg(look::mix(rest, chip, wash))
+                    .on_hover({
+                        let state = self.state.clone();
+                        move |hovered, _, cx| {
+                            if !*hovered {
+                                return;
                             }
-                        })
-                    }
-                })
-                .on_click(cx.listener({
-                    let menu = self.clone();
-                    move |popover, _, window, cx| {
-                        if let Some(model) = menu.models.get(ix) {
-                            (menu.pick)(&model.id, window, cx);
+                            state.update(cx, |state, cx| {
+                                if state.active != Some(ix) {
+                                    state.active = Some(ix);
+                                    cx.notify();
+                                }
+                            })
                         }
-                        popover.dismiss(window, cx);
-                    }
-                }))
-                .when(self.look.tile, |this| this.child(tile(model, cx)))
-                .child(
-                    v_flex()
-                        .flex_1()
-                        .min_w_0()
-                        .child(
+                    })
+                    .on_click(cx.listener({
+                        let menu = self.clone();
+                        move |popover, _, window, cx| {
+                            if let Some(model) = menu.models.get(ix) {
+                                (menu.pick)(&model.id, window, cx);
+                            }
+                            popover.dismiss(window, cx);
+                        }
+                    }))
+                    .when(self.look.tile, |this| this.child(tile(model, cx)))
+                    .child(
+                        v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .child(
+                                h_flex()
+                                    .gap_1p5()
+                                    .child(div().truncate().font_medium().child(model.name.clone()))
+                                    .when(is_chosen && !self.look.trailing_check, |this| {
+                                        this.child(
+                                            Icon::new(IconName::Check).xsmall().text_color(accent),
+                                        )
+                                    }),
+                            )
+                            .children(model.tagline.clone().map(|tagline| {
+                                div()
+                                    .truncate()
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child(tagline)
+                            })),
+                    )
+                    .when(!self.columns.is_empty(), |this| {
+                        if model.ratings.is_empty() {
+                            this.child(
+                                div()
+                                    .flex_none()
+                                    .w(columns_width)
+                                    .text_center()
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child("Not fixed"),
+                            )
+                        } else {
+                            this.child(h_flex().flex_none().children(
+                                self.columns.iter().enumerate().map(|(column, name)| {
+                                    self.meter(
+                                        ElementId::NamedChild(
+                                            row_id.clone().into(),
+                                            format!("meter-{column}").into(),
+                                        ),
+                                        name,
+                                        model.ratings.get(column).copied().unwrap_or(0),
+                                        is_lit,
+                                        cx,
+                                    )
+                                }),
+                            ))
+                        }
+                    })
+                    .when(context_heading.is_some(), |this| {
+                        this.child(
                             h_flex()
+                                .flex_none()
+                                .w(px(CONTEXT_COLUMN))
                                 .gap_1p5()
-                                .child(div().truncate().font_medium().child(model.name.clone()))
-                                .when(is_chosen && !self.look.trailing_check, |this| {
+                                .justify_end()
+                                .when_some(model.context, |this, tokens| {
+                                    this.child(
+                                        Progress::new(ElementId::NamedChild(
+                                            row_id.clone().into(),
+                                            "context".into(),
+                                        ))
+                                        .small()
+                                        .w(px(26.))
+                                        .value(list::context_fraction(tokens, largest) * 100.)
+                                        .color(if is_lit { accent } else { quiet.opacity(0.6) })
+                                        .accessibility_label(format!(
+                                            "Context, {} tokens",
+                                            context_words(tokens)
+                                        )),
+                                    )
+                                    .child(
+                                        div()
+                                            .w(px(30.))
+                                            .text_right()
+                                            .text_caption()
+                                            .text_color(quiet)
+                                            .child(context_words(tokens)),
+                                    )
+                                }),
+                        )
+                    })
+                    .when(self.look.trailing_check, |this| {
+                        // Every row keeps the slot, so names line up whether or
+                        // not the row is the chosen one.
+                        this.child(
+                            div()
+                                .flex()
+                                .flex_none()
+                                .items_center()
+                                .justify_center()
+                                .size_4()
+                                .when(is_chosen, |this| {
                                     this.child(
                                         Icon::new(IconName::Check).xsmall().text_color(accent),
                                     )
                                 }),
                         )
-                        .children(model.tagline.clone().map(|tagline| {
-                            div()
-                                .truncate()
-                                .text_caption()
-                                .text_color(quiet)
-                                .child(tagline)
-                        })),
-                )
-                .when(!self.columns.is_empty(), |this| {
-                    if model.ratings.is_empty() {
-                        this.child(
-                            div()
-                                .flex_none()
-                                .w(columns_width)
-                                .text_center()
-                                .text_caption()
-                                .text_color(quiet)
-                                .child("Not fixed"),
-                        )
-                    } else {
-                        this.child(h_flex().flex_none().children((0..self.columns.len()).map(
-                            |column| meter(model.ratings.get(column).copied().unwrap_or(0), is_lit),
-                        )))
-                    }
-                })
-                .when(self.look.trailing_check, |this| {
-                    // Every row keeps the slot, so names line up whether or
-                    // not the row is the chosen one.
-                    this.child(
-                        div()
-                            .flex()
-                            .flex_none()
-                            .items_center()
-                            .justify_center()
-                            .size_4()
-                            .when(is_chosen, |this| {
-                                this.child(Icon::new(IconName::Check).xsmall().text_color(accent))
-                            }),
-                    )
-                })
-        });
-        let rows: Vec<_> = rows.collect();
+                    })
+                    .into_any_element(),
+            );
+        }
+        if visible.is_empty() {
+            let query = self
+                .search
+                .as_ref()
+                .map(|search| search.read(cx).value().to_string())
+                .unwrap_or_default();
+            rows.push(
+                div()
+                    .px_2()
+                    .py_3()
+                    .text_center()
+                    .text_caption()
+                    .text_color(quiet)
+                    .child(format!("No models match \u{201c}{query}\u{201d}"))
+                    .into_any_element(),
+            );
+        }
 
         let settings = self.settings.iter().enumerate().map(|(ix, setting)| {
             let (on, level) = self.switched[ix];
@@ -734,6 +958,14 @@ impl Menu {
             .text_body()
             .line_height(relative(1.4))
             .text_color(ink)
+            .children(self.search.as_ref().map(|search| {
+                div().p_1().pb_0().child(
+                    Input::new(search)
+                        .small()
+                        .prefix(Icon::new(IconName::Search).xsmall().text_color(quiet))
+                        .cleanable(true),
+                )
+            }))
             .child(
                 v_flex()
                     .id(list_id(self.id.clone()))
@@ -743,7 +975,9 @@ impl Menu {
                     .p_1()
                     .when_some(self.look.row_gap, |this, gap| this.gap(gap))
                     .when(
-                        !self.columns.is_empty() || self.look.header.is_some(),
+                        !self.columns.is_empty()
+                            || self.look.header.is_some()
+                            || context_heading.is_some(),
                         |this| {
                             this.child(
                                 h_flex()
@@ -761,6 +995,14 @@ impl Menu {
                                             .truncate()
                                             .text_center()
                                             .child(column.clone())
+                                    }))
+                                    .children(context_heading.clone().map(|heading| {
+                                        div()
+                                            .flex_none()
+                                            .w(px(CONTEXT_COLUMN))
+                                            .truncate()
+                                            .text_right()
+                                            .child(heading)
                                     })),
                             )
                         },
@@ -800,16 +1042,42 @@ impl RenderOnce for ModelPicker {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let quiet = cx.theme().muted_foreground;
 
-        let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| PickerState {
-            value: self
-                .default_value
-                .clone()
-                .or_else(|| self.models.first().map(|model| model.id.clone())),
-            active: None,
-            settings: Vec::new(),
-            focus: cx.focus_handle(),
+        let placeholder = self.search.clone();
+        let state = window.use_keyed_state(self.id.clone(), cx, |window, cx| {
+            let search = cx
+                .new(|cx| InputState::new(window, cx).placeholder(placeholder.unwrap_or_default()));
+            let enter: Rc<RefCell<Option<Rc<dyn Fn(&mut Window, &mut App)>>>> = Rc::default();
+            let search_events = cx.subscribe_in(&search, window, {
+                let enter = enter.clone();
+                move |state: &mut PickerState, _, event, window, cx| match event {
+                    InputEvent::Change => {
+                        // A new search starts at the top of what is left.
+                        state.active = None;
+                        cx.notify();
+                    }
+                    InputEvent::PressEnter { .. } => {
+                        let enter = enter.borrow().clone();
+                        if let Some(enter) = enter {
+                            enter(window, cx);
+                        }
+                    }
+                    _ => {}
+                }
+            });
+            PickerState {
+                value: self
+                    .default_value
+                    .clone()
+                    .or_else(|| self.models.first().map(|model| model.id.clone())),
+                active: None,
+                settings: Vec::new(),
+                focus: cx.focus_handle(),
+                search,
+                enter,
+                _search_events: search_events,
+            }
         });
-        let (kept_value, active, kept_settings, focus) = state.update(cx, |state, _| {
+        let (kept_value, active, kept_settings, focus, search) = state.update(cx, |state, _| {
             // Settings added since the last draw start from their defaults.
             for setting in self.settings.iter().skip(state.settings.len()) {
                 state
@@ -821,8 +1089,10 @@ impl RenderOnce for ModelPicker {
                 state.active,
                 state.settings.clone(),
                 state.focus.clone(),
+                state.search.clone(),
             )
         });
+        let search = self.search.is_some().then_some(search);
         let value = self.value.clone().or(kept_value);
         let chosen = self
             .models
@@ -909,6 +1179,12 @@ impl RenderOnce for ModelPicker {
                 None => this.label("Choose a model"),
             });
 
+        // The context column widens the menu rather than squeezing names.
+        let width = if self.look.context_column.is_some() {
+            320. + CONTEXT_COLUMN
+        } else {
+            320.
+        };
         let menu = Rc::new(Menu {
             id: self.id.clone(),
             look: self.look,
@@ -920,6 +1196,7 @@ impl RenderOnce for ModelPicker {
             active,
             state: state.clone(),
             focus: focus.clone(),
+            search: search.clone(),
             pick,
             set,
         });
@@ -931,16 +1208,23 @@ impl RenderOnce for ModelPicker {
                 if !*open {
                     return;
                 }
-                // Start on the chosen model, with the keyboard on the list.
+                // Start on the chosen model, with the keyboard on the list or
+                // in the search, which starts empty.
                 state.update(cx, |state, cx| {
                     state.active = chosen;
                     cx.notify();
                 });
-                focus.focus(window, cx);
+                match &search {
+                    Some(search) => {
+                        search.update(cx, |search, cx| search.set_value("", window, cx));
+                        search.focus_handle(cx).focus(window, cx);
+                    }
+                    None => focus.focus(window, cx),
+                }
             })
-            .content(move |_, _, cx| menu.render(cx))
+            .content(move |_, window, cx| menu.render(window, cx))
             .p_0()
-            .w(px(320.))
+            .w(px(width))
             .refine_style(&self.style)
     }
 }

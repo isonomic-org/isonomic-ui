@@ -6,6 +6,18 @@
 //! Copy, regenerate with a switcher between the versions of the answer, a vote
 //! up or down that asks what was off, and read aloud. The bar stays faded until
 //! it, or the message around it, is pointed at.
+//!
+//! With more than one version, the switcher's number slides in from the side
+//! the switch came from, and a small map of dots, one per version, can sit
+//! beside it: a dot is clicked to jump to its version, and the map takes Left,
+//! Right, Home and End from the keyboard.
+//!
+//! A vote opens a row of reason chips, one or several, with an optional note,
+//! and ends on a thank-you line that folds away or stays.
+
+mod branches;
+
+pub use branches::{SwapDirection, swap_direction, swap_in, swap_offset};
 
 use std::{f32::consts::TAU, rc::Rc, time::Duration};
 
@@ -17,12 +29,13 @@ use isonomic_ui::component::{
     clipboard::Clipboard,
     h_flex,
     input::{Input, InputState},
-    v_flex,
+    look, v_flex,
 };
 use isonomic_ui::{
-    Animation, AnimationExt as _, App, ClickEvent, ElementId, Focusable as _, Hsla,
-    InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, SharedString,
-    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    Animation, AnimationExt as _, App, ClickEvent, ElementId, FocusHandle, Focusable as _, Hsla,
+    InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 /// How long the row says thanks before it folds away.
@@ -90,6 +103,19 @@ pub enum Vote {
 type Handler = Rc<dyn Fn(&mut Window, &mut App)>;
 type VersionHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 type FeedbackHandler = Rc<dyn Fn(Option<Vote>, Option<SharedString>, &mut Window, &mut App)>;
+type DetailHandler = Rc<dyn Fn(&FeedbackDetail, &mut Window, &mut App)>;
+
+/// Everything sent with a vote's reasons: the vote, the chips picked, in
+/// the order they are offered, and the note, when there is one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeedbackDetail {
+    /// The vote the reasons go with.
+    pub vote: Vote,
+    /// The reason chips picked.
+    pub reasons: Vec<SharedString>,
+    /// The note written, trimmed.
+    pub note: Option<SharedString>,
+}
 type SpeakHandler = Rc<dyn Fn(bool, &mut Window, &mut App)>;
 
 /// The actions under one assistant message.
@@ -118,6 +144,15 @@ pub struct MessageActionBar {
     on_regenerate: Option<Handler>,
     on_feedback: Option<FeedbackHandler>,
     on_speak: Option<SpeakHandler>,
+    branch_map: bool,
+    branch_labels: Vec<SharedString>,
+    up_reasons: Vec<SharedString>,
+    multi_reason: bool,
+    note: bool,
+    thanks: Option<SharedString>,
+    keep_thanks: bool,
+    thank_on_vote: bool,
+    on_feedback_detail: Option<DetailHandler>,
 }
 
 impl MessageActionBar {
@@ -156,7 +191,90 @@ impl MessageActionBar {
             on_regenerate: None,
             on_feedback: None,
             on_speak: None,
+            branch_map: false,
+            branch_labels: Vec::new(),
+            up_reasons: Vec::new(),
+            multi_reason: false,
+            note: false,
+            thanks: None,
+            keep_thanks: false,
+            thank_on_vote: false,
+            on_feedback_detail: None,
         }
+    }
+
+    /// Show a small map of the versions beside the switcher: a dot for
+    /// each, the one showing drawn as a short pill. A dot jumps to its
+    /// version, and the map takes Left, Right, Home and End. Off by default.
+    pub fn branch_map(mut self, map: bool) -> Self {
+        self.branch_map = map;
+        self
+    }
+
+    /// Name the versions, in order, such as "Shorter" or "With a table".
+    /// The names go in the map's tooltips and spoken labels.
+    pub fn branch_labels(
+        mut self,
+        labels: impl IntoIterator<Item = impl Into<SharedString>>,
+    ) -> Self {
+        self.branch_labels = labels.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Offer these reasons after a vote up, asking what was good. Without
+    /// them a vote up opens nothing.
+    pub fn up_reasons(
+        mut self,
+        reasons: impl IntoIterator<Item = impl Into<SharedString>>,
+    ) -> Self {
+        self.up_reasons = reasons.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Let several reason chips be picked at once. Off by default, where
+    /// picking one drops the other.
+    pub fn multi_reason(mut self, multi: bool) -> Self {
+        self.multi_reason = multi;
+        self
+    }
+
+    /// Always offer a note under the reason chips, sent with them or on its
+    /// own, in place of the "Something else" chip. Off by default.
+    pub fn feedback_note(mut self, note: bool) -> Self {
+        self.note = note;
+        self
+    }
+
+    /// Reword the thank-you line shown once reasons are sent. "Thanks, that
+    /// helps." by default.
+    pub fn thanks_message(mut self, words: impl Into<SharedString>) -> Self {
+        self.thanks = Some(words.into());
+        self
+    }
+
+    /// Keep the thank-you line until the vote changes, instead of folding
+    /// it away after a moment. Off by default.
+    pub fn keep_thanks(mut self, keep: bool) -> Self {
+        self.keep_thanks = keep;
+        self
+    }
+
+    /// Say thanks as soon as a vote is cast that opens no reasons, such as
+    /// a vote up with no up reasons. Off by default.
+    pub fn thank_on_vote(mut self, thank: bool) -> Self {
+        self.thank_on_vote = thank;
+        self
+    }
+
+    /// Run with everything sent with a vote's reasons: the chips picked and
+    /// the note. `on_feedback` still hears the same send, with the reasons
+    /// joined into one line.
+    pub fn on_feedback_detail(
+        mut self,
+        handler: impl Fn(&FeedbackDetail, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_feedback_detail = Some(Rc::new(handler));
+        self
     }
 
     /// Set the size of the bar's buttons. The default is extra small.
@@ -332,6 +450,46 @@ fn settle_version(kept: usize, known: usize, count: usize) -> usize {
     if count > known { last } else { kept.min(last) }
 }
 
+/// The chips picked after pressing chip `ix`: pressing a picked chip drops
+/// it, and with one at a time a new pick replaces the old.
+fn toggle_pick(picked: &[usize], ix: usize, multi: bool) -> Vec<usize> {
+    if picked.contains(&ix) {
+        return picked.iter().copied().filter(|p| *p != ix).collect();
+    }
+    if !multi {
+        return vec![ix];
+    }
+    let mut next = picked.to_vec();
+    next.push(ix);
+    next.sort_unstable();
+    next
+}
+
+/// What a send carries: the picked chips by name, in order, and the note.
+/// `None` when there is nothing to send. A chip past the last reason is
+/// "Something else", which stands for the note.
+fn gather(
+    reasons: &[SharedString],
+    picked: &[usize],
+    note: &str,
+) -> Option<(Vec<SharedString>, Option<SharedString>)> {
+    let chips: Vec<SharedString> = picked
+        .iter()
+        .filter_map(|ix| reasons.get(*ix).cloned())
+        .collect();
+    let note = note.trim();
+    let note = (!note.is_empty()).then(|| SharedString::from(note.to_string()));
+    (!chips.is_empty() || note.is_some()).then_some((chips, note))
+}
+
+/// The one line `on_feedback` hears for a send: the chips joined, then the
+/// note.
+fn joined_reason(chips: &[SharedString], note: Option<&SharedString>) -> SharedString {
+    let mut parts: Vec<&str> = chips.iter().map(|chip| chip.as_ref()).collect();
+    parts.extend(note.map(|note| note.as_ref()));
+    parts.join(", ").into()
+}
+
 #[derive(Default)]
 struct BarState {
     seeded: bool,
@@ -341,12 +499,35 @@ struct BarState {
     /// The vote on each version that has one.
     votes: Vec<(usize, Vote)>,
     row_open: bool,
-    /// The picked reason. One past the last reason means something else.
-    reason: Option<usize>,
+    /// The vote the open row asks about.
+    row_vote: Option<Vote>,
+    /// The picked reasons. One past the last reason means something else.
+    picked: Vec<usize>,
     thanked: bool,
     playing: bool,
+    /// The version drawn last, to tell which way a switch went.
+    shown: Option<usize>,
+    direction: SwapDirection,
+    /// Counts the switches, so each one slides in afresh.
+    swaps: usize,
+    map_focus: Option<FocusHandle>,
+    hovered: bool,
     _stop_playing: Option<Task<()>>,
     _close_row: Option<Task<()>>,
+}
+
+/// Fold the feedback row away once the thank-you line has been read.
+fn fold_later(cx: &mut isonomic_ui::Context<BarState>) -> Task<()> {
+    cx.spawn(async move |this, cx| {
+        cx.background_executor().timer(THANKS_FOR).await;
+        this.update(cx, |state, cx| {
+            state.row_open = false;
+            state.thanked = false;
+            state.picked.clear();
+            cx.notify();
+        })
+        .ok();
+    })
 }
 
 /// Four bars that bounce while the message is read aloud.
@@ -386,8 +567,8 @@ impl RenderOnce for MessageActionBar {
         let other = window.use_keyed_state((self.id.clone(), "other"), cx, |window, cx| {
             InputState::new(window, cx).placeholder("Tell us more")
         });
-        let (kept, votes, row_open, reason, thanked, kept_playing) =
-            state.update(cx, |state, _| {
+        let (kept, votes, row_open, row_vote, picked, thanked, kept_playing) =
+            state.update(cx, |state, cx| {
                 if !state.seeded {
                     state.seeded = true;
                     state.known_versions = count;
@@ -395,22 +576,51 @@ impl RenderOnce for MessageActionBar {
                 }
                 state.version = settle_version(state.version, state.known_versions, count);
                 state.known_versions = count;
+                if state.map_focus.is_none() {
+                    state.map_focus = Some(cx.focus_handle().tab_stop(true));
+                }
                 (
                     state.version,
                     state.votes.clone(),
                     state.row_open,
-                    state.reason,
+                    state.row_vote,
+                    state.picked.clone(),
                     state.thanked,
                     state.playing,
                 )
             });
         let version = self.version.unwrap_or(kept).min(count - 1);
+        // Tell which way the shown version moved since the last draw, so the
+        // switcher's number slides in from that side.
+        let (direction, swaps, map_focus) = state.update(cx, |state, _| {
+            if let Some(shown) = state.shown
+                && shown != version
+            {
+                state.direction = swap_direction(shown, version);
+                state.swaps += 1;
+            }
+            state.shown = Some(version);
+            (
+                state.direction,
+                state.swaps,
+                state.map_focus.clone().expect("set above"),
+            )
+        });
+        let hovered = state.read(cx).hovered;
+        let lit_fade = look::hover_fade((self.id.clone(), "lit"), hovered, window, cx);
         let vote = votes
             .iter()
             .find(|(voted, _)| *voted == version)
             .map(|(_, vote)| *vote);
         let playing = self.speaking.unwrap_or(kept_playing);
-        let something_else = self.reasons.len();
+        // The row asks about the vote that opened it, with that vote's chips.
+        let row_reasons: Vec<SharedString> = if row_vote == Some(Vote::Up) {
+            self.up_reasons.clone()
+        } else {
+            self.reasons.clone()
+        };
+        let something_else = row_reasons.len();
+        let note_open = self.note || picked.contains(&something_else);
         let lit = !self.quiet || self.regenerating || playing || row_open;
 
         let go = |to: usize| {
@@ -427,6 +637,9 @@ impl RenderOnce for MessageActionBar {
                 }
             }
         };
+        let has_up_reasons = !self.up_reasons.is_empty();
+        let thank_on_vote = self.thank_on_vote;
+        let keep_thanks = self.keep_thanks;
         let cast = |pressed: Vote| {
             let state = state.clone();
             let on_feedback = self.on_feedback.clone();
@@ -435,10 +648,22 @@ impl RenderOnce for MessageActionBar {
                 state.update(cx, |state, cx| {
                     state.votes.retain(|(voted, _)| *voted != version);
                     state.votes.extend(next.map(|next| (version, next)));
-                    // A vote down asks what was off.
-                    state.row_open = next == Some(Vote::Down);
-                    state.reason = None;
-                    state.thanked = false;
+                    // A vote down asks what was off, and a vote up what was
+                    // good when there are reasons for it; otherwise a vote
+                    // can say thanks at once.
+                    let asks = match next {
+                        Some(Vote::Down) => true,
+                        Some(Vote::Up) => has_up_reasons,
+                        None => false,
+                    };
+                    state.row_open = asks || (next.is_some() && thank_on_vote);
+                    state.row_vote = next;
+                    state.picked.clear();
+                    state.thanked = !asks && next.is_some() && thank_on_vote;
+                    state._close_row = None;
+                    if state.thanked && !keep_thanks {
+                        state._close_row = Some(fold_later(cx));
+                    }
                     cx.notify();
                 });
                 if let Some(handler) = &on_feedback {
@@ -458,37 +683,44 @@ impl RenderOnce for MessageActionBar {
         let send: Handler = {
             let state = state.clone();
             let other = other.clone();
-            let reasons = self.reasons.clone();
+            let reasons = row_reasons.clone();
+            let picked = picked.clone();
             let on_feedback = self.on_feedback.clone();
+            let on_detail = self.on_feedback_detail.clone();
+            let vote = row_vote.unwrap_or(Vote::Down);
             Rc::new(move |window, cx| {
-                let why: Option<SharedString> = match reason {
-                    Some(ix) if ix < reasons.len() => Some(reasons[ix].clone()),
-                    Some(_) => {
-                        let text = other.read(cx).value().trim().to_string();
-                        (!text.is_empty()).then(|| text.into())
-                    }
-                    None => None,
+                let note = if note_open {
+                    other.read(cx).value().to_string()
+                } else {
+                    String::new()
                 };
-                let Some(why) = why else {
+                let Some((chips, note)) = gather(&reasons, &picked, &note) else {
                     return;
                 };
                 other.update(cx, |input, cx| input.set_value("", window, cx));
                 state.update(cx, |state, cx| {
                     state.thanked = true;
-                    state._close_row = Some(cx.spawn(async move |this, cx| {
-                        cx.background_executor().timer(THANKS_FOR).await;
-                        this.update(cx, |state, cx| {
-                            state.row_open = false;
-                            state.thanked = false;
-                            state.reason = None;
-                            cx.notify();
-                        })
-                        .ok();
-                    }));
+                    state._close_row = (!keep_thanks).then(|| fold_later(cx));
                     cx.notify();
                 });
                 if let Some(handler) = &on_feedback {
-                    handler(Some(Vote::Down), Some(why), window, cx);
+                    handler(
+                        Some(vote),
+                        Some(joined_reason(&chips, note.as_ref())),
+                        window,
+                        cx,
+                    );
+                }
+                if let Some(handler) = &on_detail {
+                    handler(
+                        &FeedbackDetail {
+                            vote,
+                            reasons: chips,
+                            note,
+                        },
+                        window,
+                        cx,
+                    );
                 }
             })
         };
@@ -571,13 +803,16 @@ impl RenderOnce for MessageActionBar {
                         .tooltip(words(MessageActionLabel::PreviousVersion))
                         .on_click(go(version.saturating_sub(1))),
                 )
-                .child(
+                .child(swap_in(
+                    (self.id.clone(), SharedString::from(format!("swap-{swaps}"))),
+                    direction,
+                    still,
                     div()
                         .px_0p5()
                         .text_caption()
                         .text_color(quiet)
                         .child(format!("{} / {count}", version + 1)),
-                )
+                ))
                 .child(
                     Button::new((self.id.clone(), "next"))
                         .ghost()
@@ -589,6 +824,82 @@ impl RenderOnce for MessageActionBar {
                         .tooltip(words(MessageActionLabel::NextVersion))
                         .on_click(go((version + 1).min(count - 1))),
                 )
+                .when(self.branch_map, |this| {
+                    let label = |n: usize| self.branch_labels.get(n).map(|label| label.as_ref());
+                    let slots = branches::map_slots(count, version, branches::MAP_SLOTS);
+                    let step = {
+                        let state = state.clone();
+                        let on_version_change = self.on_version_change.clone();
+                        move |event: &isonomic_ui::KeyDownEvent,
+                              window: &mut Window,
+                              cx: &mut App| {
+                            if event.keystroke.modifiers.modified() {
+                                return;
+                            }
+                            let Some(to) = branches::map_step(version, count, &event.keystroke.key)
+                            else {
+                                return;
+                            };
+                            cx.stop_propagation();
+                            if to == version {
+                                return;
+                            }
+                            state.update(cx, |state, cx| {
+                                state.version = to;
+                                state.row_open = false;
+                                cx.notify();
+                            });
+                            if let Some(handler) = &on_version_change {
+                                handler(to, window, cx);
+                            }
+                        }
+                    };
+                    this.child(
+                        h_flex()
+                            .id((self.id.clone(), "branch-map"))
+                            .track_focus(&map_focus)
+                            .role(Role::Group)
+                            .aria_label(branches::map_words(version, count, label(version)))
+                            .on_key_down(step)
+                            .ml_1()
+                            .px_1()
+                            .h(px(16.))
+                            .gap(px(3.))
+                            .rounded(px(4.))
+                            .focus_visible(|style| style.border_1().border_color(accent))
+                            .children(slots.into_iter().map(|slot| match slot {
+                                branches::Slot::Gap => branches::gap_mark(quiet.opacity(0.6)),
+                                branches::Slot::Version(n) => {
+                                    let current = n == version;
+                                    let words = branches::dot_words(n, label(n), current);
+                                    div()
+                                        .id((
+                                            self.id.clone(),
+                                            SharedString::from(format!("branch-{n}")),
+                                        ))
+                                        .role(Role::Button)
+                                        .aria_label(words)
+                                        .flex()
+                                        .items_center()
+                                        .h(px(12.))
+                                        .cursor_pointer()
+                                        .on_click(go(n))
+                                        .child(
+                                            div()
+                                                .w(px(branches::dot_width(current)))
+                                                .h(px(6.))
+                                                .rounded_full()
+                                                .bg(if current {
+                                                    accent
+                                                } else {
+                                                    quiet.opacity(0.45)
+                                                }),
+                                        )
+                                        .into_any_element()
+                                }
+                            })),
+                    )
+                })
         });
         let (pager_first, mut pager_after) = if self.pager_first {
             (pager, None)
@@ -675,27 +986,42 @@ impl RenderOnce for MessageActionBar {
             };
         }
 
-        let can_send = match reason {
-            Some(ix) if ix == something_else => !other.read(cx).value().trim().is_empty(),
-            Some(_) => true,
-            None => false,
+        let typed = if note_open {
+            other.read(cx).value().to_string()
+        } else {
+            String::new()
         };
+        let can_send = gather(&row_reasons, &picked, &typed).is_some();
+        let multi = self.multi_reason;
         let pick = |ix: usize| {
             let state = state.clone();
             move |_: &ClickEvent, _: &mut Window, cx: &mut App| {
                 state.update(cx, |state, cx| {
-                    // Pressing the picked reason drops it.
-                    state.reason = (state.reason != Some(ix)).then_some(ix);
+                    state.picked = toggle_pick(&state.picked, ix, multi);
                     cx.notify();
                 })
             }
         };
+        let thanks_words = self
+            .thanks
+            .clone()
+            .unwrap_or_else(|| "Thanks, that helps.".into());
+        let question = if row_vote == Some(Vote::Up) {
+            "What was good?"
+        } else {
+            "What was off?"
+        };
         let row = row_open.then(|| {
-            let labels = self
-                .reasons
-                .iter()
-                .cloned()
-                .chain([SharedString::from("Something else")]);
+            // With a note always on offer, "Something else" is not needed.
+            let labels: Vec<SharedString> = if self.note {
+                row_reasons.clone()
+            } else {
+                row_reasons
+                    .iter()
+                    .cloned()
+                    .chain([SharedString::from("Something else")])
+                    .collect()
+            };
             v_flex()
                 .gap_2()
                 .pt_2()
@@ -718,11 +1044,25 @@ impl RenderOnce for MessageActionBar {
                 .child(
                     h_flex()
                         .justify_between()
-                        .child(div().font_medium().child(if thanked {
-                            "Thanks, that helps."
+                        .child(if thanked {
+                            let line = h_flex()
+                                .gap_1p5()
+                                .font_medium()
+                                .child(Icon::new(IconName::CircleCheck).small().text_color(accent))
+                                .child(thanks_words.clone());
+                            if still {
+                                line.into_any_element()
+                            } else {
+                                line.with_animation(
+                                    (self.id.clone(), "thanks"),
+                                    Animation::new(Duration::from_millis(220)),
+                                    |this, delta| this.opacity(delta),
+                                )
+                                .into_any_element()
+                            }
                         } else {
-                            "What was off?"
-                        }))
+                            div().font_medium().child(question).into_any_element()
+                        })
                         .child(
                             Button::new((self.id.clone(), "close-row"))
                                 .ghost()
@@ -734,25 +1074,20 @@ impl RenderOnce for MessageActionBar {
                         ),
                 )
                 .when(!thanked, |this| {
-                    this.child(
-                        h_flex()
-                            .flex_wrap()
-                            .gap_1p5()
-                            .children(labels.enumerate().map(|(ix, label)| {
-                                Button::new((
-                                    self.id.clone(),
-                                    SharedString::from(format!("reason-{ix}")),
-                                ))
-                                .outline()
-                                .xsmall()
-                                .label(label)
-                                .selected(reason == Some(ix))
-                                .on_click(pick(ix))
-                            })),
-                    )
-                    .when(reason == Some(something_else), |this| {
-                        this.child(Input::new(&other).small())
-                    })
+                    this.child(h_flex().flex_wrap().gap_1p5().children(
+                        labels.into_iter().enumerate().map(|(ix, label)| {
+                            Button::new((
+                                self.id.clone(),
+                                SharedString::from(format!("reason-{ix}")),
+                            ))
+                            .outline()
+                            .xsmall()
+                            .label(label)
+                            .selected(picked.contains(&ix))
+                            .on_click(pick(ix))
+                        }),
+                    ))
+                    .when(note_open, |this| this.child(Input::new(&other).small()))
                     .child(
                         h_flex().justify_end().child(
                             Button::new((self.id.clone(), "send"))
@@ -771,13 +1106,28 @@ impl RenderOnce for MessageActionBar {
             .text_color(ink)
             .text_body()
             .line_height(relative(1.45))
-            .child(bar.when(!lit, |this| {
-                this.opacity(0.55)
-                    .hover(|this| this.opacity(1.))
-                    .when_some(self.hover_group.clone(), |this, group| {
-                        this.group_hover(group, |this| this.opacity(1.))
+            .child(
+                bar.id((self.id.clone(), "actions"))
+                    .on_hover({
+                        let state = state.clone();
+                        move |over, _, cx| {
+                            state.update(cx, |state, cx| {
+                                if state.hovered != *over {
+                                    state.hovered = *over;
+                                    cx.notify();
+                                }
+                            })
+                        }
                     })
-            }))
+                    .when(!lit, |this| {
+                        // Pointing at the bar fades it up; the message's own
+                        // hover group still lights it as before.
+                        this.opacity(0.55 + 0.45 * lit_fade)
+                            .when_some(self.hover_group.clone(), |this, group| {
+                                this.group_hover(group, |this| this.opacity(1.))
+                            })
+                    }),
+            )
             .children(row)
             .refine_style(&self.style)
     }
@@ -799,6 +1149,38 @@ mod tests {
         assert_eq!(speak_duration("Short."), Duration::from_millis(2600));
         let twenty_words = "word ".repeat(20);
         assert_eq!(speak_duration(&twenty_words), Duration::from_millis(7600));
+    }
+
+    #[test]
+    fn reason_chips_pick_one_or_several() {
+        assert_eq!(toggle_pick(&[], 1, false), [1]);
+        assert_eq!(toggle_pick(&[1], 2, false), [2]);
+        assert_eq!(toggle_pick(&[1], 1, false), Vec::<usize>::new());
+        assert_eq!(toggle_pick(&[2], 0, true), [0, 2]);
+        assert_eq!(toggle_pick(&[0, 2], 2, true), [0]);
+    }
+
+    #[test]
+    fn a_send_carries_the_chips_and_the_note() {
+        let reasons: Vec<SharedString> = vec!["Too long".into(), "Wrong".into()];
+        assert_eq!(gather(&reasons, &[], "  "), None);
+        assert_eq!(
+            gather(&reasons, &[1, 0], ""),
+            Some((vec!["Wrong".into(), "Too long".into()], None))
+        );
+        // "Something else" sends only its note.
+        assert_eq!(gather(&reasons, &[2], ""), None);
+        assert_eq!(
+            gather(&reasons, &[2], " the totals are off "),
+            Some((Vec::new(), Some("the totals are off".into())))
+        );
+        assert_eq!(
+            joined_reason(
+                &["Too long".into(), "Wrong".into()],
+                Some(&"see row 4".into())
+            ),
+            "Too long, Wrong, see row 4"
+        );
     }
 
     #[test]

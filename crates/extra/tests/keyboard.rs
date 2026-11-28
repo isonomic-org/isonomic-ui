@@ -374,3 +374,94 @@ fn the_issue_stack_moves_with_arrows_and_wraps_round(cx: &mut TestAppContext) {
     })
     .unwrap();
 }
+
+/// Holds a question card and keeps the answers it gives.
+struct QuestionHarness {
+    card: Entity<isonomic_ui_extra::question_card::QuestionCard>,
+    answers: Vec<isonomic_ui_extra::question_card::QuestionAnswer>,
+    _events: isonomic_ui::Subscription,
+}
+
+impl Render for QuestionHarness {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().p_4().child(self.card.clone())
+    }
+}
+
+#[isonomic_ui::test]
+fn number_keys_tick_several_answers_and_enter_sends_them(cx: &mut TestAppContext) {
+    use isonomic_ui_extra::question_card::{
+        Question, QuestionAnswer, QuestionCard, QuestionCardEvent, QuestionOption,
+    };
+    cx.update(isonomic_ui::init);
+    let harness: std::rc::Rc<std::cell::RefCell<Option<Entity<QuestionHarness>>>> =
+        Default::default();
+    let kept = harness.clone();
+    let window = cx.update(|cx| {
+        let bounds = Bounds {
+            origin: Point::default(),
+            size: size(px(800.), px(400.)),
+        };
+        isonomic_ui::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                ..Default::default()
+            },
+            cx,
+            move |window, cx| {
+                let view = cx.new(|cx| {
+                    let card = cx.new(|cx| {
+                        QuestionCard::new(window, cx).questions([Question::new(
+                            "checks",
+                            "Which checks?",
+                        )
+                        .multiple(true)
+                        .option(QuestionOption::new("bank", "Bank"))
+                        .option(QuestionOption::new("payroll", "Payroll"))
+                        .option(QuestionOption::new("fx", "Currencies"))])
+                    });
+                    let events = cx.subscribe(&card, |this: &mut QuestionHarness, _, event, _| {
+                        if let QuestionCardEvent::Answered { answer, .. } = event {
+                            this.answers.push(answer.clone());
+                        }
+                    });
+                    QuestionHarness {
+                        card,
+                        answers: Vec::new(),
+                        _events: events,
+                    }
+                });
+                *kept.borrow_mut() = Some(view.clone());
+                view
+            },
+        )
+        .expect("open test window")
+        .0
+        .downcast::<Root>()
+        .expect("Base Root")
+    });
+    let view = harness.borrow().clone().expect("harness view");
+    cx.update_window(window.into(), |_, window, cx| {
+        window.render_frame(cx);
+        view.read(cx)
+            .card
+            .clone()
+            .update(cx, |card, cx| card.reveal(window, cx));
+    })
+    .unwrap();
+    for key in ["1", "3", "enter"] {
+        cx.update_window(window.into(), |_, window, cx| {
+            window.render_frame(cx);
+            window.press(key, cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    }
+    cx.update(|cx| {
+        assert_eq!(
+            view.read(cx).answers,
+            [QuestionAnswer::Options(vec!["bank".into(), "fx".into()])],
+            "1 and 3 tick two options and Enter sends both"
+        );
+    });
+}

@@ -10,6 +10,12 @@
 //! that previews its sources on hover and lights up their cards. Once it is
 //! done, follow-up questions and actions for copy, regenerate and feedback
 //! show underneath.
+//!
+//! An answer can carry the reasoning behind it. The reasoning streams in
+//! first, open under a "Thinking" toggle, and folds away once the answer
+//! starts, its toggle then saying how long it took; the toggle opens and
+//! closes it from the keyboard like any button. A stopped answer offers to
+//! try again.
 
 use std::time::{Duration, Instant};
 
@@ -17,7 +23,7 @@ use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
-    h_flex,
+    h_flex, look,
     spinner::Spinner,
     v_flex,
 };
@@ -29,6 +35,13 @@ use isonomic_ui::{
 };
 
 use crate::common::resting_shadow;
+
+mod markup;
+
+use markup::{
+    Block, Inline, parse_answer, place, plain_text, reasoning_cut, reasoning_steps, thought_words,
+    total_steps,
+};
 
 /// A source the answer draws on.
 #[derive(Clone)]
@@ -95,172 +108,11 @@ pub enum StreamedAnswerEvent {
     OpenSource(usize),
 }
 
-/// A piece of a line of the answer.
-#[derive(Debug, Clone, PartialEq)]
-enum Inline {
-    Text {
-        text: String,
-        bold: bool,
-    },
-    /// Cited sources, counted from 0.
-    Cite(Vec<usize>),
-}
-
-/// A paragraph or a list item.
-#[derive(Debug, Clone, PartialEq)]
-struct Block {
-    item: bool,
-    inlines: Vec<Inline>,
-}
-
-/// Read a line's bold markers and citations.
-fn parse_line(line: &str) -> Vec<Inline> {
-    let mut out: Vec<Inline> = Vec::new();
-    let mut bold = false;
-    let mut text = String::new();
-    let flush = |text: &mut String, bold: bool, out: &mut Vec<Inline>| {
-        if !text.is_empty() {
-            out.push(Inline::Text {
-                text: std::mem::take(text),
-                bold,
-            });
-        }
-    };
-    let mut rest = line;
-    while !rest.is_empty() {
-        if let Some(after) = rest.strip_prefix("**") {
-            flush(&mut text, bold, &mut out);
-            bold = !bold;
-            rest = after;
-            continue;
-        }
-        if rest.starts_with('[')
-            && let Some(close) = rest.find(']')
-        {
-            let inside = &rest[1..close];
-            let numbers: Option<Vec<usize>> = inside
-                .split(',')
-                .map(|part| part.trim().parse::<usize>().ok().filter(|n| *n > 0))
-                .collect();
-            if let Some(numbers) = numbers.filter(|n| !n.is_empty()) {
-                // A citation hugs the word before it, so the space goes.
-                let trimmed = text.trim_end().len();
-                text.truncate(trimmed);
-                flush(&mut text, bold, &mut out);
-                out.push(Inline::Cite(numbers.into_iter().map(|n| n - 1).collect()));
-                rest = &rest[close + 1..];
-                continue;
-            }
-        }
-        let next = rest.chars().next().map_or(1, char::len_utf8);
-        text.push_str(&rest[..next]);
-        rest = &rest[next..];
-    }
-    flush(&mut text, bold, &mut out);
-    out
-}
-
-/// Split the answer into paragraphs and list items.
-fn parse_answer(answer: &str) -> Vec<Block> {
-    let mut blocks = Vec::new();
-    let mut para = String::new();
-    let end_para = |para: &mut String, blocks: &mut Vec<Block>| {
-        if !para.trim().is_empty() {
-            blocks.push(Block {
-                item: false,
-                inlines: parse_line(para.trim()),
-            });
-        }
-        para.clear();
-    };
-    for line in answer.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            end_para(&mut para, &mut blocks);
-        } else if let Some(item) = line.strip_prefix("- ") {
-            end_para(&mut para, &mut blocks);
-            blocks.push(Block {
-                item: true,
-                inlines: parse_line(item.trim()),
-            });
-        } else {
-            if !para.is_empty() {
-                para.push(' ');
-            }
-            para.push_str(line);
-        }
-    }
-    end_para(&mut para, &mut blocks);
-    blocks
-}
-
-/// The steps an inline takes to stream in: a word each, or one for a chip.
-fn steps(inline: &Inline) -> usize {
-    match inline {
-        Inline::Text { text, .. } => text.split_inclusive(' ').count(),
-        Inline::Cite(_) => 1,
-    }
-}
-
-fn total_steps(blocks: &[Block]) -> usize {
-    blocks.iter().flat_map(|b| &b.inlines).map(steps).sum()
-}
-
-/// Add a word or chip to the runs that wrap as one. A part joins the run
-/// before it when no space came between them, so a citation never wraps
-/// away from its word or the full stop after it.
-fn place(
-    runs: &mut Vec<Vec<isonomic_ui::AnyElement>>,
-    glue: &mut bool,
-    part: isonomic_ui::AnyElement,
-    open_end: bool,
-) {
-    match runs.last_mut() {
-        Some(run) if *glue => run.push(part),
-        _ => runs.push(vec![part]),
-    }
-    *glue = open_end;
-}
-
-/// The answer as plain text, with a numbered list of its sources.
-fn plain_text(blocks: &[Block], sources: &[AnswerSource]) -> String {
-    let mut out = String::new();
-    for (ix, block) in blocks.iter().enumerate() {
-        if ix > 0 {
-            out.push_str(if block.item && blocks[ix - 1].item {
-                "\n"
-            } else {
-                "\n\n"
-            });
-        }
-        if block.item {
-            out.push_str("- ");
-        }
-        for inline in &block.inlines {
-            match inline {
-                Inline::Text { text, .. } => out.push_str(text),
-                Inline::Cite(numbers) => {
-                    let list: Vec<String> = numbers.iter().map(|n| (n + 1).to_string()).collect();
-                    out.push_str(&format!(" [{}]", list.join(",")));
-                }
-            }
-        }
-    }
-    if !sources.is_empty() {
-        out.push_str("\n\nSources:");
-        for (ix, source) in sources.iter().enumerate() {
-            out.push_str(&format!("\n{}. {}", ix + 1, source.title));
-            if let Some(domain) = &source.domain {
-                out.push_str(&format!(" ({domain})"));
-            }
-        }
-    }
-    out
-}
-
 /// Where the answer is.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Phase {
+    /// The reasoning is streaming in, before any of the answer.
+    Thinking,
     Reading,
     Writing,
     Done,
@@ -289,6 +141,13 @@ pub struct StreamedAnswer {
     thumbs: Option<bool>,
     reason: Option<SharedString>,
     copied: bool,
+    reasoning: SharedString,
+    reasoning_shown: usize,
+    /// Opened or closed by hand; until then it is open while thinking.
+    reasoning_open: Option<bool>,
+    thought_for: Option<Duration>,
+    hovered_follow_up: Option<usize>,
+    more_hovered: bool,
     focus: FocusHandle,
     _ticker: Option<Task<()>>,
 }
@@ -328,6 +187,12 @@ impl StreamedAnswer {
             thumbs: None,
             reason: None,
             copied: false,
+            reasoning: SharedString::default(),
+            reasoning_shown: 0,
+            reasoning_open: None,
+            thought_for: None,
+            hovered_follow_up: None,
+            more_hovered: false,
             focus: cx.focus_handle(),
             _ticker: None,
         }
@@ -343,6 +208,20 @@ impl StreamedAnswer {
     pub fn answer(mut self, answer: impl Into<SharedString>) -> Self {
         self.answer = answer.into();
         self.blocks = parse_answer(&self.answer);
+        self
+    }
+
+    /// Give the reasoning behind the answer. It streams in before the
+    /// answer, word by word, and folds away once the answer starts.
+    pub fn reasoning(mut self, reasoning: impl Into<SharedString>) -> Self {
+        self.reasoning = reasoning.into();
+        self
+    }
+
+    /// Say how long the reasoning took, for an answer shown at once or one
+    /// whose owner keeps the time. Without it the time is measured.
+    pub fn reasoning_took(mut self, took: Duration) -> Self {
+        self.thought_for = Some(took);
         self
     }
 
@@ -393,8 +272,10 @@ impl StreamedAnswer {
         self.thumbs = None;
         self.reason = None;
         self.copied = false;
+        self.reasoning_open = None;
         self.started = Instant::now();
         if !self.animate {
+            self.reasoning_shown = reasoning_steps(&self.reasoning);
             self.shown = total_steps(&self.blocks);
             self.phase = if self.streaming {
                 Phase::Writing
@@ -406,7 +287,13 @@ impl StreamedAnswer {
             cx.notify();
             return;
         }
-        self.phase = Phase::Reading;
+        self.reasoning_shown = 0;
+        self.thought_for = None;
+        self.phase = if self.reasoning.is_empty() {
+            Phase::Reading
+        } else {
+            Phase::Thinking
+        };
         self.tick(Duration::ZERO, cx);
         cx.notify();
     }
@@ -428,6 +315,23 @@ impl StreamedAnswer {
             self.phase = Phase::Writing;
             self.took = None;
             self.tick(Duration::ZERO, cx);
+        }
+        cx.notify();
+    }
+
+    /// Add streamed text to the end of the answer, such as the next few
+    /// tokens from a model. It keeps streaming from where it was.
+    pub fn push_text(&mut self, text: &str, cx: &mut Context<Self>) {
+        let next = format!("{}{text}", self.answer);
+        self.set_answer(next, cx);
+    }
+
+    /// Replace the reasoning. While it is still being thought, the new words
+    /// stream in after the ones shown.
+    pub fn set_reasoning(&mut self, reasoning: impl Into<SharedString>, cx: &mut Context<Self>) {
+        self.reasoning = reasoning.into();
+        if !self.animate {
+            self.reasoning_shown = reasoning_steps(&self.reasoning);
         }
         cx.notify();
     }
@@ -455,7 +359,14 @@ impl StreamedAnswer {
                 let more = this
                     .update(cx, |this, cx| {
                         let total = total_steps(&this.blocks);
-                        if this.shown < total {
+                        if this.reasoning_shown < reasoning_steps(&this.reasoning) {
+                            // The reasoning streams in before the answer.
+                            this.phase = Phase::Thinking;
+                            this.reasoning_shown += 1;
+                        } else if this.shown < total {
+                            if this.phase == Phase::Thinking && this.thought_for.is_none() {
+                                this.thought_for = Some(this.started.elapsed());
+                            }
                             // Words are coming in: the answer is being written.
                             this.phase = Phase::Writing;
                             this.shown += 1;
@@ -513,7 +424,28 @@ impl StreamedAnswer {
 }
 
 impl Render for StreamedAnswer {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let card_fades: Vec<f32> = (0..self.sources.len())
+            .map(|ix| {
+                look::hover_fade(
+                    ("answer-source", ix),
+                    self.lit_sources.contains(&ix),
+                    window,
+                    cx,
+                )
+            })
+            .collect();
+        let more_fade = look::hover_fade("answer-more-sources", self.more_hovered, window, cx);
+        let follow_fades: Vec<f32> = (0..self.follow_ups.len())
+            .map(|ix| {
+                look::hover_fade(
+                    ("answer-follow-up", ix),
+                    self.hovered_follow_up == Some(ix),
+                    window,
+                    cx,
+                )
+            })
+            .collect();
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -580,9 +512,12 @@ impl Render for StreamedAnswer {
                 .rounded(radius)
                 .border_1()
                 .border_color(if lit { accent } else { line })
-                .when(lit, |this| this.bg(accent.opacity(0.06)))
+                .bg(look::mix(
+                    accent.opacity(0.),
+                    accent.opacity(0.06),
+                    card_fades[ix],
+                ))
                 .cursor_pointer()
-                .hover(|style| style.bg(chip.opacity(0.5)))
                 .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
                     this.light(None, if *hovered { vec![ix] } else { Vec::new() }, cx)
                 }))
@@ -638,10 +573,21 @@ impl Render for StreamedAnswer {
                             .rounded(radius)
                             .border_1()
                             .border_color(if tile_lit { accent } else { line })
-                            .when(tile_lit, |this| this.bg(accent.opacity(0.06)))
+                            .bg(look::mix(
+                                if tile_lit {
+                                    accent.opacity(0.06)
+                                } else {
+                                    chip.opacity(0.)
+                                },
+                                chip.opacity(0.5),
+                                more_fade,
+                            ))
                             .cursor_pointer()
-                            .hover(|style| style.bg(chip.opacity(0.5)))
                             .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+                                if this.more_hovered != *hovered {
+                                    this.more_hovered = *hovered;
+                                    cx.notify();
+                                }
                                 let rest = if *hovered {
                                     (limit..limit + hidden).collect()
                                 } else {
@@ -663,7 +609,10 @@ impl Render for StreamedAnswer {
         let mut budget = self.shown;
         let mut chip_ix = 0;
         let mut blocks = Vec::new();
-        let writing = matches!(self.phase, Phase::Reading | Phase::Writing);
+        let writing = matches!(
+            self.phase,
+            Phase::Thinking | Phase::Reading | Phase::Writing
+        );
         for block in &self.blocks {
             if budget == 0 {
                 break;
@@ -865,12 +814,64 @@ impl Render for StreamedAnswer {
             );
 
         let status = match self.phase {
+            // The reasoning's own toggle says it is thinking.
+            Phase::Thinking if self.sources.is_empty() => "Working".to_string(),
+            Phase::Thinking => format!("Reading {} sources", self.sources.len()),
             Phase::Reading => format!("Reading {} sources", self.sources.len()),
             Phase::Writing => "Writing".to_string(),
             Phase::Done => "Answer".to_string(),
             Phase::Stopped => "Stopped".to_string(),
         };
         let done = matches!(self.phase, Phase::Done | Phase::Stopped);
+
+        let thinking = self.phase == Phase::Thinking;
+        let reasoning = (!self.reasoning.is_empty()).then(|| {
+            let open = self.reasoning_open.unwrap_or(thinking);
+            let label = thought_words(self.thought_for, thinking);
+            v_flex()
+                .gap_1()
+                .child(
+                    h_flex().child(
+                        Button::new("answer-reasoning")
+                            .ghost()
+                            .xsmall()
+                            .icon(if open {
+                                IconName::ChevronDown
+                            } else {
+                                IconName::ChevronRight
+                            })
+                            .label(label.clone())
+                            .text_color(quiet)
+                            .accessibility_label(format!(
+                                "{label}, reasoning {}",
+                                if open { "shown" } else { "hidden" }
+                            ))
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.reasoning_open = Some(!open);
+                                cx.notify();
+                            })),
+                    ),
+                )
+                .when(open, |this| {
+                    this.child(
+                        v_flex()
+                            .id("answer-reasoning-text")
+                            .gap_1p5()
+                            .ml(px(9.))
+                            .pl_3()
+                            .border_l_2()
+                            .border_color(line)
+                            .text_caption()
+                            .line_height(px(18.))
+                            .text_color(quiet)
+                            .children(
+                                reasoning_cut(&self.reasoning, self.reasoning_shown)
+                                    .into_iter()
+                                    .map(|para| div().child(para)),
+                            ),
+                    )
+                })
+        });
 
         let follow_ups = (self.phase == Phase::Done && !self.follow_ups.is_empty()).then(|| {
             v_flex()
@@ -889,7 +890,20 @@ impl Render for StreamedAnswer {
                         .border_t_1()
                         .border_color(line)
                         .cursor_pointer()
-                        .hover(|style| style.text_color(accent))
+                        .text_color(look::mix(ink, accent, follow_fades[ix]))
+                        .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+                            let next = if *hovered {
+                                Some(ix)
+                            } else if this.hovered_follow_up == Some(ix) {
+                                None
+                            } else {
+                                this.hovered_follow_up
+                            };
+                            if next != this.hovered_follow_up {
+                                this.hovered_follow_up = next;
+                                cx.notify();
+                            }
+                        }))
                         .on_click(cx.listener(move |_, _, _, cx| {
                             cx.emit(StreamedAnswerEvent::FollowUp(asked.clone()))
                         }))
@@ -970,6 +984,19 @@ impl Render for StreamedAnswer {
                                 cx.notify();
                             })),
                     )
+                    .when(self.phase == Phase::Stopped, |this| {
+                        this.child(
+                            Button::new("answer-retry")
+                                .outline()
+                                .xsmall()
+                                .ml_1()
+                                .icon(IconName::RotateCw)
+                                .label("Retry")
+                                .on_click(cx.listener(|_, _, _, cx| {
+                                    cx.emit(StreamedAnswerEvent::Regenerate);
+                                })),
+                        )
+                    })
                     .child(div().flex_1())
                     .child(div().text_caption().text_color(quiet).child(
                         match (thumbs, &self.reason) {
@@ -1052,66 +1079,10 @@ impl Render for StreamedAnswer {
                     })
                     .child(status),
             )
+            .children(reasoning)
             .child(answer)
             .children(follow_ups)
             .child(actions)
             .children(reasons)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn lines_read_bold_and_citations() {
-        assert_eq!(
-            parse_line("**Rent** rose [2] and fees [1, 3]. See [x] or [0]."),
-            vec![
-                Inline::Text {
-                    text: "Rent".into(),
-                    bold: true
-                },
-                Inline::Text {
-                    text: " rose".into(),
-                    bold: false
-                },
-                Inline::Cite(vec![1]),
-                Inline::Text {
-                    text: " and fees".into(),
-                    bold: false
-                },
-                Inline::Cite(vec![0, 2]),
-                Inline::Text {
-                    text: ". See [x] or [0].".into(),
-                    bold: false
-                },
-            ]
-        );
-    }
-
-    #[test]
-    fn answers_split_into_paragraphs_and_items() {
-        let blocks = parse_answer("One\ntwo.\n\n- first\n- second\nAfter");
-        assert_eq!(blocks.len(), 4);
-        assert!(!blocks[0].item && blocks[1].item && blocks[2].item && !blocks[3].item);
-        assert_eq!(
-            blocks[0].inlines,
-            vec![Inline::Text {
-                text: "One two.".into(),
-                bold: false
-            }]
-        );
-        assert_eq!(total_steps(&blocks), 2 + 1 + 1 + 1);
-    }
-
-    #[test]
-    fn copies_as_plain_text_with_sources() {
-        let blocks = parse_answer("**Yes** [1].\n\n- a\n- b");
-        let sources = [AnswerSource::new("Ledger export", "Ledger").domain("ledger.example")];
-        assert_eq!(
-            plain_text(&blocks, &sources),
-            "Yes [1].\n\n- a\n- b\n\nSources:\n1. Ledger export (ledger.example)"
-        );
     }
 }

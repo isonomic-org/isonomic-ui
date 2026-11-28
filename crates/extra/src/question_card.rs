@@ -8,14 +8,22 @@
 //! Approve and Decline, and a last row for an answer in your own words. A
 //! click or a number key answers at once and brings up the next question;
 //! "Not now" folds the card to one line.
+//!
+//! A question can lay its options out as cards in a grid instead of rows,
+//! where the arrows move across and down. The recommended option can say why
+//! it is recommended. A question can take several answers: then a click, a
+//! number key or Space ticks an option, and Enter or Send answers with every
+//! option ticked.
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
+    ThemeStyled as _,
     button::{Button, ButtonVariants as _},
+    checkbox::Checkbox,
     h_flex,
     input::{Input, InputEvent, InputState},
-    v_flex,
+    look, v_flex,
 };
 use isonomic_ui::{
     AppContext as _, BoxShadow, Context, Entity, EventEmitter, FocusHandle, Focusable as _,
@@ -33,6 +41,7 @@ pub struct QuestionOption {
     title: SharedString,
     summary: Option<SharedString>,
     recommended: bool,
+    reason: Option<SharedString>,
 }
 
 impl QuestionOption {
@@ -43,7 +52,16 @@ impl QuestionOption {
             title: title.into(),
             summary: None,
             recommended: false,
+            reason: None,
         }
+    }
+
+    /// Say why this is the suggested answer. It shows under the option and
+    /// marks it as recommended.
+    pub fn reason(mut self, reason: impl Into<SharedString>) -> Self {
+        self.reason = Some(reason.into());
+        self.recommended = true;
+        self
     }
 
     /// One line on what choosing this means.
@@ -68,6 +86,19 @@ pub struct Question {
     approval: bool,
     options: Vec<QuestionOption>,
     facts: Vec<(SharedString, SharedString)>,
+    layout: QuestionLayout,
+    multiple: bool,
+}
+
+/// How a question lays out its options.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum QuestionLayout {
+    /// One numbered row each, top to bottom. The default.
+    #[default]
+    Rows,
+    /// Cards in a grid of two columns, for options that need a few words
+    /// each to weigh.
+    Cards,
 }
 
 impl Question {
@@ -80,7 +111,22 @@ impl Question {
             approval: false,
             options: Vec::new(),
             facts: Vec::new(),
+            layout: QuestionLayout::Rows,
+            multiple: false,
         }
+    }
+
+    /// Lay the options out as rows (the default) or as cards in a grid.
+    pub fn layout(mut self, layout: QuestionLayout) -> Self {
+        self.layout = layout;
+        self
+    }
+
+    /// Let several options be picked: a click, a number key or Space ticks
+    /// an option, and Enter or Send answers with every one ticked.
+    pub fn multiple(mut self, multiple: bool) -> Self {
+        self.multiple = multiple;
+        self
     }
 
     /// Create a question answered with Approve or Decline.
@@ -115,6 +161,8 @@ impl Question {
 pub enum QuestionAnswer {
     /// One of the options, by id.
     Option(SharedString),
+    /// Several options, by id, in the order they are offered.
+    Options(Vec<SharedString>),
     /// An answer in the person's own words.
     Text(SharedString),
     /// An approval was given.
@@ -144,6 +192,7 @@ struct Row {
     title: SharedString,
     summary: Option<SharedString>,
     recommended: bool,
+    reason: Option<SharedString>,
 }
 
 /// The rows a question offers, in number-key order.
@@ -154,6 +203,7 @@ fn rows(question: &Question) -> Vec<Row> {
             title: title.into(),
             summary: None,
             recommended: false,
+            reason: None,
         };
         return vec![
             row(QuestionAnswer::Approve, "Approve"),
@@ -168,8 +218,86 @@ fn rows(question: &Question) -> Vec<Row> {
             title: option.title.clone(),
             summary: option.summary.clone(),
             recommended: option.recommended,
+            reason: option.reason.clone(),
         })
         .collect()
+}
+
+/// How many columns the cards layout has.
+const CARD_COLUMNS: usize = 2;
+
+/// Where an arrow key moves to among cards laid out `columns` across:
+/// Left and Right step one, Up and Down a whole line, and Down from the
+/// last line goes to the field.
+fn card_target(selected: usize, rows: usize, columns: usize, key: &str) -> Option<Target> {
+    let columns = columns.max(1);
+    match key {
+        "right" if selected + 1 < rows => Some(Target::Row(selected + 1)),
+        "right" => Some(Target::Row(selected)),
+        "left" => Some(Target::Row(selected.saturating_sub(1))),
+        "down" if selected + columns < rows => Some(Target::Row(selected + columns)),
+        // A last line that is not full: go down to its last card first.
+        "down" if selected / columns < (rows.saturating_sub(1)) / columns => {
+            Some(Target::Row(rows - 1))
+        }
+        "down" => Some(Target::Field),
+        "up" => Some(Target::Row(selected.saturating_sub(columns))),
+        "home" => Some(Target::Row(0)),
+        "end" => Some(Target::Row(rows.saturating_sub(1))),
+        _ => None,
+    }
+}
+
+/// The ticked options after ticking or unticking `ix`, kept in order.
+fn toggle_ticked(ticked: &[usize], ix: usize) -> Vec<usize> {
+    let mut next: Vec<usize> = ticked.iter().copied().filter(|t| *t != ix).collect();
+    if next.len() == ticked.len() {
+        next.push(ix);
+        next.sort_unstable();
+    }
+    next
+}
+
+/// The answer a multiple-choice question gives with these options ticked.
+fn ticked_answer(rows: &[Row], ticked: &[usize]) -> Option<QuestionAnswer> {
+    let ids: Vec<SharedString> = ticked
+        .iter()
+        .filter_map(|ix| match &rows.get(*ix)?.answer {
+            QuestionAnswer::Option(id) => Some(id.clone()),
+            _ => None,
+        })
+        .collect();
+    (!ids.is_empty()).then_some(QuestionAnswer::Options(ids))
+}
+
+/// What a screen reader hears for an option: its number and title, whether
+/// it is suggested and why, whether it is ticked, and its summary.
+fn row_words(ix: usize, row: &Row, ticked: Option<bool>) -> String {
+    let mut words = format!("{}. {}", ix + 1, row.title);
+    if row.recommended {
+        words.push_str(", recommended");
+        if let Some(reason) = &row.reason {
+            words.push_str(&format!(" because {reason}"));
+        }
+    }
+    match ticked {
+        Some(true) => words.push_str(", ticked"),
+        Some(false) => words.push_str(", not ticked"),
+        None => {}
+    }
+    if let Some(summary) = &row.summary {
+        words.push_str(&format!(". {summary}"));
+    }
+    words
+}
+
+/// What Send says on a multiple-choice question.
+fn send_label(ticked: usize) -> String {
+    match ticked {
+        0 => "Send".into(),
+        1 => "Send 1 choice".into(),
+        n => format!("Send {n} choices"),
+    }
 }
 
 /// Where a key press lands.
@@ -219,6 +347,9 @@ pub struct QuestionCard {
     /// The row that Enter answers with.
     selected: usize,
     folded: bool,
+    /// The options ticked on a question that takes several answers.
+    ticked: Vec<usize>,
+    hovered: Option<usize>,
     input: Entity<InputState>,
     focus: FocusHandle,
     _input_events: Subscription,
@@ -244,6 +375,8 @@ impl QuestionCard {
             current: 0,
             selected: 0,
             folded: false,
+            ticked: Vec::new(),
+            hovered: None,
             input,
             // A Tab stop of its own, so the keys below work without a mouse.
             focus: cx.focus_handle().tab_stop(true),
@@ -290,6 +423,7 @@ impl QuestionCard {
     fn show(&mut self, ix: usize, cx: &mut Context<Self>) {
         self.current = ix.min(self.questions.len().saturating_sub(1));
         self.selected = 0;
+        self.ticked.clear();
         cx.notify();
     }
 
@@ -319,6 +453,21 @@ impl QuestionCard {
         self.folded = true;
         cx.emit(QuestionCardEvent::Later(id));
         cx.notify();
+    }
+
+    fn tick(&mut self, ix: usize, cx: &mut Context<Self>) {
+        self.ticked = toggle_ticked(&self.ticked, ix);
+        self.selected = ix;
+        cx.notify();
+    }
+
+    fn send_ticked(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(question) = self.questions.get(self.current) else {
+            return;
+        };
+        if let Some(answer) = ticked_answer(&rows(question), &self.ticked) {
+            self.answer(answer, window, cx);
+        }
     }
 
     fn go(&mut self, target: Target, window: &mut Window, cx: &mut Context<Self>) {
@@ -363,17 +512,31 @@ impl QuestionCard {
         }
 
         let selected = self.selected.min(rows.len().saturating_sub(1));
+        let multiple = question.multiple && !question.approval;
+        let arrows = match question.layout {
+            QuestionLayout::Rows => arrow_target(selected, rows.len(), key),
+            QuestionLayout::Cards => card_target(selected, rows.len(), CARD_COLUMNS, key),
+        };
         if let Some(target) = digit_target(rows.len(), key) {
             match target {
+                Target::Row(ix) if multiple => self.tick(ix, cx),
                 Target::Row(ix) => self.answer(rows[ix].answer.clone(), window, cx),
                 Target::Field => self.go(Target::Field, window, cx),
+            }
+        } else if on_card && multiple && key == "space" && !rows.is_empty() {
+            self.tick(selected, cx);
+        } else if on_card && multiple && key == "enter" {
+            if self.ticked.is_empty() {
+                self.go(Target::Field, window, cx);
+            } else {
+                self.send_ticked(window, cx);
             }
         } else if on_card && matches!(key, "enter" | "space") {
             match rows.get(selected) {
                 Some(row) => self.answer(row.answer.clone(), window, cx),
                 None => self.go(Target::Field, window, cx),
             }
-        } else if let Some(target) = arrow_target(selected, rows.len(), key) {
+        } else if let Some(target) = arrows {
             self.go(target, window, cx);
         } else {
             return;
@@ -393,6 +556,8 @@ impl Render for QuestionCard {
         let warning = theme.warning;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
+        let accent = theme.info;
+        let line = theme.border;
 
         let count = self.questions.len();
         let Some(question) = self.questions.get(self.current) else {
@@ -469,64 +634,148 @@ impl Render for QuestionCard {
                 .child(n.to_string())
         };
 
-        let row_elements = rows.iter().enumerate().map(|(ix, row)| {
+        let multiple = question.multiple && !question.approval;
+        let cards = question.layout == QuestionLayout::Cards;
+        let fades: Vec<f32> = (0..rows.len())
+            .map(|ix| look::hover_fade(("row", ix), self.hovered == Some(ix), window, cx))
+            .collect();
+        let mut row_elements = Vec::new();
+        for (ix, row) in rows.iter().enumerate() {
             let answer = row.answer.clone();
-            h_flex()
-                .id(("row", ix))
-                .role(Role::Button)
-                .aria_label(match (&row.summary, row.recommended) {
-                    (Some(summary), true) => {
-                        format!("{}. {}, recommended. {summary}", ix + 1, row.title)
-                    }
-                    (Some(summary), false) => format!("{}. {}. {summary}", ix + 1, row.title),
-                    (None, true) => format!("{}. {}, recommended", ix + 1, row.title),
-                    (None, false) => format!("{}. {}", ix + 1, row.title),
-                })
-                .gap_3()
-                .min_h(px(44.))
-                .pl(px(6.))
-                .pr_2()
-                .py_1()
-                .rounded(radius + px(2.))
-                .cursor_pointer()
-                .hover(|this| this.bg(chip))
-                .when(ix == selected && on_rows, |this| {
-                    this.bg(chip).focus_ring_style(window, cx)
-                })
-                .on_click(
-                    cx.listener(move |this, _, window, cx| this.answer(answer.clone(), window, cx)),
-                )
-                .child(number(ix + 1))
-                .child(
-                    v_flex()
-                        .flex_1()
-                        .min_w_0()
-                        .child(div().font_medium().child(row.title.clone()))
-                        .when_some(row.summary.clone(), |this, summary| {
-                            this.child(
-                                div()
-                                    .truncate()
-                                    .text_caption()
-                                    .text_color(subtle)
-                                    .child(summary),
-                            )
-                        }),
-                )
-                .when(row.recommended, |this| {
-                    this.child(
+            let ticked = self.ticked.contains(&ix);
+            let focused = ix == selected && on_rows;
+            // The tick box stands in for the number on a question that takes
+            // several answers; the card holds the keyboard, not the box.
+            let lead = if multiple {
+                div()
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .justify_center()
+                    .size(px(22.))
+                    .child(
+                        Checkbox::new(("tick", ix))
+                            .checked(ticked)
+                            .tab_stop(false)
+                            .accessibility_label(row.title.clone())
+                            .on_click(cx.listener(move |this, _, _, cx| this.tick(ix, cx))),
+                    )
+                    .into_any_element()
+            } else {
+                number(ix + 1).into_any_element()
+            };
+            let reason = row.reason.clone().map(|reason| {
+                h_flex()
+                    .gap_1()
+                    .items_start()
+                    .text_caption()
+                    .text_color(accent)
+                    .child(
                         div()
                             .flex_none()
-                            .px_1p5()
-                            .rounded(px(5.))
-                            .bg(chip)
-                            .text_color(subtle)
-                            .text_badge()
-                            .line_height(px(18.))
-                            .child("Recommended"),
+                            .pt(px(2.))
+                            .child(Icon::new(IconName::Star).xsmall()),
                     )
-                })
-        });
-        let row_elements: Vec<_> = row_elements.collect();
+                    .child(div().min_w_0().child(reason))
+            });
+            let badge = row.recommended.then(|| {
+                div()
+                    .flex_none()
+                    .px_1p5()
+                    .rounded(px(5.))
+                    .bg(chip)
+                    .text_color(subtle)
+                    .text_badge()
+                    .line_height(px(18.))
+                    .child("Recommended")
+            });
+            let base = div()
+                .id(("row", ix))
+                .role(Role::Button)
+                .aria_label(row_words(ix, row, multiple.then_some(ticked)))
+                .cursor_pointer()
+                .rounded(radius + px(2.))
+                .bg(look::mix(chip.opacity(0.), chip, fades[ix]))
+                .when(focused, |this| this.bg(chip).focus_ring_style(window, cx))
+                .on_hover(cx.listener(move |this, over: &bool, _, cx| {
+                    let next = if *over {
+                        Some(ix)
+                    } else if this.hovered == Some(ix) {
+                        None
+                    } else {
+                        this.hovered
+                    };
+                    if next != this.hovered {
+                        this.hovered = next;
+                        cx.notify();
+                    }
+                }))
+                .on_click(cx.listener(move |this, _, window, cx| {
+                    if multiple {
+                        this.tick(ix, cx);
+                    } else {
+                        this.answer(answer.clone(), window, cx);
+                    }
+                }));
+            let element = if cards {
+                base.flex()
+                    .flex_col()
+                    .gap_1()
+                    .p_2p5()
+                    .border_1()
+                    .border_color(if row.recommended || ticked {
+                        accent
+                    } else {
+                        line
+                    })
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .child(lead)
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .font_medium()
+                                    .child(row.title.clone()),
+                            )
+                            .children(badge),
+                    )
+                    .when_some(row.summary.clone(), |this, summary| {
+                        this.child(div().text_caption().text_color(subtle).child(summary))
+                    })
+                    .children(reason)
+                    .into_any_element()
+            } else {
+                base.flex()
+                    .items_center()
+                    .gap_3()
+                    .min_h(px(44.))
+                    .pl(px(6.))
+                    .pr_2()
+                    .py_1()
+                    .child(lead)
+                    .child(
+                        v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .child(div().font_medium().child(row.title.clone()))
+                            .when_some(row.summary.clone(), |this, summary| {
+                                this.child(
+                                    div()
+                                        .truncate()
+                                        .text_caption()
+                                        .text_color(subtle)
+                                        .child(summary),
+                                )
+                            })
+                            .children(reason),
+                    )
+                    .children(badge)
+                    .into_any_element()
+            };
+            row_elements.push(element);
+        }
 
         let pager = (count > 1).then(|| {
             let current = self.current;
@@ -562,7 +811,11 @@ impl Render for QuestionCard {
         card.track_focus(&self.focus)
             .role(Role::Group)
             .aria_label(format!("Question: {}", question.text))
-            .aria_description("Press a number to answer, or Up and Down then Enter.")
+            .aria_description(if multiple {
+                "Press a number or Space to tick an answer, then Enter to send."
+            } else {
+                "Press a number to answer, or the arrows then Enter."
+            })
             .on_key_down(cx.listener(Self::key_down))
             // A click anywhere but in the field puts the keyboard on the card.
             .on_mouse_down(
@@ -634,14 +887,45 @@ impl Render for QuestionCard {
                 )))
             })
             .child(
-                v_flex().children(row_elements).child(
-                    h_flex().gap_1().pl_2().child(number(rows.len() + 1)).child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .child(Input::new(&self.input).appearance(false)),
+                v_flex()
+                    .gap_1()
+                    .map(|this| {
+                        if cards {
+                            this.child(
+                                div()
+                                    .grid()
+                                    .grid_cols(CARD_COLUMNS as u16)
+                                    .gap_2()
+                                    .children(row_elements),
+                            )
+                        } else {
+                            this.child(v_flex().children(row_elements))
+                        }
+                    })
+                    .child(
+                        h_flex()
+                            .gap_1()
+                            .pl_2()
+                            .child(number(rows.len() + 1))
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .child(Input::new(&self.input).appearance(false)),
+                            )
+                            .when(multiple, |this| {
+                                this.child(
+                                    Button::new("send-ticked")
+                                        .primary()
+                                        .small()
+                                        .label(send_label(self.ticked.len()))
+                                        .disabled(self.ticked.is_empty())
+                                        .on_click(cx.listener(|this, _, window, cx| {
+                                            this.send_ticked(window, cx)
+                                        })),
+                                )
+                            }),
                     ),
-                ),
             )
             .into_any_element()
     }
@@ -695,5 +979,64 @@ mod tests {
     fn the_folded_line_counts_what_waits() {
         assert_eq!(waiting_label(1), "1 question waiting");
         assert_eq!(waiting_label(3), "3 questions waiting");
+    }
+
+    #[test]
+    fn arrows_move_across_and_down_the_cards() {
+        // Five cards, two across: 0 1 / 2 3 / 4.
+        assert_eq!(card_target(0, 5, 2, "right"), Some(Target::Row(1)));
+        assert_eq!(card_target(4, 5, 2, "right"), Some(Target::Row(4)));
+        assert_eq!(card_target(1, 5, 2, "left"), Some(Target::Row(0)));
+        assert_eq!(card_target(1, 5, 2, "down"), Some(Target::Row(3)));
+        // The last line is short: down from the card above its gap.
+        assert_eq!(card_target(3, 5, 2, "down"), Some(Target::Row(4)));
+        assert_eq!(card_target(4, 5, 2, "down"), Some(Target::Field));
+        assert_eq!(card_target(3, 5, 2, "up"), Some(Target::Row(1)));
+        assert_eq!(card_target(1, 5, 2, "up"), Some(Target::Row(0)));
+        assert_eq!(card_target(2, 5, 2, "x"), None);
+    }
+
+    #[test]
+    fn ticking_keeps_the_options_in_order() {
+        assert_eq!(toggle_ticked(&[], 2), [2]);
+        assert_eq!(toggle_ticked(&[2], 0), [0, 2]);
+        assert_eq!(toggle_ticked(&[0, 2], 2), [0]);
+    }
+
+    #[test]
+    fn several_ticked_options_answer_together() {
+        let question = Question::new("which", "Which?")
+            .multiple(true)
+            .option(QuestionOption::new("a", "A"))
+            .option(QuestionOption::new("b", "B"))
+            .option(QuestionOption::new("c", "C"));
+        let rows = rows(&question);
+        assert_eq!(ticked_answer(&rows, &[]), None);
+        assert_eq!(
+            ticked_answer(&rows, &[0, 2]),
+            Some(QuestionAnswer::Options(vec!["a".into(), "c".into()]))
+        );
+        assert_eq!(send_label(0), "Send");
+        assert_eq!(send_label(1), "Send 1 choice");
+        assert_eq!(send_label(3), "Send 3 choices");
+    }
+
+    #[test]
+    fn a_suggestion_says_why_and_whether_it_is_ticked() {
+        let question = Question::new("where", "Where to?").option(
+            QuestionOption::new("a", "Bank")
+                .summary("Same day")
+                .reason("it matches last month"),
+        );
+        let row = &rows(&question)[0];
+        assert!(row.recommended);
+        assert_eq!(
+            row_words(0, row, None),
+            "1. Bank, recommended because it matches last month. Same day"
+        );
+        assert_eq!(
+            row_words(0, row, Some(true)),
+            "1. Bank, recommended because it matches last month, ticked. Same day"
+        );
     }
 }

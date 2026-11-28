@@ -12,9 +12,33 @@ use isonomic_ui::{
     Styled as _, Subscription, Task, Window, div, px,
 };
 use isonomic_ui_extra::prompt_composer::{
-    AttachKind, ComposerAttachment, ComposerChoice, PromptComposer, PromptComposerEvent,
-    SuggestTrigger,
+    AttachKind, ComposerAttachment, ComposerChoice, ComposerMode, ContextItem, PromptComposer,
+    PromptComposerEvent, QueuedMessage, SuggestTrigger,
 };
+
+/// The agent composer's ways of working.
+fn agent_modes() -> Vec<ComposerMode> {
+    vec![
+        ComposerMode::new("ask", "Ask")
+            .icon(isonomic_ui::assets::IconName::Chat)
+            .hint("Answers without changing anything"),
+        ComposerMode::new("plan", "Plan")
+            .icon(isonomic_ui::assets::IconName::Map)
+            .hint("Writes a plan for you to approve"),
+        ComposerMode::new("act", "Act")
+            .icon(isonomic_ui::assets::IconName::Flow)
+            .hint("Makes the changes as it goes"),
+    ]
+}
+
+/// What the agent composer starts with in its context tray.
+fn agent_context() -> Vec<ContextItem> {
+    vec![
+        ContextItem::new("ledger", "march-ledger.csv", 18_400),
+        ContextItem::new("policy", "expense-policy.md", 6_200),
+        ContextItem::new("thread", "Earlier answer: freight costs", 2_900).pinned(true),
+    ]
+}
 
 /// Commands offered after "/".
 const COMMANDS: [(&str, &str, &str); 4] = [
@@ -68,6 +92,14 @@ pub struct PromptComposerStory {
     plain: Entity<PromptComposer>,
     /// The comfortable size. Send in it to see its round, filled Stop.
     comfortable: Entity<PromptComposer>,
+    /// Modes, a context tray with a budget, and a queue while it works.
+    agent: Entity<PromptComposer>,
+    context: Vec<ContextItem>,
+    queue: Vec<QueuedMessage>,
+    next_queued: usize,
+    agent_last: SharedString,
+    _agent_events: Subscription,
+    _agent_work: Option<Task<()>>,
     attachments: Vec<ComposerAttachment>,
     apps: Vec<(ComposerChoice, bool)>,
     next_file: usize,
@@ -139,6 +171,22 @@ impl PromptComposerStory {
                     cx,
                 );
             });
+            let agent =
+                cx.new(|cx| PromptComposer::new("Tell the agent what to do\u{2026}", window, cx));
+            let queue = vec![QueuedMessage::new(
+                "q-1",
+                "Then draft the reminder emails for anything over 30 days",
+            )];
+            agent.update(cx, |agent, cx| {
+                agent.set_attach(false, cx);
+                agent.set_dictation(false, cx);
+                agent.set_modes(agent_modes(), Some("plan".into()), cx);
+                agent.set_context(agent_context(), Some(32_000), cx);
+                agent.set_queue_while_busy(true, cx);
+                agent.set_queue(queue.clone(), cx);
+                agent.set_busy(true, cx);
+            });
+            let agent_events = cx.subscribe_in(&agent, window, Self::on_agent_event);
             let events = cx.subscribe_in(&composer, window, Self::on_event);
             let comfortable_events = cx.subscribe_in(&comfortable, window, Self::on_event);
             Self {
@@ -147,6 +195,13 @@ impl PromptComposerStory {
                 comfortable,
                 attachments: Vec::new(),
                 apps,
+                agent,
+                context: agent_context(),
+                queue,
+                next_queued: 1,
+                agent_last: "Working on: match the bank feed".into(),
+                _agent_events: agent_events,
+                _agent_work: None,
                 next_file: 0,
                 sent: Vec::new(),
                 last: "Nothing sent yet".into(),
@@ -317,6 +372,94 @@ impl PromptComposerStory {
                 }
                 self.push_attachments(composer, cx);
             }
+            // Modes, context and the queue belong to the agent composer.
+            _ => {}
+        }
+        cx.notify();
+    }
+
+    fn on_agent_event(
+        &mut self,
+        agent: &Entity<PromptComposer>,
+        event: &PromptComposerEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match event {
+            PromptComposerEvent::SelectMode(id) => {
+                agent.update(cx, |agent, cx| {
+                    agent.set_modes(agent_modes(), Some(id.clone()), cx)
+                });
+                self.agent_last = format!("Mode: {id}").into();
+            }
+            PromptComposerEvent::RemoveContext(id) => {
+                self.context.retain(|item| &item.id != id);
+                let context = self.context.clone();
+                agent.update(cx, |agent, cx| agent.set_context(context, Some(32_000), cx));
+            }
+            PromptComposerEvent::Queue { text, .. } => {
+                self.next_queued += 1;
+                self.queue.push(QueuedMessage::new(
+                    format!("q-{}", self.next_queued),
+                    text.clone(),
+                ));
+                let queue = self.queue.clone();
+                agent.update(cx, |agent, cx| agent.set_queue(queue, cx));
+                self.agent_last = format!("Queued: {text}").into();
+            }
+            PromptComposerEvent::RemoveQueued(id) => {
+                self.queue.retain(|queued| &queued.id != id);
+                let queue = self.queue.clone();
+                agent.update(cx, |agent, cx| agent.set_queue(queue, cx));
+            }
+            PromptComposerEvent::EditQueued(id) => {
+                if let Some(at) = self.queue.iter().position(|queued| &queued.id == id) {
+                    let queued = self.queue.remove(at);
+                    let queue = self.queue.clone();
+                    agent.update(cx, |agent, cx| {
+                        agent.set_queue(queue, cx);
+                        agent.set_text(queued.text.clone(), window, cx);
+                    });
+                }
+            }
+            PromptComposerEvent::SendQueuedNow(id) => {
+                if let Some(at) = self.queue.iter().position(|queued| &queued.id == id) {
+                    let queued = self.queue.remove(at);
+                    let queue = self.queue.clone();
+                    agent.update(cx, |agent, cx| agent.set_queue(queue, cx));
+                    self.agent_last = format!("Working on: {}", queued.text).into();
+                }
+            }
+            PromptComposerEvent::Submit { text, .. } => {
+                self.agent_last = format!("Working on: {text}").into();
+                agent.update(cx, |agent, cx| agent.set_busy(true, cx));
+            }
+            PromptComposerEvent::Stop => {
+                agent.update(cx, |agent, cx| agent.set_busy(false, cx));
+                self.agent_last = "Stopped".into();
+                // The next queued message starts after a moment, as a session would.
+                let agent = agent.clone();
+                self._agent_work = Some(cx.spawn(async move |this, cx| {
+                    cx.background_executor()
+                        .timer(Duration::from_millis(1200))
+                        .await;
+                    this.update(cx, |this, cx| {
+                        if this.queue.is_empty() {
+                            return;
+                        }
+                        let next = this.queue.remove(0);
+                        let queue = this.queue.clone();
+                        agent.update(cx, |agent, cx| {
+                            agent.set_queue(queue, cx);
+                            agent.set_busy(true, cx);
+                        });
+                        this.agent_last = format!("Working on: {}", next.text).into();
+                        cx.notify();
+                    })
+                    .ok();
+                }));
+            }
+            _ => {}
         }
         cx.notify();
     }
@@ -377,5 +520,10 @@ impl Render for PromptComposerStory {
                     .child("Comfortable size with a quiet focus: 96 high when empty, a neutral edge when focused"),
             )
             .child(self.comfortable.clone())
+            .child(div().pt_4().text_xs().text_color(quiet).child(
+                "An agent's composer: ask, plan and act (Shift+Tab), a context tray with token counts, and a queue while it works",
+            ))
+            .child(self.agent.clone())
+            .child(div().text_xs().text_color(quiet).child(self.agent_last.clone()))
     }
 }
