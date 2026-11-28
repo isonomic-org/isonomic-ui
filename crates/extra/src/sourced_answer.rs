@@ -1190,7 +1190,6 @@ impl RenderOnce for SourcedAnswer {
                     )
                     .children(panel_toggle),
             )
-            .children(panel)
             .child(
                 div()
                     .id(child_id("answer".into()))
@@ -1234,6 +1233,7 @@ impl RenderOnce for SourcedAnswer {
                     })
                     .children(chips),
             )
+            .children(panel)
             .children(preview)
             .children(peek)
             .child(

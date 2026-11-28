@@ -768,7 +768,7 @@ impl MultiAgentDashboard {
                     window,
                     cx,
                 );
-                let rest = if is_open { chip } else { fill };
+                let rest = fill;
                 div()
                     .id(child_id(format!("pill-area-{}", agent.id)))
                     .flex_none()
@@ -804,6 +804,8 @@ impl MultiAgentDashboard {
                             .pl_2()
                             .pr_2p5()
                             .rounded_full()
+                            .border_1()
+                            .border_color(if is_open { ink } else { ink.opacity(0.) })
                             .bg(look::mix(rest, rest.blend(chip), hover))
                             .shadow(resting_shadow(cx))
                             .cursor_pointer()

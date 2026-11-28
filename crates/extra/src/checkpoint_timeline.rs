@@ -977,7 +977,10 @@ impl RenderOnce for CheckpointTimeline {
                     .aria_label(format!(
                         "What changed at {}: {}",
                         checkpoint.title,
-                        change_words(&checkpoint.changes, checkpoint.file_count())
+                        match checkpoint.file_count() {
+                            Some(files) => change_words(&checkpoint.changes, Some(files)),
+                            None => "no files".to_string(),
+                        }
                     ))
                     .gap_2()
                     .mx_2()
@@ -1016,17 +1019,23 @@ impl RenderOnce for CheckpointTimeline {
                             .clone()
                             .map(|summary| div().text_color(quiet).child(summary)),
                     )
-                    .child(div().text_eyebrow().text_color(quiet).child(format!(
-                        "WHAT CHANGED \u{b7} {}",
-                        change_words(&checkpoint.changes, checkpoint.file_count()).to_uppercase()
-                    )))
+                    .child(div().text_eyebrow().text_color(quiet).child(
+                        match checkpoint.file_count() {
+                            Some(files) => format!(
+                                "WHAT CHANGED \u{b7} {}",
+                                change_words(&checkpoint.changes, Some(files)).to_uppercase()
+                            ),
+                            None => "WHAT CHANGED".to_string(),
+                        },
+                    ))
                     .when(checkpoint.changes.is_empty(), |this| {
-                        this.child(
-                            div()
-                                .text_caption()
-                                .text_color(quiet)
-                                .child("No file list for this checkpoint."),
-                        )
+                        this.child(div().text_caption().text_color(quiet).child(
+                            if checkpoint.file_count().is_some() {
+                                "No file list for this checkpoint."
+                            } else {
+                                "No files changed."
+                            },
+                        ))
                     })
                     .children(checkpoint.changes.iter().map(|change| {
                         h_flex()
