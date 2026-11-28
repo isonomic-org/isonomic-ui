@@ -10,11 +10,17 @@
 //! pause a limit, reorder the queue or drop a call. It works the timing out
 //! but never runs anything.
 //!
+//! A limit can instead be a refilling bucket: it holds up to its limit and
+//! gains a steady trickle back every second, so a call waits only until
+//! enough has dripped in. A call that was turned away carries a retry
+//! countdown, drawn as a draining bar under its name, with Retry now.
+//!
 //! Keyboard: each queued call is a Tab stop. Alt with Up or Down moves it,
-//! and Delete drops it.
+//! Delete drops it, and R retries a waiting retry now.
 
 use std::rc::Rc;
 
+use isonomic_ui::base::{Transition, transition};
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -47,6 +53,9 @@ pub struct RateLimit {
     pub resets_in: u32,
     /// Whether the owner has held its calls back.
     pub paused: bool,
+    /// For a refilling bucket, how much comes back each second; `None` for
+    /// a fixed window that resets all at once.
+    pub refill_per_sec: Option<f32>,
 }
 
 impl RateLimit {
@@ -65,7 +74,28 @@ impl RateLimit {
             used: 0,
             resets_in: window_secs.max(1),
             paused: false,
+            refill_per_sec: None,
         }
+    }
+
+    /// Make it a refilling bucket holding up to `capacity`, gaining
+    /// `per_sec` back every second. Pass what's spent with `spent`; the
+    /// reset time is not used.
+    pub fn bucket(
+        id: impl Into<SharedString>,
+        name: impl Into<SharedString>,
+        capacity: u32,
+        per_sec: f32,
+    ) -> Self {
+        let per_sec = per_sec.max(0.001);
+        let mut limit = Self::new(
+            id,
+            name,
+            capacity,
+            (capacity as f32 / per_sec).ceil() as u32,
+        );
+        limit.refill_per_sec = Some(per_sec);
+        limit
     }
 
     /// Say how much of this window is spent and when it resets.
@@ -95,6 +125,19 @@ pub struct QueuedCall {
     pub cost: u32,
     /// Who asked for it, if worth saying.
     pub source: Option<SharedString>,
+    /// Set when it was turned away and waits to try again.
+    pub retry: Option<CallRetry>,
+}
+
+/// A call's countdown to trying again after being turned away.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CallRetry {
+    /// Seconds until it tries again.
+    pub in_secs: u32,
+    /// The whole wait, in seconds, so the countdown can be drawn.
+    pub of_secs: u32,
+    /// Which try comes next, from 2.
+    pub attempt: u32,
 }
 
 impl QueuedCall {
@@ -110,7 +153,19 @@ impl QueuedCall {
             limit: limit.into(),
             cost: 1,
             source: None,
+            retry: None,
         }
+    }
+
+    /// Say it was turned away and tries again (`attempt`, from 2) in
+    /// `in_secs` of an `of_secs` wait.
+    pub fn retry(mut self, in_secs: u32, of_secs: u32, attempt: u32) -> Self {
+        self.retry = Some(CallRetry {
+            in_secs,
+            of_secs: of_secs.max(in_secs).max(1),
+            attempt: attempt.max(2),
+        });
+        self
     }
 
     /// Set how much budget it needs.
@@ -142,16 +197,23 @@ pub enum CallTiming {
 /// Calls spend their limit's budget first come, first served. A call that
 /// doesn't fit what's left waits for the next reset, when the full budget
 /// comes back.
+///
+/// A refilling bucket instead lets a call wait only until enough has come
+/// back. A call counting down to a retry goes no sooner than its retry.
 pub fn schedule(limits: &[RateLimit], calls: &[QueuedCall]) -> Vec<CallTiming> {
     struct Budget {
         left: u32,
         at: u32,
+        level: f32,
+        clock: f32,
     }
     let mut budgets: Vec<Budget> = limits
         .iter()
         .map(|limit| Budget {
             left: limit.limit.saturating_sub(limit.used),
             at: 0,
+            level: limit.limit.saturating_sub(limit.used) as f32,
+            clock: 0.,
         })
         .collect();
     calls
@@ -168,6 +230,16 @@ pub fn schedule(limits: &[RateLimit], calls: &[QueuedCall]) -> Vec<CallTiming> {
                 return CallTiming::Never;
             }
             let budget = &mut budgets[ix];
+            let retry = call.retry.map_or(0, |r| r.in_secs);
+            if let Some(rate) = limit.refill_per_sec {
+                let cost = call.cost as f32;
+                if budget.level + 1e-4 < cost {
+                    budget.clock += (cost - budget.level) / rate;
+                    budget.level = cost;
+                }
+                budget.level -= cost;
+                return CallTiming::At((budget.clock - 1e-4).ceil().max(0.) as u32).later(retry);
+            }
             if call.cost > budget.left {
                 budget.at = if budget.at == 0 {
                     limit.resets_in
@@ -177,9 +249,48 @@ pub fn schedule(limits: &[RateLimit], calls: &[QueuedCall]) -> Vec<CallTiming> {
                 budget.left = limit.limit;
             }
             budget.left -= call.cost;
-            CallTiming::At(budget.at)
+            CallTiming::At(budget.at).later(retry)
         })
         .collect()
+}
+
+impl CallTiming {
+    fn later(self, secs: u32) -> Self {
+        match self {
+            CallTiming::At(at) => CallTiming::At(at.max(secs)),
+            other => other,
+        }
+    }
+}
+
+/// How fast a bucket refills, as people say it: "2 a second", "1 every 4s".
+pub fn refill_words(per_sec: f32) -> String {
+    if per_sec >= 1. {
+        let whole = (per_sec * 10.).round() / 10.;
+        if whole.fract() == 0. {
+            format!("{whole:.0} a second")
+        } else {
+            format!("{whole:.1} a second")
+        }
+    } else {
+        format!("1 every {}s", (1. / per_sec.max(0.001)).round() as u32)
+    }
+}
+
+/// Seconds until a bucket is full again; zero when it is.
+pub fn bucket_full_in(limit: &RateLimit) -> u32 {
+    match limit.refill_per_sec {
+        Some(rate) => (limit.used as f32 / rate.max(0.001)).ceil() as u32,
+        None => limit.resets_in,
+    }
+}
+
+/// A retry countdown in words: "Try 2 in 12s".
+pub fn retry_words(retry: &CallRetry) -> String {
+    match retry.in_secs {
+        0 => format!("Try {} now", retry.attempt),
+        secs => format!("Try {} {}", retry.attempt, wait_words(secs)),
+    }
 }
 
 /// Write a wait as people say it: "now", "in 40s", "in 2m 5s".
@@ -195,6 +306,7 @@ pub fn wait_words(secs: u32) -> String {
 type PauseHandler = Rc<dyn Fn(&SharedString, bool, &mut Window, &mut App)>;
 type MoveHandler = Rc<dyn Fn(&SharedString, bool, &mut Window, &mut App)>;
 type DropHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
+type RetryHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 
 /// Limits, the calls queued against them and when each will go.
 #[derive(IntoElement)]
@@ -208,6 +320,7 @@ pub struct RateLimitScheduler {
     on_pause: Option<PauseHandler>,
     on_move: Option<MoveHandler>,
     on_drop: Option<DropHandler>,
+    on_retry_now: Option<RetryHandler>,
 }
 
 impl RateLimitScheduler {
@@ -223,7 +336,17 @@ impl RateLimitScheduler {
             on_pause: None,
             on_move: None,
             on_drop: None,
+            on_retry_now: None,
         }
+    }
+
+    /// Offer Retry now on calls counting down to a retry, run when pressed.
+    pub fn on_retry_now(
+        mut self,
+        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_retry_now = Some(Rc::new(handler));
+        self
     }
 
     /// Set the heading.
@@ -317,10 +440,27 @@ impl RenderOnce for RateLimitScheduler {
             .iter()
             .enumerate()
             .map(|(ix, limit)| {
+                let bucket = limit.refill_per_sec;
                 let share = if limit.limit == 0 {
                     1.
+                } else if bucket.is_some() {
+                    // A bucket shows what it holds, so it fills as it refills.
+                    (limit.limit.saturating_sub(limit.used) as f32 / limit.limit as f32).min(1.)
                 } else {
                     (limit.used as f32 / limit.limit as f32).min(1.)
+                };
+                let share = match bucket {
+                    Some(_) => transition(
+                        ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("level-{}", limit.id).into(),
+                        ),
+                        share,
+                        Transition::new(std::time::Duration::from_millis(900)),
+                        window,
+                        cx,
+                    ),
+                    None => share,
                 };
                 let full = limit.used >= limit.limit;
                 let queued = self.calls.iter().filter(|c| c.limit == limit.id).count();
@@ -336,18 +476,23 @@ impl RenderOnce for RateLimitScheduler {
                             .w(px(150.))
                             .flex_none()
                             .child(div().truncate().font_medium().child(limit.name.clone()))
-                            .child(div().text_caption().text_color(quiet).child(format!(
-                                "{} per {}",
-                                limit.limit,
-                                if limit.window_secs % 60 == 0 {
-                                    match limit.window_secs / 60 {
-                                        1 => "minute".to_string(),
-                                        n => format!("{n} minutes"),
-                                    }
-                                } else {
-                                    format!("{}s", limit.window_secs)
+                            .child(div().text_caption().text_color(quiet).child(match bucket {
+                                Some(rate) => {
+                                    format!("Holds {}, refills {}", limit.limit, refill_words(rate))
                                 }
-                            ))),
+                                None => format!(
+                                    "{} per {}",
+                                    limit.limit,
+                                    if limit.window_secs % 60 == 0 {
+                                        match limit.window_secs / 60 {
+                                            1 => "minute".to_string(),
+                                            n => format!("{n} minutes"),
+                                        }
+                                    } else {
+                                        format!("{}s", limit.window_secs)
+                                    }
+                                ),
+                            })),
                     )
                     .child(
                         v_flex()
@@ -359,7 +504,13 @@ impl RenderOnce for RateLimitScheduler {
                                     div()
                                         .h_full()
                                         .rounded_full()
-                                        .bg(if full { danger } else { colors[ix] })
+                                        .bg(if full && bucket.is_none() {
+                                            danger
+                                        } else if bucket.is_some() && full {
+                                            danger
+                                        } else {
+                                            colors[ix]
+                                        })
                                         .w(relative(share)),
                                 ),
                             )
@@ -371,12 +522,25 @@ impl RenderOnce for RateLimitScheduler {
                                         div()
                                             .flex_1()
                                             .when(full, |this| this.text_color(danger))
-                                            .child(format!(
-                                                "{} of {} used",
-                                                limit.used, limit.limit
-                                            )),
+                                            .child(match bucket {
+                                                Some(_) => format!(
+                                                    "{} of {} left",
+                                                    limit.limit.saturating_sub(limit.used),
+                                                    limit.limit
+                                                ),
+                                                None => format!(
+                                                    "{} of {} used",
+                                                    limit.used, limit.limit
+                                                ),
+                                            }),
                                     )
-                                    .child(format!("resets {}", wait_words(limit.resets_in))),
+                                    .child(match bucket {
+                                        Some(_) if limit.used == 0 => "full".to_string(),
+                                        Some(_) => {
+                                            format!("full {}", wait_words(bucket_full_in(limit)))
+                                        }
+                                        None => format!("resets {}", wait_words(limit.resets_in)),
+                                    }),
                             ),
                     )
                     .child(
@@ -440,10 +604,14 @@ impl RenderOnce for RateLimitScheduler {
                         }
                     }
                 }
-                let resets: Vec<u32> = (0..)
-                    .map(|n| limit.resets_in + n * limit.window_secs)
-                    .take_while(|at| *at <= horizon)
-                    .collect();
+                let resets: Vec<u32> = if limit.refill_per_sec.is_some() {
+                    Vec::new()
+                } else {
+                    (0..)
+                        .map(|n| limit.resets_in + n * limit.window_secs)
+                        .take_while(|at| *at <= horizon)
+                        .collect()
+                };
                 div()
                     .relative()
                     .h(px(18.))
@@ -501,7 +669,11 @@ impl RenderOnce for RateLimitScheduler {
                     .map(|ix| self.limits[ix].name.clone())
                     .unwrap_or_else(|| "Unknown limit".into());
                 let (when, when_color) = match timing {
+                    CallTiming::At(0) if call.retry.is_some() => ("Retrying".to_string(), warning),
                     CallTiming::At(0) => ("Now".to_string(), success),
+                    CallTiming::At(secs) if call.retry.is_some_and(|r| r.in_secs >= *secs) => {
+                        (wait_words(*secs), warning)
+                    }
                     CallTiming::At(secs) => (wait_words(*secs), ink),
                     CallTiming::Held => ("Held".to_string(), warning),
                     CallTiming::Never => ("Won't fit".to_string(), danger),
@@ -521,8 +693,16 @@ impl RenderOnce for RateLimitScheduler {
                     let id = call.id.clone();
                     let on_move = self.on_move.clone();
                     let on_drop = self.on_drop.clone();
+                    let on_retry = self.on_retry_now.clone().filter(|_| call.retry.is_some());
                     move |event: &KeyDownEvent, window: &mut Window, cx: &mut App| {
                         let key = event.keystroke.key.as_str();
+                        if key == "r" && !event.keystroke.modifiers.modified() {
+                            if let Some(on_retry) = &on_retry {
+                                on_retry(&id, window, cx);
+                                cx.stop_propagation();
+                            }
+                            return;
+                        }
                         if event.keystroke.modifiers.alt && matches!(key, "up" | "down") {
                             if let Some(on_move) = &on_move {
                                 let up = key == "up";
@@ -610,7 +790,7 @@ impl RenderOnce for RateLimitScheduler {
                     .when(is_focused, |this| this.focus_ring_style(window, cx))
                     .role(Role::Row)
                     .aria_label(format!(
-                        "{}, {}, {}{}",
+                        "{}, {}, {}{}{}",
                         call.label,
                         limit_name,
                         when.to_lowercase(),
@@ -618,7 +798,10 @@ impl RenderOnce for RateLimitScheduler {
                             format!(", costs {}", call.cost)
                         } else {
                             String::new()
-                        }
+                        },
+                        call.retry
+                            .map(|r| format!(", turned away, {}", retry_words(&r).to_lowercase()))
+                            .unwrap_or_default()
                     ))
                     .child(
                         div()
@@ -634,16 +817,61 @@ impl RenderOnce for RateLimitScheduler {
                             .flex_1()
                             .min_w_0()
                             .child(div().truncate().child(call.label.clone()))
-                            .child(div().truncate().text_caption().text_color(quiet).child(
-                                match (&call.source, call.cost) {
-                                    (Some(source), 1) => format!("{limit_name} \u{b7} {source}"),
-                                    (Some(source), cost) => {
-                                        format!("{limit_name} \u{b7} {source} \u{b7} costs {cost}")
-                                    }
-                                    (None, 1) => limit_name.to_string(),
-                                    (None, cost) => format!("{limit_name} \u{b7} costs {cost}"),
-                                },
-                            )),
+                            .child(
+                                div().truncate().text_caption().text_color(quiet).child(
+                                    match (&call.source, call.cost) {
+                                        (Some(source), 1) => {
+                                            format!("{limit_name} \u{b7} {source}")
+                                        }
+                                        (Some(source), cost) => {
+                                            format!(
+                                                "{limit_name} \u{b7} {source} \u{b7} costs {cost}"
+                                            )
+                                        }
+                                        (None, 1) => limit_name.to_string(),
+                                        (None, cost) => format!("{limit_name} \u{b7} costs {cost}"),
+                                    },
+                                ),
+                            )
+                            .when_some(call.retry, |this, retry| {
+                                let left = transition(
+                                    ElementId::NamedChild(
+                                        self.id.clone().into(),
+                                        format!("retry-{}", call.id).into(),
+                                    ),
+                                    retry.in_secs as f32 / retry.of_secs as f32,
+                                    Transition::new(std::time::Duration::from_millis(900)),
+                                    window,
+                                    cx,
+                                );
+                                this.child(
+                                    h_flex()
+                                        .gap_2()
+                                        .mt_0p5()
+                                        .child(
+                                            div()
+                                                .flex_none()
+                                                .text_caption()
+                                                .text_color(warning)
+                                                .child(retry_words(&retry)),
+                                        )
+                                        .child(
+                                            div()
+                                                .flex_1()
+                                                .max_w(px(160.))
+                                                .h(px(3.))
+                                                .rounded_full()
+                                                .bg(chip)
+                                                .child(
+                                                    div()
+                                                        .h_full()
+                                                        .rounded_full()
+                                                        .bg(warning)
+                                                        .w(relative(left.clamp(0., 1.))),
+                                                ),
+                                        ),
+                                )
+                            }),
                     )
                     .child(
                         div()
@@ -654,7 +882,28 @@ impl RenderOnce for RateLimitScheduler {
                             .text_color(when_color)
                             .child(when),
                     )
-                    .child(h_flex().flex_none().child(up).child(down).child(remove))
+                    .child(
+                        h_flex()
+                            .flex_none()
+                            .when_some(
+                                self.on_retry_now.clone().filter(|_| call.retry.is_some()),
+                                |this, on_retry| {
+                                    let id = call.id.clone();
+                                    this.child(
+                                        button(
+                                            "retry",
+                                            IconName::Redo,
+                                            format!("Retry {} now", call.label),
+                                            false,
+                                        )
+                                        .on_click(move |_, window, cx| on_retry(&id, window, cx)),
+                                    )
+                                },
+                            )
+                            .child(up)
+                            .child(down)
+                            .child(remove),
+                    )
             })
             .collect();
 
@@ -800,6 +1049,55 @@ mod tests {
             schedule(&limits, &calls),
             [CallTiming::Held, CallTiming::Never]
         );
+    }
+
+    #[test]
+    fn a_bucket_lets_calls_go_as_it_refills() {
+        // Holds 4, 2 used, one back every 2 seconds.
+        let limits = vec![RateLimit::bucket("api", "API", 4, 0.5).spent(2, 0)];
+        let calls: Vec<_> = (0..5)
+            .map(|n| QueuedCall::new(format!("c{n}"), "Call", "api"))
+            .collect();
+        assert_eq!(
+            schedule(&limits, &calls),
+            [
+                CallTiming::At(0),
+                CallTiming::At(0),
+                CallTiming::At(2),
+                CallTiming::At(4),
+                CallTiming::At(6),
+            ]
+        );
+        let costly = vec![QueuedCall::new("big", "Batch", "api").cost(5)];
+        assert_eq!(schedule(&limits, &costly), [CallTiming::Never]);
+        assert_eq!(bucket_full_in(&limits[0]), 4);
+    }
+
+    #[test]
+    fn a_retry_goes_no_sooner_than_its_countdown() {
+        let limits = vec![RateLimit::new("bank", "Bank", 5, 60).spent(0, 60)];
+        let calls = vec![
+            QueuedCall::new("a", "A", "bank").retry(12, 30, 2),
+            QueuedCall::new("b", "B", "bank"),
+        ];
+        assert_eq!(
+            schedule(&limits, &calls),
+            [CallTiming::At(12), CallTiming::At(0)]
+        );
+        assert_eq!(retry_words(&calls[0].retry.unwrap()), "Try 2 in 12s");
+        let now = QueuedCall::new("c", "C", "bank")
+            .retry(0, 5, 1)
+            .retry
+            .unwrap();
+        assert_eq!((now.attempt, now.of_secs), (2, 5));
+        assert_eq!(retry_words(&now), "Try 2 now");
+    }
+
+    #[test]
+    fn refills_read_naturally() {
+        assert_eq!(refill_words(2.), "2 a second");
+        assert_eq!(refill_words(1.5), "1.5 a second");
+        assert_eq!(refill_words(0.25), "1 every 4s");
     }
 
     #[test]
