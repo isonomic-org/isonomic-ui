@@ -719,7 +719,7 @@ mod tests {
         assert_eq!(shown, [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 29]);
         // The last column is labelled only when it sits far enough from the one before.
         assert!(column_is_labelled(31, 32, 480.));
-        assert!(!column_is_labelled(27, 28, 480.));
+        assert!(!column_is_labelled(28, 29, 480.));
         assert!(!column_is_labelled(28, 30, 480.));
         // A few columns are all labelled.
         assert!((0..6).all(|ix| column_is_labelled(ix, 6, 480.)));
