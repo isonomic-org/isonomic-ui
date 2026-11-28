@@ -103,6 +103,9 @@ mod welcome_story;
 
 // The stories of `isonomic-ui-extra`, which `build.rs` finds and registers.
 pub(crate) mod extra;
+// Whole screens composed from existing components, which `build.rs` finds
+// and registers the same way.
+pub(crate) mod screens;
 
 pub use accordion_story::AccordionStory;
 pub use alert_dialog_story::AlertDialogStory;

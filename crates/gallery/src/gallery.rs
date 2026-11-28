@@ -166,6 +166,9 @@ impl Gallery {
         // Then every story of `isonomic-ui-extra`, which `build.rs` lists.
         let extra = crate::stories::extra::panels(window, cx);
         stories[0].1.extend(extra);
+        // And last the screens, each a whole window built from those parts.
+        let screens = crate::stories::screens::panels(window, cx);
+        stories[0].1.extend(screens);
 
         let mut this = Self {
             search_input,
