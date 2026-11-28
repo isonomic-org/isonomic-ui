@@ -231,7 +231,7 @@ impl Styled for CostBreakdownWaterfall {
 }
 
 impl RenderOnce for CostBreakdownWaterfall {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -258,6 +258,20 @@ impl RenderOnce for CostBreakdownWaterfall {
                 let toggle = self.on_toggle.clone();
                 let (id, toggle_id) = (row.id.clone(), row.id.clone());
                 let heavy = row.value == biggest && biggest > 0;
+                let named =
+                    |name: String| ElementId::NamedChild(self.id.clone().into(), name.into());
+                let (row_fade, row_on_hover) = isonomic_ui::component::look::tracked_hover(
+                    named(format!("row-hover-{}", row.id)),
+                    true,
+                    window,
+                    cx,
+                );
+                let (fold_fade, fold_on_hover) = isonomic_ui::component::look::tracked_hover(
+                    named(format!("fold-hover-{}", row.id)),
+                    row.has_children,
+                    window,
+                    cx,
+                );
                 h_flex()
                     .id(ElementId::NamedChild(
                         self.id.clone().into(),
@@ -268,8 +282,12 @@ impl RenderOnce for CostBreakdownWaterfall {
                     .px_2()
                     .rounded(radius)
                     .cursor_pointer()
-                    .when(is_selected, |this| this.bg(chip))
-                    .hover(|style| style.bg(chip.opacity(0.6)))
+                    .bg(if is_selected {
+                        chip
+                    } else {
+                        crate::common::faded(chip.opacity(0.6), row_fade)
+                    })
+                    .on_hover(row_on_hover)
                     .role(Role::Button)
                     .aria_label(format!(
                         "{}, {}",
@@ -309,7 +327,8 @@ impl RenderOnce for CostBreakdownWaterfall {
                                             ))
                                             .aria_expanded(is_open)
                                             .rounded(px(4.))
-                                            .hover(|s| s.bg(line))
+                                            .bg(crate::common::faded(line, fold_fade))
+                                            .on_hover(fold_on_hover)
                                             .on_click(move |_, window, cx| {
                                                 cx.stop_propagation();
                                                 if let Some(toggle) = &toggle {

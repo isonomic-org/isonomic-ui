@@ -710,6 +710,12 @@ impl Render for PlanEditor {
                     )
                     .children(retry.map(|retry| h_flex().pt_1().child(retry)));
 
+                let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                    ("plan-step-hover", ix),
+                    review,
+                    window,
+                    cx,
+                );
                 h_flex()
                     .id(("plan-step", ix))
                     .items_stretch()
@@ -723,39 +729,36 @@ impl Render for PlanEditor {
                             id: step.id.clone(),
                             title: step.title.clone(),
                         };
-                        this.hover(|style| style.bg(chip))
-                            .on_click(cx.listener(
-                                move |this, event: &isonomic_ui::ClickEvent, window, cx| {
-                                    this.selected = Some(ix);
-                                    this.focus.focus(window, cx);
-                                    if event.click_count() > 1 {
-                                        this.begin_rename(ix, window, cx);
-                                    }
-                                    cx.notify();
-                                },
-                            ))
-                            .drag_over::<DraggedStep>(move |style, _, _, _| {
-                                style.border_t_2().border_color(accent)
-                            })
-                            .on_drop(cx.listener(move |this, dragged: &DraggedStep, _, cx| {
-                                this.drop_on(dragged, ix, cx)
-                            }))
-                            .child(
-                                div()
-                                    .id(("grip", ix))
-                                    .flex_none()
-                                    .pt_1p5()
-                                    .px_0p5()
-                                    .cursor_grab()
-                                    .on_drag(dragged, |dragged, _, _, cx| {
-                                        cx.new(|_| dragged.clone())
-                                    })
-                                    .child(grip(quiet.opacity(if is_selected {
-                                        0.9
-                                    } else {
-                                        0.4
-                                    }))),
-                            )
+                        this.when(!is_selected, |this| {
+                            this.bg(crate::common::faded(chip, hover_fade))
+                        })
+                        .on_hover(hover_on_hover)
+                        .on_click(cx.listener(
+                            move |this, event: &isonomic_ui::ClickEvent, window, cx| {
+                                this.selected = Some(ix);
+                                this.focus.focus(window, cx);
+                                if event.click_count() > 1 {
+                                    this.begin_rename(ix, window, cx);
+                                }
+                                cx.notify();
+                            },
+                        ))
+                        .drag_over::<DraggedStep>(move |style, _, _, _| {
+                            style.border_t_2().border_color(accent)
+                        })
+                        .on_drop(cx.listener(move |this, dragged: &DraggedStep, _, cx| {
+                            this.drop_on(dragged, ix, cx)
+                        }))
+                        .child(
+                            div()
+                                .id(("grip", ix))
+                                .flex_none()
+                                .pt_1p5()
+                                .px_0p5()
+                                .cursor_grab()
+                                .on_drag(dragged, |dragged, _, _, cx| cx.new(|_| dragged.clone()))
+                                .child(grip(quiet.opacity(if is_selected { 0.9 } else { 0.4 }))),
+                        )
                     })
                     .child(
                         v_flex()
