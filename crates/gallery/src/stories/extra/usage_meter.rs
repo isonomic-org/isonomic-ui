@@ -11,9 +11,42 @@ use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div,
 };
-use isonomic_ui_extra::usage_meter::{UsageLevel, UsageLimit, UsageMeter, UsagePart};
+use isonomic_ui_extra::usage_meter::{
+    UsageHistory, UsageLevel, UsageLimit, UsageMeter, UsageModel, UsagePart,
+};
 
-/// Shows a month with room left and a month that ran low, switched by period.
+/// Tokens (thousands) a day for three made-up models over 18 days, with the
+/// price per thousand tokens of each.
+const MODEL_DAYS: [(&str, f64, [f64; 18]); 3] = [
+    (
+        "Large",
+        0.012,
+        [
+            210., 260., 240., 90., 60., 330., 310., 360., 290., 340., 120., 80., 420., 460., 440.,
+            480., 150., 110.,
+        ],
+    ),
+    (
+        "Medium",
+        0.004,
+        [
+            320., 300., 340., 120., 90., 360., 380., 350., 400., 390., 150., 100., 410., 380.,
+            420., 430., 160., 120.,
+        ],
+    ),
+    (
+        "Small",
+        0.001,
+        [
+            520., 540., 600., 300., 240., 610., 650., 640., 700., 690., 310., 260., 720., 760.,
+            740., 780., 330., 280.,
+        ],
+    ),
+];
+
+/// Shows a month with room left and a month that ran low, switched by period,
+/// and under it a team's model spend over a month against its budget, by model,
+/// on pace to run over.
 pub struct UsageMeterStory {
     period: SharedString,
     last: SharedString,
@@ -118,5 +151,26 @@ impl Render for UsageMeterStory {
                     .text_color(cx.theme().muted_foreground)
                     .child(self.last.clone()),
             )
+            .child({
+                let days: Vec<String> = (1..=30).map(|d| format!("Jun {d}")).collect();
+                let history = MODEL_DAYS.iter().fold(
+                    UsageHistory::new(days).budget(140.),
+                    |history, (name, price, days)| {
+                        history.model(UsageModel::new(
+                            *name,
+                            days.iter().map(|k| (k * 1000., k * price)),
+                        ))
+                    },
+                );
+                UsageMeter::new("model-spend", 4_000_000.)
+                    .title("Research team")
+                    .plan("Model usage, June")
+                    .renews_in(Duration::from_secs(12 * 86_400))
+                    .unit("tokens")
+                    .part(UsagePart::new("Large", 4_350_000. * 0.2))
+                    .part(UsagePart::new("Medium", 4_720_000. * 0.2))
+                    .part(UsagePart::new("Small", 9_870_000. * 0.2))
+                    .history(history)
+            })
     }
 }
