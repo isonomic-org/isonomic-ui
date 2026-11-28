@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Voice session: a live spoken conversation, with a meter per speaker and a
 //! transcript that writes itself a word at a time.
