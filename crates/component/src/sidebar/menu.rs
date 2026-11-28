@@ -3,6 +3,7 @@
 
 use crate::{
     ActiveTheme as _, Collapsible, Icon, IconName, Placement, Sizable as _, StyledExt,
+    TextRole as _,
     button::{Button, ButtonVariants as _},
     h_flex,
     menu::{ContextMenuExt, PopupMenu},
@@ -368,7 +369,10 @@ impl SidebarItem for SidebarMenuItem {
                     .p_2()
                     .gap_x_2()
                     .rounded(cx.theme().radius)
-                    .text_sm()
+                    // 13/20 rows in muted ink, full ink under the pointer or
+                    // when current, on the hover wash.
+                    .text_body()
+                    .text_color(crate::look::ink::muted(cx))
                     .refine_style(&self.style)
                     .when(is_focusable, |this| {
                         // Enter and Space press the row through its click.
@@ -380,20 +384,20 @@ impl SidebarItem for SidebarMenuItem {
                     })
                     .when(is_hoverable, |this| {
                         this.hover(|this| {
-                            this.bg(cx.theme().sidebar_accent.opacity(0.8))
-                                .text_color(cx.theme().sidebar_accent_foreground)
+                            this.bg(crate::look::ink::wash(cx))
+                                .text_color(crate::look::ink::strong(cx))
                         })
                     })
                     .when(is_active, |this| {
                         this.font_medium()
-                            .bg(cx.theme().tokens.sidebar_accent)
-                            .text_color(cx.theme().sidebar_accent_foreground)
+                            .bg(crate::look::ink::wash_strong(cx))
+                            .text_color(crate::look::ink::strong(cx))
                     })
                     .when_some(self.icon.clone(), |this, icon| this.child(icon))
                     .when(is_collapsed, |this| {
                         this.justify_center().when(is_active, |this| {
-                            this.bg(cx.theme().tokens.sidebar_accent)
-                                .text_color(cx.theme().sidebar_accent_foreground)
+                            this.bg(crate::look::ink::wash_strong(cx))
+                                .text_color(crate::look::ink::strong(cx))
                         })
                     })
                     .when(!is_collapsed, |this| {
@@ -462,7 +466,7 @@ impl SidebarItem for SidebarMenuItem {
                     })
                     .pressable(!is_disabled)
                     .when(is_disabled, |this| {
-                        this.text_color(cx.theme().muted_foreground)
+                        this.text_color(crate::look::ink::subtle(cx))
                     })
                     .when(!is_disabled, |this| {
                         this.on_click({
@@ -512,7 +516,7 @@ impl SidebarItem for SidebarMenuItem {
                     v_flex()
                         .id("submenu")
                         .border_s(gpui::px(1.), cx)
-                        .border_color(cx.theme().sidebar_border)
+                        .border_color(crate::look::ink::hairline(cx))
                         .gap_1()
                         .ms(gpui::rems(0.875), cx)
                         .ps(gpui::rems(0.625), cx)

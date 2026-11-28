@@ -222,11 +222,9 @@ impl RenderOnce for Pagination {
                         Button::new(page)
                             .with_size(self.size)
                             .map(|this| {
-                                if is_selected {
-                                    this.outline()
-                                } else {
-                                    this.ghost()
-                                }
+                                // The current page is the raised default button;
+                                // the rest are ghost.
+                                if is_selected { this } else { this.ghost() }
                             })
                             .label(page.to_string())
                             .compact()
