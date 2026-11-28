@@ -7,7 +7,7 @@ use std::{rc::Rc, time::Duration};
 use gpui::{
     AbsoluteLength, AnyElement, App, Axis, Bounds, ClickEvent, ElementId, Hsla, ImageSource,
     InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement, Path, PathBuilder,
-    Pixels, Refineable as _, RenderOnce, ScrollHandle, SharedString,
+    Pixels, Refineable as _, RenderOnce, Role, ScrollHandle, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, StyledImage as _, Window, black,
     canvas, div, img, linear_color_stop, linear_gradient, point, prelude::FluentBuilder as _, px,
     relative, rems, white,
@@ -21,7 +21,7 @@ use rust_i18n::t;
 use crate::{
     ActiveTheme as _, Icon, IconName, InteractiveElementExt as _, Sizable, Size, StyledExt as _,
     button::{Button, ButtonCustomVariant, ButtonVariants as _},
-    h_flex,
+    h_flex, look,
     progress::ProgressCircle,
     scroll::ScrollableMask,
     shimmer::{ShimmerStyle, ShimmerText},
@@ -75,6 +75,144 @@ impl AttachmentStatus {
     /// Returns whether the attachment is in an in-progress state.
     pub fn is_in_progress(self) -> bool {
         matches!(self, Self::Uploading | Self::Processing)
+    }
+}
+
+impl AttachmentStatus {
+    /// The state in words, for a spoken label.
+    pub fn spoken(self) -> &'static str {
+        match self {
+            Self::Pending => "waiting to upload",
+            Self::Uploading => "uploading",
+            Self::Processing => "processing",
+            Self::Failed => "failed",
+            Self::Complete => "ready",
+        }
+    }
+}
+
+/// A broad family of file types, chosen from a file name's extension. It
+/// picks the glyph an icon-style preview shows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileFamily {
+    /// Pictures: png, jpg, svg and the like.
+    Image,
+    /// Moving pictures.
+    Video,
+    /// Sound.
+    Audio,
+    /// Portable documents.
+    Pdf,
+    /// Compressed bundles of files.
+    Archive,
+    /// Tables of values.
+    Spreadsheet,
+    /// Source code and configuration.
+    Code,
+    /// Prose and plain text.
+    Text,
+    /// Anything else, or no extension.
+    Other,
+}
+
+impl FileFamily {
+    /// The family of a file, from the extension of its name.
+    pub fn of(name: &str) -> Self {
+        let Some(extension) = extension(name) else {
+            return Self::Other;
+        };
+        match extension.to_ascii_lowercase().as_str() {
+            "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" | "bmp" | "heic" | "tif" | "tiff"
+            | "avif" | "ico" => Self::Image,
+            "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" => Self::Video,
+            "mp3" | "wav" | "flac" | "ogg" | "m4a" | "aac" | "opus" => Self::Audio,
+            "pdf" => Self::Pdf,
+            "zip" | "tar" | "gz" | "tgz" | "bz2" | "xz" | "7z" | "rar" | "zst" => Self::Archive,
+            "csv" | "tsv" | "xls" | "xlsx" | "ods" | "parquet" => Self::Spreadsheet,
+            "rs" | "ts" | "tsx" | "js" | "jsx" | "py" | "go" | "c" | "h" | "cpp" | "java"
+            | "kt" | "swift" | "rb" | "sh" | "json" | "toml" | "yaml" | "yml" | "html" | "css"
+            | "sql" | "xml" => Self::Code,
+            "txt" | "md" | "rtf" | "doc" | "docx" | "odt" | "pages" | "log" => Self::Text,
+            _ => Self::Other,
+        }
+    }
+
+    /// The glyph an icon-style preview shows for this family.
+    pub fn icon(self) -> isonomic_ui_assets::IconName {
+        use isonomic_ui_assets::IconName as Glyph;
+        match self {
+            Self::Image => Glyph::Image,
+            Self::Video => Glyph::Video,
+            Self::Audio => Glyph::Music,
+            Self::Pdf => Glyph::DocumentPdf,
+            Self::Archive => Glyph::Zip,
+            Self::Spreadsheet => Glyph::DataTable,
+            Self::Code => Glyph::Code,
+            Self::Text => Glyph::Document,
+            Self::Other => Glyph::DocumentBlank,
+        }
+    }
+}
+
+/// The extension of a file name, without the dot. A leading dot alone, as in
+/// `.env`, names a file and is not an extension.
+fn extension(name: &str) -> Option<&str> {
+    let (stem, extension) = name.rsplit_once('.')?;
+    (!stem.is_empty() && !extension.is_empty() && !extension.contains(['/', '\\', ' ']))
+        .then_some(extension)
+}
+
+/// A file's type in capitals, from its extension: `"PDF"` for
+/// `"report.pdf"`, `None` without an extension.
+pub fn file_kind(name: &str) -> Option<SharedString> {
+    extension(name).map(|extension| extension.to_ascii_uppercase().into())
+}
+
+/// A file size the way people read it, in binary units: whole bytes below a
+/// kilobyte, one decimal below ten of a unit and none from ten up.
+pub fn format_file_size(bytes: u64) -> SharedString {
+    const UNITS: [&str; 5] = ["KB", "MB", "GB", "TB", "PB"];
+    if bytes < 1024 {
+        return format!("{bytes} B").into();
+    }
+    let mut value = bytes as f64 / 1024.;
+    let mut unit = 0;
+    while value >= 1024. && unit + 1 < UNITS.len() {
+        value /= 1024.;
+        unit += 1;
+    }
+    // Rounding can carry into the next unit: 1023.96 KB reads as 1 MB.
+    if value.round() >= 1024. && unit + 1 < UNITS.len() {
+        value /= 1024.;
+        unit += 1;
+    }
+    if value < 9.95 {
+        format!("{value:.1} {}", UNITS[unit]).into()
+    } else {
+        format!("{} {}", value.round() as u64, UNITS[unit]).into()
+    }
+}
+
+/// The type and size line of a file: `"PDF · 2.4 MB"`, or the size alone
+/// when the name has no extension.
+pub fn file_meta(name: &str, bytes: u64) -> SharedString {
+    match file_kind(name) {
+        Some(kind) => format!("{kind} · {}", format_file_size(bytes)).into(),
+        None => format_file_size(bytes),
+    }
+}
+
+/// What a screen reader says for an attachment: its name, then its state in
+/// words, with the percentage while it uploads.
+pub fn spoken_label(name: &str, status: AttachmentStatus, progress: Option<f32>) -> SharedString {
+    match progress.filter(|_| status.is_uploading()) {
+        Some(percent) => format!(
+            "{name}, {}, {} percent",
+            status.spoken(),
+            percent.clamp(0., 100.).round() as u32
+        )
+        .into(),
+        None => format!("{name}, {}", status.spoken()).into(),
     }
 }
 
@@ -229,6 +367,7 @@ pub struct Attachment {
     on_retry: Option<ControlHandler>,
     progress: Option<f32>,
     tooltip: Option<SharedString>,
+    label: Option<SharedString>,
 }
 
 impl Attachment {
@@ -248,7 +387,18 @@ impl Attachment {
             on_retry: None,
             progress: None,
             tooltip: None,
+            label: None,
         }
+    }
+
+    /// Name the attachment for assistive technology, usually the file name.
+    ///
+    /// The card is then announced as a group that says the name and the state
+    /// in words, such as "report.pdf, uploading, 40 percent". It takes effect
+    /// only together with [`Self::id`].
+    pub fn label(mut self, name: impl Into<SharedString>) -> Self {
+        self.label = Some(name.into());
+        self
     }
 
     /// Set a stable identity for the built-in controls: the whole-card click
@@ -400,7 +550,7 @@ impl Attachment {
 }
 
 impl RenderOnce for Attachment {
-    fn render(mut self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(mut self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let tokens = cx.theme().semantic_tokens();
         let size = self.size;
         let axis = self.axis;
@@ -410,6 +560,22 @@ impl RenderOnce for Attachment {
         let clickable = self.id.is_some() && self.on_click.is_some();
         let remove = self.id.clone().zip(self.on_remove.take());
         let tooltip = self.id.clone().zip(self.tooltip.take());
+        let spoken = self
+            .label
+            .take()
+            .map(|name| spoken_label(&name, status, self.progress));
+        // A clickable card fades its fill under the pointer instead of
+        // snapping to it.
+        let hover = match self.id.clone().filter(|_| clickable) {
+            Some(id) => {
+                let state = window.use_keyed_state((id.clone(), "card-hover"), cx, |_, _| false);
+                let over = *state.read(cx);
+                Some((state, look::hover_fade((id, "card"), over, window, cx)))
+            }
+            None => None,
+        };
+        let rest_fill = tokens.colors.background;
+        let hover_fill = rest_fill.blend(tokens.colors.muted.opacity(0.5));
         let progress_bar = self
             .progress
             .filter(|_| status.is_uploading() && axis == Axis::Horizontal);
@@ -433,17 +599,11 @@ impl RenderOnce for Attachment {
                 tokens.colors.border
             })
             .when(status.is_pending(), |this| this.border_dashed())
-            .bg(tokens.colors.background)
-            .text_color(tokens.colors.foreground)
-            // Register `hover` unconditionally: a conditionally registered
-            // hover style stays cached when the condition later flips off.
-            .hover(move |style| {
-                if clickable {
-                    style.bg(tokens.colors.muted.opacity(0.5))
-                } else {
-                    style
-                }
+            .bg(match &hover {
+                Some((_, t)) => look::mix(rest_fill, hover_fill, *t),
+                None => rest_fill,
             })
+            .text_color(tokens.colors.foreground)
             .line_height(relative(1.25))
             .text_size(metrics.text)
             .map(|this| match axis {
@@ -476,24 +636,41 @@ impl RenderOnce for Attachment {
             .when_some(progress_bar, |this, percent| {
                 this.child(upload_bar(percent, radius, tokens.colors.primary))
             })
-            .when_some(self.id.zip(self.on_click), |this, (id, on_click)| {
-                // The click layer is painted before the actions slot, so the
-                // actions' hitboxes stay on top and their buttons keep working.
-                this.child(
-                    div()
-                        .id(id)
-                        .absolute()
-                        .inset_0()
-                        .pressable(true)
-                        .on_click(move |event, window, cx| on_click(event, window, cx)),
-                )
-            })
+            .when_some(
+                self.id.clone().zip(self.on_click),
+                |this, (id, on_click)| {
+                    // The click layer is painted before the actions slot, so the
+                    // actions' hitboxes stay on top and their buttons keep working.
+                    this.child(
+                        div()
+                            .id(id)
+                            .absolute()
+                            .inset_0()
+                            .pressable(true)
+                            .on_click(move |event, window, cx| on_click(event, window, cx)),
+                    )
+                },
+            )
             .when_some(self.actions, |this, actions| this.child(actions))
             .refine_style(&self.style);
-        let card = match tooltip {
-            Some((id, text)) => card
+        let needs_id = tooltip.is_some() || spoken.is_some() || hover.is_some();
+        let card = match self.id.clone().filter(|_| needs_id) {
+            Some(id) => card
                 .id((id, "card"))
-                .tooltip(move |window, cx| Tooltip::new(text.clone()).build(window, cx))
+                .when_some(spoken, |this, spoken| {
+                    this.role(Role::Group).aria_label(spoken)
+                })
+                .when_some(hover, |this, (state, _)| {
+                    this.on_hover(move |over, _, cx| {
+                        state.update(cx, |state, cx| {
+                            *state = *over;
+                            cx.notify();
+                        })
+                    })
+                })
+                .when_some(tooltip, |this, (_, text)| {
+                    this.tooltip(move |window, cx| Tooltip::new(text.clone()).build(window, cx))
+                })
                 .into_any_element(),
             None => card.into_any_element(),
         };
@@ -689,6 +866,12 @@ impl AttachmentMedia {
     pub fn src(mut self, source: impl Into<ImageSource>) -> Self {
         self.source = Some(source.into());
         self
+    }
+
+    /// An icon-style preview with the glyph for the file's type, chosen from
+    /// the extension of its name.
+    pub fn file(name: &str) -> Self {
+        Self::new().child(Icon::new(FileFamily::of(name).icon()))
     }
 
     /// Add centered content above the preview and above the status treatment.
@@ -1133,6 +1316,12 @@ impl AttachmentDescription {
         }
     }
 
+    /// The type and size line of a file, such as "PDF · 2.4 MB", from its
+    /// name and its size in bytes.
+    pub fn file(name: &str, bytes: u64) -> Self {
+        Self::new(file_meta(name, bytes))
+    }
+
     /// Set the status used for the semantic description color.
     pub fn status(mut self, status: AttachmentStatus) -> Self {
         self.status = Some(status);
@@ -1400,6 +1589,64 @@ impl RenderOnce for AttachmentGroup {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn file_sizes_read_in_binary_units() {
+        assert_eq!(format_file_size(0).as_ref(), "0 B");
+        assert_eq!(format_file_size(812).as_ref(), "812 B");
+        assert_eq!(format_file_size(1024).as_ref(), "1.0 KB");
+        assert_eq!(format_file_size(4300).as_ref(), "4.2 KB");
+        assert_eq!(format_file_size(12 * 1024 + 300).as_ref(), "12 KB");
+        assert_eq!(format_file_size(2_516_582).as_ref(), "2.4 MB");
+        // Rounding up carries into the next unit instead of "1024 KB".
+        assert_eq!(format_file_size(1024 * 1024 - 10).as_ref(), "1.0 MB");
+        assert_eq!(format_file_size(3 * 1024 * 1024 * 1024).as_ref(), "3.0 GB");
+    }
+
+    #[test]
+    fn file_kind_comes_from_the_extension() {
+        assert_eq!(file_kind("report.pdf").as_deref(), Some("PDF"));
+        assert_eq!(file_kind("archive.tar.gz").as_deref(), Some("GZ"));
+        assert_eq!(file_kind("Makefile"), None);
+        assert_eq!(file_kind(".env"), None);
+        assert_eq!(file_kind("trailing."), None);
+        assert_eq!(file_meta("photo.PNG", 2048).as_ref(), "PNG · 2.0 KB");
+        assert_eq!(file_meta("README", 90).as_ref(), "90 B");
+    }
+
+    #[test]
+    fn file_family_picks_a_glyph_by_extension() {
+        assert_eq!(FileFamily::of("a.JPG"), FileFamily::Image);
+        assert_eq!(FileFamily::of("clip.mov"), FileFamily::Video);
+        assert_eq!(FileFamily::of("memo.m4a"), FileFamily::Audio);
+        assert_eq!(FileFamily::of("q3.pdf"), FileFamily::Pdf);
+        assert_eq!(FileFamily::of("assets.zip"), FileFamily::Archive);
+        assert_eq!(FileFamily::of("rows.csv"), FileFamily::Spreadsheet);
+        assert_eq!(FileFamily::of("main.rs"), FileFamily::Code);
+        assert_eq!(FileFamily::of("notes.md"), FileFamily::Text);
+        assert_eq!(FileFamily::of("blob"), FileFamily::Other);
+        assert_eq!(
+            FileFamily::Pdf.icon(),
+            isonomic_ui_assets::IconName::DocumentPdf
+        );
+    }
+
+    #[test]
+    fn spoken_label_says_the_state_in_words() {
+        assert_eq!(
+            spoken_label("q3.pdf", AttachmentStatus::Uploading, Some(39.6)).as_ref(),
+            "q3.pdf, uploading, 40 percent"
+        );
+        // Progress only counts while uploading.
+        assert_eq!(
+            spoken_label("q3.pdf", AttachmentStatus::Failed, Some(40.)).as_ref(),
+            "q3.pdf, failed"
+        );
+        assert_eq!(
+            spoken_label("q3.pdf", AttachmentStatus::Pending, None).as_ref(),
+            "q3.pdf, waiting to upload"
+        );
+    }
 
     #[test]
     fn test_attachment_builder() {

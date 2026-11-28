@@ -8,6 +8,7 @@ use isonomic_ui::component::{
         AttachmentMedia, AttachmentStatus, AttachmentTitle,
     },
     button::{Button, ButtonVariants as _},
+    h_flex,
     shimmer::ShimmerStyle,
     v_flex,
 };
@@ -81,8 +82,89 @@ impl Render for AttachmentStory {
                 )
         };
 
+        // A file chip built only from a name, a byte count and a state: the
+        // glyph, the type and the size line all come from the helpers.
+        let typed_chip =
+            |id: &'static str, name: &'static str, bytes: u64, status: AttachmentStatus| {
+                Attachment::new()
+                    .id(id)
+                    .label(name)
+                    .status(status)
+                    .on_remove(|_, _, _| {})
+                    .media(AttachmentMedia::file(name))
+                    .content(
+                        AttachmentContent::new()
+                            .title(AttachmentTitle::new(name))
+                            .description(AttachmentDescription::file(name, bytes)),
+                    )
+            };
+
         v_flex()
             .gap_4()
+            .child(
+                section("Type and size")
+                    .description(
+                        "The glyph, the type and the size come from the file name and its byte \
+                         count. Each card is announced with its name and state in words, the \
+                         percentage while it uploads.",
+                    )
+                    .max_w(rems(42.5))
+                    .child(
+                        h_flex()
+                            .flex_wrap()
+                            .gap_3()
+                            .child(typed_chip(
+                                "typed-pdf",
+                                "site-survey.pdf",
+                                2_516_582,
+                                AttachmentStatus::Complete,
+                            ))
+                            .child(
+                                typed_chip(
+                                    "typed-zip",
+                                    "drone-photos.zip",
+                                    48_234_496,
+                                    AttachmentStatus::Uploading,
+                                )
+                                .progress(28.),
+                            )
+                            .child(
+                                typed_chip(
+                                    "typed-sheet",
+                                    "crew-hours.xlsx",
+                                    86_016,
+                                    AttachmentStatus::Failed,
+                                )
+                                .tooltip("Connection dropped · Retry to send")
+                                .on_retry(|_, window, cx| {
+                                    window.push_notification("Retrying crew-hours.xlsx…", cx);
+                                }),
+                            )
+                            .child(typed_chip(
+                                "typed-audio",
+                                "standup.m4a",
+                                3_250_585,
+                                AttachmentStatus::Processing,
+                            ))
+                            .child(typed_chip(
+                                "typed-code",
+                                "pump_schedule.rs",
+                                4_300,
+                                AttachmentStatus::Pending,
+                            ))
+                            .child(
+                                typed_chip(
+                                    "typed-image",
+                                    "north-wall.png",
+                                    812_000,
+                                    AttachmentStatus::Complete,
+                                )
+                                .on_click(|_, window, cx| {
+                                    window.push_notification("Opening north-wall.png…", cx);
+                                }),
+                            ),
+                    ),
+            )
             .child(
                 section("Composer")
                     .description(
