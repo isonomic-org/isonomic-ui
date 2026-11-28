@@ -263,7 +263,13 @@ impl IntegrationSettingsCard {
 }
 
 impl Render for IntegrationSettingsCard {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let (key_fade, key_hover) = isonomic_ui::component::look::tracked_hover(
+            "settings-make-key-hover",
+            true,
+            window,
+            cx,
+        );
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -365,9 +371,13 @@ impl Render for IntegrationSettingsCard {
                 .px_3()
                 .h(px(34.))
                 .rounded(radius)
-                .bg(chip)
+                .bg(isonomic_ui::component::look::mix(
+                    chip,
+                    chip.opacity(0.7),
+                    key_fade,
+                ))
                 .cursor_pointer()
-                .hover(|style| style.bg(chip.opacity(0.7)))
+                .on_hover(key_hover)
                 .on_click(cx.listener(|this, _, _, cx| this.make_key(cx)))
                 .child(div().flex_1().text_color(quiet).child("Make an API key"))
                 .child(Icon::new(IconName::Plus).small().text_color(quiet))

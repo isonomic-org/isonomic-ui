@@ -179,7 +179,13 @@ impl Styled for RowActionsMenu {
 }
 
 impl RenderOnce for RowActionsMenu {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let (row_fade, row_hover) = isonomic_ui::component::look::tracked_hover(
+            ElementId::NamedChild(self.id.clone().into(), "row-hover".into()),
+            true,
+            window,
+            cx,
+        );
         let theme = cx.theme();
         let quiet = theme.muted_foreground;
         let chip = theme.muted;
@@ -191,7 +197,8 @@ impl RenderOnce for RowActionsMenu {
             .px_3()
             .py_2()
             .rounded(theme.radius)
-            .hover(|s| s.bg(chip.opacity(0.6)))
+            .bg(crate::common::faded(chip.opacity(0.6), row_fade))
+            .on_hover(row_hover)
             .role(Role::Group)
             .aria_label(format!(
                 "{}, {}. Right-click or use More for actions",

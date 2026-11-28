@@ -208,6 +208,13 @@ impl RenderOnce for Card {
             .clone();
         let is_focused = focus_handle.is_focused(window);
         let can_lift = !self.selected && !self.disabled;
+        let (lift, lift_hover) = isonomic_ui::component::look::tracked_hover(
+            (self.id.clone(), "lift"),
+            can_lift,
+            window,
+            cx,
+        );
+        let resting = isonomic_ui::component::look::mix_shadows(&resting, &lifted, lift);
 
         surface(
             Pressable::new(self.id).track_focus(&focus_handle),
@@ -222,7 +229,7 @@ impl RenderOnce for Card {
         .when_some(name, |this, label| this.accessibility_label(label))
         .on_click(move |event, window, cx| on_click(event, window, cx))
         .when(self.disabled, |this| this.opacity(0.5))
-        .when(can_lift, |this| this.hover(|style| style.shadow(lifted)))
+        .on_hover(lift_hover)
         .when(is_focused, |this| this.focus_ring_style(window, cx))
         .children(parts)
         .refine_style(&self.style)
