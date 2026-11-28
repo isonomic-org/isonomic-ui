@@ -8,6 +8,7 @@
 //! can't be picked. Arrow keys move a day or a week, Page Up and Down move a
 //! month, and Enter picks. Today is ringed; the picked day is filled.
 
+use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -344,9 +345,8 @@ impl RenderOnce for DueDatePicker {
                         this.bg(accent).text_color(fill).font_medium()
                     })
                     .when(at_cursor && !picked, |this| this.bg(chip))
-                    .when(ok && !picked, |this| {
-                        this.cursor_pointer().hover(|s| s.bg(chip))
-                    })
+                    .when(!picked, |this| this.pressable(ok))
+                    .when(ok && !picked, |this| this.hover(|s| s.bg(chip)))
                     .role(Role::GridCell)
                     .aria_label(format!(
                         "{}{}{}",
