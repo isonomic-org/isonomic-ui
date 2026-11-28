@@ -218,17 +218,32 @@ impl RenderOnce for Switch {
         // documented precedence, which left the travel visible in one direction
         // only. The spring owns it end to end and reverses from wherever the
         // thumb is when the switch is toggled again mid-travel.
-        let thumb_x = spring(
+        // While the pointer holds the switch down, the thumb stretches along
+        // its travel, anchored to the edge it rests on, and springs back on
+        // release: the press is felt before the switch moves.
+        let pressed_state = window.use_keyed_state(
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "pressed".into()),
+            cx,
+            |_, _| false,
+        );
+        let pressed = !self.disabled && *pressed_state.read(cx);
+        let stretch = spring(
+            (self.id.clone(), "thumb-stretch"),
+            if pressed { 1.0_f32 } else { 0.0 },
+            cx.theme().motion_tokens().spring_control,
+            window,
+            cx,
+        );
+        let full_travel = bg_width - bar_width - inset * 2;
+        let travel = spring(
             (self.id.clone(), "thumb"),
-            if checked {
-                bg_width - bar_width - inset * 2
-            } else {
-                px(0.)
-            },
+            if checked { full_travel } else { px(0.) },
             cx.theme().motion_tokens().spring_move,
             window,
             cx,
         );
+        let (thumb_x, thumb_width) =
+            thumb_frame(travel, full_travel, bar_width, stretch.clamp(0., 1.5));
 
         // The track's colour fades between off and on over the normal
         // duration rather than switching on the frame the state flips.
@@ -259,6 +274,20 @@ impl RenderOnce for Switch {
                 .tab_stop(self.tab_stop)
                 .tab_index(self.tab_index)
                 .track_focus(&focus_handle)
+                .when(!self.disabled, |this| {
+                    let down = pressed_state.clone();
+                    let up = pressed_state.clone();
+                    let out = pressed_state.clone();
+                    this.on_mouse_down(gpui::MouseButton::Left, move |_, window, cx| {
+                        set_pressed(&down, true, window, cx)
+                    })
+                    .on_mouse_up(gpui::MouseButton::Left, move |_, window, cx| {
+                        set_pressed(&up, false, window, cx)
+                    })
+                    .on_mouse_up_out(gpui::MouseButton::Left, move |_, window, cx| {
+                        set_pressed(&out, false, window, cx)
+                    })
+                })
                 .h_flex()
                 .gap_3()
                 .items_start()
@@ -307,7 +336,8 @@ impl RenderOnce for Switch {
                             // Switch Toggle
                             SwitchThumb::new(checked)
                                 .rounded(radius)
-                                .size(bar_width)
+                                .h(bar_width)
+                                .w(thumb_width)
                                 .inset_s(thumb_x, cx)
                                 .bg(toggle_bg)
                                 .shadow(crate::look::surface::knob(cx)),
@@ -332,6 +362,38 @@ impl RenderOnce for Switch {
     }
 }
 
+/// How far a held thumb stretches, as a share of its own width.
+const PRESS_STRETCH: f32 = 0.25;
+
+/// Where the thumb starts and how wide it is, `travel` along its way from
+/// off (0) to on (`full_travel`). `stretch` runs from 0 at rest to 1 while
+/// held; a stretched thumb grows toward the middle, keeping the edge it rests
+/// on, so an "on" thumb moves its start back by what it gained.
+fn thumb_frame(
+    travel: gpui::Pixels,
+    full_travel: gpui::Pixels,
+    thumb: gpui::Pixels,
+    stretch: f32,
+) -> (gpui::Pixels, gpui::Pixels) {
+    let extra = thumb * (PRESS_STRETCH * stretch.max(0.));
+    let along = if full_travel > px(0.) {
+        (travel / full_travel).clamp(0., 1.)
+    } else {
+        0.
+    };
+    (travel - extra * along, thumb + extra)
+}
+
+fn set_pressed(state: &gpui::Entity<bool>, pressed: bool, window: &mut Window, cx: &mut App) {
+    state.update(cx, |state, cx| {
+        if *state != pressed {
+            *state = pressed;
+            cx.notify();
+        }
+    });
+    window.refresh();
+}
+
 #[cfg(test)]
 mod tests {
     use std::{cell::Cell, rc::Rc};
@@ -342,6 +404,19 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn a_held_thumb_stretches_from_the_edge_it_rests_on() {
+        let (full, thumb) = (px(12.), px(16.));
+        assert_eq!(thumb_frame(px(0.), full, thumb, 0.), (px(0.), px(16.)));
+        assert_eq!(thumb_frame(full, full, thumb, 0.), (px(12.), px(16.)));
+        // Held off: grows to the right from x = 0.
+        assert_eq!(thumb_frame(px(0.), full, thumb, 1.), (px(0.), px(20.)));
+        // Held on: grows to the left, its end still at the far edge.
+        assert_eq!(thumb_frame(full, full, thumb, 1.), (px(8.), px(20.)));
+        // Half way, it gives back half of what it gained.
+        assert_eq!(thumb_frame(px(6.), full, thumb, 1.), (px(4.), px(20.)));
+    }
 
     #[test]
     fn an_explicit_accessibility_label_replaces_the_visible_one() {

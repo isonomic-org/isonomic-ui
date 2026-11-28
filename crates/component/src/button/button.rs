@@ -873,11 +873,14 @@ impl RenderOnce for Button {
             Some(label) => (Some(label), tooltip_text),
             None => (tooltip_text, None),
         };
+        // A loading button says so in words, since its spinner is only seen.
+        let description = busy_description(description, self.loading);
         // A loading button with no icon shows the spinner where an icon would sit.
         let icon = self.icon.or_else(|| {
             self.loading.then(|| {
                 ButtonIcon::from(
                     Spinner::new()
+                        .color(normal_style.fg)
                         .when_some(self.loading_icon.clone(), |this, icon| this.icon(icon)),
                 )
             })
@@ -902,6 +905,7 @@ impl RenderOnce for Button {
                 this.child(
                     icon.loading_icon(self.loading_icon)
                         .loading(self.loading)
+                        .spinner_color(normal_style.fg)
                         .with_size(icon_size),
                 )
             })
@@ -1057,6 +1061,19 @@ impl RenderOnce for Button {
         .when(is_focused && self.focus_ring_enabled, |this| {
             focus_style(this, focus_line, window, cx)
         })
+    }
+}
+
+/// The description a button announces: its own, with "busy" added while it
+/// is loading, so a listener knows why pressing it does nothing.
+pub(crate) fn busy_description(
+    description: Option<SharedString>,
+    loading: bool,
+) -> Option<SharedString> {
+    match (description, loading) {
+        (description, false) => description,
+        (Some(description), true) => Some(format!("{description}, busy").into()),
+        (None, true) => Some("Busy".into()),
     }
 }
 
@@ -1545,8 +1562,23 @@ impl ButtonVariant {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::IconName;
     use gpui::{linear_color_stop, linear_gradient, px};
+
+    #[test]
+    fn loading_buttons_say_they_are_busy() {
+        assert_eq!(busy_description(None, false), None);
+        assert_eq!(busy_description(None, true), Some("Busy".into()));
+        assert_eq!(
+            busy_description(Some("Saves the draft".into()), true),
+            Some("Saves the draft, busy".into())
+        );
+        assert_eq!(
+            busy_description(Some("Saves the draft".into()), false),
+            Some("Saves the draft".into())
+        );
+    }
 
     /// A button's announced name is its label, unless it was given one — which
     /// is the case an icon-only button and a row-shaped button both need.

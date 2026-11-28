@@ -109,6 +109,27 @@ impl Render for TagStory {
                 ),
             )
             .child(
+                section("Mono").child(
+                    h_flex()
+                        .gap_2()
+                        .child(Tag::secondary().with_size(self.size).mono().child("v2.4.1"))
+                        .child(
+                            Tag::secondary()
+                                .with_size(self.size)
+                                .mono()
+                                .child("INV-2240"),
+                        )
+                        .child(Tag::info().with_size(self.size).mono().child("a3f9c1e"))
+                        .child(
+                            Tag::secondary()
+                                .with_size(self.size)
+                                .outline()
+                                .mono()
+                                .child("region=eu-west"),
+                        ),
+                ),
+            )
+            .child(
                 section("Rounded").child(
                     h_flex()
                         .gap_2()

@@ -255,6 +255,50 @@ impl Render for MenuStory {
                     .child(self.message.clone()),
             )
             .child(
+                section("Shortcuts, checks and a destructive group")
+                    .description(
+                        "Rows show their shortcut, checkable rows hold a tick, a submenu nests, and the destructive rows sit apart at the end. Type a letter while it is open to jump to the row it starts.",
+                    )
+                    .max_w(px(640.))
+                    .child(
+                        Button::new("popup-menu-file")
+                            .outline()
+                            .label("Document")
+                            .dropdown_menu(move |this, window, cx| {
+                                this.min_w(240.)
+                                    .item(
+                                        PopupMenuItem::new("New page")
+                                            .icon(IconName::Plus)
+                                            .shortcut("cmd-n"),
+                                    )
+                                    .item(PopupMenuItem::new("Duplicate").shortcut("cmd-d"))
+                                    .item(PopupMenuItem::new("Rename").shortcut("f2"))
+                                    .submenu("Move to", window, cx, |menu, _, _| {
+                                        menu.item(PopupMenuItem::new("Drafts"))
+                                            .item(PopupMenuItem::new("Quarterly review"))
+                                            .item(PopupMenuItem::new("Archive"))
+                                    })
+                                    .separator()
+                                    .label("Show")
+                                    .item(PopupMenuItem::new("Outline").checked(true))
+                                    .item(PopupMenuItem::new("Comments").checked(true))
+                                    .item(PopupMenuItem::new("Word count").checked(false))
+                                    .separator()
+                                    .item(
+                                        PopupMenuItem::new("Discard changes")
+                                            .destructive()
+                                            .shortcut("cmd-shift-z"),
+                                    )
+                                    .item(
+                                        PopupMenuItem::new("Delete page")
+                                            .icon(IconName::Delete)
+                                            .destructive()
+                                            .shortcut("cmd-backspace"),
+                                    )
+                            }),
+                    ),
+            )
+            .child(
                 section("Context Menu")
                     .description("Different regions can provide their own right-click actions.")
                     .max_w(px(640.))

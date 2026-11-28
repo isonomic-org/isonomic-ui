@@ -11,7 +11,8 @@ use gpui::{
 };
 
 use crate::{
-    DeferredPopover, GlobalState, Popup, ResolvedPosition, Selectable, StyledExt as _,
+    DeferredPopover, FocusTrapElement as _, GlobalState, Popup, ResolvedPosition, Selectable,
+    StyledExt as _,
     actions::{Cancel, Confirm},
 };
 
@@ -209,6 +210,7 @@ pub struct Popover {
     content: Option<ContentBuilder>,
     mouse_button: MouseButton,
     overlay_closable: bool,
+    trap_focus: bool,
     on_open_change: Option<OpenChangeHandler>,
 }
 
@@ -227,8 +229,17 @@ impl Popover {
             content: None,
             mouse_button: MouseButton::Left,
             overlay_closable: true,
+            trap_focus: false,
             on_open_change: None,
         }
+    }
+
+    /// Keep Tab and Shift-Tab inside the open popover, cycling through its
+    /// controls instead of leaving for the page behind. Off by default.
+    /// Escape still closes it and gives focus back.
+    pub fn trap_focus(mut self, trap: bool) -> Self {
+        self.trap_focus = trap;
+        self
     }
 
     pub fn anchor(mut self, anchor: impl Into<Anchor>) -> Self {
@@ -412,7 +423,13 @@ impl RenderOnce for Popover {
                     }
                 })
             });
-        popup.content(content).into_any_element()
+        if self.trap_focus {
+            popup
+                .content(content.focus_trap("trap", &focus_handle))
+                .into_any_element()
+        } else {
+            popup.content(content).into_any_element()
+        }
     }
 }
 

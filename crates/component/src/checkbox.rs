@@ -13,7 +13,7 @@ use gpui::{
     RenderOnce, SharedString, StatefulInteractiveElement, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px, relative, rems, svg,
 };
-use isonomic_ui_base::{CheckboxIndicator, LogicalStyledExt as _, spring};
+use isonomic_ui_base::{CheckboxIndicator, CheckboxState, LogicalStyledExt as _, spring};
 
 /// A Checkbox element.
 #[derive(IntoElement)]
@@ -27,6 +27,7 @@ pub struct Checkbox {
     accessibility_label: Option<SharedString>,
     children: Vec<AnyElement>,
     checked: bool,
+    indeterminate: bool,
     disabled: bool,
     size: Size,
     tab_stop: bool,
@@ -49,6 +50,7 @@ impl Checkbox {
             accessibility_label: None,
             children: Vec::new(),
             checked: false,
+            indeterminate: false,
             disabled: false,
             size: Size::default(),
             on_click: None,
@@ -98,6 +100,15 @@ impl Checkbox {
     /// Set the checked state for the checkbox.
     pub fn checked(mut self, checked: bool) -> Self {
         self.checked = checked;
+        self
+    }
+
+    /// Show the mixed state: some, not all, of what this box stands for is
+    /// checked, such as a "select all" over a partly selected list. It draws
+    /// a dash, announces "mixed", and wins over [`Self::checked`]. Activating
+    /// it asks for `true`.
+    pub fn indeterminate(mut self, indeterminate: bool) -> Self {
+        self.indeterminate = indeterminate;
         self
     }
 
@@ -184,6 +195,60 @@ impl Sizable for Checkbox {
     }
 }
 
+/// The state a checkbox shows: mixed wins over checked.
+pub(crate) fn checkbox_state(checked: bool, indeterminate: bool) -> CheckboxState {
+    match (checked, indeterminate) {
+        (_, true) => CheckboxState::Indeterminate,
+        (true, false) => CheckboxState::Checked,
+        (false, false) => CheckboxState::Unchecked,
+    }
+}
+
+/// The value an activation asks for: a mixed box becomes checked, the others
+/// flip.
+pub(crate) fn next_checked(state: CheckboxState) -> bool {
+    !matches!(state, CheckboxState::Checked)
+}
+
+/// The dash a mixed checkbox draws, fading in and out like the tick.
+fn checkbox_mixed_icon(
+    id: ElementId,
+    size: Size,
+    mixed: bool,
+    disabled: bool,
+    window: &mut Window,
+    cx: &mut App,
+) -> impl IntoElement {
+    let opacity = spring(
+        (id, "mixed"),
+        if mixed { 1. } else { 0. },
+        cx.theme().motion_tokens().spring_control,
+        window,
+        cx,
+    );
+    let color = if disabled {
+        cx.theme().primary_foreground.opacity(0.5)
+    } else {
+        cx.theme().primary_foreground
+    };
+    svg()
+        .absolute()
+        .top_px()
+        .left_px()
+        .map(|this| match size {
+            Size::XSmall => this.size_2(),
+            Size::Small => this.size_2p5(),
+            Size::Medium => this.size_3(),
+            Size::Large => this.size_3p5(),
+            _ => this.size_3(),
+        })
+        .text_color(color)
+        .when(opacity > 0., |this| {
+            this.path(crate::resolve_icon_path(IconName::Minus.path(), cx))
+                .opacity(opacity)
+        })
+}
+
 pub(crate) fn checkbox_check_icon(
     id: ElementId,
     size: Size,
@@ -228,7 +293,10 @@ pub(crate) fn checkbox_check_icon(
 
 impl RenderOnce for Checkbox {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let checked = self.checked;
+        let state = checkbox_state(self.checked, self.indeterminate);
+        let mixed = state == CheckboxState::Indeterminate;
+        // Mixed paints like checked: a filled box, with a dash for the tick.
+        let checked = state != CheckboxState::Unchecked;
         let has_content = self.label.is_some() || !self.children.is_empty();
         let indicator_size = rems(match self.size {
             Size::XSmall => 0.75,
@@ -294,7 +362,7 @@ impl RenderOnce for Checkbox {
         let disabled_text_color = cx.theme().muted_foreground;
         let instance_style = self.style.clone();
         base.role(self.role)
-            .checked(checked)
+            .state(state)
             .disabled(self.disabled)
             .styles(|styles| {
                 styles.disabled(|style| {
@@ -312,7 +380,7 @@ impl RenderOnce for Checkbox {
             .when_some(on_click, |this, on_click| {
                 this.on_change(move |_, _, window, cx| {
                     window.prevent_default();
-                    on_click(&!checked, window, cx);
+                    on_click(&next_checked(state), window, cx);
                 })
             })
             .h_flex()
@@ -333,7 +401,7 @@ impl RenderOnce for Checkbox {
             .refine_style(&self.style)
             .child(
                 CheckboxIndicator::new()
-                    .checked(checked)
+                    .state(state)
                     .disabled(self.disabled)
                     .relative()
                     .size(indicator_size)
@@ -352,14 +420,25 @@ impl RenderOnce for Checkbox {
                     .styles(|styles| {
                         styles
                             .checked(|style| style.bg(cx.theme().tokens.primary).shadow(vec![]))
+                            .indeterminate(|style| {
+                                style.bg(cx.theme().tokens.primary).shadow(vec![])
+                            })
                             .disabled(|style| {
                                 style.when(checked, |style| style.bg(disabled_indicator_color))
                             })
                     })
                     .child(checkbox_check_icon(
+                        self.id.clone(),
+                        self.size,
+                        checked && !mixed,
+                        self.disabled,
+                        window,
+                        cx,
+                    ))
+                    .child(checkbox_mixed_icon(
                         self.id,
                         self.size,
-                        checked,
+                        mixed,
                         self.disabled,
                         window,
                         cx,
@@ -421,6 +500,17 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn mixed_wins_over_checked_and_activates_to_checked() {
+        assert_eq!(checkbox_state(false, false), CheckboxState::Unchecked);
+        assert_eq!(checkbox_state(true, false), CheckboxState::Checked);
+        assert_eq!(checkbox_state(true, true), CheckboxState::Indeterminate);
+        assert_eq!(checkbox_state(false, true), CheckboxState::Indeterminate);
+        assert!(next_checked(CheckboxState::Unchecked));
+        assert!(!next_checked(CheckboxState::Checked));
+        assert!(next_checked(CheckboxState::Indeterminate));
+    }
 
     #[test]
     fn an_explicit_accessibility_label_replaces_the_visible_one() {

@@ -37,6 +37,8 @@ pub struct Radio {
     position_in_set: Option<usize>,
     size_of_set: Option<usize>,
     focus_ring_enabled: bool,
+    /// Supplied by a group, so it can move focus between its radios.
+    focus_handle: Option<gpui::FocusHandle>,
 }
 
 impl Radio {
@@ -60,6 +62,7 @@ impl Radio {
             position_in_set: None,
             size_of_set: None,
             focus_ring_enabled: true,
+            focus_handle: None,
         }
     }
 
@@ -182,10 +185,12 @@ impl RenderOnce for Radio {
             Size::Large => 1.125,
             _ => 1.,
         });
-        let focus_handle = window
-            .use_keyed_state(self.id.clone(), cx, |_, cx| cx.focus_handle())
-            .read(cx)
-            .clone();
+        let focus_handle = self.focus_handle.clone().unwrap_or_else(|| {
+            window
+                .use_keyed_state(self.id.clone(), cx, |_, cx| cx.focus_handle())
+                .read(cx)
+                .clone()
+        });
         let is_focused = focus_handle.is_focused(window);
         let disabled = self.disabled;
         let accessibility_label = self
@@ -455,8 +460,62 @@ impl From<String> for Radio {
     }
 }
 
+/// A key that moves the choice in a radio group.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RadioStep {
+    Previous,
+    Next,
+    First,
+    Last,
+}
+
+impl RadioStep {
+    /// The step a key asks for. Left and right swap in a right-to-left
+    /// layout, so "next" always follows the reading order.
+    pub(crate) fn from_key(key: &str, rtl: bool) -> Option<Self> {
+        match (key, rtl) {
+            ("up", _) | ("left", false) | ("right", true) => Some(Self::Previous),
+            ("down", _) | ("right", false) | ("left", true) => Some(Self::Next),
+            ("home", _) => Some(Self::First),
+            ("end", _) => Some(Self::Last),
+            _ => None,
+        }
+    }
+}
+
+/// The radio a step lands on, skipping disabled ones and wrapping at the
+/// ends. `None` when nothing in the group can be chosen.
+pub(crate) fn radio_step(from: Option<usize>, step: RadioStep, enabled: &[bool]) -> Option<usize> {
+    let total = enabled.len();
+    if !enabled.iter().any(|e| *e) {
+        return None;
+    }
+    let first = enabled.iter().position(|e| *e);
+    let last = enabled.iter().rposition(|e| *e);
+    match (step, from) {
+        (RadioStep::First, _) => first,
+        (RadioStep::Last, _) => last,
+        (RadioStep::Next, None) => first,
+        (RadioStep::Previous, None) => last,
+        (RadioStep::Next, Some(from)) => (1..=total)
+            .map(|offset| (from + offset) % total)
+            .find(|ix| enabled[*ix]),
+        (RadioStep::Previous, Some(from)) => (1..=total)
+            .map(|offset| (from + total * 2 - offset) % total)
+            .find(|ix| enabled[*ix]),
+    }
+}
+
+/// The one radio Tab stops on: the chosen one, or the first that can be
+/// chosen when none is (or the chosen one is disabled).
+pub(crate) fn radio_tab_stop(selected: Option<usize>, enabled: &[bool]) -> Option<usize> {
+    selected
+        .filter(|ix| enabled.get(*ix).copied().unwrap_or(false))
+        .or_else(|| enabled.iter().position(|e| *e))
+}
+
 impl RenderOnce for RadioGroup {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let on_click = self.on_click;
         let disabled = self.disabled;
         let selected_ix = self.selected_index;
@@ -468,9 +527,49 @@ impl RenderOnce for RadioGroup {
         };
 
         let total = self.radios.len();
+        let enabled: Rc<[bool]> = self
+            .radios
+            .iter()
+            .map(|radio| !(disabled || radio.disabled))
+            .collect();
+        // One handle per radio, kept by the group, so the arrow keys can move
+        // focus along with the choice.
+        let handles = window.use_keyed_state(
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "focus".into()),
+            cx,
+            |_, _| Vec::<gpui::FocusHandle>::new(),
+        );
+        handles.update(cx, |handles, cx| {
+            while handles.len() < total {
+                handles.push(cx.focus_handle());
+            }
+            handles.truncate(total);
+        });
+        let focus_handles: Vec<gpui::FocusHandle> = handles.read(cx).clone();
+        let tab_stop = radio_tab_stop(selected_ix, &enabled);
+        let rtl = isonomic_ui_base::LayoutDirection::global(cx).is_rtl();
         BaseRadioGroup::new(self.id)
             .axis(self.layout)
             .refine_style(&self.style)
+            .when_some(on_click.clone(), |this, on_click| {
+                let focus_handles = focus_handles.clone();
+                let enabled = enabled.clone();
+                this.on_key_down(move |event, window, cx| {
+                    let Some(step) = RadioStep::from_key(event.keystroke.key.as_str(), rtl) else {
+                        return;
+                    };
+                    if event.keystroke.modifiers.modified() {
+                        return;
+                    }
+                    let focused = focus_handles.iter().position(|h| h.is_focused(window));
+                    let Some(next) = radio_step(focused.or(selected_ix), step, &enabled) else {
+                        return;
+                    };
+                    cx.stop_propagation();
+                    focus_handles[next].focus(window, cx);
+                    on_click(&next, window, cx);
+                })
+            })
             .child(
                 base.gap_3()
                     .children(self.radios.into_iter().enumerate().map(|(ix, mut radio)| {
@@ -479,10 +578,14 @@ impl RenderOnce for RadioGroup {
                         radio.id = ix.into();
                         radio.position_in_set = Some(ix + 1);
                         radio.size_of_set = Some(total);
+                        radio.focus_handle = focus_handles.get(ix).cloned();
                         let item_disabled = radio.disabled;
                         radio
                             .disabled(disabled || item_disabled)
                             .checked(checked)
+                            // Tab enters the group once, on its chosen radio;
+                            // the arrows move within it.
+                            .tab_stop(tab_stop == Some(ix))
                             .when_some(on_click.clone(), |this, on_click| {
                                 this.on_click(move |_, window, cx| on_click(&ix, window, cx))
                             })
@@ -494,6 +597,44 @@ impl RenderOnce for RadioGroup {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn arrow_keys_follow_reading_order() {
+        assert_eq!(RadioStep::from_key("down", false), Some(RadioStep::Next));
+        assert_eq!(RadioStep::from_key("right", false), Some(RadioStep::Next));
+        assert_eq!(
+            RadioStep::from_key("right", true),
+            Some(RadioStep::Previous)
+        );
+        assert_eq!(RadioStep::from_key("up", true), Some(RadioStep::Previous));
+        assert_eq!(RadioStep::from_key("home", false), Some(RadioStep::First));
+        assert_eq!(RadioStep::from_key("end", false), Some(RadioStep::Last));
+        assert_eq!(RadioStep::from_key("a", false), None);
+    }
+
+    #[test]
+    fn steps_wrap_and_skip_disabled_radios() {
+        let enabled = [true, false, true, true];
+        assert_eq!(radio_step(Some(0), RadioStep::Next, &enabled), Some(2));
+        assert_eq!(radio_step(Some(3), RadioStep::Next, &enabled), Some(0));
+        assert_eq!(radio_step(Some(0), RadioStep::Previous, &enabled), Some(3));
+        assert_eq!(radio_step(Some(2), RadioStep::Previous, &enabled), Some(0));
+        assert_eq!(radio_step(None, RadioStep::Next, &enabled), Some(0));
+        assert_eq!(radio_step(None, RadioStep::Previous, &enabled), Some(3));
+        assert_eq!(radio_step(Some(2), RadioStep::First, &enabled), Some(0));
+        assert_eq!(radio_step(Some(0), RadioStep::Last, &enabled), Some(3));
+        assert_eq!(radio_step(Some(0), RadioStep::Next, &[false, false]), None);
+        // A lone radio steps onto itself.
+        assert_eq!(radio_step(Some(0), RadioStep::Next, &[true]), Some(0));
+    }
+
+    #[test]
+    fn tab_lands_on_the_chosen_radio_or_the_first_enabled_one() {
+        assert_eq!(radio_tab_stop(Some(2), &[true, true, true]), Some(2));
+        assert_eq!(radio_tab_stop(None, &[false, true, true]), Some(1));
+        assert_eq!(radio_tab_stop(Some(0), &[false, true]), Some(1));
+        assert_eq!(radio_tab_stop(None, &[false, false]), None);
+    }
 
     #[test]
     fn an_explicit_accessibility_label_replaces_the_visible_one() {

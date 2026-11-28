@@ -40,6 +40,8 @@ pub use crate::searchable_list::SearchableListItem as SelectItem;
 pub use crate::searchable_list::SearchableListItemElement as SelectListItem;
 /// Re-exported for backward compatibility.
 pub use crate::searchable_list::SearchableVec;
+/// A select option with an icon, a hint and a description.
+pub use crate::searchable_list::SelectOption;
 
 #[derive(IntoElement)]
 pub struct Caret {
@@ -153,6 +155,8 @@ where
     icon: Option<Icon>,
     title_prefix: Option<SharedString>,
     focus_ring_enabled: bool,
+    /// Letters typed on the trigger or the open list, to jump to an item.
+    typeahead: crate::typeahead::Typeahead,
 }
 
 /// A Select element.
@@ -319,6 +323,7 @@ where
             icon: None,
             title_prefix: None,
             focus_ring_enabled: true,
+            typeahead: crate::typeahead::Typeahead::default(),
         }
     }
 
@@ -426,6 +431,66 @@ where
     /// Focus the select trigger input.
     pub fn focus(&self, window: &mut Window, cx: &mut App) {
         self.state.focus_handle.focus(window, cx);
+    }
+
+    /// Typing letters jumps to the item whose title begins with them: on a
+    /// closed select it chooses that item, the way a native select does; on
+    /// an open one it moves the highlight. A searchable select's letters go
+    /// to its search field instead.
+    fn on_typeahead_key(
+        &mut self,
+        event: &gpui::KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.state.disabled || (self.state.open && self.searchable) {
+            return;
+        }
+        let now = instant::Instant::now();
+        let Some(ch) =
+            crate::typeahead::typeahead_char(&event.keystroke, self.typeahead.in_progress(now))
+        else {
+            return;
+        };
+        let query = self.typeahead.push(ch, now).to_string();
+        let list = self.state.list.read(cx);
+        let delegate = &list.delegate().delegate;
+        let mut paths = Vec::new();
+        let mut labels = Vec::new();
+        for section in 0..delegate.sections_count(cx) {
+            for row in 0..delegate.items_count(section) {
+                let ix = IndexPath::new(row).section(section);
+                let label = delegate
+                    .item(ix)
+                    .filter(|item| delegate.is_item_enabled(ix, item, cx))
+                    .map(|item| item.title());
+                paths.push(ix);
+                labels.push(label);
+            }
+        }
+        let current = list
+            .selected_index()
+            .and_then(|ix| paths.iter().position(|path| *path == ix));
+        let labels: Vec<Option<&str>> = labels.iter().map(|label| label.as_deref()).collect();
+        let Some(found) = crate::typeahead::typeahead_match(&labels, current, &query) else {
+            return;
+        };
+        cx.stop_propagation();
+        let ix = paths[found];
+        if self.state.open {
+            self.state.list.update(cx, |list, cx| {
+                list._set_selected_index(Some(ix), window, cx);
+            });
+        } else {
+            self.set_selected_index(Some(ix), window, cx);
+            let value = self
+                .state
+                .selection
+                .first()
+                .map(|(_, item)| item.value().clone());
+            cx.emit(SelectEvent::Confirm(value));
+        }
+        cx.notify();
     }
 
     fn on_blur(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -620,144 +685,151 @@ where
             list.delegate_mut().highlight_matches = self.state.highlight_matches;
         });
 
-        div().size_full().relative().child(
-            div()
-                .relative()
-                .on_prepaint({
-                    let state = cx.entity();
-                    move |bounds, _, cx| state.update(cx, |r, _| r.state.bounds = bounds)
-                })
-                .child(
-                    div()
-                        .id("input")
-                        .test_support()
-                        .relative()
-                        .flex()
-                        .items_center()
-                        .justify_between()
-                        .when(boxed, |this| {
-                            this.bg(bg)
-                                .text_color(fg)
-                                .rounded(if cx.theme().radius > px(0.) {
-                                    cx.theme().radius + px(1.)
-                                } else {
-                                    px(0.)
-                                })
-                                .shadow(trigger_shadow)
-                        })
-                        .input_size(size)
-                        // The caret sits 2px nearer its edge than the text.
-                        .pr(px(match size {
-                            Size::XSmall | Size::Small => 6.,
-                            Size::Large => 10.,
-                            _ => 8.,
-                        }))
-                        .input_text_size(size)
-                        .pressable(!self.state.disabled)
-                        .refine_style(&self.state.style)
-                        .when(
-                            outline_visible && !self.state.open && boxed && self.focus_ring_enabled,
-                            |this| this.focus_ring_style(window, cx),
-                        )
-                        .on_hover({
-                            move |hovered, window, cx| {
-                                let hovered = *hovered;
-                                hover_state.update(cx, |state, cx| {
-                                    if *state != hovered {
-                                        *state = hovered;
-                                        cx.notify();
-                                    }
-                                });
-                                window.refresh();
-                            }
-                        })
-                        .when(allow_open, |this| {
-                            this.on_click(cx.listener(Self::toggle_menu))
-                        })
-                        .child(
-                            h_flex()
-                                .flex_row_dir(cx)
-                                .id("inner")
-                                .w_full()
-                                .min_w_0()
-                                .overflow_hidden()
-                                .whitespace_nowrap()
-                                .items_center()
-                                .justify_between()
-                                .gap_2()
-                                .child(
-                                    div()
-                                        .id("title")
-                                        .flex_1()
-                                        .min_w_0()
-                                        .overflow_hidden()
-                                        .whitespace_nowrap()
-                                        .truncate()
-                                        .child(self.display_title(window, cx)),
-                                )
-                                .when(show_clean, |this| {
-                                    this.child(clear_button(cx).map(|this| {
-                                        if self.state.disabled {
-                                            this.disabled(true)
-                                        } else {
-                                            this.on_click(cx.listener(Self::clean))
+        div()
+            .size_full()
+            .relative()
+            .on_key_down(cx.listener(Self::on_typeahead_key))
+            .child(
+                div()
+                    .relative()
+                    .on_prepaint({
+                        let state = cx.entity();
+                        move |bounds, _, cx| state.update(cx, |r, _| r.state.bounds = bounds)
+                    })
+                    .child(
+                        div()
+                            .id("input")
+                            .test_support()
+                            .relative()
+                            .flex()
+                            .items_center()
+                            .justify_between()
+                            .when(boxed, |this| {
+                                this.bg(bg)
+                                    .text_color(fg)
+                                    .rounded(if cx.theme().radius > px(0.) {
+                                        cx.theme().radius + px(1.)
+                                    } else {
+                                        px(0.)
+                                    })
+                                    .shadow(trigger_shadow)
+                            })
+                            .input_size(size)
+                            // The caret sits 2px nearer its edge than the text.
+                            .pr(px(match size {
+                                Size::XSmall | Size::Small => 6.,
+                                Size::Large => 10.,
+                                _ => 8.,
+                            }))
+                            .input_text_size(size)
+                            .pressable(!self.state.disabled)
+                            .refine_style(&self.state.style)
+                            .when(
+                                outline_visible
+                                    && !self.state.open
+                                    && boxed
+                                    && self.focus_ring_enabled,
+                                |this| this.focus_ring_style(window, cx),
+                            )
+                            .on_hover({
+                                move |hovered, window, cx| {
+                                    let hovered = *hovered;
+                                    hover_state.update(cx, |state, cx| {
+                                        if *state != hovered {
+                                            *state = hovered;
+                                            cx.notify();
                                         }
-                                    }))
-                                })
-                                .when(!show_clean, |this| {
-                                    let icon = match self.icon.clone() {
-                                        Some(icon) => icon
-                                            .xsmall()
-                                            .text_color(crate::look::ink::icon(cx))
-                                            .into_any_element(),
-                                        None => Caret::new(size)
-                                            .text_color(crate::look::ink::icon(cx))
-                                            .turn(turn)
-                                            .into_any_element(),
-                                    };
+                                    });
+                                    window.refresh();
+                                }
+                            })
+                            .when(allow_open, |this| {
+                                this.on_click(cx.listener(Self::toggle_menu))
+                            })
+                            .child(
+                                h_flex()
+                                    .flex_row_dir(cx)
+                                    .id("inner")
+                                    .w_full()
+                                    .min_w_0()
+                                    .overflow_hidden()
+                                    .whitespace_nowrap()
+                                    .items_center()
+                                    .justify_between()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .id("title")
+                                            .flex_1()
+                                            .min_w_0()
+                                            .overflow_hidden()
+                                            .whitespace_nowrap()
+                                            .truncate()
+                                            .child(self.display_title(window, cx)),
+                                    )
+                                    .when(show_clean, |this| {
+                                        this.child(clear_button(cx).map(|this| {
+                                            if self.state.disabled {
+                                                this.disabled(true)
+                                            } else {
+                                                this.on_click(cx.listener(Self::clean))
+                                            }
+                                        }))
+                                    })
+                                    .when(!show_clean, |this| {
+                                        let icon = match self.icon.clone() {
+                                            Some(icon) => icon
+                                                .xsmall()
+                                                .text_color(crate::look::ink::icon(cx))
+                                                .into_any_element(),
+                                            None => Caret::new(size)
+                                                .text_color(crate::look::ink::icon(cx))
+                                                .turn(turn)
+                                                .into_any_element(),
+                                        };
 
-                                    this.child(icon)
-                                }),
-                        ),
-                )
-                .when(self.state.open, |this| {
-                    this.child(
-                        deferred(menu_popup(
-                            &menu_side,
-                            ("select-popup", cx.entity_id()),
-                            bounds,
-                            v_flex()
-                                .occlude()
-                                .map(|this| match self.state.menu_width {
-                                    Length::Auto => this.w(bounds.size.width),
-                                    Length::Definite(w) => this.w(w),
-                                })
-                                .popover_style(cx)
-                                .child(
-                                    List::new(&self.state.list)
-                                        .when_some(
-                                            self.state.search_placeholder.clone(),
-                                            |this, placeholder| {
-                                                this.search_placeholder(placeholder)
-                                            },
-                                        )
-                                        .with_size(self.state.size)
-                                        .max_h(self.state.menu_max_h)
-                                        .hold_items_height(menu_side.is_above())
-                                        .when_some(self.state.scroll_bounce, |list, on| {
-                                            list.scroll_bounce(on)
-                                        })
-                                        .paddings(Edges::all(DROPDOWN_LIST_PADDING)),
-                                )
-                                .on_mouse_down_out(cx.listener(|this, _, window, cx| {
-                                    this.escape(&Cancel, window, cx);
-                                })),
-                            cx,
-                        ))
-                        .with_priority(isonomic_ui_base::POPUP_PRIORITY),
+                                        this.child(icon)
+                                    }),
+                            ),
                     )
-                }),
-        )
+                    .when(self.state.open, |this| {
+                        this.child(
+                            deferred(menu_popup(
+                                &menu_side,
+                                ("select-popup", cx.entity_id()),
+                                bounds,
+                                v_flex()
+                                    .occlude()
+                                    .map(|this| match self.state.menu_width {
+                                        Length::Auto => this.w(bounds.size.width),
+                                        Length::Definite(w) => this.w(w),
+                                    })
+                                    .popover_style(cx)
+                                    .child(
+                                        List::new(&self.state.list)
+                                            .when_some(
+                                                self.state.search_placeholder.clone(),
+                                                |this, placeholder| {
+                                                    this.search_placeholder(placeholder)
+                                                },
+                                            )
+                                            .with_size(self.state.size)
+                                            .max_h(self.state.menu_max_h)
+                                            .hold_items_height(menu_side.is_above())
+                                            .when_some(self.state.scroll_bounce, |list, on| {
+                                                list.scroll_bounce(on)
+                                            })
+                                            .paddings(Edges::all(DROPDOWN_LIST_PADDING)),
+                                    )
+                                    .on_mouse_down_out(cx.listener(|this, _, window, cx| {
+                                        this.escape(&Cancel, window, cx);
+                                    })),
+                                cx,
+                            ))
+                            .with_priority(isonomic_ui_base::POPUP_PRIORITY),
+                        )
+                    }),
+            )
     }
 }
 
