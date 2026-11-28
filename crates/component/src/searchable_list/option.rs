@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A ready-made row for a select or a searchable select: a label with an
 //! optional leading icon, a trailing hint and a second line.
