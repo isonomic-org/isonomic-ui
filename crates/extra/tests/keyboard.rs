@@ -311,3 +311,66 @@ fn the_fleet_moves_between_leads_and_opens_one_with_enter(cx: &mut TestAppContex
     .unwrap();
     assert_eq!(opened(cx), None);
 }
+
+struct IssueStackHarness {
+    stack: Entity<isonomic_ui_extra::agent_issue_stack::AgentIssueStack>,
+}
+
+impl Render for IssueStackHarness {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().p_4().child(self.stack.clone())
+    }
+}
+
+#[isonomic_ui::test]
+fn the_issue_stack_moves_with_arrows_and_wraps_round(cx: &mut TestAppContext) {
+    use isonomic_ui::Focusable as _;
+    use isonomic_ui_extra::agent_issue_stack::{AgentIssueStack, StackIssue};
+
+    let slot = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let keep = slot.clone();
+    let window = open_view(cx, move |cx| {
+        let stack = cx.new(|cx| {
+            AgentIssueStack::new(
+                vec![
+                    StackIssue::new("a", "First"),
+                    StackIssue::new("b", "Second"),
+                    StackIssue::new("c", "Third"),
+                ],
+                cx,
+            )
+            .autoplay(None)
+        });
+        *keep.borrow_mut() = Some(stack.clone());
+        cx.new(|_| IssueStackHarness { stack })
+    });
+    let stack = slot.borrow().clone().expect("stack built");
+    cx.update_window(window.into(), |_, window, cx| {
+        window.render_frame(cx);
+        stack.read(cx).focus_handle(cx).focus(window, cx);
+    })
+    .unwrap();
+    let front = |cx: &mut TestAppContext| {
+        cx.update(|cx| stack.read(cx).current().map(|issue| issue.id().clone()))
+    };
+    assert_eq!(front(cx).as_deref(), Some("a"));
+    let press = |key: &str, cx: &mut TestAppContext| {
+        cx.update_window(window.into(), |_, window, cx| {
+            window.press(key, cx);
+            window.render_frame(cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    press("right", cx);
+    assert_eq!(front(cx).as_deref(), Some("b"));
+    press("left", cx);
+    press("left", cx);
+    assert_eq!(front(cx).as_deref(), Some("c"));
+    press("down", cx);
+    assert_eq!(front(cx).as_deref(), Some("a"));
+    cx.update_window(window.into(), |_, window, _| {
+        assert!(window.try_find_by_label("Next issue").is_some());
+    })
+    .unwrap();
+}
