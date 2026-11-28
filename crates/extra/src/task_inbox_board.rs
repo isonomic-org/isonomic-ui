@@ -413,6 +413,17 @@ impl RenderOnce for TaskInboxBoard {
             }
         };
 
+        let hovers: Vec<(f32, Rc<isonomic_ui::component::look::HoverListener>)> = (0..tasks.len())
+            .map(|ix| {
+                let (fade, listener) = isonomic_ui::component::look::tracked_hover(
+                    ("inbox-task-hover", ix),
+                    true,
+                    window,
+                    cx,
+                );
+                (fade, Rc::new(listener))
+            })
+            .collect();
         let card = |ix: usize, task: &InboxTask, compact: bool| {
             let is_open = open.as_ref() == Some(&task.id);
             let color = tone(task.status);
@@ -545,6 +556,9 @@ impl RenderOnce for TaskInboxBoard {
             });
             let ui_toggle = ui.clone();
             let id = task.id.clone();
+            let (hover_fade, hover_listener) = hovers[ix].clone();
+            let hover_on_hover =
+                move |h: &bool, w: &mut Window, cx: &mut App| hover_listener(h, w, cx);
             v_flex()
                 .id(("inbox-task", ix))
                 .gap_1()
@@ -554,7 +568,14 @@ impl RenderOnce for TaskInboxBoard {
                 .border_color(if is_open { accent.opacity(0.5) } else { line })
                 .bg(fill)
                 .cursor_pointer()
-                .hover(|style| style.border_color(accent.opacity(0.35)))
+                .when(!is_open, |this| {
+                    this.border_color(isonomic_ui::component::look::mix(
+                        line,
+                        accent.opacity(0.35),
+                        hover_fade,
+                    ))
+                })
+                .on_hover(hover_on_hover)
                 .on_click(move |_, _, cx| {
                     ui_toggle.update(cx, |ui, cx| {
                         ui.open = if ui.open.as_ref() == Some(&id) {

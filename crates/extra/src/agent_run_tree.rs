@@ -403,6 +403,20 @@ impl RenderOnce for AgentRunTree {
                 let id = step.id.clone();
                 let toggle_id = step.id.clone();
                 let share = step.millis as f32 / longest as f32;
+                let named =
+                    |name: String| ElementId::NamedChild(self.id.clone().into(), name.into());
+                let (row_fade, row_on_hover) = isonomic_ui::component::look::tracked_hover(
+                    named(format!("row-hover-{}", step.id)),
+                    true,
+                    window,
+                    cx,
+                );
+                let (fold_fade, fold_on_hover) = isonomic_ui::component::look::tracked_hover(
+                    named(format!("fold-hover-{}", step.id)),
+                    row.has_children,
+                    window,
+                    cx,
+                );
                 h_flex()
                     .id(ElementId::NamedChild(
                         self.id.clone().into(),
@@ -414,8 +428,12 @@ impl RenderOnce for AgentRunTree {
                     .pl(px(8. + row.depth as f32 * 16.))
                     .rounded(radius)
                     .cursor_pointer()
-                    .when(is_selected, |this| this.bg(chip))
-                    .when(!is_selected, |this| this.hover(|s| s.bg(chip.opacity(0.5))))
+                    .bg(if is_selected {
+                        chip
+                    } else {
+                        crate::common::faded(chip.opacity(0.5), row_fade)
+                    })
+                    .on_hover(row_on_hover)
                     .role(Role::TreeItem)
                     .aria_label(format!(
                         "{}, {}, {}{}",
@@ -453,7 +471,8 @@ impl RenderOnce for AgentRunTree {
                             .justify_center()
                             .when(row.has_children, |this| {
                                 this.rounded(px(4.))
-                                    .hover(|s| s.bg(line))
+                                    .bg(crate::common::faded(line, fold_fade))
+                                    .on_hover(fold_on_hover)
                                     .on_click(move |_, window, cx| {
                                         cx.stop_propagation();
                                         if let Some(toggle) = &toggle {

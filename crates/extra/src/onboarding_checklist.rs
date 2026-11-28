@@ -17,8 +17,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _,
-    RenderOnce, SharedString, StyleRefinement, Styled, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
+    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -257,6 +257,12 @@ impl RenderOnce for OnboardingChecklist {
             let on_change = on_change.clone();
             let starts = starts.clone();
             let id = step.id.clone();
+            let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                (row_id.clone(), "hover"),
+                true,
+                window,
+                cx,
+            );
 
             Checkbox::new(row_id)
                 .checked(checked)
@@ -283,7 +289,8 @@ impl RenderOnce for OnboardingChecklist {
                 .px_1()
                 .rounded(radius)
                 .cursor_pointer()
-                .hover(|style| style.bg(wash))
+                .bg(crate::common::faded(wash, hover_fade))
+                .on_hover(hover_on_hover)
                 .when(is_focused, |this| this.focus_ring_style(window, cx))
                 .child(
                     div()

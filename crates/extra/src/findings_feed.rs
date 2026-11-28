@@ -378,6 +378,12 @@ impl RenderOnce for FindingsFeed {
                     ". Show only theirs"
                 }
             );
+            let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                ("finding-worker-hover", ix),
+                true,
+                window,
+                cx,
+            );
             h_flex()
                 .id(("finding-worker", ix))
                 .role(Role::Button)
@@ -389,7 +395,8 @@ impl RenderOnce for FindingsFeed {
                 .px_4()
                 .py_2()
                 .cursor_pointer()
-                .hover(|style| style.bg(chip))
+                .bg(crate::common::faded(chip, hover_fade))
+                .on_hover(hover_on_hover)
                 .when(picked, |this| this.bg(chip))
                 .when(dimmed, |this| this.opacity(0.5))
                 .on_click(move |_, _, cx| {
@@ -507,6 +514,12 @@ impl RenderOnce for FindingsFeed {
                     .unwrap_or_default(),
                 ago_words(now.saturating_duration_since(finding.found_at))
             );
+            let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                ("finding-hover", ix),
+                open.is_some(),
+                window,
+                cx,
+            );
             h_flex()
                 .id(("finding", ix))
                 .role(if open.is_some() {
@@ -523,7 +536,8 @@ impl RenderOnce for FindingsFeed {
                 .px_4()
                 .when(open.is_some(), |this| {
                     this.cursor_pointer()
-                        .hover(|style| style.bg(chip))
+                        .bg(crate::common::faded(chip, hover_fade))
+                        .on_hover(hover_on_hover)
                         .on_click(move |_, window, cx| {
                             if let Some(open) = &open {
                                 open(&finding_for_click, window, cx);

@@ -590,6 +590,12 @@ impl Render for PromptTemplateLibrary {
             let template = &self.templates[*ix];
             let picked = self.chosen.as_ref() == Some(&template.id);
             let id = template.id.clone();
+            let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                ("prompt-template-hover", *ix),
+                true,
+                window,
+                cx,
+            );
             h_flex()
                 .id(("prompt-template", *ix))
                 .gap_2()
@@ -598,7 +604,10 @@ impl Render for PromptTemplateLibrary {
                 .rounded(radius)
                 .cursor_pointer()
                 .when(picked, |this| this.bg(chip))
-                .hover(|style| style.bg(chip.opacity(0.6)))
+                .when(!picked, |this| {
+                    this.bg(crate::common::faded(chip.opacity(0.6), hover_fade))
+                })
+                .on_hover(hover_on_hover)
                 .on_click(cx.listener(move |this, _, window, cx| {
                     window.focus(&this.focus, cx);
                     this.choose(&id, cx);
