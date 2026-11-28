@@ -6,7 +6,7 @@ use gpui::{
     RenderOnce, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _, px,
 };
-use isonomic_ui_base::{LogicalStyledExt as _, TestSupportExt as _};
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _, TestSupportExt as _};
 
 use crate::{ActiveTheme as _, AxisExt, Icon, Size, StyleSized, StyledExt as _, ThemeStyled as _};
 
@@ -149,6 +149,7 @@ impl RenderOnce for StepperTrigger {
                     }),
             )
             .children(self.children)
+            .pressable(!self.disabled)
             .when(!self.disabled, |this| {
                 this.on_click(move |event, window, cx| {
                     (self.on_click)(event, window, cx);

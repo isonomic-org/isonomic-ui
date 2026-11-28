@@ -13,7 +13,7 @@ use smallvec::SmallVec;
 
 use crate::{
     RoleOverride, Selectable, StateStyle, StyledExt as _, TestSupportExt as _,
-    a11y_disabled::A11yDisabledExt as _,
+    a11y_disabled::A11yDisabledExt as _, pressable::PressableExt as _,
 };
 
 type ClickHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
@@ -330,6 +330,7 @@ impl RenderOnce for Button {
             .when_some(self.group_active_style, |this, (group, style)| {
                 this.group_active(group, |_| pointer_style(style))
             })
+            .pressable(!disabled)
             .children(self.children)
             .refine_style(&style)
             .a11y_disabled(disabled)

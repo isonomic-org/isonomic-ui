@@ -18,8 +18,8 @@ use gpui::{
     relative, rems,
 };
 use isonomic_ui_base::{
-    LogicalStyledExt as _, Toast as BaseToast, ToastManager, ToastMotion, ToastOptions, ToastStack,
-    ToastStackState, ToastTransitionStatus,
+    LogicalStyledExt as _, PressableExt as _, Toast as BaseToast, ToastManager, ToastMotion,
+    ToastOptions, ToastStack, ToastStackState, ToastTransitionStatus,
 };
 
 use crate::{
@@ -494,10 +494,11 @@ impl Render for Notification {
                     ),
             )
             .when_some(self.on_click.clone(), |this, on_click| {
-                this.on_click(cx.listener(move |view, event, window, cx| {
-                    view.dismiss(window, cx);
-                    on_click(event, window, cx);
-                }))
+                this.pressable(true)
+                    .on_click(cx.listener(move |view, event, window, cx| {
+                        view.dismiss(window, cx);
+                        on_click(event, window, cx);
+                    }))
             })
             .on_aux_click(cx.listener(move |view, event: &ClickEvent, window, cx| {
                 if event.is_middle_click() {

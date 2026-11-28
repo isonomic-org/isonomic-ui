@@ -13,7 +13,7 @@ use gpui::{
     relative, rems, white,
 };
 use isonomic_ui_base::{
-    is_mobile,
+    PressableExt as _, is_mobile,
     motion::{Transition, transition},
 };
 use rust_i18n::t;
@@ -484,6 +484,7 @@ impl RenderOnce for Attachment {
                         .id(id)
                         .absolute()
                         .inset_0()
+                        .pressable(true)
                         .on_click(move |event, window, cx| on_click(event, window, cx)),
                 )
             })

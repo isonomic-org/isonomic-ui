@@ -17,6 +17,7 @@ use crate::{
     RoleOverride, StyledExt as _,
     actions::{Cancel, Confirm},
     input::InputEvent,
+    pressable::PressableExt as _,
     slider::{SliderEvent, SliderState},
 };
 
@@ -597,6 +598,7 @@ impl RenderOnce for ColorPicker {
                     handler(false, window, cx);
                 }
             })
+            .pressable(!disabled)
             .children(self.children)
             .refine_style(&self.style)
     }
@@ -772,6 +774,7 @@ impl RenderOnce for ColorSwatch {
                     this.on_click(move |event, window, cx| on_click(color, event, window, cx))
                 },
             )
+            .pressable(!disabled)
             .children(self.children)
             .refine_style(&self.style)
     }

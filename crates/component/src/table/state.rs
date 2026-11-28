@@ -1,7 +1,7 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use isonomic_ui_base::TestSupportExt as _;
+use isonomic_ui_base::{PressableExt as _, TestSupportExt as _};
 use std::{ops::Range, rc::Rc, time::Duration};
 
 use crate::{
@@ -1872,12 +1872,14 @@ where
             .table_cell_size(self.options.size)
             .when(!is_head, |this| {
                 this.when(self.row_selectable, |this| {
-                    this.on_click(cx.listener(move |table, e: &ClickEvent, _window, cx| {
-                        cx.stop_propagation();
-                        if table.selects_row_on_click(e, cx) {
-                            table.set_selected_row(row_ix, cx);
-                        }
-                    }))
+                    this.pressable(true).on_click(cx.listener(
+                        move |table, e: &ClickEvent, _window, cx| {
+                            cx.stop_propagation();
+                            if table.selects_row_on_click(e, cx) {
+                                table.set_selected_row(row_ix, cx);
+                            }
+                        },
+                    ))
                 })
             })
     }
@@ -1917,6 +1919,7 @@ where
                 })
                 .hover(|this| this.bg(cx.theme().tokens.secondary).opacity(7.))
                 .active(|this| this.bg(cx.theme().tokens.secondary_active).opacity(1.))
+                .pressable(true)
                 .on_click(
                     cx.listener(move |table, _, window, cx| table.perform_sort(col_ix, window, cx)),
                 )

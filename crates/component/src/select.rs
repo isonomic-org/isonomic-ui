@@ -26,7 +26,7 @@ use crate::{
     sizing::DROPDOWN_LIST_PADDING,
     v_flex,
 };
-use isonomic_ui_base::{GlobalState, Select as BaseSelect};
+use isonomic_ui_base::{GlobalState, PressableExt as _, Select as BaseSelect};
 
 // MARK: Public re-exports for back-compat
 
@@ -653,6 +653,7 @@ where
                             _ => 8.,
                         }))
                         .input_text_size(size)
+                        .pressable(!self.state.disabled)
                         .refine_style(&self.state.style)
                         .when(
                             outline_visible && !self.state.open && boxed && self.focus_ring_enabled,

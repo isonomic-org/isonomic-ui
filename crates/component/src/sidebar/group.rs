@@ -7,7 +7,7 @@ use gpui::{
     SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
     prelude::FluentBuilder as _,
 };
-use isonomic_ui_base::LogicalStyledExt as _;
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _};
 
 /// A group of items in the [`super::Sidebar`].
 #[derive(Clone)]
@@ -122,7 +122,7 @@ impl<E: SidebarItem> SidebarItem for SidebarGroup<E> {
                         .h_8()
                         .when_some(open_state, |this, open_state| {
                             this.gap_1()
-                                .cursor_pointer()
+                                .pressable(true)
                                 .role(Role::Button)
                                 .aria_label(label)
                                 .aria_expanded(is_open)

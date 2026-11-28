@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use instant::Duration;
+use isonomic_ui_base::PressableExt as _;
 use std::{cell::Cell, ops::Range, rc::Rc};
 
 use crate::actions::{Cancel, Confirm, SelectDown, SelectUp};
@@ -529,24 +530,25 @@ where
                     .secondary_selected(mouse_right_clicked)
             }))
             .when(selectable, |this| {
-                this.on_click(cx.listener(move |this, e: &ClickEvent, window, cx| {
-                    this.set_right_clicked_index(None, window, cx);
-                    this.selected_index = Some(ix);
-                    this.on_action_confirm(
-                        &Confirm {
-                            secondary: e.modifiers().secondary(cx),
-                        },
-                        window,
-                        cx,
-                    );
-                }))
-                .on_mouse_down(
-                    MouseButton::Right,
-                    cx.listener(move |this, _, window, cx| {
-                        this.set_right_clicked_index(Some(ix), window, cx);
-                        cx.notify();
-                    }),
-                )
+                this.pressable(true)
+                    .on_click(cx.listener(move |this, e: &ClickEvent, window, cx| {
+                        this.set_right_clicked_index(None, window, cx);
+                        this.selected_index = Some(ix);
+                        this.on_action_confirm(
+                            &Confirm {
+                                secondary: e.modifiers().secondary(cx),
+                            },
+                            window,
+                            cx,
+                        );
+                    }))
+                    .on_mouse_down(
+                        MouseButton::Right,
+                        cx.listener(move |this, _, window, cx| {
+                            this.set_right_clicked_index(Some(ix), window, cx);
+                            cx.notify();
+                        }),
+                    )
             })
     }
 

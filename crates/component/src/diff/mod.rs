@@ -30,7 +30,7 @@ use gpui::{
     StatefulInteractiveElement as _, StyleRefinement, Styled, TextRun, Window, div, list, point,
     prelude::FluentBuilder as _, px,
 };
-use isonomic_ui_base::TestSupportExt as _;
+use isonomic_ui_base::{PressableExt as _, TestSupportExt as _};
 use rust_i18n::t;
 
 use crate::{
@@ -1673,6 +1673,7 @@ fn add_annotation_button(
             .role(gpui::accesskit::Role::Button)
             .aria_label(t!("Diff.AddAnnotation", line = position.line()).to_string())
             .child(Icon::new(IconName::Plus).xsmall())
+            .pressable(true)
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_click(move |_, window, cx| handler(&range, window, cx))
             .into_any_element(),

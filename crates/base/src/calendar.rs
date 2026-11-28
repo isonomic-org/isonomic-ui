@@ -4,7 +4,9 @@
 use crate::TestSupportExt as _;
 use std::rc::Rc;
 
-use crate::{LogicalStyledExt as _, h_flex, styled::StyledExt as _, v_flex};
+use crate::{
+    LogicalStyledExt as _, h_flex, pressable::PressableExt as _, styled::StyledExt as _, v_flex,
+};
 use chrono::{Datelike, Local, NaiveDate, Weekday};
 use gpui::{
     AnyElement, App, Context, ElementId, Empty, Entity, EventEmitter, FocusHandle,
@@ -558,7 +560,12 @@ impl InteractiveElement for CalendarItem {
 impl StatefulInteractiveElement for CalendarItem {}
 impl RenderOnce for CalendarItem {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        self.base.children(self.children).refine_style(&self.style)
+        let pressable =
+            item_role(self.state.kind()) == gpui::Role::Button && !self.state.is_disabled();
+        self.base
+            .pressable(pressable)
+            .children(self.children)
+            .refine_style(&self.style)
     }
 }
 

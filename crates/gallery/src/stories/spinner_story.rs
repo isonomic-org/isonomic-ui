@@ -70,6 +70,18 @@ impl Render for SpinnerStory {
                     .child(Spinner::new().with_size(self.size)),
             )
             .child(
+                section("Arc")
+                    .description("A plain turning arc, for quiet inline waits.")
+                    .gap_x_2()
+                    .child(Spinner::new().arc().with_size(self.size))
+                    .child(
+                        Spinner::new()
+                            .arc()
+                            .with_size(self.size)
+                            .color(cx.theme().blue),
+                    ),
+            )
+            .child(
                 section("Color")
                     .description("Use a color that suits the surrounding status.")
                     .gap_x_2()

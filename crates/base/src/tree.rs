@@ -15,6 +15,7 @@ use gpui::{
 use crate::{
     LayoutDirection,
     actions::{Confirm, SelectDown, SelectLeft, SelectRight, SelectUp},
+    pressable::PressableExt as _,
     styled::StyledExt as _,
 };
 
@@ -471,6 +472,7 @@ impl Render for TreeState {
                                 this.aria_expanded(entry.is_expanded())
                             })
                             .child((render_item)(ix, entry, entry_state, window, cx))
+                            .pressable(!entry.is_disabled())
                             .when(!entry.is_disabled(), |this| {
                                 // Select and toggle on a full click, like `List` and `Table`
                                 // rows, so a press that is dragged away leaves the entry alone.

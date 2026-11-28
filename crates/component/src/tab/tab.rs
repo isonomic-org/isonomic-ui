@@ -574,6 +574,9 @@ pub struct Tab {
     pub(super) selected: bool,
     pub(super) indicator_active: bool,
     pub(super) indicator_ready: bool,
+    /// Set by an outlined segmented [`super::TabBar`]: the selected tab is
+    /// filled grey instead of lifted white.
+    pub(super) outlined: bool,
     /// Animation epoch of the [`super::TabBar`] indicator; increments on every
     /// tab switch. Used to key the selected tab's text color fade so it
     /// restarts in sync with the indicator slide.
@@ -631,6 +634,7 @@ impl Default for Tab {
             selected: false,
             indicator_active: false,
             indicator_ready: true,
+            outlined: false,
             indicator_epoch: 0,
             separator: false,
             hovered: false,
@@ -801,6 +805,20 @@ impl RenderOnce for Tab {
         let mut hover_style = self.variant.hovered(self.selected, cx);
         if self.disabled {
             hover_style = self.variant.disabled(self.selected, cx);
+        }
+        if self.outlined && self.variant == TabVariant::Segmented {
+            // An outlined bar sits on the page colour, so the selected tab is
+            // marked with the grey fill rather than a lifted white pill.
+            let fill: gpui::Background = cx.theme().tokens.secondary.into();
+            selected_style.inner_bg = fill;
+            selected_style.shadow = false;
+            disabled_style.bg = cx.theme().transparent.into();
+            if self.selected {
+                normal_style.inner_bg = fill;
+                hover_style.inner_bg = fill;
+                disabled_style.inner_bg = fill;
+            }
+            hover_style.shadow = false;
         }
         let tab_bar_prefix = self.tab_bar_prefix.unwrap_or_default();
         if !tab_bar_prefix {

@@ -14,7 +14,7 @@ use smallvec::SmallVec;
 
 use crate::{
     LayoutDirection, StateStyle, StyledExt as _, TestSupportExt as _,
-    a11y_disabled::A11yDisabledExt as _,
+    a11y_disabled::A11yDisabledExt as _, pressable::PressableExt as _,
 };
 
 type ClickHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
@@ -201,6 +201,7 @@ impl RenderOnce for Tab {
                     this.on_click(move |event, window, cx| on_click(event, window, cx))
                 },
             )
+            .pressable(!disabled)
             .children(self.children)
             .refine_style(&style)
             .a11y_disabled(disabled)

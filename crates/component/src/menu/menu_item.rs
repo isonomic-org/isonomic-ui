@@ -7,7 +7,7 @@ use gpui::{
     ParentElement, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
     StyleRefinement, Styled, Window, accesskit::Toggled, prelude::FluentBuilder as _, px,
 };
-use isonomic_ui_base::{LogicalStyledExt as _, TestSupportExt as _};
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _, TestSupportExt as _};
 use smallvec::SmallVec;
 
 #[derive(IntoElement)]
@@ -126,6 +126,9 @@ impl RenderOnce for MenuItemElement {
             .relative()
             .items_center()
             .justify_between()
+            .when(self.disabled || self.on_click.is_some(), |this| {
+                this.pressable(!self.disabled)
+            })
             .refine_style(&self.style)
             .when_some(self.on_hover, |this, on_hover| {
                 this.on_hover(move |hovered, window, cx| (on_hover)(hovered, window, cx))

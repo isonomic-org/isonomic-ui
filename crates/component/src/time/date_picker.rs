@@ -26,7 +26,7 @@ use super::calendar::{Calendar, CalendarEvent, CalendarState, Date, Matcher};
 use super::time_field::{
     HourCycle, TimeField, TimeFieldEvent, TimeFieldState, TimePrecision, tabular_figures,
 };
-use isonomic_ui_base::{DatePicker as BaseDatePicker, ElementExt as _};
+use isonomic_ui_base::{DatePicker as BaseDatePicker, ElementExt as _, PressableExt as _};
 
 const CONTEXT: &'static str = "DatePicker";
 pub(crate) fn init(cx: &mut App) {
@@ -741,6 +741,7 @@ impl RenderOnce for DatePicker {
                     )
                     .input_text_size(self.size)
                     .input_size(self.size)
+                    .pressable(!self.disabled)
                     .when(!state.open && !self.disabled, |this| {
                         this.on_click(
                             window.listener_for(&self.state, DatePickerState::toggle_calendar),

@@ -63,6 +63,7 @@ pub struct TabBar {
     last_empty_space: AnyElement,
     selected_index: Option<usize>,
     variant: TabVariant,
+    outlined: bool,
     size: Size,
     menu: bool,
     max_width: Option<Pixels>,
@@ -82,6 +83,7 @@ impl TabBar {
             prefix: None,
             suffix: None,
             variant: TabVariant::default(),
+            outlined: false,
             size: Size::default(),
             last_empty_space: div().w_3().into_any_element(),
             selected_index: None,
@@ -112,6 +114,14 @@ impl TabBar {
     /// Set the Tab variant to Segmented, all children will inherit the variant.
     pub fn segmented(mut self) -> Self {
         self.variant = TabVariant::Segmented;
+        self
+    }
+
+    /// Segmented tabs drawn as an outlined bar on the page colour, with the
+    /// selected tab filled grey. All children inherit the variant.
+    pub fn segmented_outlined(mut self) -> Self {
+        self.variant = TabVariant::Segmented;
+        self.outlined = true;
         self
     }
 
@@ -262,6 +272,7 @@ impl TabBar {
         let width = spring((indicator_key, "width"), to_width, slide, window, cx);
 
         let variant = self.variant;
+        let outlined = self.outlined;
         let size = self.size;
         let inner_height = variant.inner_height(size);
         let inner_radius = variant.inner_radius(size, cx);
@@ -277,9 +288,15 @@ impl TabBar {
                     div()
                         .w_full()
                         .h(inner_height)
-                        .bg(cx.theme().popover)
                         .rounded(inner_radius)
-                        .shadow(crate::look::surface::resting(cx)),
+                        .map(|this| {
+                            if outlined {
+                                this.bg(cx.theme().tokens.secondary)
+                            } else {
+                                this.bg(cx.theme().popover)
+                                    .shadow(crate::look::surface::resting(cx))
+                            }
+                        }),
                 ),
                 TabVariant::Pill => el.flex().items_center().child(
                     div()
@@ -415,7 +432,12 @@ impl RenderOnce for TabBar {
                     ..Default::default()
                 };
 
-                (cx.theme().tokens.tab_bar_segmented.into(), padding, px(2.))
+                let bg: gpui::Background = if self.outlined {
+                    cx.theme().background.into()
+                } else {
+                    cx.theme().tokens.tab_bar_segmented.into()
+                };
+                (bg.into(), padding, px(2.))
             }
             TabVariant::Underline => {
                 // This gap is same as the tab inner_paddings
@@ -539,6 +561,7 @@ impl RenderOnce for TabBar {
                 .with_size(self.size);
             tab.indicator_active = has_indicator;
             tab.indicator_ready = indicator_ready;
+            tab.outlined = self.outlined;
             tab.indicator_epoch = indicator_epoch;
             tab.hovered = hovered_ix == Some(ix);
             tab.separator = self.variant == TabVariant::Folder
@@ -694,6 +717,10 @@ impl RenderOnce for TabBar {
                             .border_color(cx.theme().border),
                     )
                 },
+            )
+            .when(
+                self.outlined && self.variant == TabVariant::Segmented,
+                |this| this.border_1().border_color(cx.theme().border),
             )
             .rounded(self.variant.tab_bar_radius(self.size, cx))
             .paddings(paddings)

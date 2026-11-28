@@ -3,7 +3,7 @@
 
 use crate::theme::ActiveTheme;
 use crate::{Disableable, Icon, IconName, Sizable, Size, StyledExt, h_flex};
-use isonomic_ui_base::LogicalStyledExt as _;
+use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _};
 use std::rc::Rc;
 
 use gpui::{
@@ -171,35 +171,36 @@ impl RenderOnce for Rating {
                                 .with_size(size),
                             )
                             .when(!disabled, |this| {
-                                this.on_mouse_move(window.listener_for(
-                                    &state,
-                                    move |state, _, _, cx| {
-                                        if state.hovered_value != ix {
-                                            state.hovered_value = ix;
-                                            cx.notify();
-                                        }
-                                    },
-                                ))
-                                .on_click({
-                                    let state = state.clone();
-                                    let on_click = on_click.clone();
-                                    move |_: &ClickEvent, window, cx| {
-                                        let new = if value >= ix {
-                                            ix.saturating_sub(1)
-                                        } else {
-                                            ix
-                                        };
+                                this.pressable(true)
+                                    .on_mouse_move(window.listener_for(
+                                        &state,
+                                        move |state, _, _, cx| {
+                                            if state.hovered_value != ix {
+                                                state.hovered_value = ix;
+                                                cx.notify();
+                                            }
+                                        },
+                                    ))
+                                    .on_click({
+                                        let state = state.clone();
+                                        let on_click = on_click.clone();
+                                        move |_: &ClickEvent, window, cx| {
+                                            let new = if value >= ix {
+                                                ix.saturating_sub(1)
+                                            } else {
+                                                ix
+                                            };
 
-                                        state.update(cx, |state, cx| {
-                                            state.value = new;
-                                            cx.notify();
-                                        });
+                                            state.update(cx, |state, cx| {
+                                                state.value = new;
+                                                cx.notify();
+                                            });
 
-                                        if let Some(on_click) = &on_click {
-                                            on_click(&new, window, cx);
+                                            if let Some(on_click) = &on_click {
+                                                on_click(&new, window, cx);
+                                            }
                                         }
-                                    }
-                                })
+                                    })
                             }),
                     );
                 }
