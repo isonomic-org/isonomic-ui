@@ -1088,7 +1088,7 @@ fn render_trigger_container(
             _ => 8.,
         }))
         .input_text_size(size)
-        .pressable(!disabled)
+        .pressable(allow_open)
         .refine_style(style)
         .when(focus_visible && appearance && focus_ring_enabled, |this| {
             this.focus_ring_style(window, cx)
