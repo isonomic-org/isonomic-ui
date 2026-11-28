@@ -9,6 +9,9 @@
 //!
 //! Colors come from the base syntax highlighter, so a language is colored when
 //! the application has enabled a grammar for it and shown as plain text otherwise.
+//!
+//! Opt in to a wrap toggle in the header, a language tag beside a file name,
+//! and folding a long snippet to its first lines behind a "Show all" row.
 
 use std::{
     hash::{DefaultHasher, Hash as _, Hasher as _},
@@ -17,21 +20,33 @@ use std::{
     sync::Arc,
 };
 
+use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Rope, StyledExt as _, clipboard::Clipboard, h_flex,
-    highlighter::SyntaxHighlighter, v_flex,
+    ActiveTheme as _, IconName, Rope, Selectable as _, Sizable as _, StyledExt as _,
+    button::{Button, ButtonVariants as _},
+    clipboard::Clipboard,
+    h_flex,
+    highlighter::SyntaxHighlighter,
+    tag::Tag,
+    v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, HighlightStyle, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    Pixels, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
-    StyledText, Window, div, prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, ElementId, HighlightStyle, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, Pixels, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, StyledText, Window, div, linear_color_stop, linear_gradient,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 const LINE_HEIGHT: Pixels = px(20.);
 const INSET: Pixels = px(14.);
 
+/// A folded block keeps at least this many lines out of sight, so the fold
+/// never hides just one or two lines behind a row of the same height.
+const FOLD_MIN_HIDDEN: usize = 3;
+
 type CopyHandler = Rc<dyn Fn(SharedString, &mut Window, &mut App)>;
+type ToggleHandler = Rc<dyn Fn(bool, &mut Window, &mut App)>;
 
 /// A panel of code with a header, optional line numbers and marked lines.
 #[derive(IntoElement)]
@@ -47,6 +62,12 @@ pub struct CodeBlock {
     max_height: Option<Pixels>,
     copyable: bool,
     on_copy: Option<CopyHandler>,
+    wrap_toggle: bool,
+    on_wrap_change: Option<ToggleHandler>,
+    language_tag: bool,
+    fold_after: Option<usize>,
+    default_expanded: bool,
+    on_expand_change: Option<ToggleHandler>,
 }
 
 impl CodeBlock {
@@ -64,7 +85,60 @@ impl CodeBlock {
             max_height: None,
             copyable: true,
             on_copy: None,
+            wrap_toggle: false,
+            on_wrap_change: None,
+            language_tag: false,
+            fold_after: None,
+            default_expanded: false,
+            on_expand_change: None,
         }
+    }
+
+    /// Put a wrap toggle in the header so the reader can switch between
+    /// wrapping long lines and scrolling them sideways. It starts from
+    /// [`Self::wrap`].
+    pub fn wrap_toggle(mut self, wrap_toggle: bool) -> Self {
+        self.wrap_toggle = wrap_toggle;
+        self
+    }
+
+    /// Run when the reader flips the wrap toggle, with the new setting.
+    pub fn on_wrap_change(
+        mut self,
+        handler: impl Fn(bool, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_wrap_change = Some(Rc::new(handler));
+        self
+    }
+
+    /// Show the language as a small tag beside the file name. Without a file
+    /// name the language already names the header.
+    pub fn language_tag(mut self, language_tag: bool) -> Self {
+        self.language_tag = language_tag;
+        self
+    }
+
+    /// Fold a long snippet to its first `lines` lines, with a row below that
+    /// shows the rest. Short snippets are never folded.
+    pub fn fold_after(mut self, lines: usize) -> Self {
+        self.fold_after = Some(lines.max(1));
+        self
+    }
+
+    /// Start a foldable snippet unfolded.
+    pub fn default_expanded(mut self, expanded: bool) -> Self {
+        self.default_expanded = expanded;
+        self
+    }
+
+    /// Run when the reader folds or unfolds the snippet, with whether it is
+    /// now unfolded.
+    pub fn on_expand_change(
+        mut self,
+        handler: impl Fn(bool, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.on_expand_change = Some(Rc::new(handler));
+        self
     }
 
     /// Name the language, such as `"rust"` or `"json"`. It colors the code when
@@ -139,6 +213,41 @@ struct Line {
 struct Highlighted {
     key: u64,
     lines: Rc<[Line]>,
+}
+
+/// What the reader changed, kept between frames.
+#[derive(Default)]
+struct View {
+    /// The reader's wrap choice; until they choose, the block follows `wrap`.
+    wrap: Option<bool>,
+    /// The reader's fold choice; until they choose, the default holds.
+    expanded: Option<bool>,
+}
+
+/// How many lines a folded block shows, or `None` when it is short enough
+/// to show whole.
+fn folded_lines(total: usize, fold_after: Option<usize>) -> Option<usize> {
+    let shown = fold_after?;
+    (total >= shown + FOLD_MIN_HIDDEN).then_some(shown)
+}
+
+/// The fold row's words: what pressing it does.
+fn fold_words(total: usize, shown: usize, expanded: bool) -> String {
+    if expanded {
+        "Show fewer lines".to_string()
+    } else {
+        let hidden = total.saturating_sub(shown);
+        format!("Show all {total} lines, {hidden} more")
+    }
+}
+
+/// The wrap toggle's spoken name, with its state in words.
+fn wrap_words(wrap: bool) -> &'static str {
+    if wrap {
+        "Wrap long lines, on"
+    } else {
+        "Wrap long lines, off"
+    }
 }
 
 /// The text shown: line endings normalized, and one trailing newline dropped
@@ -245,15 +354,35 @@ impl RenderOnce for CodeBlock {
         }
         let lines = state.read(cx).lines.clone();
 
+        let view = window.use_keyed_state((self.id.clone(), "view"), cx, |_, _| View::default());
+        let (wrap, expanded) = {
+            let view = view.read(cx);
+            (
+                view.wrap.unwrap_or(self.wrap),
+                view.expanded.unwrap_or(self.default_expanded),
+            )
+        };
+        let total = lines.len();
+        let folded = folded_lines(total, self.fold_after);
+        let shown = match folded {
+            Some(shown) if !expanded => shown,
+            _ => total,
+        };
+
         let label = self
             .filename
             .clone()
             .or_else(|| self.language.as_deref().map(language_label));
-        let has_header = label.is_some() || self.copyable;
+        let tag = self
+            .language
+            .as_deref()
+            .filter(|_| self.language_tag && self.filename.is_some())
+            .map(language_label);
+        let has_header = label.is_some() || self.copyable || self.wrap_toggle;
         let digits = lines.len().to_string().len() as f32;
         let gutter_width = px(digits * 7.5 + 30.);
         let line_numbers = self.line_numbers;
-        let wrap = self.wrap;
+        let lines = &lines[..shown];
         let is_marked = |ix: usize| self.marked.contains(&(ix + 1));
 
         // The tint and the thin edge of a marked line, on whichever element
@@ -327,6 +456,80 @@ impl RenderOnce for CodeBlock {
                 .into_any_element()
         };
 
+        let wrap_button = self.wrap_toggle.then(|| {
+            let view = view.clone();
+            let on_wrap_change = self.on_wrap_change.clone();
+            Button::new((self.id.clone(), "wrap"))
+                .ghost()
+                .xsmall()
+                .icon(CatalogIcon::TextWrap)
+                .selected(wrap)
+                .toggled(wrap)
+                .accessibility_label(wrap_words(wrap))
+                .tooltip(if wrap {
+                    "Scroll long lines"
+                } else {
+                    "Wrap long lines"
+                })
+                .on_click(move |_, window, cx| {
+                    view.update(cx, |view, cx| {
+                        view.wrap = Some(!wrap);
+                        cx.notify();
+                    });
+                    if let Some(handler) = &on_wrap_change {
+                        handler(!wrap, window, cx);
+                    }
+                })
+                .into_any_element()
+        });
+        let fold_row = folded.map(|folded_at| {
+            let view = view.clone();
+            let on_expand_change = self.on_expand_change.clone();
+            let words = fold_words(total, folded_at, expanded);
+            h_flex()
+                .flex_none()
+                .h(px(32.))
+                .px(px(6.))
+                .border_t_1()
+                .border_color(line)
+                .child(
+                    Button::new((self.id.clone(), "fold"))
+                        .ghost()
+                        .xsmall()
+                        .icon(if expanded {
+                            IconName::ChevronUp
+                        } else {
+                            IconName::ChevronDown
+                        })
+                        .label(words.clone())
+                        .accessibility_label(words)
+                        .on_click(move |_, window, cx| {
+                            view.update(cx, |view, cx| {
+                                view.expanded = Some(!expanded);
+                                cx.notify();
+                            });
+                            if let Some(handler) = &on_expand_change {
+                                handler(!expanded, window, cx);
+                            }
+                        }),
+                )
+        });
+        // A folded block fades its last shown line into the panel, so it
+        // reads as cut off rather than finished.
+        let fade = (folded.is_some() && !expanded).then(|| {
+            div()
+                .absolute()
+                .left_0()
+                .right_0()
+                .bottom_0()
+                .h(px(28.))
+                .bg(linear_gradient(
+                    180.,
+                    linear_color_stop(panel.opacity(0.), 0.),
+                    linear_color_stop(panel, 1.),
+                ))
+        });
+
         v_flex()
             .id(self.id.clone())
             .w_full()
@@ -340,6 +543,8 @@ impl RenderOnce for CodeBlock {
             .when(has_header, |this| {
                 this.child(header(
                     label,
+                    tag,
+                    wrap_button,
                     self.copyable.then(|| {
                         Clipboard::new((self.id.clone(), "copy"))
                             .value(self.code.clone())
@@ -353,23 +558,33 @@ impl RenderOnce for CodeBlock {
             })
             .child(
                 div()
-                    .id("scroll")
+                    .relative()
                     .w_full()
-                    .py(px(10.))
-                    .overflow_y_scroll()
-                    .when_some(self.max_height, |this, max_height| this.max_h(max_height))
-                    .font_family(mono)
-                    .text_caption()
-                    .line_height(LINE_HEIGHT)
-                    .child(body),
+                    .child(
+                        div()
+                            .id("scroll")
+                            .w_full()
+                            .py(px(10.))
+                            .overflow_y_scroll()
+                            .when_some(self.max_height, |this, max_height| this.max_h(max_height))
+                            .font_family(mono)
+                            .text_caption()
+                            .line_height(LINE_HEIGHT)
+                            .child(body),
+                    )
+                    .children(fade),
             )
+            .children(fold_row)
             .refine_style(&self.style)
     }
 }
 
-/// The header row: the name at the start, the copy button at the end.
+/// The header row: the name at the start, the language tag after it, and the
+/// wrap toggle and copy button at the end.
 fn header(
     label: Option<SharedString>,
+    tag: Option<SharedString>,
+    wrap: Option<AnyElement>,
     copy: Option<Clipboard>,
     quiet: Hsla,
     line: Hsla,
@@ -393,6 +608,8 @@ fn header(
                 .text_color(quiet)
                 .children(label),
         )
+        .children(tag.map(|tag| Tag::secondary().xsmall().child(tag)))
+        .children(wrap)
         .children(copy)
 }
 
@@ -432,6 +649,27 @@ mod tests {
         let lines = split_lines("ab\ncdef", &[colored(4..6)]);
         assert!(lines[0].runs.is_empty());
         assert_eq!(lines[1].runs[0].0, 1..3);
+    }
+
+    #[test]
+    fn short_snippets_are_never_folded() {
+        assert_eq!(folded_lines(10, None), None);
+        // Two hidden lines are not worth a row of their own.
+        assert_eq!(folded_lines(12, Some(10)), None);
+        assert_eq!(folded_lines(13, Some(10)), Some(10));
+        assert_eq!(folded_lines(40, Some(8)), Some(8));
+    }
+
+    #[test]
+    fn the_fold_row_says_what_it_does() {
+        assert_eq!(fold_words(40, 8, false), "Show all 40 lines, 32 more");
+        assert_eq!(fold_words(40, 8, true), "Show fewer lines");
+    }
+
+    #[test]
+    fn the_wrap_toggle_says_its_state() {
+        assert_eq!(wrap_words(true), "Wrap long lines, on");
+        assert_eq!(wrap_words(false), "Wrap long lines, off");
     }
 
     #[test]

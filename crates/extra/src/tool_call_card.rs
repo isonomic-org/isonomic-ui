@@ -8,6 +8,9 @@
 //! to the arguments and the result, each with a copy button, and to the error
 //! with a retry. [`ToolCallGroup`] folds the calls of one turn into one quiet
 //! line.
+//!
+//! Opt in to a one-line preview of the result under the folded line, and to
+//! arguments that fold on their own, down to the names of their fields.
 
 use std::{
     hash::{DefaultHasher, Hash as _, Hasher as _},
@@ -44,6 +47,8 @@ use crate::common::{ease, ease_out, hover_state, over, paint_tick, resting_shado
 const TICK: Duration = Duration::from_millis(100);
 /// Code longer than this many lines is capped until "Show all" is pressed.
 const CAPPED_LINES: usize = 12;
+/// How much of a result the folded preview shows.
+const PREVIEW_CHARS: usize = 140;
 
 /// How a tool call stands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +84,9 @@ pub struct ToolCallCard {
     open_on_error: bool,
     on_open_change: Option<OpenHandler>,
     on_retry: Option<Handler>,
+    result_preview: bool,
+    foldable_arguments: bool,
+    arguments_open: bool,
 }
 
 impl ToolCallCard {
@@ -105,7 +113,25 @@ impl ToolCallCard {
             open_on_error: true,
             on_open_change: None,
             on_retry: None,
+            result_preview: false,
+            foldable_arguments: false,
+            arguments_open: true,
         }
+    }
+
+    /// Show the start of the result on one line under the folded card, with
+    /// how much came back, so it can be read without opening the card.
+    pub fn result_preview(mut self, preview: bool) -> Self {
+        self.result_preview = preview;
+        self
+    }
+
+    /// Let the arguments fold on their own inside the open card. Folded,
+    /// they show only the names of their fields. `open` is how they start.
+    pub fn foldable_arguments(mut self, open: bool) -> Self {
+        self.foldable_arguments = true;
+        self.arguments_open = open;
+        self
     }
 
     /// A short line in plain words: "Searching the ledger" while running,
@@ -280,6 +306,148 @@ fn pretty_json(text: &str) -> Option<String> {
     (depth == 0 && !in_string).then_some(out)
 }
 
+/// Text on one line for a preview: JSON laid out compactly, other text with
+/// its lines joined, cut to `max` characters with an ellipsis.
+fn one_line(text: &str, max: usize) -> String {
+    let joined = match pretty_json(text) {
+        Some(pretty) => pretty
+            .lines()
+            .map(str::trim)
+            .collect::<Vec<_>>()
+            .join(" ")
+            .replace("{ ", "{")
+            .replace(" }", "}")
+            .replace("[ ", "[")
+            .replace(" ]", "]"),
+        None => text.split_whitespace().collect::<Vec<_>>().join(" "),
+    };
+    if joined.chars().count() <= max {
+        joined
+    } else {
+        let cut: String = joined.chars().take(max).collect();
+        format!("{}\u{2026}", cut.trim_end())
+    }
+}
+
+/// How much a result holds, in words: "3 fields", "12 items", "4 lines".
+/// `None` for a single line of plain text, which speaks for itself.
+fn result_size(text: &str) -> Option<String> {
+    let plural = |n: usize, one: &str, many: &str| {
+        if n == 1 {
+            format!("1 {one}")
+        } else {
+            format!("{n} {many}")
+        }
+    };
+    let trimmed = text.trim();
+    if pretty_json(trimmed).is_some() {
+        let count = top_level_entries(trimmed);
+        return Some(if trimmed.starts_with('{') {
+            plural(count, "field", "fields")
+        } else {
+            plural(count, "item", "items")
+        });
+    }
+    let lines = trimmed.lines().count();
+    (lines > 1).then(|| plural(lines, "line", "lines"))
+}
+
+/// The number of values directly inside a JSON object or list.
+fn top_level_entries(json: &str) -> usize {
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut commas = 0;
+    let mut any = false;
+    for ch in json.chars() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            if depth == 1 {
+                any = true;
+            }
+            continue;
+        }
+        match ch {
+            '"' => {
+                in_string = true;
+                if depth == 1 {
+                    any = true;
+                }
+            }
+            '{' | '[' => {
+                if depth == 1 {
+                    any = true;
+                }
+                depth += 1;
+            }
+            '}' | ']' => depth = depth.saturating_sub(1),
+            ',' if depth == 1 => commas += 1,
+            ch if depth == 1 && !ch.is_whitespace() => any = true,
+            _ => {}
+        }
+    }
+    if any { commas + 1 } else { 0 }
+}
+
+/// The names of the fields of a JSON object, in order, for the folded
+/// arguments. Empty for anything that is not an object.
+fn field_names(json: &str) -> Vec<String> {
+    let json = json.trim();
+    if !json.starts_with('{') || pretty_json(json).is_none() {
+        return Vec::new();
+    }
+    let mut names = Vec::new();
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut current = String::new();
+    // Whether the string being read sits where a field's name goes.
+    let mut expecting_name = false;
+    let mut reading_name = false;
+    for ch in json.chars() {
+        if in_string {
+            if escaped {
+                escaped = false;
+                if reading_name {
+                    current.push(ch);
+                }
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+                if reading_name {
+                    names.push(std::mem::take(&mut current));
+                    reading_name = false;
+                }
+            } else if reading_name {
+                current.push(ch);
+            }
+            continue;
+        }
+        match ch {
+            '"' => {
+                in_string = true;
+                reading_name = depth == 1 && expecting_name;
+                expecting_name = false;
+            }
+            '{' | '[' => {
+                depth += 1;
+                expecting_name = depth == 1;
+            }
+            '}' | ']' => depth = depth.saturating_sub(1),
+            ',' if depth == 1 => expecting_name = true,
+            _ => {}
+        }
+    }
+    names
+}
+
 /// What opening and closing by itself does when the status changes: a failed
 /// call opens, and closes again on the next run if nobody touched it since.
 /// Returns whether the card is open and whether it opened by itself.
@@ -304,6 +472,19 @@ fn total_duration(durations: &[Option<Duration>]) -> Option<Duration> {
         return None;
     }
     durations.iter().copied().sum()
+}
+
+/// What a screen reader hears for the arguments' fold button.
+fn arguments_words(open: bool, fields: usize) -> String {
+    let fields = match fields {
+        0 => String::new(),
+        1 => ", 1 field".to_string(),
+        n => format!(", {n} fields"),
+    };
+    format!(
+        "Arguments{fields}, {}",
+        if open { "expanded" } else { "collapsed" }
+    )
 }
 
 fn count_label(count: usize) -> String {
@@ -364,6 +545,8 @@ struct CardState {
     measured: Option<Duration>,
     /// Whether the arguments and the result show in full.
     show_all: [bool; 2],
+    /// Whether foldable arguments are unfolded.
+    arguments_open: bool,
     code: [Code; 2],
     ticker: Option<Task<()>>,
 }
@@ -398,6 +581,7 @@ fn code_section(
                         .text_color(quiet)
                         .child(label),
                 )
+                .child(div().flex_1())
                 .child(Clipboard::new((id.clone(), "copy")).value(text.clone())),
         )
         .child(
@@ -449,6 +633,7 @@ impl RenderOnce for ToolCallCard {
             started: Instant::now(),
             measured: None,
             show_all: [false; 2],
+            arguments_open: self.arguments_open,
             code: Default::default(),
             ticker: None,
         });
@@ -515,6 +700,19 @@ impl RenderOnce for ToolCallCard {
             window,
             cx,
         );
+        let arguments_open = state.read(cx).arguments_open;
+        // The folded preview of what came back.
+        let preview = self
+            .result
+            .as_deref()
+            .filter(|_| self.result_preview && !open && status == ToolCallStatus::Success)
+            .map(|result| (one_line(result, PREVIEW_CHARS), result_size(result)));
+        let fields = self
+            .arguments
+            .as_deref()
+            .filter(|_| self.foldable_arguments)
+            .map(field_names)
+            .unwrap_or_default();
 
         // Lay out and colour the code only while it shows.
         let mut code: [Option<(SharedString, Styles)>; 2] = [None, None];
@@ -607,13 +805,16 @@ impl RenderOnce for ToolCallCard {
                 .into_any_element(),
         };
 
+        let mut head_words =
+            call_name(&self.name, self.summary.as_deref(), status, time.as_deref());
+        if let Some((_, size)) = &preview {
+            head_words.push_str(&match size {
+                Some(size) => format!(", returned {size}"),
+                None => ", returned a result".to_string(),
+            });
+        }
         let head = Pressable::new((self.id.clone(), "head"))
-            .accessibility_label(call_name(
-                &self.name,
-                self.summary.as_deref(),
-                status,
-                time.as_deref(),
-            ))
+            .accessibility_label(head_words)
             .aria_expanded(open)
             .track_focus(&focus)
             .on_click({
@@ -649,7 +850,7 @@ impl RenderOnce for ToolCallCard {
                     .flex_none()
                     .max_w(relative(0.5))
                     .truncate()
-                    .font_family(mono)
+                    .font_family(mono.clone())
                     .text_size(px(12.))
                     .child(self.name),
             )
@@ -742,15 +943,56 @@ impl RenderOnce for ToolCallCard {
                 })
                 .when_some(arguments, |this, (text, styles)| {
                     let id = ElementId::from((self.id.clone(), "arguments"));
-                    this.child(code_section(
-                        id,
-                        "Arguments",
-                        text,
-                        styles,
-                        show_all[0],
-                        toggle(0),
-                        cx,
-                    ))
+                    if !self.foldable_arguments {
+                        return this.child(code_section(
+                            id,
+                            "Arguments",
+                            text,
+                            styles,
+                            show_all[0],
+                            toggle(0),
+                            cx,
+                        ));
+                    }
+                    let fold = {
+                        let state = state.clone();
+                        move |_: &ClickEvent, _: &mut Window, cx: &mut App| {
+                            state.update(cx, |state, cx| {
+                                state.arguments_open = !state.arguments_open;
+                                cx.notify();
+                            })
+                        }
+                    };
+                    let names = fields.join(", ");
+                    let disclosure = Button::new((id.clone(), "fold"))
+                        .ghost()
+                        .xsmall()
+                        .icon(if arguments_open {
+                            IconName::ChevronDown
+                        } else {
+                            IconName::ChevronRight
+                        })
+                        .label("Arguments")
+                        .accessibility_label(arguments_words(arguments_open, fields.len()))
+                        .on_click(fold);
+                    if arguments_open {
+                        this.child(v_flex().gap_1().child(h_flex().child(disclosure)).child(
+                            code_section(id, "", text, styles, show_all[0], toggle(0), cx),
+                        ))
+                    } else {
+                        this.child(
+                            h_flex().gap_2().child(disclosure).child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .font_family(mono.clone())
+                                    .text_caption()
+                                    .text_color(quiet)
+                                    .child(names),
+                            ),
+                        )
+                    }
                 })
                 .when_some(result, |this, (text, styles)| {
                     let id = ElementId::from((self.id.clone(), "result"));
@@ -774,6 +1016,28 @@ impl RenderOnce for ToolCallCard {
             MotionReveal::new(child_id("body"), height, content.into_any_element())
         });
 
+        let preview = preview.map(|(line, size)| {
+            h_flex()
+                .gap_2()
+                .mt(px(-8.))
+                .pl(px(38.))
+                .pr_3()
+                .pb_2p5()
+                .text_caption()
+                .text_color(quiet)
+                // Fades in as the body folds away.
+                .opacity(1. - shown)
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .truncate()
+                        .font_family(mono.clone())
+                        .child(line),
+                )
+                .children(size.map(|size| div().flex_none().child(size)))
+        });
+
         v_flex()
             .id(self.id.clone())
             .w_full()
@@ -784,6 +1048,7 @@ impl RenderOnce for ToolCallCard {
             .line_height(relative(1.45))
             .shadow(resting_shadow(cx))
             .child(head)
+            .children(preview)
             .children(body)
             .refine_style(&self.style)
     }
@@ -1066,116 +1331,4 @@ impl RenderOnce for ToolCallGroup {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_call_header_reads_tool_summary_and_state() {
-        assert_eq!(
-            call_name(
-                "ledger.search",
-                Some("Search March"),
-                ToolCallStatus::Success,
-                Some("1.4s")
-            ),
-            "ledger.search, Search March, done in 1.4s"
-        );
-        assert_eq!(
-            call_name("rates.fetch", None, ToolCallStatus::Failed, Some("Failed")),
-            "rates.fetch, failed"
-        );
-        assert_eq!(
-            call_name("post", None, ToolCallStatus::Running, None),
-            "post, running"
-        );
-    }
-
-    #[test]
-    fn durations_read_in_the_right_unit() {
-        assert_eq!(format_duration(Duration::from_millis(380), false), "380ms");
-        assert_eq!(format_duration(Duration::from_millis(380), true), "0.3s");
-        assert_eq!(format_duration(Duration::ZERO, false), "1ms");
-        assert_eq!(
-            format_duration(Duration::from_millis(12_340), false),
-            "12.3s"
-        );
-        assert_eq!(format_duration(Duration::from_secs(125), false), "2m 05s");
-        assert_eq!(
-            format_duration(Duration::from_secs(3 * 3600 + 12 * 60), false),
-            "3h 12m"
-        );
-        assert_eq!(
-            format_duration(Duration::from_secs(52 * 3600), false),
-            "2d 4h"
-        );
-    }
-
-    #[test]
-    fn json_is_laid_out_one_value_per_line() {
-        let pretty = pretty_json(r#"{"query":"vat, 2026","limit":5,"tags":[],"deep":{"a":[1,2]}}"#);
-        let expected = [
-            "{",
-            "  \"query\": \"vat, 2026\",",
-            "  \"limit\": 5,",
-            "  \"tags\": [],",
-            "  \"deep\": {",
-            "    \"a\": [",
-            "      1,",
-            "      2",
-            "    ]",
-            "  }",
-            "}",
-        ]
-        .join("\n");
-        assert_eq!(pretty.as_deref(), Some(expected.as_str()));
-    }
-
-    #[test]
-    fn text_that_is_not_json_is_left_alone() {
-        assert_eq!(pretty_json("3 rows updated"), None);
-        assert_eq!(pretty_json("{\"open\": [1, 2"), None);
-        assert_eq!(pretty_json("]"), None);
-        // Brackets and quotes inside strings do not count.
-        assert_eq!(
-            pretty_json(r#"["a \"}\" b"]"#).as_deref(),
-            Some("[\n  \"a \\\"}\\\" b\"\n]")
-        );
-    }
-
-    #[test]
-    fn a_failed_call_opens_and_closes_by_itself() {
-        use ToolCallStatus::{Failed, Running, Success};
-        // Failing opens a closed card and remembers that it did.
-        assert_eq!(
-            after_status_change(Running, Failed, false, false),
-            (true, true)
-        );
-        // The next run closes it again.
-        assert_eq!(
-            after_status_change(Failed, Running, true, true),
-            (false, false)
-        );
-        // A card someone opened by hand stays open.
-        assert_eq!(
-            after_status_change(Failed, Running, true, false),
-            (true, false)
-        );
-        assert_eq!(
-            after_status_change(Running, Success, false, false),
-            (false, false)
-        );
-    }
-
-    #[test]
-    fn a_group_adds_up_only_complete_durations() {
-        let second = Some(Duration::from_secs(1));
-        assert_eq!(
-            total_duration(&[second, second]),
-            Some(Duration::from_secs(2))
-        );
-        assert_eq!(total_duration(&[second, None]), None);
-        assert_eq!(total_duration(&[]), None);
-        assert_eq!(count_label(1), "Used 1 tool");
-        assert_eq!(count_label(3), "Used 3 tools");
-    }
-}
+mod tests;

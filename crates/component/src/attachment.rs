@@ -5,12 +5,11 @@ use isonomic_ui_base::LogicalStyledExt as _;
 use std::{rc::Rc, time::Duration};
 
 use gpui::{
-    AbsoluteLength, AnyElement, App, Axis, Bounds, ClickEvent, ElementId, Hsla, ImageSource,
-    InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement, Path, PathBuilder,
-    Pixels, Refineable as _, RenderOnce, ScrollHandle, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, StyledImage as _, Window, black,
-    canvas, div, img, linear_color_stop, linear_gradient, point, prelude::FluentBuilder as _, px,
-    relative, rems, white,
+    AnyElement, App, Axis, ClickEvent, ElementId, Hsla, ImageSource, InteractiveElement as _,
+    IntoElement, MouseButton, ObjectFit, ParentElement, Pixels, Refineable as _, RenderOnce, Role,
+    ScrollHandle, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    StyledImage as _, Window, black, div, img, linear_color_stop, linear_gradient,
+    prelude::FluentBuilder as _, px, relative, rems, white,
 };
 use isonomic_ui_base::{
     PressableExt as _, is_mobile,
@@ -21,7 +20,7 @@ use rust_i18n::t;
 use crate::{
     ActiveTheme as _, Icon, IconName, InteractiveElementExt as _, Sizable, Size, StyledExt as _,
     button::{Button, ButtonCustomVariant, ButtonVariants as _},
-    h_flex,
+    h_flex, look,
     progress::ProgressCircle,
     scroll::ScrollableMask,
     shimmer::{ShimmerStyle, ShimmerText},
@@ -29,6 +28,14 @@ use crate::{
     tooltip::Tooltip,
     v_flex,
 };
+
+mod file;
+mod geometry;
+#[cfg(test)]
+mod tests;
+
+pub use file::{FileFamily, file_kind, file_meta, format_file_size, spoken_label};
+use geometry::{card_metrics, upload_bar};
 
 /// The lifecycle status of an attachment.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -78,6 +85,19 @@ impl AttachmentStatus {
     }
 }
 
+impl AttachmentStatus {
+    /// The state in words, for a spoken label.
+    pub fn spoken(self) -> &'static str {
+        match self {
+            Self::Pending => "waiting to upload",
+            Self::Uploading => "uploading",
+            Self::Processing => "processing",
+            Self::Failed => "failed",
+            Self::Complete => "ready",
+        }
+    }
+}
+
 /// A pointer handler for one of the card's built-in controls.
 type ControlHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
 
@@ -114,95 +134,6 @@ const PROGRESS_SCRIM: f32 = 0.35;
 /// How much an image preview is darkened once it has failed.
 const FAILED_SCRIM: f32 = 0.55;
 
-/// The geometry a named size resolves to, in rems so it follows the root font size.
-struct CardMetrics {
-    /// The height of a horizontal card and the side of a square image tile.
-    height: AbsoluteLength,
-    /// The fixed width of a horizontal card that carries content.
-    chip_width: AbsoluteLength,
-    /// The side of the square media slot of a horizontal card.
-    media: AbsoluteLength,
-    /// The glyph size inside the media slot: an icon child without its own size,
-    /// and the status glyphs.
-    media_glyph: AbsoluteLength,
-    /// The padding before the media slot.
-    padding_start: AbsoluteLength,
-    /// The padding after the content and actions.
-    padding_end: AbsoluteLength,
-    /// The padding of a vertical card that carries content.
-    card_padding: AbsoluteLength,
-    gap: AbsoluteLength,
-    text: AbsoluteLength,
-    description: AbsoluteLength,
-}
-
-fn card_metrics(size: Size) -> CardMetrics {
-    let r = |value: f32| AbsoluteLength::Rems(rems(value));
-    match size {
-        Size::XSmall => CardMetrics {
-            height: r(2.5),
-            chip_width: r(11.),
-            media: r(1.75),
-            media_glyph: r(0.875),
-            padding_start: r(0.25),
-            padding_end: r(0.375),
-            card_padding: r(0.25),
-            gap: r(0.375),
-            text: r(0.6875),
-            description: r(0.625),
-        },
-        Size::Small => CardMetrics {
-            height: r(3.),
-            chip_width: r(12.5),
-            media: r(2.),
-            media_glyph: r(1.),
-            padding_start: r(0.375),
-            padding_end: r(0.5),
-            card_padding: r(0.375),
-            gap: r(0.5),
-            text: r(0.75),
-            description: r(0.6875),
-        },
-        Size::Medium => CardMetrics {
-            height: r(3.5),
-            chip_width: r(14.5),
-            media: r(2.375),
-            media_glyph: r(1.25),
-            padding_start: r(0.5),
-            padding_end: r(0.75),
-            card_padding: r(0.5),
-            gap: r(0.625),
-            text: r(0.8125),
-            description: r(0.75),
-        },
-        Size::Large => CardMetrics {
-            height: r(4.),
-            chip_width: r(17.),
-            media: r(2.75),
-            media_glyph: r(1.5),
-            padding_start: r(0.625),
-            padding_end: r(1.),
-            card_padding: r(0.75),
-            gap: r(0.75),
-            text: r(0.875),
-            description: r(0.8125),
-        },
-        // A custom density scales the medium geometry from its base value.
-        Size::Size(value) => CardMetrics {
-            height: (value * 3.5).into(),
-            chip_width: (value * 14.5).into(),
-            media: (value * 2.375).into(),
-            media_glyph: (value * 1.25).into(),
-            padding_start: (value * 0.5).into(),
-            padding_end: (value * 0.75).into(),
-            card_padding: (value * 0.5).into(),
-            gap: (value * 0.625).into(),
-            text: (value * 0.8125).into(),
-            description: (value * 0.75).into(),
-        },
-    }
-}
-
 /// The card's corner radius for a size.
 fn card_radius(size: Size, cx: &App) -> Pixels {
     let tokens = cx.theme().semantic_tokens();
@@ -229,6 +160,7 @@ pub struct Attachment {
     on_retry: Option<ControlHandler>,
     progress: Option<f32>,
     tooltip: Option<SharedString>,
+    label: Option<SharedString>,
 }
 
 impl Attachment {
@@ -248,7 +180,18 @@ impl Attachment {
             on_retry: None,
             progress: None,
             tooltip: None,
+            label: None,
         }
+    }
+
+    /// Name the attachment for assistive technology, usually the file name.
+    ///
+    /// The card is then announced as a group that says the name and the state
+    /// in words, such as "report.pdf, uploading, 40 percent". It takes effect
+    /// only together with [`Self::id`].
+    pub fn label(mut self, name: impl Into<SharedString>) -> Self {
+        self.label = Some(name.into());
+        self
     }
 
     /// Set a stable identity for the built-in controls: the whole-card click
@@ -400,7 +343,7 @@ impl Attachment {
 }
 
 impl RenderOnce for Attachment {
-    fn render(mut self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(mut self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let tokens = cx.theme().semantic_tokens();
         let size = self.size;
         let axis = self.axis;
@@ -410,6 +353,22 @@ impl RenderOnce for Attachment {
         let clickable = self.id.is_some() && self.on_click.is_some();
         let remove = self.id.clone().zip(self.on_remove.take());
         let tooltip = self.id.clone().zip(self.tooltip.take());
+        let spoken = self
+            .label
+            .take()
+            .map(|name| spoken_label(&name, status, self.progress));
+        // A clickable card fades its fill under the pointer instead of
+        // snapping to it.
+        let hover = match self.id.clone().filter(|_| clickable) {
+            Some(id) => {
+                let state = window.use_keyed_state((id.clone(), "card-hover"), cx, |_, _| false);
+                let over = *state.read(cx);
+                Some((state, look::hover_fade((id, "card"), over, window, cx)))
+            }
+            None => None,
+        };
+        let rest_fill = tokens.colors.background;
+        let hover_fill = rest_fill.blend(tokens.colors.muted.opacity(0.5));
         let progress_bar = self
             .progress
             .filter(|_| status.is_uploading() && axis == Axis::Horizontal);
@@ -433,17 +392,11 @@ impl RenderOnce for Attachment {
                 tokens.colors.border
             })
             .when(status.is_pending(), |this| this.border_dashed())
-            .bg(tokens.colors.background)
-            .text_color(tokens.colors.foreground)
-            // Register `hover` unconditionally: a conditionally registered
-            // hover style stays cached when the condition later flips off.
-            .hover(move |style| {
-                if clickable {
-                    style.bg(tokens.colors.muted.opacity(0.5))
-                } else {
-                    style
-                }
+            .bg(match &hover {
+                Some((_, t)) => look::mix(rest_fill, hover_fill, *t),
+                None => rest_fill,
             })
+            .text_color(tokens.colors.foreground)
             .line_height(relative(1.25))
             .text_size(metrics.text)
             .map(|this| match axis {
@@ -476,24 +429,41 @@ impl RenderOnce for Attachment {
             .when_some(progress_bar, |this, percent| {
                 this.child(upload_bar(percent, radius, tokens.colors.primary))
             })
-            .when_some(self.id.zip(self.on_click), |this, (id, on_click)| {
-                // The click layer is painted before the actions slot, so the
-                // actions' hitboxes stay on top and their buttons keep working.
-                this.child(
-                    div()
-                        .id(id)
-                        .absolute()
-                        .inset_0()
-                        .pressable(true)
-                        .on_click(move |event, window, cx| on_click(event, window, cx)),
-                )
-            })
+            .when_some(
+                self.id.clone().zip(self.on_click),
+                |this, (id, on_click)| {
+                    // The click layer is painted before the actions slot, so the
+                    // actions' hitboxes stay on top and their buttons keep working.
+                    this.child(
+                        div()
+                            .id(id)
+                            .absolute()
+                            .inset_0()
+                            .pressable(true)
+                            .on_click(move |event, window, cx| on_click(event, window, cx)),
+                    )
+                },
+            )
             .when_some(self.actions, |this, actions| this.child(actions))
             .refine_style(&self.style);
-        let card = match tooltip {
-            Some((id, text)) => card
+        let needs_id = tooltip.is_some() || spoken.is_some() || hover.is_some();
+        let card = match self.id.clone().filter(|_| needs_id) {
+            Some(id) => card
                 .id((id, "card"))
-                .tooltip(move |window, cx| Tooltip::new(text.clone()).build(window, cx))
+                .when_some(spoken, |this, spoken| {
+                    this.role(Role::Group).aria_label(spoken)
+                })
+                .when_some(hover, |this, (state, _)| {
+                    this.on_hover(move |over, _, cx| {
+                        state.update(cx, |state, cx| {
+                            *state = *over;
+                            cx.notify();
+                        })
+                    })
+                })
+                .when_some(tooltip, |this, (_, text)| {
+                    this.tooltip(move |window, cx| Tooltip::new(text.clone()).build(window, cx))
+                })
                 .into_any_element(),
             None => card.into_any_element(),
         };
@@ -525,72 +495,6 @@ impl RenderOnce for Attachment {
             )
             .into_any_element()
     }
-}
-
-/// The upload bar's thickness.
-const UPLOAD_BAR_THICKNESS: f32 = 2.;
-/// The card's border width; the padding box's corners are this much tighter.
-const CARD_BORDER: f32 = 1.;
-
-/// The upload bar along a card's bottom edge. gpui clips rectangularly, so a
-/// plain rectangle could not follow the corner curve; the bar is a filled path
-/// whose ends trace the inner corner arcs, as CSS `overflow: hidden` would.
-fn upload_bar(percent: f32, radius: Pixels, color: Hsla) -> impl IntoElement {
-    canvas(
-        |_: Bounds<Pixels>, _: &mut Window, _: &mut App| (),
-        move |bounds: Bounds<Pixels>, _: (), window: &mut Window, _: &mut App| {
-            if let Some(path) = upload_bar_path(bounds, percent, radius) {
-                window.paint_path(path, color);
-            }
-        },
-    )
-    .absolute()
-    .inset_0()
-}
-
-/// The bar as the intersection of its rectangle with the card's inner rounded
-/// rectangle: both ends are sampled along the corner arcs. An absolutely
-/// positioned child is laid out in the card's padding box, so `bounds` already
-/// sits inside the border; only the corner radius shrinks by the border width.
-fn upload_bar_path(bounds: Bounds<Pixels>, percent: f32, radius: Pixels) -> Option<Path<Pixels>> {
-    const STEPS: usize = 6;
-    let width = bounds.size.width.as_f32();
-    let height = bounds.size.height.as_f32();
-    let radius = (radius.as_f32() - CARD_BORDER).clamp(0., width.min(height) / 2.);
-    let inner_left = 0.;
-    let inner_right = width;
-    let inner_bottom = height;
-    let top = inner_bottom - UPLOAD_BAR_THICKNESS;
-    let end = inner_left + (inner_right - inner_left) * (percent / 100.).clamp(0., 1.);
-    if end <= inner_left || top <= 0. {
-        return None;
-    }
-    // The corner circles' centre line; rows below it lie in the arcs.
-    let centre_y = inner_bottom - radius;
-    let arc_dx = |y: f32| {
-        if radius > 0. && y > centre_y {
-            (radius * radius - (y - centre_y) * (y - centre_y))
-                .max(0.)
-                .sqrt()
-        } else {
-            radius
-        }
-    };
-    let left_at = |y: f32| inner_left + radius - arc_dx(y);
-    let right_at = |y: f32| (inner_right - radius + arc_dx(y)).min(end);
-    let at = |x: f32, y: f32| point(bounds.origin.x + px(x), bounds.origin.y + px(y));
-    let rows = (0..=STEPS).map(|i| top + UPLOAD_BAR_THICKNESS * i as f32 / STEPS as f32);
-
-    let mut builder = PathBuilder::fill();
-    builder.move_to(at(left_at(top), top));
-    // Down the right end, then back up the left arc.
-    for y in rows.clone() {
-        builder.line_to(at(right_at(y), y));
-    }
-    for y in rows.rev() {
-        builder.line_to(at(left_at(y), y));
-    }
-    builder.build().ok()
 }
 
 /// The corner remove control: a surface-colored disc with a hairline border
@@ -689,6 +593,12 @@ impl AttachmentMedia {
     pub fn src(mut self, source: impl Into<ImageSource>) -> Self {
         self.source = Some(source.into());
         self
+    }
+
+    /// An icon-style preview with the glyph for the file's type, chosen from
+    /// the extension of its name.
+    pub fn file(name: &str) -> Self {
+        Self::new().child(Icon::new(FileFamily::of(name).icon()))
     }
 
     /// Add centered content above the preview and above the status treatment.
@@ -1133,6 +1043,12 @@ impl AttachmentDescription {
         }
     }
 
+    /// The type and size line of a file, such as "PDF · 2.4 MB", from its
+    /// name and its size in bytes.
+    pub fn file(name: &str, bytes: u64) -> Self {
+        Self::new(file_meta(name, bytes))
+    }
+
     /// Set the status used for the semantic description color.
     pub fn status(mut self, status: AttachmentStatus) -> Self {
         self.status = Some(status);
@@ -1394,453 +1310,5 @@ impl RenderOnce for AttachmentGroup {
                         this.child(fade(color, trailing, false))
                     })
             })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_attachment_builder() {
-        let mut attachment = Attachment::new()
-            .status(AttachmentStatus::Uploading)
-            .axis(Axis::Vertical)
-            .with_size(Size::Small)
-            .media(AttachmentMedia::new().src("preview.png"))
-            .content(
-                AttachmentContent::new()
-                    .title(AttachmentTitle::new("report.pdf"))
-                    .description(AttachmentDescription::new("Uploading")),
-            )
-            .actions(AttachmentActions::new().child("Cancel"));
-
-        assert_eq!(attachment.status, AttachmentStatus::Uploading);
-        assert_eq!(attachment.axis, Axis::Vertical);
-        assert_eq!(attachment.size, Size::Small);
-        assert!(attachment.media.is_some());
-        assert!(attachment.content.is_some());
-        assert!(attachment.actions.is_some());
-
-        attachment.layout_slots();
-        assert_eq!(attachment.media.as_ref().unwrap().size, Some(Size::Small));
-        assert_eq!(
-            attachment.media.as_ref().unwrap().status,
-            AttachmentStatus::Uploading
-        );
-        assert!(attachment.content.as_ref().unwrap().vertical_layout);
-        assert!(attachment.actions.as_ref().unwrap().vertical_layout);
-
-        let handle = ScrollHandle::new();
-        let group = AttachmentGroup::new("group")
-            .track_scroll(&handle)
-            .with_edge_fade(gpui::black())
-            .child("first")
-            .child("second");
-        assert!(group.scroll_handle.is_some());
-        assert_eq!(group.edge_fade, Some(gpui::black()));
-        assert_eq!(group.children.len(), 2);
-        assert!(AttachmentGroup::new("plain").scroll_handle.is_none());
-        assert!(AttachmentGroup::new("plain").edge_fade.is_none());
-    }
-
-    #[test]
-    fn test_attachment_whole_card_click_builder() {
-        assert!(Attachment::new().id.is_none());
-        assert!(Attachment::new().on_click.is_none());
-
-        let clickable = Attachment::new()
-            .id("report-attachment")
-            .on_click(|_, _, _| {});
-        assert_eq!(clickable.id, Some("report-attachment".into()));
-        assert!(clickable.on_click.is_some());
-    }
-
-    #[test]
-    fn test_attachment_corner_controls_builder() {
-        assert!(Attachment::new().on_remove.is_none());
-        assert!(Attachment::new().on_retry.is_none());
-
-        let attachment = Attachment::new()
-            .id("upload")
-            .on_remove(|_, _, _| {})
-            .on_retry(|_, _, _| {});
-        assert!(attachment.on_remove.is_some());
-        assert!(attachment.on_retry.is_some());
-    }
-
-    #[test]
-    fn test_attachment_retry_control_reaches_slots_only_while_failed() {
-        let mut failed = Attachment::new()
-            .id("upload")
-            .status(AttachmentStatus::Failed)
-            .on_retry(|_, _, _| {})
-            .media(AttachmentMedia::new().src("preview.png"))
-            .content(AttachmentContent::new().description(AttachmentDescription::new("Failed")));
-        failed.layout_slots();
-        assert!(failed.media.as_ref().unwrap().retry.is_some());
-        assert!(failed.content.as_ref().unwrap().retry.is_some());
-
-        // A completed attachment offers no retry, and one without an identity
-        // has nothing to key the control on.
-        let mut complete = Attachment::new()
-            .id("upload")
-            .on_retry(|_, _, _| {})
-            .media(AttachmentMedia::new().src("preview.png"));
-        complete.layout_slots();
-        assert!(complete.media.as_ref().unwrap().retry.is_none());
-
-        let mut anonymous = Attachment::new()
-            .status(AttachmentStatus::Failed)
-            .on_retry(|_, _, _| {})
-            .media(AttachmentMedia::new().src("preview.png"));
-        anonymous.layout_slots();
-        assert!(anonymous.media.as_ref().unwrap().retry.is_none());
-    }
-
-    #[test]
-    fn test_attachment_progress_and_tooltip_builder() {
-        assert!(Attachment::new().progress.is_none());
-        assert!(Attachment::new().tooltip.is_none());
-        assert_eq!(Attachment::new().progress(130.).progress, Some(100.));
-        assert_eq!(Attachment::new().progress(-5.).progress, Some(0.));
-        assert_eq!(
-            Attachment::new().tooltip("Network error").tooltip,
-            Some("Network error".into())
-        );
-
-        // Progress reaches the slots only while uploading.
-        let mut uploading = Attachment::new()
-            .id("upload")
-            .status(AttachmentStatus::Uploading)
-            .progress(62.)
-            .media(AttachmentMedia::new().src("preview.png"))
-            .content(AttachmentContent::new().description(AttachmentDescription::new("Uploading")));
-        uploading.layout_slots();
-        assert_eq!(uploading.media.as_ref().unwrap().progress, Some(62.));
-        assert_eq!(uploading.content.as_ref().unwrap().progress, Some(62.));
-
-        let mut processing = Attachment::new()
-            .status(AttachmentStatus::Processing)
-            .progress(62.)
-            .media(AttachmentMedia::new().src("preview.png"));
-        processing.layout_slots();
-        assert!(processing.media.as_ref().unwrap().progress.is_none());
-    }
-
-    #[test]
-    fn test_attachment_image_tile_media_is_flush() {
-        let mut tile = Attachment::new()
-            .axis(Axis::Vertical)
-            .media(AttachmentMedia::new().src("preview.png"));
-        tile.layout_slots();
-        assert!(tile.media.as_ref().unwrap().flush);
-
-        let mut card = Attachment::new()
-            .axis(Axis::Vertical)
-            .media(AttachmentMedia::new().src("preview.png"))
-            .content(AttachmentContent::new().title(AttachmentTitle::new("preview.png")));
-        card.layout_slots();
-        assert!(!card.media.as_ref().unwrap().flush);
-    }
-
-    #[test]
-    fn test_attachment_defaults_and_status_helpers() {
-        assert_eq!(Attachment::new().status, AttachmentStatus::Complete);
-        assert_eq!(AttachmentStatus::default(), AttachmentStatus::Complete);
-        assert!(AttachmentStatus::Pending.is_pending());
-        assert!(AttachmentStatus::Uploading.is_in_progress());
-        assert!(AttachmentStatus::Processing.is_processing());
-        assert!(AttachmentStatus::Failed.is_failed());
-        assert!(AttachmentStatus::Complete.is_complete());
-        assert!(!AttachmentStatus::Complete.is_in_progress());
-    }
-
-    #[test]
-    fn test_attachment_slots_are_composable() {
-        let media = AttachmentMedia::new().child("icon");
-        assert_eq!(media.children.len(), 1);
-
-        let content = AttachmentContent::new()
-            .title(AttachmentTitle::new("name"))
-            .description(AttachmentDescription::new("Details"))
-            .child("Custom progress");
-        assert_eq!(content.children.len(), 3);
-        assert!(matches!(
-            content.children[0],
-            AttachmentContentChild::Title(_)
-        ));
-        assert!(matches!(
-            content.children[1],
-            AttachmentContentChild::Description(_)
-        ));
-        assert!(matches!(
-            content.children[2],
-            AttachmentContentChild::Element(_)
-        ));
-
-        let legacy = AttachmentContent::new().child(AttachmentTitle::new("legacy"));
-        assert!(matches!(
-            legacy.children[0],
-            AttachmentContentChild::Element(_)
-        ));
-
-        let actions = AttachmentActions::new().child("remove");
-        assert_eq!(actions.children.len(), 1);
-    }
-
-    #[test]
-    fn test_attachment_typed_content_inherits_status() {
-        let mut attachment = Attachment::new()
-            .status(AttachmentStatus::Uploading)
-            .content(
-                AttachmentContent::new()
-                    .title(AttachmentTitle::new("report.pdf"))
-                    .description(AttachmentDescription::new("Uploading")),
-            );
-
-        attachment.layout_slots();
-
-        let content = attachment.content.unwrap();
-        let AttachmentContentChild::Title(title) = &content.children[0] else {
-            panic!("expected the typed title slot");
-        };
-        assert_eq!(title.status, Some(AttachmentStatus::Uploading));
-
-        let AttachmentContentChild::Description(description) = &content.children[1] else {
-            panic!("expected the typed description slot");
-        };
-        assert_eq!(description.status, Some(AttachmentStatus::Uploading));
-    }
-
-    #[test]
-    fn test_attachment_explicit_child_status_overrides_parent() {
-        let mut attachment = Attachment::new().status(AttachmentStatus::Failed).content(
-            AttachmentContent::new()
-                .title(AttachmentTitle::new("report.pdf").status(AttachmentStatus::Processing))
-                .description(
-                    AttachmentDescription::new("Previous upload completed")
-                        .status(AttachmentStatus::Complete),
-                ),
-        );
-
-        attachment.layout_slots();
-
-        let content = attachment.content.unwrap();
-        let AttachmentContentChild::Title(title) = &content.children[0] else {
-            panic!("expected the typed title slot");
-        };
-        assert_eq!(title.status, Some(AttachmentStatus::Processing));
-
-        let AttachmentContentChild::Description(description) = &content.children[1] else {
-            panic!("expected the typed description slot");
-        };
-        assert_eq!(description.status, Some(AttachmentStatus::Complete));
-    }
-
-    #[test]
-    fn test_attachment_title_keeps_custom_shimmer_style() {
-        let mut attachment = Attachment::new()
-            .status(AttachmentStatus::Processing)
-            .content(
-                AttachmentContent::new().title(
-                    AttachmentTitle::new("report.pdf")
-                        .with_shimmer_style(ShimmerStyle::new().spread(0.45).reverse(true)),
-                ),
-            );
-
-        attachment.layout_slots();
-
-        let content = attachment.content.unwrap();
-        let AttachmentContentChild::Title(title) = &content.children[0] else {
-            panic!("expected the typed title slot");
-        };
-        assert_eq!(title.status, Some(AttachmentStatus::Processing));
-        assert!(title.shimmer_style.is_some());
-    }
-
-    #[test]
-    fn test_attachment_media_preview_keeps_children_and_overlays() {
-        let media = AttachmentMedia::new()
-            .src("preview.png")
-            .child("Existing overlay")
-            .overlay("Centered overlay");
-
-        assert!(media.source.is_some());
-        assert_eq!(media.children.len(), 1);
-        assert_eq!(media.overlays.len(), 1);
-    }
-
-    #[test]
-    fn test_attachment_media_size_inherits_root_unless_explicit() {
-        let slot = |size, status, axis, flush| SlotLayout {
-            size,
-            status,
-            axis,
-            flush,
-            retry: None,
-            progress: None,
-            id: None,
-        };
-        let inherited = AttachmentMedia::new().layout(slot(
-            Size::Small,
-            AttachmentStatus::Complete,
-            Axis::Vertical,
-            true,
-        ));
-        assert_eq!(inherited.size, Some(Size::Small));
-        assert_eq!(inherited.axis, Axis::Vertical);
-        assert!(inherited.flush);
-
-        let explicit = AttachmentMedia::new().with_size(Size::XSmall).layout(slot(
-            Size::Large,
-            AttachmentStatus::Failed,
-            Axis::Horizontal,
-            false,
-        ));
-        assert_eq!(explicit.size, Some(Size::XSmall));
-        assert_eq!(explicit.status, AttachmentStatus::Failed);
-    }
-
-    #[test]
-    fn test_attachment_group_builder() {
-        let group = AttachmentGroup::new("attachments")
-            .child("First")
-            .child("Second");
-
-        assert_eq!(group.children.len(), 2);
-    }
-
-    mod click_dispatch {
-        use std::{cell::Cell, rc::Rc};
-
-        use gpui::{Context, Modifiers, Render, TestAppContext, point, px};
-
-        use super::super::*;
-        use crate::button::Button;
-
-        struct AttachmentClickHarness {
-            card_clicks: Rc<Cell<usize>>,
-            action_clicks: Rc<Cell<usize>>,
-        }
-
-        impl Render for AttachmentClickHarness {
-            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-                let card_clicks = self.card_clicks.clone();
-                let action_clicks = self.action_clicks.clone();
-
-                Attachment::new()
-                    .id("attachment")
-                    .w(px(200.))
-                    .h(px(60.))
-                    .on_click(move |_, _, _| card_clicks.set(card_clicks.get() + 1))
-                    .actions(
-                        AttachmentActions::new().child(
-                            Button::new("open")
-                                .w(px(40.))
-                                .h(px(40.))
-                                .on_click(move |_, _, _| {
-                                    action_clicks.set(action_clicks.get() + 1)
-                                }),
-                        ),
-                    )
-            }
-        }
-
-        #[gpui::test]
-        fn whole_card_click_stays_below_the_actions(cx: &mut TestAppContext) {
-            cx.update(crate::init);
-            let card_clicks = Rc::new(Cell::new(0));
-            let action_clicks = Rc::new(Cell::new(0));
-            let (_, cx) = cx.add_window_view({
-                let card_clicks = card_clicks.clone();
-                let action_clicks = action_clicks.clone();
-                move |_, _| AttachmentClickHarness {
-                    card_clicks,
-                    action_clicks,
-                }
-            });
-            cx.update(|window, cx| window.draw(cx).clear(cx));
-
-            // A click on an action must not also fire the whole-card handler.
-            cx.simulate_click(point(px(20.), px(30.)), Modifiers::default());
-            assert_eq!(action_clicks.get(), 1);
-            assert_eq!(card_clicks.get(), 0);
-
-            // A click elsewhere on the card fires the whole-card handler.
-            cx.simulate_click(point(px(150.), px(30.)), Modifiers::default());
-            assert_eq!(action_clicks.get(), 1);
-            assert_eq!(card_clicks.get(), 1);
-        }
-    }
-
-    mod retry_dispatch {
-        use std::{cell::Cell, rc::Rc};
-
-        use gpui::{
-            Context, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers, Render, TestAppContext,
-            VisualTestContext, point, px,
-        };
-
-        use super::super::*;
-
-        struct FailedMediaHarness {
-            retry: bool,
-            retries: Rc<Cell<usize>>,
-        }
-
-        impl Render for FailedMediaHarness {
-            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-                let retries = self.retries.clone();
-                Attachment::new()
-                    .id("failed-attachment")
-                    .status(AttachmentStatus::Failed)
-                    .media(AttachmentMedia::new())
-                    .when(self.retry, |attachment| {
-                        attachment.on_retry(move |_, _, _| retries.set(retries.get() + 1))
-                    })
-            }
-        }
-
-        fn harness(
-            cx: &mut TestAppContext,
-            retry: bool,
-        ) -> (&mut VisualTestContext, Rc<Cell<usize>>) {
-            cx.update(crate::init);
-            let retries = Rc::new(Cell::new(0));
-            let (_, cx) = cx.add_window_view({
-                let retries = retries.clone();
-                move |_, _| FailedMediaHarness { retry, retries }
-            });
-            cx.update(|window, cx| window.draw(cx).clear(cx));
-            (cx, retries)
-        }
-
-        #[gpui::test]
-        fn failed_media_without_source_retries_by_pointer_and_keyboard(cx: &mut TestAppContext) {
-            let (cx, retries) = harness(cx, true);
-            cx.simulate_click(point(px(20.), px(20.)), Modifiers::default());
-            assert_eq!(retries.get(), 1);
-
-            cx.update(|window, cx| window.focus_next(cx));
-            cx.update(|window, cx| assert!(window.focused(cx).is_some()));
-            let keystroke = Keystroke::parse("enter").unwrap();
-            cx.simulate_event(KeyDownEvent {
-                keystroke: keystroke.clone(),
-                is_held: false,
-                prefer_character_input: false,
-            });
-            cx.simulate_event(KeyUpEvent { keystroke });
-            assert_eq!(retries.get(), 2);
-        }
-
-        #[gpui::test]
-        fn failed_media_without_retry_has_no_action(cx: &mut TestAppContext) {
-            let (cx, retries) = harness(cx, false);
-            cx.simulate_click(point(px(20.), px(20.)), Modifiers::default());
-            assert_eq!(retries.get(), 0);
-            cx.update(|window, cx| window.focus_next(cx));
-            cx.update(|window, cx| assert!(window.focused(cx).is_none()));
-        }
     }
 }

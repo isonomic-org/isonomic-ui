@@ -30,7 +30,38 @@ impl Retry {
 
 const LOG: &str = "2026-03-02T08:14:07Z worker-3 picked up job 4417 after 212 ms in the queue and finished it in 1.84 s\n2026-03-02T08:14:09Z worker-1 retried job 4409 because the upstream service answered with a timeout";
 
-/// Shows a numbered file with marked lines, a one-line command, and wrapped text that scrolls.
+const SCHEDULE: &str = r#"[pumps.north]
+start = "06:00"
+stop = "18:30"
+flow_litres_per_minute = 240
+alarm_below = 40
+
+[pumps.south]
+start = "05:30"
+stop = "19:00"
+flow_litres_per_minute = 310
+alarm_below = 55
+
+[pumps.east]
+start = "07:00"
+stop = "17:00"
+flow_litres_per_minute = 180
+alarm_below = 30
+
+[pumps.west]
+start = "06:15"
+stop = "18:45"
+flow_litres_per_minute = 205
+alarm_below = 35
+
+[reports]
+send_to = ["ops@example.test", "night-shift@example.test"]
+every_minutes = 15
+"#;
+
+/// Shows a numbered file with marked lines and a language tag, a one-line
+/// command, wrapped text with a wrap toggle, and a long file folded to its
+/// first lines.
 pub struct CodeBlockStory {
     copies: usize,
 }
@@ -70,6 +101,7 @@ impl Render for CodeBlockStory {
                     .filename("src/retry.rs")
                     .line_numbers(true)
                     .highlight_lines([11, 12])
+                    .language_tag(true)
                     .on_copy(move |_, _, cx| {
                         view.update(cx, |this, cx| {
                             this.copies += 1;
@@ -87,8 +119,18 @@ impl Render for CodeBlockStory {
             .child(
                 CodeBlock::new("log", LOG)
                     .wrap(true)
+                    .wrap_toggle(true)
                     .max_height(px(96.))
                     .copyable(false),
+            )
+            .child(
+                CodeBlock::new("schedule", SCHEDULE)
+                    .language("toml")
+                    .filename("pumps.toml")
+                    .language_tag(true)
+                    .line_numbers(true)
+                    .wrap_toggle(true)
+                    .fold_after(8),
             )
     }
 }
