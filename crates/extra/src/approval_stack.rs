@@ -36,6 +36,15 @@ use isonomic_ui::{
 
 use crate::common::{Tone, lifted_shadow, resting_shadow};
 
+mod queue;
+#[cfg(test)]
+mod tests;
+
+use queue::{
+    count_words, next_filter, queue_step, risk_counts, risk_tone, row_words, send_grant,
+    send_reject, targets, toggle_all, toggle_pick, triage,
+};
+
 /// How risky a request is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RequestRisk {
@@ -291,166 +300,6 @@ impl ApprovalStack {
 impl Styled for ApprovalStack {
     fn style(&mut self) -> &mut StyleRefinement {
         &mut self.style
-    }
-}
-
-fn risk_tone(risk: RequestRisk) -> (Tone, &'static str) {
-    match risk {
-        RequestRisk::Low => (Tone::Success, "Low risk"),
-        RequestRisk::Medium => (Tone::Warning, "Medium risk"),
-        RequestRisk::High => (Tone::Danger, "High risk"),
-    }
-}
-
-/// The requests a queue shows: those at the filter's risk, or all of them,
-/// riskiest first and otherwise in the order they came.
-fn triage(requests: &[PendingRequest], filter: Option<RequestRisk>) -> Vec<usize> {
-    let mut shown: Vec<usize> = (0..requests.len())
-        .filter(|ix| filter.is_none_or(|risk| requests[*ix].risk == risk))
-        .collect();
-    shown.sort_by_key(|ix| std::cmp::Reverse(requests[*ix].risk));
-    shown
-}
-
-/// How many requests wait at each risk, high first.
-fn risk_counts(requests: &[PendingRequest]) -> [usize; 3] {
-    let count = |risk| requests.iter().filter(|r| r.risk == risk).count();
-    [
-        count(RequestRisk::High),
-        count(RequestRisk::Medium),
-        count(RequestRisk::Low),
-    ]
-}
-
-/// The filter after the current one: all, then high, medium and low.
-fn next_filter(filter: Option<RequestRisk>) -> Option<RequestRisk> {
-    match filter {
-        None => Some(RequestRisk::High),
-        Some(RequestRisk::High) => Some(RequestRisk::Medium),
-        Some(RequestRisk::Medium) => Some(RequestRisk::Low),
-        Some(RequestRisk::Low) => None,
-    }
-}
-
-/// The row an arrow key moves the queue's cursor to; it stops at the ends.
-fn queue_step(current: Option<usize>, count: usize, key: &str) -> Option<usize> {
-    if count == 0 {
-        return None;
-    }
-    let at = current.unwrap_or(0).min(count - 1);
-    match key {
-        "down" => Some(if current.is_none() {
-            0
-        } else {
-            (at + 1).min(count - 1)
-        }),
-        "up" => Some(at.saturating_sub(1)),
-        "home" => Some(0),
-        "end" => Some(count - 1),
-        _ => None,
-    }
-}
-
-/// Pick a request, or put it back.
-fn toggle_pick(picked: &mut Vec<SharedString>, id: &SharedString) {
-    match picked.iter().position(|p| p == id) {
-        Some(at) => {
-            picked.remove(at);
-        }
-        None => picked.push(id.clone()),
-    }
-}
-
-/// Pick every shown request, or none when all of them are picked already.
-fn toggle_all(picked: &mut Vec<SharedString>, shown: &[SharedString]) {
-    if !shown.is_empty() && shown.iter().all(|id| picked.contains(id)) {
-        picked.retain(|id| !shown.contains(id));
-    } else {
-        for id in shown {
-            if !picked.contains(id) {
-                picked.push(id.clone());
-            }
-        }
-    }
-}
-
-/// What a queue action applies to: the picked requests that are shown, in
-/// the order shown, or else the row under the cursor.
-fn targets(
-    picked: &[SharedString],
-    shown: &[SharedString],
-    cursor: Option<&SharedString>,
-) -> Vec<SharedString> {
-    let chosen: Vec<SharedString> = shown
-        .iter()
-        .filter(|id| picked.contains(id))
-        .cloned()
-        .collect();
-    if chosen.is_empty() {
-        cursor.into_iter().cloned().collect()
-    } else {
-        chosen
-    }
-}
-
-/// What a screen reader hears for a queue row.
-fn row_words(request: &PendingRequest, picked: bool) -> String {
-    let mut words = format!(
-        "{}, {}, from {}",
-        request.action,
-        risk_tone(request.risk).1.to_lowercase(),
-        request.from
-    );
-    if !request.asked.is_empty() {
-        words.push_str(&format!(", {}", request.asked));
-    }
-    words.push_str(if picked { ", picked" } else { ", not picked" });
-    words
-}
-
-/// Hand a grant to the owner: in one call when it takes them together, or
-/// as approvals one by one.
-fn send_grant(
-    ids: &[SharedString],
-    scope: GrantScope,
-    on_grant: &Option<GrantHandler>,
-    on_decide: &Option<DecideHandler>,
-    window: &mut Window,
-    cx: &mut App,
-) {
-    if ids.is_empty() {
-        return;
-    }
-    match (on_grant, on_decide) {
-        (Some(grant), _) => grant(ids, scope, window, cx),
-        (None, Some(decide)) => {
-            for id in ids {
-                decide(id, StackDecision::Approve, window, cx);
-            }
-        }
-        (None, None) => {}
-    }
-}
-
-/// Hand a rejection of many to the owner.
-fn send_reject(
-    ids: &[SharedString],
-    on_reject_many: &Option<ManyHandler>,
-    on_decide: &Option<DecideHandler>,
-    window: &mut Window,
-    cx: &mut App,
-) {
-    if ids.is_empty() {
-        return;
-    }
-    match (on_reject_many, on_decide) {
-        (Some(reject), _) => reject(ids, window, cx),
-        (None, Some(decide)) => {
-            for id in ids {
-                decide(id, StackDecision::Reject, window, cx);
-            }
-        }
-        (None, None) => {}
     }
 }
 
@@ -872,14 +721,6 @@ impl ApprovalStack {
     }
 }
 
-/// "1 request" or "3 requests".
-fn count_words(count: usize) -> String {
-    match count {
-        1 => "1 request".to_string(),
-        n => format!("{n} requests"),
-    }
-}
-
 /// The words for a decision in the undo line.
 pub fn decision_words(decision: StackDecision) -> &'static str {
     match decision {
@@ -1238,123 +1079,5 @@ impl RenderOnce for ApprovalStack {
                     }),
             )
             .refine_style(&self.style)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn risks_and_decisions_have_words() {
-        assert_eq!(risk_tone(RequestRisk::High).1, "High risk");
-        assert_eq!(decision_words(StackDecision::Edit), "Sent back to edit");
-        assert!(RequestRisk::High > RequestRisk::Low);
-    }
-
-    fn queue() -> Vec<PendingRequest> {
-        vec![
-            PendingRequest::new("a", "x", "Read a file", RequestRisk::Low),
-            PendingRequest::new("b", "x", "Pay a bill", RequestRisk::High),
-            PendingRequest::new("c", "x", "Send mail", RequestRisk::Medium),
-            PendingRequest::new("d", "x", "Delete a branch", RequestRisk::High),
-        ]
-    }
-
-    #[test]
-    fn triage_puts_the_riskiest_first_and_keeps_arrival_order() {
-        assert_eq!(triage(&queue(), None), [1, 3, 2, 0]);
-        assert_eq!(triage(&queue(), Some(RequestRisk::High)), [1, 3]);
-        assert_eq!(triage(&queue(), Some(RequestRisk::Low)), [0]);
-        assert_eq!(risk_counts(&queue()), [2, 1, 1]);
-    }
-
-    #[test]
-    fn the_filter_steps_through_every_risk_and_back() {
-        let mut filter = None;
-        let mut seen = Vec::new();
-        for _ in 0..4 {
-            filter = next_filter(filter);
-            seen.push(filter);
-        }
-        assert_eq!(
-            seen,
-            [
-                Some(RequestRisk::High),
-                Some(RequestRisk::Medium),
-                Some(RequestRisk::Low),
-                None
-            ]
-        );
-    }
-
-    #[test]
-    fn the_cursor_stops_at_the_ends() {
-        assert_eq!(queue_step(None, 3, "down"), Some(0));
-        assert_eq!(queue_step(Some(0), 3, "down"), Some(1));
-        assert_eq!(queue_step(Some(2), 3, "down"), Some(2));
-        assert_eq!(queue_step(Some(0), 3, "up"), Some(0));
-        assert_eq!(queue_step(Some(1), 3, "end"), Some(2));
-        assert_eq!(queue_step(Some(1), 3, "x"), None);
-        assert_eq!(queue_step(None, 0, "down"), None);
-    }
-
-    #[test]
-    fn picking_toggles_one_or_all() {
-        let shown: Vec<SharedString> = vec!["b".into(), "d".into()];
-        let mut picked = Vec::new();
-        toggle_pick(&mut picked, &"b".into());
-        assert_eq!(picked, ["b"]);
-        toggle_all(&mut picked, &shown);
-        assert_eq!(picked, ["b", "d"]);
-        // All shown were picked, so the second press clears them.
-        toggle_all(&mut picked, &shown);
-        assert!(picked.is_empty());
-        toggle_pick(&mut picked, &"b".into());
-        toggle_pick(&mut picked, &"b".into());
-        assert!(picked.is_empty());
-    }
-
-    #[test]
-    fn actions_apply_to_the_picked_rows_or_the_cursor() {
-        let shown: Vec<SharedString> = vec!["b".into(), "d".into(), "c".into()];
-        let picked: Vec<SharedString> = vec!["c".into(), "b".into(), "gone".into()];
-        // Picked rows in the order shown; ones not shown are left alone.
-        assert_eq!(targets(&picked, &shown, Some(&"d".into())), ["b", "c"]);
-        assert_eq!(targets(&[], &shown, Some(&"d".into())), ["d"]);
-        assert!(targets(&[], &shown, None).is_empty());
-    }
-
-    #[test]
-    fn grants_and_rows_read_in_words() {
-        let one: Vec<SharedString> = vec!["Pay a bill".into()];
-        let three: Vec<SharedString> = vec!["a".into(), "b".into(), "c".into()];
-        assert_eq!(
-            grant_note(&one, GrantScope::Session),
-            "Allowed for this session: Pay a bill"
-        );
-        assert_eq!(
-            grant_note(&three, GrantScope::Always),
-            "Allowed 3 requests always"
-        );
-        assert_eq!(reject_note(&three), "Rejected 3 requests");
-        assert_eq!(GrantScope::of_key("w"), Some(GrantScope::Always));
-        assert_eq!(GrantScope::of_key("q"), None);
-        let request = PendingRequest::new("b", "Payables", "Pay a bill", RequestRisk::High)
-            .asked("2 min ago");
-        assert_eq!(
-            row_words(&request, true),
-            "Pay a bill, high risk, from Payables, 2 min ago, picked"
-        );
-    }
-
-    #[test]
-    fn requests_collect_details() {
-        let request = PendingRequest::new("a", "Payables", "Pay a bill", RequestRisk::High)
-            .detail("Amount", "$1,240.50")
-            .detail("To", "Harbour Supply")
-            .asked("3 min ago");
-        assert_eq!(request.details.len(), 2);
-        assert_eq!(request.asked.as_ref(), "3 min ago");
     }
 }
