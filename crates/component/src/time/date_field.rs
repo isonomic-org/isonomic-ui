@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use gpui::{
-    App, ElementId, Entity, Focusable as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    App, ElementId, Entity, Focusable as _, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::{
     ActiveTheme as _, Disableable, Sizable, Size, StyleSized as _, StyledExt as _,
-    ThemeStyled as _, input::input_style,
+    input::input_style,
 };
 
 use super::time_field::tabular_figures;
@@ -88,29 +89,44 @@ impl Styled for DateField {
 
 impl RenderOnce for DateField {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        // The frame is a field: a hairline ring that firms under the pointer
+        // and steps to a full pixel with the caret in it. Fields show no halo.
+        let (fade, on_hover) = crate::look::tracked_hover(
+            ("date-field-frame", self.state.entity_id()),
+            !self.disabled,
+            window,
+            cx,
+        );
         let state = self.state.read(cx);
         let focused = state.focus_handle(cx).is_focused(window);
         let invalid = self.invalid || !state.is_in_range();
         let (bg, fg) = input_style(self.disabled, cx);
+        let frame_shadow = crate::look::surface::field_for(
+            fade,
+            focused && !self.disabled,
+            invalid,
+            self.disabled,
+            cx,
+        );
         let segment_radius = cx.theme().radius / 2.;
 
         div()
+            .id(("date-field-frame", self.state.entity_id()))
             .flex()
             .items_center()
             .flex_none()
             .font_features(tabular_figures())
             .bg(bg)
             .text_color(fg)
-            .border_1()
-            .border_color(cx.theme().input)
-            .rounded(cx.theme().radius)
+            .rounded(if cx.theme().radius > px(0.) {
+                cx.theme().radius + px(1.)
+            } else {
+                px(0.)
+            })
+            .shadow(frame_shadow)
+            .on_hover(on_hover)
             .input_text_size(self.size)
             .input_h(self.size)
-            .when(self.disabled, |this| this.opacity(0.5))
-            .when(focused && !self.disabled, |this| {
-                this.focus_ring_style(window, cx)
-            })
-            .when(invalid, |this| this.border_color(cx.theme().danger))
             .child(
                 BaseDateField::new(self.id, &self.state)
                     .disabled(self.disabled)
@@ -120,7 +136,8 @@ impl RenderOnce for DateField {
                     // field rather than on the frame around it.
                     .flex()
                     .size_full()
-                    .px_1()
+                    // Segments carry 2px of their own: 8 + 2 is a field's 10px inset.
+                    .px_2()
                     .items_center()
                     .render_segment(move |segment, state, _, cx| {
                         segment

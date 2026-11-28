@@ -682,6 +682,16 @@ impl RenderOnce for DatePicker {
 
         // This for keep focus border style, when click on the popup.
         let is_focused = self.focus_handle(cx).contains_focused(window, cx);
+        // The trigger is a field, like the select's: a hairline ring that
+        // firms under the pointer and steps to a full pixel while open.
+        let open = self.state.read(cx).open;
+        let (fade, on_hover) = crate::look::tracked_hover(
+            ("date-picker-trigger", self.state.entity_id()),
+            self.appearance && !self.disabled && !open,
+            window,
+            cx,
+        );
+        let trigger_shadow = crate::look::surface::field_for(fade, open, false, self.disabled, cx);
         let state = self.state.read(cx);
         let show_clean = self.cleanable && state.date.is_some();
         let placeholder = self
@@ -727,21 +737,31 @@ impl RenderOnce for DatePicker {
                     .when(self.appearance, |this| {
                         this.bg(bg)
                             .text_color(fg)
-                            .when(self.disabled, |this| this.opacity(0.5))
-                            .border_1()
-                            .border_color(cx.theme().input)
-                            .rounded(cx.theme().radius)
-                            .when(is_focused, |this| {
-                                this.border_1().border_color(cx.theme().ring)
+                            .rounded(if cx.theme().radius > px(0.) {
+                                cx.theme().radius + px(1.)
+                            } else {
+                                px(0.)
                             })
+                            .shadow(trigger_shadow)
                     })
                     .when(
-                        is_focused && self.appearance && !self.disabled && self.focus_ring_enabled,
+                        is_focused
+                            && !open
+                            && self.appearance
+                            && !self.disabled
+                            && self.focus_ring_enabled,
                         |this| this.focus_ring_style(window, cx),
                     )
+                    .on_hover(on_hover)
                     .input_text_size(self.size)
                     .input_size(self.size)
                     .pressable(!self.disabled)
+                    // The icon sits 2px nearer its edge than the text.
+                    .pr(px(match self.size {
+                        Size::XSmall | Size::Small => 6.,
+                        Size::Large => 10.,
+                        _ => 8.,
+                    }))
                     .when(!state.open && !self.disabled, |this| {
                         this.on_click(
                             window.listener_for(&self.state, DatePickerState::toggle_calendar),
@@ -768,7 +788,7 @@ impl RenderOnce for DatePicker {
                                         this.font_features(tabular_figures())
                                     })
                                     .when(!state.date.is_some(), |this| {
-                                        this.text_color(cx.theme().muted_foreground)
+                                        this.text_color(crate::look::ink::subtle(cx))
                                     })
                                     .child(display_title),
                             )
@@ -782,7 +802,7 @@ impl RenderOnce for DatePicker {
                                     this.child(
                                         Icon::new(IconName::Calendar)
                                             .xsmall()
-                                            .text_color(cx.theme().muted_foreground),
+                                            .text_color(crate::look::ink::icon(cx)),
                                     )
                                 })
                             }),

@@ -123,12 +123,15 @@ fn exposes_accessibility_value(content_type: Option<InputContentType>) -> bool {
 pub(crate) fn input_style(disabled: bool, cx: &App) -> (Hsla, Hsla) {
     if disabled {
         (
-            // A disabled field sits back as a faint wash, not a grey slab.
-            if cx.theme().mode.is_dark() {
+            // A disabled field sits back as a faint wash, not a grey slab. The
+            // wash is laid onto the page colour so the fill is opaque: a
+            // translucent one lets the field's ring shadow show through as a
+            // grey slab.
+            cx.theme().background.blend(if cx.theme().mode.is_dark() {
                 gpui::hsla(0., 0., 1., 0.03)
             } else {
                 gpui::hsla(0., 0., 0., 0.02)
-            },
+            }),
             cx.theme().muted_foreground,
         )
     } else {
