@@ -126,6 +126,18 @@ fn tone(color: Hsla, l: f32) -> Hsla {
     hsla(color.h, color.s, l, color.a)
 }
 
+/// A face colour faded `k` of the way into a page of lightness `page`,
+/// staying opaque so the boxes behind never show through.
+pub fn recede(color: Hsla, page: f32, k: f32) -> Hsla {
+    let k = k.clamp(0., 1.);
+    hsla(
+        color.h,
+        color.s * (1. - 0.8 * k),
+        color.l + (page - color.l) * 0.75 * k,
+        color.a,
+    )
+}
+
 /// Rows sit this many cells apart, so an aisle runs between them.
 const ROW_PITCH: f32 = 1.7;
 
@@ -400,6 +412,7 @@ impl RenderOnce for IsometricStackedBars {
             .map(|ix| iso_faces(palette[ix % palette.len()]))
             .collect();
         let ground = look::ink::wash_strong(cx);
+        let page = cx.theme().background.l;
 
         let columns = self
             .rows
@@ -484,7 +497,7 @@ impl RenderOnce for IsometricStackedBars {
                     let delay = (r + c) as f32 * 0.04;
                     let shown = ((grown - delay) / (1. - delay).max(0.2)).clamp(0., 1.);
                     let shown = 1. - (1. - shown).powi(3);
-                    let dim = 1. - 0.62 * dimmed * (1. - focus[r][c]);
+                    let dim = 0.7 * dimmed * (1. - focus[r][c]);
                     let mut base = 0.;
                     for (s, value) in bar.values.iter().enumerate() {
                         let value = value.max(0.);
@@ -496,9 +509,9 @@ impl RenderOnce for IsometricStackedBars {
                         let z1 = (base / peak) as f32 * layout.rise * shown;
                         let shade = paint_faces[s % paint_faces.len().max(1)];
                         let [top, left, right] = layout.faces(c, r, z0, z1);
-                        poly(window, &left, shade.left.opacity(dim));
-                        poly(window, &right, shade.right.opacity(dim));
-                        poly(window, &top, shade.top.opacity(dim));
+                        poly(window, &left, recede(shade.left, page, dim));
+                        poly(window, &right, recede(shade.right, page, dim));
+                        poly(window, &top, recede(shade.top, page, dim));
                     }
                 }
             },
@@ -737,6 +750,9 @@ mod tests {
         assert_eq!(faces.left, color);
         assert!(faces.top.l > color.l);
         assert!(faces.right.l < color.l);
+        assert_eq!(recede(color, 1., 0.), color);
+        let faded = recede(color, 1., 1.);
+        assert!(faded.l > color.l && faded.s < color.s && faded.a == 1.);
     }
 
     #[test]
