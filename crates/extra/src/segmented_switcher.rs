@@ -7,6 +7,7 @@
 //! count, such as how many invoices are unpaid, and can be turned off one at
 //! a time. With `fill` the segments share the full width equally.
 
+use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -214,7 +215,7 @@ impl RenderOnce for SegmentedSwitcher {
                 .when(on && focused, |this| this.border_1().border_color(ring))
                 .when(!on && !segment.disabled, |this| {
                     this.text_color(quiet)
-                        .cursor_pointer()
+                        .pressable(true)
                         .hover(|s| s.text_color(ink))
                         .on_click(move |_, window, cx| {
                             if let Some(pick) = &pick {
@@ -222,7 +223,9 @@ impl RenderOnce for SegmentedSwitcher {
                             }
                         })
                 })
-                .when(segment.disabled, |this| this.text_color(quiet.opacity(0.5)))
+                .when(segment.disabled, |this| {
+                    this.text_color(quiet.opacity(0.5)).pressable(false)
+                })
                 .when_some(segment.icon, |this, icon| {
                     this.child(Icon::new(icon).small())
                 })

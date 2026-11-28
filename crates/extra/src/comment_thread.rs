@@ -11,6 +11,7 @@
 //! posted; whoever owns it decides whether an assistant answers, and feeds the
 //! answer back with [`CommentThread::push`].
 
+use isonomic_ui::base::PressableExt as _;
 use std::time::{Duration, SystemTime};
 
 use isonomic_ui::base::Button as Pressable;
@@ -360,7 +361,7 @@ impl Render for CommentThread {
                             .gap_1p5()
                             .rounded(radius)
                             .line_height(relative(1.4))
-                            .when(has_details, |this| this.cursor_pointer())
+                            .pressable(has_details)
                             .when(is_focused, |this| this.focus_ring_style(window, cx))
                             .child(
                                 Icon::new(IconName::CircleCheck)

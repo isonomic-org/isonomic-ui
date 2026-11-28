@@ -8,6 +8,7 @@
 //! tasks; inside a group a task unlocks once the ones before it are done. A
 //! finished group is struck through, folds away and opens the next one.
 
+use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
 
 use isonomic_ui::base::{Button as Pressable, Toggle};
@@ -357,7 +358,7 @@ impl RenderOnce for GroupedSetupChecklist {
                     .h(px(32.))
                     .px_3()
                     .rounded(radius)
-                    .when(unlocked, |this| this.cursor_pointer())
+                    .pressable(unlocked)
                     .when(is_focused, |this| this.focus_ring_style(window, cx))
                     .child(
                         div()

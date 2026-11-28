@@ -7,6 +7,7 @@
 //! "Saving…" note, and a failed save shows its reason under the row. A row
 //! can be locked with a reason, such as a plan that doesn't include it.
 
+use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -143,11 +144,12 @@ impl RenderOnce for SettingToggleRow {
             .relative()
             .role(Role::Group)
             .aria_label(spoken)
+            .when(frozen, |this| this.pressable(false))
             .when(!frozen, |this| {
                 // A click anywhere on the row flips the setting. It sits on a
                 // layer with no role, so the switch stays the one control
                 // that is announced.
-                this.cursor_pointer().hover(move |s| s.bg(hover)).child(
+                this.pressable(true).hover(move |s| s.bg(hover)).child(
                     div()
                         .id(ElementId::NamedChild(
                             self.id.clone().into(),
