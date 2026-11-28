@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Checked text field: a single-line field that checks what's typed against simple rules and says what's wrong, without nagging before the person has finished.
 //!

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Toggle button set: a row of buttons that each stay pressed or not, where either any number or at most one can be pressed at a time.
 //!

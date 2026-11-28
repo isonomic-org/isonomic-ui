@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The appear motion shared by every [`Plot`](super::Plot): how far its data
 //! marks have drawn in since the plot was first painted.

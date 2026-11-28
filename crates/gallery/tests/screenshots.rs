@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Renders every gallery story offscreen, in light and dark, and writes one PNG
 //! per story and theme to `target/screenshots/<theme>/<story>.png` inside this

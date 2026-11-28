@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Finds the stories in `src/stories/extra/`, one file per component of
 //! `isonomic-ui-extra`, and writes the code that registers them: the module

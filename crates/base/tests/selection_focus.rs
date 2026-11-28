@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Selection controls keep their place in the focus path when disabled by a
 //! controlled update, so native Tab can still leave them in either direction.

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Explained tooltip: a hover note on any element with a title, a line or two of explanation and its keyboard shortcut, or the reason a control is off.
 //!

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2026 Anud Inc.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """Build the "Isonomic UI QA" report page from a run's results.
 

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Profile menu: the card behind an avatar, with the signed-in user, account
 //! actions and an optional nudge to finish setting up.

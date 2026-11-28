@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pub(crate) use isonomic_ui_base::virtual_list;
 pub use isonomic_ui_base::{VirtualList, VirtualListScrollHandle, h_virtual_list, v_virtual_list};

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Exercise actual native application teardown in bounded child processes.
 //! Run with `cargo test -p isonomic-ui --no-default-features --test native_shutdown`.

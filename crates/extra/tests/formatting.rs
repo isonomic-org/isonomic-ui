@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The components here and their stories are found at build time, not through
 //! `mod` lines, so `cargo fmt` never visits them. This test does.

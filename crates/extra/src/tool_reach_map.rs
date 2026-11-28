@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Tool reach map: every tool an assistant can reach, grouped by service, showing what it used, what failed and what it's not allowed to touch, with each call ready to replay.
 //!

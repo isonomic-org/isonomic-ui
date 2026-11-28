@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Due date picker: a month calendar with one-click presets for the dates people actually pick, and days that can't be picked greyed out.
 //!

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Reads `ri_phys_footprint` through `proc_pid_rusage`, the counter behind
 //! Activity Monitor's Memory column and the one the kernel judges a process

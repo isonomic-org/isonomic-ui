@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Entity preview card: a name in running text that previews what it stands for on hover: a customer, an invoice, an assistant.
 //!

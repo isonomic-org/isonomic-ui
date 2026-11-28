@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Agent hierarchy cards: a lead assistant and the helpers it handed work to, as a tree of cards.
 //!

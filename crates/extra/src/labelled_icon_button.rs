@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Labelled icon button: a square icon button that can't be built without a name, shows that name on hover, can stay pressed, and can carry a count.
 //!

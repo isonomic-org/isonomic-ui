@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Search picker: a field that filters a list as you type, highlights the matching letters, picks one or many as chips, and offers to create what isn't there.
 //!

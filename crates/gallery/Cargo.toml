@@ -3,7 +3,7 @@ name = "isonomic-ui-gallery"
 version = "0.1.0"
 publish = false
 edition.workspace = true
-license = "Apache-2.0"
+license = "GPL-3.0-or-later"
 
 [features]
 gpui-fast = ["isonomic-ui/gpui-fast", "isonomic-ui-fps/gpui-fast"]

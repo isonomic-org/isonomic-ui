@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Paint a selection using the same glyph extents as text range highlights.
 use super::{GlyphBox, aligned_row_left, glyph_boxes, range_boxes};

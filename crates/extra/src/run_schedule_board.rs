@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Run schedule board: a week of hour slots where limited assistant sessions are placed by dragging, or by an auto mode.
 //!

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2026 Anud Inc.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """Write the QA comment for one pull request from a CI run.
 
