@@ -69,7 +69,9 @@ impl Render for RadioStory {
             .child(story_toolbar(self.size))
             .child(
                 section("Delivery")
-                    .description("Choose one option from a clearly described set.")
+                    .description(
+                        "Choose one option. Tab enters on the chosen radio; the arrow keys move the choice, skipping the unavailable one.",
+                    )
                     .w(px(320.))
                     .items_center()
                     .child(

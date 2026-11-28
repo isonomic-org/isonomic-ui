@@ -21,6 +21,8 @@ pub struct CheckboxStory {
     check4: bool,
     check5: bool,
     check6: bool,
+    /// The three reports under the mixed "all reports" box.
+    reports: [bool; 3],
     size: Size,
 }
 
@@ -52,6 +54,7 @@ impl CheckboxStory {
             check4: false,
             check5: false,
             check6: false,
+            reports: [true, false, true],
             size: Size::default(),
         }
     }
@@ -98,6 +101,53 @@ impl Render for CheckboxStory {
                             })),
                     ),
             )
+            .child({
+                let all = self.reports.iter().all(|r| *r);
+                let some = self.reports.iter().any(|r| *r);
+                section("Mixed")
+                    .description("A box over a partly checked group shows a dash and reads as mixed.")
+                    .child(
+                        v_flex()
+                            .gap_2()
+                            .child(
+                                Checkbox::new("all-reports")
+                                    .with_size(self.size)
+                                    .checked(all)
+                                    .indeterminate(some && !all)
+                                    .label("All weekly reports")
+                                    .on_click(cx.listener(|this, checked: &bool, _, cx| {
+                                        this.reports = [*checked; 3];
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                v_flex().pl_6().gap_2().children(
+                                    ["Revenue by region", "Open tickets", "Hiring pipeline"]
+                                        .into_iter()
+                                        .enumerate()
+                                        .map(|(ix, label)| {
+                                            Checkbox::new(("report", ix))
+                                                .with_size(self.size)
+                                                .checked(self.reports[ix])
+                                                .label(label)
+                                                .on_click(cx.listener(
+                                                    move |this, checked: &bool, _, cx| {
+                                                        this.reports[ix] = *checked;
+                                                        cx.notify();
+                                                    },
+                                                ))
+                                        }),
+                                ),
+                            )
+                            .child(
+                                Checkbox::new("mixed-disabled")
+                                    .with_size(self.size)
+                                    .indeterminate(true)
+                                    .disabled(true)
+                                    .label("Mixed, disabled"),
+                            ),
+                    )
+            })
             .child(
                 section("Without label")
                     .description("The label can be supplied by surrounding content.")
