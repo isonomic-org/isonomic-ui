@@ -8,8 +8,8 @@ use std::{
 };
 
 use gpui::{
-    AnyElement, App, AvailableSpace, Background, Bounds, ElementId, Hsla, IntoElement, Pixels,
-    Point, SharedString, TextAlign, Window, point, px,
+    AnyElement, App, AvailableSpace, Background, Bounds, ElementId, Hsla, IntoElement, PathBuilder,
+    Pixels, Point, SharedString, TextAlign, Window, point, px,
 };
 use isonomic_ui_macros::IntoPlot;
 use num_traits::Zero;
@@ -71,11 +71,48 @@ impl From<AnyElement> for RadarLabel {
     }
 }
 
+/// Where a value sits on spoke `ix` of `n`, `radius` from the center, with
+/// 12 o'clock first and the spokes running clockwise.
+pub fn spoke_point(center: Point<f32>, radius: f32, ix: usize, n: usize) -> Point<f32> {
+    let angle = ix as f32 * TAU / n.max(1) as f32 - HALF_PI;
+    point(
+        center.x + radius * angle.cos(),
+        center.y + radius * angle.sin(),
+    )
+}
+
+/// How far to nudge each of a spoke's member dots across the spoke so that
+/// dots closer than `gap` along it sit side by side instead of on top of
+/// each other. Dots on their own stay on the spoke (0); a cluster spreads
+/// evenly either side of it.
+pub fn dot_nudges(radii: &[f32], gap: f32) -> Vec<f32> {
+    let mut order: Vec<usize> = (0..radii.len()).collect();
+    order.sort_by(|a, b| radii[*a].total_cmp(&radii[*b]));
+    let mut nudges = vec![0.; radii.len()];
+    let mut start = 0;
+    while start < order.len() {
+        let mut end = start + 1;
+        while end < order.len() && radii[order[end]] - radii[order[end - 1]] < gap {
+            end += 1;
+        }
+        let count = end - start;
+        for (k, ix) in order[start..end].iter().enumerate() {
+            nudges[*ix] = (k as f32 - (count - 1) as f32 / 2.) * gap;
+        }
+        start = end;
+    }
+    nudges
+}
+
 /// A radar (spider) chart.
 ///
 /// Each datum is one dimension (a spoke), placed clockwise around the center
 /// starting at 12 o'clock. Add one series per [`RadarChart::value`] call; each
 /// series is drawn as a closed polygon connecting its values on every spoke.
+///
+/// A [`target`](Self::target) draws a dashed outline of where each dimension
+/// should reach, and [`member_dots`](Self::member_dots) puts one dot per
+/// member on every spoke, such as each person behind a team's average.
 #[derive(IntoPlot)]
 pub struct RadarChart<T, Y>
 where
@@ -103,6 +140,10 @@ where
     id: ElementId,
     interactive: bool,
     appear: ChartAppear,
+    target: Option<Rc<dyn Fn(&T) -> Y>>,
+    target_stroke: Option<Hsla>,
+    members: Option<Rc<dyn Fn(&T) -> Vec<Y>>>,
+    member_colors: Vec<Hsla>,
 }
 
 impl<T, Y> RadarChart<T, Y>
@@ -133,7 +174,43 @@ where
             id: caller_id(),
             interactive: true,
             appear: ChartAppear::default(),
+            target: None,
+            target_stroke: None,
+            members: None,
+            member_colors: vec![],
         }
+    }
+
+    /// Draw a dashed outline through the value each dimension should reach.
+    ///
+    /// It counts toward the outer ring's default value, has no fill, and is
+    /// drawn over the series.
+    pub fn target(mut self, target: impl Fn(&T) -> Y + 'static) -> Self {
+        self.target = Some(Rc::new(target));
+        self
+    }
+
+    /// Set the target outline's color; the foreground at 60% by default.
+    pub fn target_stroke(mut self, stroke: impl Into<Hsla>) -> Self {
+        self.target_stroke = Some(stroke.into());
+        self
+    }
+
+    /// Put one dot per member on every spoke, at that member's value for the
+    /// dimension. Return the members in the same order for every datum, so a
+    /// member keeps its color around the chart.
+    ///
+    /// Dots that would overlap sit side by side across the spoke.
+    pub fn member_dots(mut self, members: impl Fn(&T) -> Vec<Y> + 'static) -> Self {
+        self.members = Some(Rc::new(members));
+        self
+    }
+
+    /// Color the member dots by member, in order; the muted foreground for
+    /// all by default.
+    pub fn member_colors(mut self, colors: impl IntoIterator<Item = impl Into<Hsla>>) -> Self {
+        self.member_colors = colors.into_iter().map(Into::into).collect();
+        self
     }
 
     /// Name this chart's [`ElementId`], replacing the default taken from the
@@ -405,7 +482,13 @@ where
         } else {
             self.data
                 .iter()
-                .flat_map(|d| self.values.iter().map(|value_fn| value_fn(d)))
+                .flat_map(|d| {
+                    self.values
+                        .iter()
+                        .map(|value_fn| value_fn(d))
+                        .chain(self.target.as_ref().map(|target| target(d)))
+                        .chain(self.members.as_ref().map_or(vec![], |members| members(d)))
+                })
                 .chain(Some(Y::zero()))
                 .collect()
         };
@@ -559,6 +642,75 @@ where
                 line = line.dot().dot_size(8.).dot_fill(stroke);
             }
             line.paint(&bounds, window);
+        }
+
+        // The target outline, dashed and unfilled, over the series.
+        let center = point(center_x, center_y);
+        if let Some(target) = &self.target {
+            let stroke = self
+                .target_stroke
+                .unwrap_or(cx.theme().foreground.opacity(0.6));
+            let points: Vec<Point<f32>> = self
+                .data
+                .iter()
+                .enumerate()
+                .filter_map(|(ix, d)| {
+                    let radius = scale.tick(&target(d))? * appear;
+                    Some(spoke_point(center, radius, ix, n))
+                })
+                .collect();
+            if points.len() == n && n > 1 {
+                let at = |p: Point<f32>| bounds.origin + point(px(p.x), px(p.y));
+                let mut path = PathBuilder::stroke(px(1.5)).dash_array(&[px(4.), px(3.)]);
+                path.move_to(at(points[0]));
+                for p in &points[1..] {
+                    path.line_to(at(*p));
+                }
+                path.close();
+                if let Ok(path) = path.build() {
+                    window.paint_path(path, stroke);
+                }
+            }
+        }
+
+        // One dot per member on every spoke, ringed in the background so they
+        // read over the series' fill.
+        if let Some(members) = &self.members {
+            let ring = cx.theme().background;
+            let fallback = cx.theme().muted_foreground;
+            const DOT: f32 = 6.;
+            for (ix, d) in self.data.iter().enumerate() {
+                let radii: Vec<f32> = members(d)
+                    .iter()
+                    .map(|v| scale.tick(v).unwrap_or(0.) * appear)
+                    .collect();
+                let nudges = dot_nudges(&radii, DOT + 1.);
+                let angle = ix as f32 * angle_step - HALF_PI;
+                // Across the spoke: the spoke's direction turned a quarter.
+                let across = point(-angle.sin(), angle.cos());
+                for (m, (radius, nudge)) in radii.iter().zip(&nudges).enumerate() {
+                    let on = spoke_point(center, *radius, ix, n);
+                    let c = point(on.x + across.x * nudge, on.y + across.y * nudge);
+                    let color = self.member_colors.get(m).copied().unwrap_or(fallback);
+                    for (size, fill) in [(DOT + 2., ring), (DOT, color)] {
+                        let ring: Vec<Point<Pixels>> = (0..14)
+                            .map(|step| {
+                                let a = step as f32 / 14. * TAU;
+                                bounds.origin
+                                    + point(
+                                        px(c.x + size / 2. * a.cos()),
+                                        px(c.y + size / 2. * a.sin()),
+                                    )
+                            })
+                            .collect();
+                        let mut dot = PathBuilder::fill();
+                        dot.add_polygon(&ring, true);
+                        if let Ok(dot) = dot.build() {
+                            window.paint_path(dot, fill);
+                        }
+                    }
+                }
+            }
         }
 
         // Draw the text labels outside the outer ring; `prepaint` resolved them and
@@ -772,6 +924,41 @@ mod tests {
         for label in labels {
             assert!(matches!(label, RadarLabel::Text(text) if text == "Sales"));
         }
+    }
+
+    #[test]
+    fn spokes_start_at_twelve_and_run_clockwise() {
+        let c = point(100., 100.);
+        let top = spoke_point(c, 50., 0, 4);
+        assert!((top.x - 100.).abs() < 1e-4 && (top.y - 50.).abs() < 1e-4);
+        let right = spoke_point(c, 50., 1, 4);
+        assert!((right.x - 150.).abs() < 1e-4 && (right.y - 100.).abs() < 1e-4);
+    }
+
+    #[test]
+    fn member_dots_spread_only_when_they_crowd() {
+        assert_eq!(dot_nudges(&[10., 40., 80.], 7.), [0., 0., 0.]);
+        let nudges = dot_nudges(&[50., 52., 90.], 7.);
+        assert_eq!(nudges, [-3.5, 3.5, 0.]);
+        let three = dot_nudges(&[20., 21., 22.], 7.);
+        assert_eq!(three, [-7., 0., 7.]);
+        assert!(dot_nudges(&[], 7.).is_empty());
+    }
+
+    #[test]
+    fn target_and_members_widen_the_default_scale() {
+        let data = vec![Item {
+            subject: "Sales".into(),
+            a: 40.,
+            b: 0.,
+        }];
+        let chart = RadarChart::new(data)
+            .value(|d| d.a)
+            .target(|_| 90.)
+            .member_dots(|d| vec![d.a - 10., d.a + 70.]);
+        let scale = chart.scale(100.);
+        assert_eq!(scale.tick(&110.), Some(100.));
+        assert!(chart.members.is_some() && chart.target.is_some());
     }
 
     #[test]
