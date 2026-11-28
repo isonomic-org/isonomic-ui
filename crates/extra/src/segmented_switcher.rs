@@ -12,7 +12,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, look,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
@@ -178,16 +178,6 @@ impl RenderOnce for SegmentedSwitcher {
         let enabled: Vec<bool> = self.segments.iter().map(|s| !s.disabled).collect();
         let selected = self.selected;
         let key_pick = self.on_select.clone();
-        let mut hovers = crate::common::tracked_hovers(
-            &self.id,
-            "segment-hover",
-            self.segments
-                .iter()
-                .enumerate()
-                .map(|(ix, s)| ix != selected && !s.disabled),
-            window,
-            cx,
-        );
         let theme = cx.theme();
         let ring = theme.ring;
         let track = theme.muted;
@@ -199,7 +189,6 @@ impl RenderOnce for SegmentedSwitcher {
         let segments = self.segments.into_iter().enumerate().map(|(ix, segment)| {
             let on = ix == self.selected;
             let pick = self.on_select.clone();
-            let hover = hovers[ix].take();
             div()
                 .id(ElementId::NamedChild(
                     self.id.clone().into(),
@@ -224,19 +213,16 @@ impl RenderOnce for SegmentedSwitcher {
                         .font_medium()
                 })
                 .when(on && focused, |this| this.border_1().border_color(ring))
-                .when_some(
-                    hover.filter(|_| !on && !segment.disabled),
-                    |this, (fade, on_hover)| {
-                        this.text_color(look::mix(quiet, ink, fade))
-                            .pressable(true)
-                            .on_hover(on_hover)
-                            .on_click(move |_, window, cx| {
-                                if let Some(pick) = &pick {
-                                    pick(ix, window, cx);
-                                }
-                            })
-                    },
-                )
+                .when(!on && !segment.disabled, |this| {
+                    this.text_color(quiet)
+                        .pressable(true)
+                        .hover(|s| s.text_color(ink))
+                        .on_click(move |_, window, cx| {
+                            if let Some(pick) = &pick {
+                                pick(ix, window, cx);
+                            }
+                        })
+                })
                 .when(segment.disabled, |this| {
                     this.text_color(quiet.opacity(0.5)).pressable(false)
                 })

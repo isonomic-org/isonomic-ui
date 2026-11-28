@@ -471,8 +471,6 @@ impl Render for QuestionCard {
 
         let row_elements = rows.iter().enumerate().map(|(ix, row)| {
             let answer = row.answer.clone();
-            let (hover_fade, hover_on_hover) =
-                isonomic_ui::component::look::tracked_hover(("row-hover", ix), true, window, cx);
             h_flex()
                 .id(("row", ix))
                 .role(Role::Button)
@@ -491,8 +489,7 @@ impl Render for QuestionCard {
                 .py_1()
                 .rounded(radius + px(2.))
                 .cursor_pointer()
-                .bg(crate::common::faded(chip, hover_fade))
-                .on_hover(hover_on_hover)
+                .hover(|this| this.bg(chip))
                 .when(ix == selected && on_rows, |this| {
                     this.bg(chip).focus_ring_style(window, cx)
                 })
