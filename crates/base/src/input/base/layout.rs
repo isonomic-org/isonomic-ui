@@ -25,6 +25,8 @@ pub(super) struct LastLayout {
     pub(super) wrap_width: Option<Pixels>,
     pub(super) wrapping_indent: WrappingIndent,
     pub(super) line_number_width: Pixels,
+    /// Space the gutter keeps between its numbers and the text.
+    pub(super) line_number_gap: Pixels,
     /// Width of one space in the editor font.
     ///
     /// Past the end of a line there are no glyphs to hit-test against, so this is the

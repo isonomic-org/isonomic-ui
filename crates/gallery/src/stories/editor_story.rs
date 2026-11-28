@@ -433,7 +433,8 @@ impl Render for EditorStory {
                             }))
                             .child("Code")
                             .child("Decorations")
-                            .child("Completions"),
+                            .child("Completions")
+                            .child("Gutter"),
                     )
                     .child(self.render_toolbar(cx)),
             )
@@ -442,6 +443,16 @@ impl Render for EditorStory {
                     0 => self.styled_editor(&self.editor_state).into_any_element(),
                     1 => self
                         .styled_editor(&self.decorations_state)
+                        .into_any_element(),
+                    3 => self
+                        .styled_editor(&self.editor_state)
+                        .gutter_style(
+                            GutterStyle::new()
+                                .gap(px(14.))
+                                .font_size(self.font_size * 0.85)
+                                .line_number_color(cx.theme().muted_foreground.opacity(0.6))
+                                .active_line_number_color(cx.theme().primary),
+                        )
                         .into_any_element(),
                     _ => v_flex()
                         .size_full()

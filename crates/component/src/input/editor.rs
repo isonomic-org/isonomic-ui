@@ -30,6 +30,7 @@ pub struct Editor {
     tab_index: isize,
     role: RoleOverride,
     aria_label: Option<SharedString>,
+    gutter_style: super::GutterStyle,
 
     /// An optional context menu builder to allow a custom context menu.
     ///
@@ -53,6 +54,7 @@ impl Editor {
             tab_index: 0,
             role: RoleOverride::default(),
             aria_label: None,
+            gutter_style: super::GutterStyle::default(),
             context_menu_builder: None,
             paste_handler: None,
         }
@@ -130,6 +132,14 @@ impl Editor {
         self.paste_handler = Some(Rc::new(handler));
         self
     }
+
+    /// How the line numbers look: their ink, the ink of the caret's line,
+    /// their font, size and the space before the code. Anything left unset
+    /// follows the editor.
+    pub fn gutter_style(mut self, style: super::GutterStyle) -> Self {
+        self.gutter_style = style;
+        self
+    }
 }
 
 /// Match the padding and density of Input and Textarea in the same form by
@@ -166,6 +176,7 @@ impl RenderOnce for Editor {
             .readonly(self.readonly)
             .tab_index(self.tab_index)
             .role(self.role)
+            .gutter_style(self.gutter_style)
             .when_some(self.height, |this, height| this.h(height))
             .when_some(self.aria_label, |this, label| this.aria_label(label))
             .when_some(self.context_menu_builder, |this, build| {

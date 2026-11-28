@@ -3,7 +3,7 @@
 
 use std::{ops::Range, rc::Rc, sync::Arc};
 
-use gpui::{AnyElement, Context, HighlightStyle, Hsla, SharedString, Window};
+use gpui::{AnyElement, Context, HighlightStyle, Hsla, Pixels, SharedString, Window};
 use ropey::Rope;
 
 use super::{EditorState, FoldRange, InputEdit};
@@ -123,6 +123,62 @@ pub struct InputEditorStyle {
     pub editor_active_line: Option<Hsla>,
     pub editor_gutter_background: Option<Hsla>,
     pub fold_icon_renderer: Option<FoldIconRenderer>,
+    /// How the line numbers in a code editor's gutter look.
+    pub gutter: GutterStyle,
+}
+
+/// How a code editor draws its line numbers. Anything left unset follows the
+/// editor: its muted ink for numbers, its ink for the caret's line, its font
+/// and its text size.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GutterStyle {
+    /// Space between the numbers and the text.
+    pub gap: Option<Pixels>,
+    /// Ink of every number but the caret's line.
+    pub line_number_color: Option<Hsla>,
+    /// Ink of the number on the caret's line.
+    pub active_line_number_color: Option<Hsla>,
+    /// Family of the numbers, such as the monospace font in a prose editor.
+    pub font_family: Option<SharedString>,
+    /// Size of the numbers. Smaller numbers sit on the text's baseline.
+    pub font_size: Option<Pixels>,
+}
+
+impl GutterStyle {
+    /// A gutter that follows the editor in every respect.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the space between the numbers and the text.
+    pub fn gap(mut self, gap: Pixels) -> Self {
+        self.gap = Some(gap);
+        self
+    }
+
+    /// Set the ink of every number but the caret's line.
+    pub fn line_number_color(mut self, color: Hsla) -> Self {
+        self.line_number_color = Some(color);
+        self
+    }
+
+    /// Set the ink of the number on the caret's line.
+    pub fn active_line_number_color(mut self, color: Hsla) -> Self {
+        self.active_line_number_color = Some(color);
+        self
+    }
+
+    /// Set the font family of the numbers.
+    pub fn font_family(mut self, family: impl Into<SharedString>) -> Self {
+        self.font_family = Some(family.into());
+        self
+    }
+
+    /// Set the size of the numbers.
+    pub fn font_size(mut self, size: Pixels) -> Self {
+        self.font_size = Some(size);
+        self
+    }
 }
 
 impl InputEditorStyle {
@@ -178,6 +234,7 @@ impl Default for InputEditorStyle {
             editor_active_line: None,
             editor_gutter_background: None,
             fold_icon_renderer: None,
+            gutter: GutterStyle::default(),
         }
     }
 }

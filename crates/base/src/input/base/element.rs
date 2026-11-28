@@ -66,6 +66,59 @@ const MIN_LINE_NUMBER_DIGITS: usize = 3;
 const MAX_LINE_NUMBER_DIGITS: usize = 7;
 const MAX_DISPLAYED_LINE_NUMBER: usize = 9_999_999;
 
+/// The space a gutter keeps between its numbers and the text.
+fn gutter_gap(gutter: &crate::input::GutterStyle) -> Pixels {
+    gutter.gap.unwrap_or(LINE_NUMBER_RIGHT_MARGIN).max(px(0.))
+}
+
+/// The editor's font with the gutter's family put in, when it sets one.
+fn gutter_font(mut font: gpui::Font, gutter: &crate::input::GutterStyle) -> gpui::Font {
+    if let Some(family) = gutter.font_family.clone() {
+        font.family = family;
+    }
+    font
+}
+
+/// How far down text in `number` must move so that its baseline meets the
+/// baseline of `text` when both are centred in the same line box.
+fn baseline_shift(
+    window: &Window,
+    text: (&gpui::Font, Pixels),
+    number: (&gpui::Font, Pixels),
+) -> Pixels {
+    if text == number {
+        return px(0.);
+    }
+    let metrics = |(font, size): (&gpui::Font, Pixels)| {
+        let run = TextRun {
+            len: 1,
+            font: font.clone(),
+            color: gpui::black(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let line = window
+            .text_system()
+            .shape_line("0".into(), size, &[run], None);
+        (line.ascent, line.descent)
+    };
+    let (text_ascent, text_descent) = metrics(text);
+    let (number_ascent, number_descent) = metrics(number);
+    baseline_offset(text_ascent, text_descent, number_ascent, number_descent)
+}
+
+/// Pure part of [`baseline_shift`]. Descents are positive distances below the
+/// baseline; a line box centres `ascent + descent`.
+fn baseline_offset(
+    text_ascent: Pixels,
+    text_descent: Pixels,
+    number_ascent: Pixels,
+    number_descent: Pixels,
+) -> Pixels {
+    ((text_ascent - text_descent) - (number_ascent - number_descent)).half()
+}
+
 fn line_number_len(total_lines: usize) -> usize {
     (total_lines.max(1).ilog10() as usize + 1).clamp(MIN_LINE_NUMBER_DIGITS, MAX_LINE_NUMBER_DIGITS)
 }
@@ -214,6 +267,7 @@ impl EditorScrollbarSnapshot {
             layout: EditorScrollbarLayout::new(
                 input_bounds,
                 last_layout.line_number_width,
+                last_layout.line_number_gap,
                 scroll_size,
                 state.editor_paddings,
             ),
@@ -230,13 +284,14 @@ impl EditorScrollbarLayout {
     fn new(
         input_bounds: Bounds<Pixels>,
         line_number_width: Pixels,
+        line_number_gap: Pixels,
         scroll_size: Size<Pixels>,
         paddings: Edges<Pixels>,
     ) -> Self {
         let left = if line_number_width == px(0.) {
             px(0.)
         } else {
-            paddings.left + line_number_width - LINE_NUMBER_RIGHT_MARGIN
+            paddings.left + line_number_width - line_number_gap
         };
 
         let bounds = Bounds::new(
@@ -1474,26 +1529,28 @@ impl<M: InputModeKind> TextElement<M> {
         (visible_range, visible_buffer_lines, visible_top)
     }
 
-    /// Return (line_number_width, line_number_len)
+    /// Return (line_number_width, line_number_len, line_number_gap)
     fn layout_line_numbers(
         state: &InputBaseState<M>,
         text: &Rope,
         font_size: Pixels,
         style: &TextStyle,
         window: &mut Window,
-    ) -> (Pixels, usize) {
+    ) -> (Pixels, usize, Pixels) {
         let total_lines = text.lines_len();
         // Reserve three digits for small documents, then follow the actual
         // line count up to seven digits.
         let line_number_len = line_number_len(total_lines);
+        let gutter = &state.editor_style.gutter;
+        let gap = gutter_gap(gutter);
 
         let mut line_number_width = if state.mode.line_number() {
             let empty_line_number = window.text_system().shape_line(
                 "+".repeat(line_number_len).into(),
-                font_size,
+                gutter.font_size.unwrap_or(font_size),
                 &[TextRun {
                     len: line_number_len,
-                    font: style.font(),
+                    font: gutter_font(style.font(), gutter),
                     color: gpui::black(),
                     background_color: None,
                     underline: None,
@@ -1502,9 +1559,9 @@ impl<M: InputModeKind> TextElement<M> {
                 None,
             );
 
-            empty_line_number.width + LINE_NUMBER_RIGHT_MARGIN
+            empty_line_number.width + gap
         } else if state.is_code_editor() {
-            LINE_NUMBER_RIGHT_MARGIN
+            gap
         } else {
             px(0.)
         };
@@ -1518,7 +1575,7 @@ impl<M: InputModeKind> TextElement<M> {
             line_number_width += width + GUTTER_DECORATION_GAP;
         }
 
-        (line_number_width, line_number_len)
+        (line_number_width, line_number_len, gap)
     }
 
     /// Layout shaped lines for whitespace indicators (space and tab).
@@ -1808,7 +1865,7 @@ impl<M: InputModeKind> TextElement<M> {
         // Second pass: create and prepaint icons
         let line_height = last_layout.line_height;
         let line_number_width =
-            last_layout.line_number_width - LINE_NUMBER_RIGHT_MARGIN - FOLD_ICON_HITBOX_WIDTH;
+            last_layout.line_number_width - last_layout.line_number_gap - FOLD_ICON_HITBOX_WIDTH;
         let icon_relative_pos = point(
             (FOLD_ICON_HITBOX_WIDTH - FOLD_ICON_WIDTH).half(),
             (line_height - FOLD_ICON_WIDTH).half(),
@@ -2943,6 +3000,8 @@ pub(super) struct PrepaintState {
     gutter_decorations: Vec<PaintQuad>,
     /// How far the gutter decoration strip pushes the line numbers right.
     line_number_offset: Pixels,
+    /// How far down a line number moves to sit on its line's baseline.
+    line_number_baseline: Pixels,
     hover_definition_hitbox: Option<Hitbox>,
     indent_guides_path: Option<Path<Pixels>>,
     /// The whole input, for deciding whether a long press started in it.
@@ -3227,7 +3286,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
         };
 
         // Calculate the width of the line numbers
-        let (line_number_width, line_number_len) =
+        let (line_number_width, line_number_len, line_number_gap) =
             Self::layout_line_numbers(&state, &text, text_size, &text_style, window);
 
         let mut bounds = bounds;
@@ -3315,6 +3374,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
             wrap_width,
             wrapping_indent,
             line_number_width,
+            line_number_gap,
             space_width,
             lines: Rc::new(vec![]),
             cursor_bounds: None,
@@ -3608,20 +3668,36 @@ impl<M: InputModeKind> Element for TextElement<M> {
         );
 
         let state = self.state.read(cx);
+        let gutter = &state.editor_style.gutter;
+        let number_font = gutter_font(style.font(), gutter);
+        let number_size = gutter.font_size.unwrap_or(text_size);
+        let line_number_baseline = if state.mode.line_number() {
+            baseline_shift(
+                window,
+                (&style.font(), text_size),
+                (&number_font, number_size),
+            )
+        } else {
+            px(0.)
+        };
         let line_numbers = if state.mode.line_number() {
             let mut line_numbers = Vec::with_capacity(last_layout.visible_buffer_lines.len());
             let other_line_runs = vec![TextRun {
                 len: line_number_len,
-                font: style.font(),
-                color: state.editor_style.muted_foreground,
+                font: number_font.clone(),
+                color: gutter
+                    .line_number_color
+                    .unwrap_or(state.editor_style.muted_foreground),
                 background_color: None,
                 underline: None,
                 strikethrough: None,
             }];
             let current_line_runs = vec![TextRun {
                 len: line_number_len,
-                font: style.font(),
-                color: state.editor_style.foreground,
+                font: number_font,
+                color: gutter
+                    .active_line_number_color
+                    .unwrap_or(state.editor_style.foreground),
                 background_color: None,
                 underline: None,
                 strikethrough: None,
@@ -3650,7 +3726,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
                 sub_lines.push(
                     window
                         .text_system()
-                        .shape_line(line_no, text_size, &runs, None),
+                        .shape_line(line_no, number_size, &runs, None),
                 );
                 for _ in 0..line.wrapped_lines.len().saturating_sub(1) {
                     sub_lines.push(ShapedLine::default());
@@ -3789,6 +3865,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
             last_layout,
             scroll_size,
             line_numbers,
+            line_number_baseline,
             cursor_infos,
             cursor_scroll_offset,
             current_row,
@@ -4111,7 +4188,10 @@ impl<M: InputModeKind> Element for TextElement<M> {
                     }
                 }
 
-                let p = point(p.x + prepaint.line_number_offset, p.y);
+                let p = point(
+                    p.x + prepaint.line_number_offset,
+                    p.y + prepaint.line_number_baseline,
+                );
                 for line in lines {
                     _ = line.paint(p, line_height, TextAlign::Left, None, window, cx);
                     offset_y += line_height;
@@ -4414,6 +4494,27 @@ mod tests {
         AppContext as _, Context, EntityInputHandler as _, ListAlignment, ListOffset, ListState,
         Render, TestAppContext, VisualTestContext, div, list, prelude::FluentBuilder as _,
     };
+
+    #[test]
+    fn smaller_line_numbers_drop_onto_the_text_baseline() {
+        // Same metrics: nothing moves.
+        assert_eq!(baseline_offset(px(10.), px(3.), px(10.), px(3.)), px(0.));
+        // Numbers at 80%: centred, their baseline sits 0.7px too high.
+        let shift = baseline_offset(px(10.), px(3.), px(8.), px(2.4));
+        assert!((shift - px(0.7)).abs() < px(0.001), "{shift:?}");
+    }
+
+    #[test]
+    fn an_unset_gutter_follows_the_editor() {
+        let gutter = crate::input::GutterStyle::new();
+        assert_eq!(gutter_gap(&gutter), LINE_NUMBER_RIGHT_MARGIN);
+        let font = gpui::font("Editor Sans");
+        assert_eq!(gutter_font(font.clone(), &gutter), font);
+
+        let gutter = gutter.gap(px(-4.)).font_family("Editor Mono");
+        assert_eq!(gutter_gap(&gutter), px(0.));
+        assert_eq!(gutter_font(font, &gutter).family.as_ref(), "Editor Mono");
+    }
 
     #[test]
     fn line_number_column_stays_at_three_digits_then_grows_up_to_seven() {
@@ -6443,8 +6544,13 @@ mod tests {
             left: px(7.),
         };
 
-        let layout =
-            EditorScrollbarLayout::new(input_bounds, px(40.), size(px(1000.), px(200.)), paddings);
+        let layout = EditorScrollbarLayout::new(
+            input_bounds,
+            px(40.),
+            LINE_NUMBER_RIGHT_MARGIN,
+            size(px(1000.), px(200.)),
+            paddings,
+        );
 
         assert_eq!(
             layout.bounds,
@@ -6453,8 +6559,13 @@ mod tests {
         assert_eq!(layout.scroll_size, size(px(972.), px(200.)));
         assert_eq!(layout.scroll_viewport_size, size(px(262.), px(80.)));
 
-        let layout_without_gutter =
-            EditorScrollbarLayout::new(input_bounds, px(0.), size(px(500.), px(120.)), paddings);
+        let layout_without_gutter = EditorScrollbarLayout::new(
+            input_bounds,
+            px(0.),
+            LINE_NUMBER_RIGHT_MARGIN,
+            size(px(500.), px(120.)),
+            paddings,
+        );
 
         assert_eq!(
             layout_without_gutter.bounds,
