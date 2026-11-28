@@ -74,9 +74,9 @@ impl Link {
 
     /// Set the disabled state, default false.
     ///
-    /// A disabled link is drawn at 40% opacity with no hover and shows the
-    /// arrow cursor. Its press behaviour is kept as
-    /// it was: it still opens its `href` and calls its handler.
+    /// A disabled link is drawn at 40% opacity with no hover, shows the arrow
+    /// cursor and is inert: a press neither opens its `href` nor calls its
+    /// handler.
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
@@ -99,6 +99,7 @@ impl RenderOnce for Link {
     fn render(self, _: &mut gpui::Window, cx: &mut gpui::App) -> impl IntoElement {
         let href = self.href.clone();
         let on_click = self.on_click;
+        let disabled = self.disabled;
 
         div()
             .id(self.id)
@@ -129,6 +130,9 @@ impl RenderOnce for Link {
             })
             .on_click({
                 move |e, window, cx| {
+                    if disabled {
+                        return;
+                    }
                     if let Some(href) = &href {
                         cx.open_url(&href.clone());
                     }
@@ -205,13 +209,12 @@ mod tests {
     }
 
     #[gpui::test]
-    fn legacy_link_preserves_disabled_behavior(cx: &mut TestAppContext) {
+    fn disabled_link_is_inert(cx: &mut TestAppContext) {
         let (cx, clicks) = harness(cx, true);
         cx.simulate_click(point(px(10.), px(10.)), Modifiers::default());
 
-        // `disabled` was historically a stored but behaviorally inert field.
-        assert_eq!(cx.opened_url().as_deref(), Some("https://example.com"));
-        assert_eq!(clicks.get(), 1);
+        assert_eq!(cx.opened_url(), None);
+        assert_eq!(clicks.get(), 0);
     }
 
     #[gpui::test]
