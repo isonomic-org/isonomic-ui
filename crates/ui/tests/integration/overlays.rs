@@ -9,7 +9,7 @@ use isonomic_ui::component::{
     input::{Input, InputState},
     notification::Notification,
 };
-use isonomic_ui::test::{TestAppContextExt, TestWindowExt};
+use isonomic_ui::test::{TestAppContextExt, TestSupportExt as _, TestWindowExt};
 use isonomic_ui::{
     AppContext, Bounds, Context, Entity, Focusable, TestAppContext, Window, div, point, prelude::*,
     px, size,
@@ -217,8 +217,8 @@ async fn escape_dismisses_dialog_and_sheet_and_restores_focus(cx: &mut TestAppCo
     })
     .await;
     // GPUI Animation runs on the test clock; advance it past
-    // the 150 ms entrance before asserting the final geometry.
-    cx.executor().advance_clock(Duration::from_millis(160));
+    // the 200 ms entrance before asserting the final geometry.
+    cx.executor().advance_clock(Duration::from_millis(240));
     cx.update_window(handle.into(), |_, window, cx| {
         window.render_frame(cx);
         let sheet = window.find("sheet-content").bounds();
@@ -262,8 +262,8 @@ async fn sheet_and_notifications_stay_in_the_fully_visible_area(cx: &mut TestApp
         window.try_find("sheet-content").is_some() && window.try_find("notification").is_some()
     })
     .await;
-    // Let the sheet's 150 ms entrance finish (see above).
-    cx.executor().advance_clock(Duration::from_millis(160));
+    // Let the sheet's 200 ms entrance finish (see above).
+    cx.executor().advance_clock(Duration::from_millis(240));
     cx.update_window(handle.into(), |_, window, cx| {
         window.render_frame(cx);
         let sheet = window.find("sheet-content").bounds();
@@ -434,6 +434,121 @@ async fn alert_dialog_default_buttons_reach_their_dialog_when_focus_was_stolen(
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(1), |window, _| {
         window.try_find("dialog").is_none()
+    })
+    .await;
+}
+
+struct LongPage {
+    scroll: isonomic_ui::ScrollHandle,
+}
+impl Render for LongPage {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().child(
+            div()
+                .id("page")
+                .test_support()
+                .w(px(200.))
+                .h(px(300.))
+                .overflow_y_scroll()
+                .track_scroll(&self.scroll)
+                .flex()
+                .flex_col()
+                .children((0..60usize).map(|ix| {
+                    div()
+                        .id(("page-row", ix))
+                        .h(px(20.))
+                        .flex_shrink_0()
+                        .child(format!("Row {ix}"))
+                })),
+        )
+    }
+}
+
+#[isonomic_ui::test]
+async fn an_open_sheet_or_dialog_locks_the_page_scroll(cx: &mut TestAppContext) {
+    use isonomic_ui::ScrollDelta;
+    cx.update(|cx| {
+        isonomic_ui::init(cx);
+        cx.set_reduce_motion(true);
+    });
+    let scroll = isonomic_ui::ScrollHandle::new();
+    let (handle, _) = common::open_window(cx, Some(size(px(800.), px(700.))), {
+        let scroll = scroll.clone();
+        move |_, cx| cx.new(|_| LongPage { scroll })
+    });
+    let wheel = ScrollDelta::Pixels(point(px(0.), px(-100.)));
+    // With nothing open the page scrolls, so the checks below can fail.
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.render_frame(cx);
+        window.scroll("page", wheel, cx);
+    })
+    .unwrap();
+    let scrolled = scroll.offset().y;
+    assert!(scrolled < px(0.), "{scrolled:?}");
+
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.open_sheet(cx, |sheet, _, _| sheet.title("Filters"));
+        window.render_frame(cx);
+        window.scroll("page", wheel, cx);
+    })
+    .unwrap();
+    assert_eq!(
+        scroll.offset().y,
+        scrolled,
+        "the sheet's backdrop lets the page scroll"
+    );
+
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.close_sheet(cx);
+        window.render_frame(cx);
+        window.open_dialog(cx, |dialog, _, _| dialog.title("Rename"));
+        window.render_frame(cx);
+        window.scroll("page", wheel, cx);
+    })
+    .unwrap();
+    assert_eq!(
+        scroll.offset().y,
+        scrolled,
+        "the dialog's backdrop lets the page scroll"
+    );
+}
+
+#[isonomic_ui::test]
+async fn a_closed_sheet_slides_out_without_taking_input(cx: &mut TestAppContext) {
+    cx.update(isonomic_ui::init);
+    let (handle, _) = common::open_window(cx, Some(size(px(800.), px(700.))), |window, cx| {
+        cx.new(|cx| Workspace {
+            saved: cx.new(|cx| InputState::new(window, cx)),
+            draft: cx.new(|cx| InputState::new(window, cx)),
+        })
+    });
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.render_frame(cx);
+        window.click("inspect", cx);
+    })
+    .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(400));
+    let rest = cx
+        .update_window(handle.into(), |_, window, cx| {
+            window.render_frame(cx);
+            let rest = window.find("sheet-content").bounds();
+            window.close_sheet(cx);
+            assert!(!window.has_active_sheet(cx));
+            rest
+        })
+        .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(100));
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.render_frame(cx);
+        // Partway out: still drawn, further right than at rest.
+        let leaving = window.find("sheet-content").bounds();
+        assert!(leaving.left() > rest.left(), "{leaving:?} vs {rest:?}");
+        // The page under the leaving backdrop already takes a press.
+        window.click("notify", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle.into(), Duration::from_secs(1), |window, _| {
+        window.try_find("sheet-content").is_none() && window.try_find("notification").is_some()
     })
     .await;
 }
