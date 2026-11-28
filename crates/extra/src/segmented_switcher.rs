@@ -224,16 +224,19 @@ impl RenderOnce for SegmentedSwitcher {
                         .font_medium()
                 })
                 .when(on && focused, |this| this.border_1().border_color(ring))
-                .when_some(hover.filter(|_| !on && !segment.disabled), |this, (fade, on_hover)| {
-                    this.text_color(look::mix(quiet, ink, fade))
-                        .pressable(true)
-                        .on_hover(on_hover)
-                        .on_click(move |_, window, cx| {
-                            if let Some(pick) = &pick {
-                                pick(ix, window, cx);
-                            }
-                        })
-                })
+                .when_some(
+                    hover.filter(|_| !on && !segment.disabled),
+                    |this, (fade, on_hover)| {
+                        this.text_color(look::mix(quiet, ink, fade))
+                            .pressable(true)
+                            .on_hover(on_hover)
+                            .on_click(move |_, window, cx| {
+                                if let Some(pick) = &pick {
+                                    pick(ix, window, cx);
+                                }
+                            })
+                    },
+                )
                 .when(segment.disabled, |this| {
                     this.text_color(quiet.opacity(0.5)).pressable(false)
                 })

@@ -11,9 +11,9 @@ use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, look,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
-    h_flex,
+    h_flex, look,
     menu::{DropdownMenu as _, PopupMenuItem},
 };
 use isonomic_ui::{

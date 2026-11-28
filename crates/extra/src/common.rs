@@ -5,8 +5,8 @@
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, TextRole as _, h_flex, look};
 use isonomic_ui::{
-    AnyElement, App, BoxShadow, Div, ElementId, Hsla, IntoElement, ParentElement as _,
-    Styled as _, Window, div, prelude::FluentBuilder as _, px,
+    AnyElement, App, BoxShadow, Div, ElementId, Hsla, IntoElement, ParentElement as _, Styled as _,
+    Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// The meaning a status carries, resolved to theme colors.

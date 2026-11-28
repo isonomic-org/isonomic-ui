@@ -12,7 +12,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, look, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex, look,
     switch::Switch, v_flex,
 };
 use isonomic_ui::{

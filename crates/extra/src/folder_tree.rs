@@ -11,7 +11,9 @@
 use std::collections::HashSet;
 
 use isonomic_ui::component::TextRole as _;
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, look, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, look, v_flex,
+};
 use isonomic_ui::{
     App, Context, ElementId, EventEmitter, FocusHandle, Focusable, InteractiveElement as _,
     IntoElement, KeyDownEvent, ParentElement as _, Render, Role, SharedString,
