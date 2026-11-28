@@ -43,31 +43,44 @@ impl CheckpointTimelineStory {
                 Checkpoint::new("brief", "Read the reporting brief")
                     .icon(IconName::FileText)
                     .at(secs(9))
-                    .cost(0.02),
+                    .cost(0.02)
+                    .turn(1)
+                    .summary("Read what the board asked for and which periods to cover."),
                 Checkpoint::new("pull", "Pulled the trial balance")
                     .after("brief")
                     .icon(IconName::HardDrive)
-                    .files(2)
                     .at(secs(31))
-                    .cost(0.05),
+                    .cost(0.05)
+                    .turn(2)
+                    .summary("Exported balances for the quarter from the ledger.")
+                    .change("data/trial-balance-q1.csv", 412, 0)
+                    .change("data/accounts.csv", 96, 0),
                 Checkpoint::new("map", "Mapped accounts to report lines")
                     .after("pull")
                     .icon(IconName::Map)
-                    .files(1)
                     .at(secs(58))
-                    .cost(0.07),
+                    .cost(0.07)
+                    .turn(3)
+                    .summary("Grouped 96 accounts into the lines the report shows.")
+                    .change("report/mapping.toml", 118, 4),
                 Checkpoint::new("draft", "Drafted the profit and loss")
                     .after("map")
                     .icon(IconName::FileText)
-                    .files(3)
                     .at(secs(95))
-                    .cost(0.09),
+                    .cost(0.09)
+                    .turn(4)
+                    .summary("Wrote the profit and loss with notes on the three largest moves.")
+                    .change("report/profit-and-loss.md", 84, 0)
+                    .change("report/notes.md", 27, 3)
+                    .change("report/mapping.toml", 6, 2),
                 Checkpoint::new("check", "Balance check failed by 412.00")
                     .after("draft")
                     .icon(IconName::CircleAlert)
                     .status(CheckpointStatus::Failed)
                     .at(secs(121))
-                    .cost(0.04),
+                    .cost(0.04)
+                    .turn(5)
+                    .summary("Assets and liabilities did not tie out; nothing was written."),
             ],
             head: "check".into(),
             tries: 0,
@@ -91,9 +104,12 @@ impl CheckpointTimelineStory {
                 .after(to.id().clone())
                 .icon(IconName::RefreshCw)
                 .status(CheckpointStatus::Running)
-                .files(2)
                 .at(at)
-                .cost(0.06),
+                .cost(0.06)
+                .turn(5 + self.tries)
+                .summary("Tried again from here after the rewind.")
+                .change("report/cash-flow.md", 40 + 3 * self.tries, 12)
+                .change("report/notes.md", 5, 1),
         );
         self.head = id.clone();
         self.last = format!("Rewound to {}", to.title()).into();
@@ -131,25 +147,35 @@ impl Story for CheckpointTimelineStory {
 
 impl Render for CheckpointTimelineStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let story = cx.entity();
-        let timeline = self
-            .checkpoints
-            .iter()
-            .cloned()
-            .fold(
-                CheckpointTimeline::new("report-checkpoints").task("Quarter-end board pack"),
-                CheckpointTimeline::checkpoint,
-            )
-            .head(self.head.clone())
-            .on_rewind(move |checkpoint, window, cx| {
-                story.update(cx, |this, cx| this.rewind(checkpoint, window, cx))
-            });
+        let timeline = |id: &'static str, this: &Self, cx: &mut Context<Self>| {
+            let story = cx.entity();
+            this.checkpoints
+                .iter()
+                .cloned()
+                .fold(
+                    CheckpointTimeline::new(id).task("Quarter-end board pack"),
+                    CheckpointTimeline::checkpoint,
+                )
+                .head(this.head.clone())
+                .on_rewind(move |checkpoint, window, cx| {
+                    story.update(cx, |this, cx| this.rewind(checkpoint, window, cx))
+                })
+        };
+        let plain = timeline("report-checkpoints", self, cx);
+        let scrubbed = timeline("report-scrub", self, cx)
+            .title("Turns")
+            .scrubber(true)
+            .show_changes(true);
 
-        v_flex().gap_3().child(timeline).child(
-            div()
-                .text_xs()
-                .text_color(cx.theme().muted_foreground)
-                .child(self.last.clone()),
-        )
+        v_flex()
+            .gap_3()
+            .child(plain)
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(self.last.clone()),
+            )
+            .child(scrubbed)
     }
 }

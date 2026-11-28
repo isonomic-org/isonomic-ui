@@ -6,16 +6,23 @@
 //! People can rewind to any checkpoint. The agent then tries again from
 //! there, on a new lane that bends out of the checkpoint they picked, while
 //! the attempt it left stays in the list, faded. Nothing is thrown away.
+//!
+//! Opt in to a scrubber that runs through the checkpoints turn by turn, and
+//! to a panel that says what changed at the one picked: the files, lines
+//! added and removed, and a button that restores the run to it. Left and
+//! Right scrub, Up and Down move, Enter restores.
 
-use std::{collections::HashMap, rc::Rc, time::Duration};
+use std::{cell::Cell, collections::HashMap, rc::Rc, time::Duration};
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, button::Button, h_flex, v_flex,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
+    button::{Button, ButtonVariants as _},
+    h_flex, look, v_flex,
 };
 use isonomic_ui::{
     App, Bounds, ElementId, FocusHandle, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, PathBuilder, Pixels, RenderOnce, Role, SharedString,
+    MouseButton, ParentElement as _, PathBuilder, Pixels, RenderOnce, Role, SharedString,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, fill, point,
     prelude::FluentBuilder as _, px, relative, size,
 };
@@ -40,6 +47,20 @@ pub enum CheckpointStatus {
     Stopped,
 }
 
+/// The height of the scrubber's track area.
+const SCRUB: f32 = 28.;
+
+/// One file a checkpoint changed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileChange {
+    /// The file's path.
+    pub path: SharedString,
+    /// Lines added.
+    pub added: usize,
+    /// Lines removed.
+    pub removed: usize,
+}
+
 /// One saved point of the run.
 #[derive(Clone)]
 pub struct Checkpoint {
@@ -51,6 +72,9 @@ pub struct Checkpoint {
     at: Option<Duration>,
     files: Option<usize>,
     cost: Option<f64>,
+    turn: Option<usize>,
+    summary: Option<SharedString>,
+    changes: Vec<FileChange>,
 }
 
 impl Checkpoint {
@@ -65,7 +89,44 @@ impl Checkpoint {
             at: None,
             files: None,
             cost: None,
+            turn: None,
+            summary: None,
+            changes: Vec::new(),
         }
+    }
+
+    /// Say which turn of the conversation it was taken in, counted from 1.
+    pub fn turn(mut self, turn: usize) -> Self {
+        self.turn = Some(turn);
+        self
+    }
+
+    /// Say in a sentence what the work toward it did.
+    pub fn summary(mut self, summary: impl Into<SharedString>) -> Self {
+        self.summary = Some(summary.into());
+        self
+    }
+
+    /// Add a file it changed, with the lines added and removed. Without
+    /// [`Self::files`] the count of changed files comes from these.
+    pub fn change(mut self, path: impl Into<SharedString>, added: usize, removed: usize) -> Self {
+        self.changes.push(FileChange {
+            path: path.into(),
+            added,
+            removed,
+        });
+        self
+    }
+
+    /// The files it changed.
+    pub fn changes(&self) -> &[FileChange] {
+        &self.changes
+    }
+
+    /// How many files it changed: as told, or as listed.
+    fn file_count(&self) -> Option<usize> {
+        self.files
+            .or_else(|| (!self.changes.is_empty()).then_some(self.changes.len()))
     }
 
     /// Say which checkpoint this one follows. A checkpoint whose parent
@@ -135,6 +196,8 @@ pub struct CheckpointTimeline {
     head: Option<SharedString>,
     on_rewind: Option<RewindHandler>,
     format_cost: Option<CostFormat>,
+    scrubber: bool,
+    show_changes: bool,
 }
 
 impl CheckpointTimeline {
@@ -149,7 +212,23 @@ impl CheckpointTimeline {
             head: None,
             on_rewind: None,
             format_cost: None,
+            scrubber: false,
+            show_changes: false,
         }
+    }
+
+    /// Show a scrubber above the list: one tick per checkpoint, in the order
+    /// taken. Dragging along it, or Left and Right, picks a checkpoint.
+    pub fn scrubber(mut self, scrubber: bool) -> Self {
+        self.scrubber = scrubber;
+        self
+    }
+
+    /// Show what changed at the picked checkpoint below the list, with a
+    /// button that restores the run to it.
+    pub fn show_changes(mut self, show_changes: bool) -> Self {
+        self.show_changes = show_changes;
+        self
     }
 
     /// Set the heading.
@@ -263,11 +342,61 @@ fn run_clock(at: Duration) -> String {
     format!("{}:{:02}", secs / 60, secs % 60)
 }
 
+/// Where the scrubber's tick for checkpoint `ix` sits, from 0 to `width`.
+/// A lone checkpoint sits in the middle.
+fn tick_x(ix: usize, count: usize, width: f32) -> f32 {
+    if count <= 1 {
+        width / 2.
+    } else {
+        width * ix as f32 / (count - 1) as f32
+    }
+}
+
+/// The checkpoint nearest to `x` along a scrubber `width` wide.
+fn scrub_index(x: f32, width: f32, count: usize) -> Option<usize> {
+    if count == 0 {
+        return None;
+    }
+    if count == 1 || width <= 0. {
+        return Some(0);
+    }
+    let step = width / (count - 1) as f32;
+    Some(((x / step).round().max(0.) as usize).min(count - 1))
+}
+
+/// What changed, in words: "3 files, 42 added, 7 removed".
+fn change_words(changes: &[FileChange], files: Option<usize>) -> String {
+    let files = files.unwrap_or(changes.len());
+    let mut words = if files == 1 {
+        "1 file".to_string()
+    } else {
+        format!("{files} files")
+    };
+    if !changes.is_empty() {
+        let added: usize = changes.iter().map(|change| change.added).sum();
+        let removed: usize = changes.iter().map(|change| change.removed).sum();
+        words.push_str(&format!(", {added} added, {removed} removed"));
+    }
+    words
+}
+
+/// The scrubber's caption: "Turn 4 · 3 of 9".
+fn scrub_caption(turn: Option<usize>, ix: usize, count: usize) -> String {
+    match turn {
+        Some(turn) => format!("Turn {turn} \u{b7} {} of {count}", ix + 1),
+        None => format!("{} of {count}", ix + 1),
+    }
+}
+
 #[derive(Default)]
 struct TimelineUi {
     hovered: Option<usize>,
     selected: Option<usize>,
     focus: Option<FocusHandle>,
+    /// Where the scrubber's track was laid out, for turning a pointer into a tick.
+    scrub_bounds: Rc<Cell<Bounds<Pixels>>>,
+    /// Whether the pointer is dragging along the scrubber.
+    dragging: bool,
 }
 
 impl RenderOnce for CheckpointTimeline {
@@ -287,9 +416,14 @@ impl RenderOnce for CheckpointTimeline {
             focus: Some(cx.focus_handle().tab_stop(true)),
             ..Default::default()
         });
-        let (hovered, selected, focus) = {
+        let (hovered, selected, focus, scrub_bounds) = {
             let ui = ui.read(cx);
-            (ui.hovered, ui.selected, ui.focus.clone())
+            (
+                ui.hovered,
+                ui.selected,
+                ui.focus.clone(),
+                ui.scrub_bounds.clone(),
+            )
         };
         let focus = focus.unwrap_or_else(|| cx.focus_handle());
         let keyboard = focus.is_focused(window);
@@ -416,7 +550,10 @@ impl RenderOnce for CheckpointTimeline {
             if lane[ix] > 0 {
                 words.push_str(&format!(", attempt {}", lane[ix] + 1));
             }
-            if let Some(files) = checkpoint.files {
+            if let Some(turn) = checkpoint.turn {
+                words.push_str(&format!(", turn {turn}"));
+            }
+            if let Some(files) = checkpoint.file_count() {
                 words.push_str(&if files == 1 {
                     ", 1 file".to_string()
                 } else {
@@ -433,6 +570,16 @@ impl RenderOnce for CheckpointTimeline {
             }
             words
         };
+        let row_hover: Vec<f32> = (0..count)
+            .map(|ix| {
+                look::hover_fade(
+                    ElementId::NamedChild(self.id.clone().into(), format!("row-hover-{ix}").into()),
+                    hovered == Some(ix) || (keyboard && selected == Some(ix)),
+                    window,
+                    cx,
+                )
+            })
+            .collect();
         let rows = points.iter().enumerate().map(|(ix, checkpoint)| {
             let is_head = head.as_ref() == Some(&checkpoint.id);
             let left_behind = !way[ix];
@@ -462,19 +609,22 @@ impl RenderOnce for CheckpointTimeline {
             let right = if shows_rewind {
                 let handler = self.on_rewind.clone();
                 let points = points.clone();
-                Button::new(("checkpoint-rewind", ix))
-                    .outline()
-                    .xsmall()
-                    .icon(IconName::Undo2)
-                    .label("Rewind")
-                    .on_click(move |_, window, cx| rewind_at(ix, window, cx, &handler, &points))
-                    .into_any_element()
+                Button::new(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("rewind-{ix}").into(),
+                ))
+                .outline()
+                .xsmall()
+                .icon(IconName::Undo2)
+                .label("Rewind")
+                .on_click(move |_, window, cx| rewind_at(ix, window, cx, &handler, &points))
+                .into_any_element()
             } else {
                 h_flex()
                     .gap_3()
                     .text_caption()
                     .text_color(quiet)
-                    .children(checkpoint.files.map(|files| {
+                    .children(checkpoint.file_count().map(|files| {
                         h_flex()
                             .gap_1()
                             .child(Icon::new(IconName::Folder).xsmall())
@@ -492,7 +642,10 @@ impl RenderOnce for CheckpointTimeline {
                     .into_any_element()
             };
             h_flex()
-                .id(("checkpoint", ix))
+                .id(ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("checkpoint-{ix}").into(),
+                ))
                 .role(Role::ListItem)
                 .aria_label(point_words(ix))
                 .aria_selected(selected == Some(ix))
@@ -501,10 +654,7 @@ impl RenderOnce for CheckpointTimeline {
                 .pl(px(gutter + 4.))
                 .pr_2()
                 .rounded(radius)
-                .when(
-                    hovered == Some(ix) || (keyboard && selected == Some(ix)),
-                    |this| this.bg(chip),
-                )
+                .bg(look::mix(chip.opacity(0.), chip, row_hover[ix]))
                 .on_hover(hover)
                 .on_click({
                     let ui = ui.clone();
@@ -564,6 +714,7 @@ impl RenderOnce for CheckpointTimeline {
             let handler = self.on_rewind.clone();
             let points = points.clone();
             let head_ix = head.as_ref().and_then(|head| index.get(head).copied());
+            let scrubs = self.scrubber;
             move |event: &KeyDownEvent, window: &mut Window, cx: &mut App| {
                 if count == 0 {
                     return;
@@ -572,6 +723,8 @@ impl RenderOnce for CheckpointTimeline {
                 let next = match event.keystroke.key.as_str() {
                     "up" => Some(at.saturating_sub(1)),
                     "down" => Some((at + 1).min(count - 1)),
+                    "left" if scrubs => Some(at.saturating_sub(1)),
+                    "right" if scrubs => Some((at + 1).min(count - 1)),
                     "home" => Some(0),
                     "end" => Some(count - 1),
                     "enter" | "space" => {
@@ -612,13 +765,298 @@ impl RenderOnce for CheckpointTimeline {
             .map(|ix| format!(". {}", point_words(ix)))
             .unwrap_or_default();
         let timeline_words = format!(
-            "Checkpoints, {summary}{at_words}. Up and Down move{}",
+            "Checkpoints, {summary}{at_words}. {}{}",
+            if self.scrubber {
+                "Left and Right scrub, Up and Down move"
+            } else {
+                "Up and Down move"
+            },
             if self.on_rewind.is_some() {
                 ", Enter rewinds"
             } else {
                 ""
             }
         );
+
+        // The checkpoint the scrubber and the changes panel are about.
+        let head_ix = head.as_ref().and_then(|head| index.get(head).copied());
+        let picked = selected.or(head_ix).filter(|ix| *ix < count);
+
+        let scrubber = (self.scrubber && count > 0).then(|| {
+            let ticks = {
+                let points = points.clone();
+                let way = way.clone();
+                let bounds_cell = scrub_bounds.clone();
+                canvas(
+                    move |bounds, _, _| bounds_cell.set(bounds),
+                    move |bounds: Bounds<Pixels>, _, window, _| {
+                        // Inset so the end ticks' knobs are not clipped.
+                        let inset = 8.;
+                        let width = (bounds.size.width.as_f32() - inset * 2.).max(0.);
+                        let mid = bounds.top() + px(SCRUB / 2.);
+                        let x = |ix: usize| bounds.left() + px(inset + tick_x(ix, count, width));
+                        window.paint_quad(
+                            fill(
+                                Bounds::new(
+                                    point(bounds.left() + px(inset), mid - px(1.)),
+                                    size(px(width), px(2.)),
+                                ),
+                                chip,
+                            )
+                            .corner_radii(px(1.)),
+                        );
+                        if let Some(at) = picked {
+                            window.paint_quad(
+                                fill(
+                                    Bounds::new(
+                                        point(bounds.left() + px(inset), mid - px(1.)),
+                                        size(x(at) - bounds.left() - px(inset), px(2.)),
+                                    ),
+                                    accent.opacity(0.6),
+                                )
+                                .corner_radii(px(1.)),
+                            );
+                        }
+                        for (ix, checkpoint) in points.iter().enumerate() {
+                            let color = match (checkpoint.status, way[ix]) {
+                                (CheckpointStatus::Failed, _) => danger,
+                                (_, true) => accent,
+                                (_, false) => quiet.opacity(0.5),
+                            };
+                            let dot = if picked == Some(ix) { 12. } else { 6. };
+                            let center = point(x(ix), mid);
+                            if picked == Some(ix) {
+                                window.paint_quad(
+                                    fill(
+                                        Bounds::centered_at(center, size(px(dot), px(dot))),
+                                        color,
+                                    )
+                                    .corner_radii(px(dot / 2.)),
+                                );
+                                window.paint_quad(
+                                    fill(
+                                        Bounds::centered_at(center, size(px(6.), px(6.))),
+                                        fill_color,
+                                    )
+                                    .corner_radii(px(3.)),
+                                );
+                            } else {
+                                window.paint_quad(
+                                    fill(
+                                        Bounds::centered_at(center, size(px(dot), px(dot))),
+                                        color,
+                                    )
+                                    .corner_radii(px(dot / 2.)),
+                                );
+                            }
+                        }
+                    },
+                )
+                .absolute()
+                .inset_0()
+            };
+            let pick_at = {
+                let ui = ui.clone();
+                let bounds_cell = scrub_bounds.clone();
+                move |x: Pixels, cx: &mut App| {
+                    let bounds = bounds_cell.get();
+                    let inset = 8.;
+                    let width = bounds.size.width.as_f32() - inset * 2.;
+                    let at = (x - bounds.left()).as_f32() - inset;
+                    if let Some(ix) = scrub_index(at, width, count) {
+                        ui.update(cx, |ui, cx| {
+                            if ui.selected != Some(ix) {
+                                ui.selected = Some(ix);
+                                cx.notify();
+                            }
+                        });
+                    }
+                }
+            };
+            let caption = picked
+                .and_then(|ix| points.get(ix).map(|checkpoint| (ix, checkpoint)))
+                .map(|(ix, checkpoint)| {
+                    (
+                        scrub_caption(checkpoint.turn, ix, count),
+                        checkpoint.title.clone(),
+                    )
+                });
+            v_flex()
+                .px_3()
+                .pb_1()
+                .child(
+                    div()
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            "scrubber".into(),
+                        ))
+                        .role(Role::Slider)
+                        .aria_label(match &caption {
+                            Some((where_, title)) => {
+                                format!("Scrub through checkpoints, {where_}, {title}")
+                            }
+                            None => "Scrub through checkpoints".to_string(),
+                        })
+                        .relative()
+                        .h(px(SCRUB))
+                        .cursor_pointer()
+                        .on_mouse_down(MouseButton::Left, {
+                            let ui = ui.clone();
+                            let focus = focus.clone();
+                            let pick_at = pick_at.clone();
+                            move |event, window, cx| {
+                                focus.focus(window, cx);
+                                ui.update(cx, |ui, _| ui.dragging = true);
+                                pick_at(event.position.x, cx);
+                            }
+                        })
+                        .on_mouse_move({
+                            let ui = ui.clone();
+                            let pick_at = pick_at.clone();
+                            move |event, _, cx| {
+                                if ui.read(cx).dragging && event.dragging() {
+                                    pick_at(event.position.x, cx);
+                                }
+                            }
+                        })
+                        .on_mouse_up(MouseButton::Left, {
+                            let ui = ui.clone();
+                            move |_, _, cx| ui.update(cx, |ui, _| ui.dragging = false)
+                        })
+                        .on_mouse_up_out(MouseButton::Left, {
+                            let ui = ui.clone();
+                            move |_, _, cx| ui.update(cx, |ui, _| ui.dragging = false)
+                        })
+                        .child(ticks),
+                )
+                .children(caption.map(|(where_, title)| {
+                    h_flex()
+                        .gap_2()
+                        .text_caption()
+                        .child(div().flex_none().text_color(quiet).child(where_))
+                        .child(div().flex_1().min_w_0().truncate().child(title))
+                }))
+        });
+
+        let changes = picked
+            .filter(|_| self.show_changes)
+            .and_then(|ix| points.get(ix).map(|checkpoint| (ix, checkpoint.clone())))
+            .map(|(ix, checkpoint)| {
+                let is_head = head_ix == Some(ix);
+                let success = cx.theme().success;
+                let where_ = [
+                    checkpoint.turn.map(|turn| format!("Turn {turn}")),
+                    checkpoint.at.map(|at| format!("at {}", run_clock(at))),
+                    (lane[ix] > 0).then(|| format!("attempt {}", lane[ix] + 1)),
+                ]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join(" \u{b7} ");
+                let restore = (!is_head).then(|| {
+                    let handler = self.on_rewind.clone();
+                    let points = points.clone();
+                    Button::new(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "restore".into(),
+                    ))
+                    .small()
+                    .primary()
+                    .icon(IconName::Undo2)
+                    .label("Restore to here")
+                    .accessibility_label(format!("Restore the run to {}", checkpoint.title))
+                    .disabled(handler.is_none())
+                    .on_click(move |_, window, cx| rewind_at(ix, window, cx, &handler, &points))
+                });
+                v_flex()
+                    .id(ElementId::NamedChild(
+                        self.id.clone().into(),
+                        "changes".into(),
+                    ))
+                    .role(Role::Region)
+                    .aria_label(format!(
+                        "What changed at {}: {}",
+                        checkpoint.title,
+                        change_words(&checkpoint.changes, checkpoint.file_count())
+                    ))
+                    .gap_2()
+                    .mx_2()
+                    .mb_2()
+                    .p_3()
+                    .rounded(radius)
+                    .border_1()
+                    .border_color(line)
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .child(
+                                v_flex()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .child(
+                                        div()
+                                            .truncate()
+                                            .font_medium()
+                                            .child(checkpoint.title.clone()),
+                                    )
+                                    .when(!where_.is_empty(), |this| {
+                                        this.child(
+                                            div().text_caption().text_color(quiet).child(where_),
+                                        )
+                                    }),
+                            )
+                            .map(|this| match restore {
+                                Some(restore) => this.child(restore),
+                                None => this.child(small_tag("Current".to_string(), chip, quiet)),
+                            }),
+                    )
+                    .children(
+                        checkpoint
+                            .summary
+                            .clone()
+                            .map(|summary| div().text_color(quiet).child(summary)),
+                    )
+                    .child(div().text_eyebrow().text_color(quiet).child(format!(
+                        "WHAT CHANGED \u{b7} {}",
+                        change_words(&checkpoint.changes, checkpoint.file_count()).to_uppercase()
+                    )))
+                    .when(checkpoint.changes.is_empty(), |this| {
+                        this.child(
+                            div()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child("No file list for this checkpoint."),
+                        )
+                    })
+                    .children(checkpoint.changes.iter().map(|change| {
+                        h_flex()
+                            .gap_3()
+                            .text_caption()
+                            .child(Icon::new(IconName::FileText).xsmall().text_color(quiet))
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .font_family(cx.theme().mono_font_family.clone())
+                                    .child(change.path.clone()),
+                            )
+                            .child(
+                                div()
+                                    .flex_none()
+                                    .text_color(success)
+                                    .child(format!("+{}", change.added)),
+                            )
+                            .child(
+                                div()
+                                    .flex_none()
+                                    .w(px(36.))
+                                    .text_right()
+                                    .text_color(danger)
+                                    .child(format!("\u{2212}{}", change.removed)),
+                            )
+                    }))
+            });
         let no_task = self.task.is_none();
         v_flex()
             .id(self.id.clone())
@@ -659,6 +1097,7 @@ impl RenderOnce for CheckpointTimeline {
                             .child(summary),
                     ),
             )
+            .children(scrubber)
             .child(
                 div()
                     .relative()
@@ -677,6 +1116,7 @@ impl RenderOnce for CheckpointTimeline {
                         )
                     }),
             )
+            .children(changes)
             .refine_style(&self.style)
     }
 }
@@ -722,6 +1162,36 @@ mod tests {
             on_way(&run(), "f"),
             [true, true, false, false, true, true, false]
         );
+    }
+
+    #[test]
+    fn scrubber_ticks_spread_evenly_and_snap() {
+        assert_eq!(tick_x(0, 5, 200.), 0.);
+        assert_eq!(tick_x(4, 5, 200.), 200.);
+        assert_eq!(tick_x(2, 5, 200.), 100.);
+        assert_eq!(tick_x(0, 1, 200.), 100.);
+        // 200 wide, 5 ticks: one every 50.
+        assert_eq!(scrub_index(0., 200., 5), Some(0));
+        assert_eq!(scrub_index(74., 200., 5), Some(1));
+        assert_eq!(scrub_index(76., 200., 5), Some(2));
+        assert_eq!(scrub_index(-30., 200., 5), Some(0));
+        assert_eq!(scrub_index(900., 200., 5), Some(4));
+        assert_eq!(scrub_index(10., 200., 0), None);
+        assert_eq!(scrub_index(10., 200., 1), Some(0));
+    }
+
+    #[test]
+    fn changes_read_in_words() {
+        let changes = Checkpoint::new("a", "A")
+            .change("src/a.rs", 30, 2)
+            .change("src/b.rs", 12, 5);
+        assert_eq!(
+            change_words(changes.changes(), changes.file_count()),
+            "2 files, 42 added, 7 removed"
+        );
+        assert_eq!(change_words(&[], Some(1)), "1 file");
+        assert_eq!(scrub_caption(Some(4), 2, 9), "Turn 4 \u{b7} 3 of 9");
+        assert_eq!(scrub_caption(None, 0, 1), "1 of 1");
     }
 
     #[test]
