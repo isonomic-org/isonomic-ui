@@ -94,5 +94,40 @@ impl Render for LoadingPlaceholderStory {
                             ),
                     ),
             )
+            .child(
+                h_flex()
+                    .items_start()
+                    .gap_8()
+                    .child(
+                        v_flex()
+                            .w(px(420.))
+                            .gap_2()
+                            .child(caption("Assistant answer"))
+                            .child(
+                                LoadingPlaceholder::new("answer", PlaceholderShape::Answer(3))
+                                    .label("Writing an answer"),
+                            ),
+                    )
+                    .child(
+                        v_flex()
+                            .w(px(300.))
+                            .gap_2()
+                            .child(caption("Recent files"))
+                            .child(
+                                LoadingPlaceholder::new("files", PlaceholderShape::List(5))
+                                    .label("Loading recent files"),
+                            ),
+                    ),
+            )
+            .child(
+                v_flex()
+                    .w(px(560.))
+                    .gap_2()
+                    .child(caption("Monthly summaries"))
+                    .child(
+                        LoadingPlaceholder::new("summaries", PlaceholderShape::Cards(3))
+                            .label("Loading monthly summaries"),
+                    ),
+            )
     }
 }
