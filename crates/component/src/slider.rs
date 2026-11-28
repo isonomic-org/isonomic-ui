@@ -1,9 +1,9 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
-use crate::{ActiveTheme, AxisExt, StyledExt, ThemeStyled as _};
+use crate::{ActiveTheme, AxisExt, StyledExt, TextRole as _, ThemeStyled as _};
 pub use isonomic_ui_base::slider::{SliderEvent, SliderScale, SliderState, SliderValue};
 use isonomic_ui_base::{
     LogicalStyledExt as _, Slider as BaseSlider, SliderIndicator, SliderThumb, SliderTrack, spring,
@@ -25,6 +25,9 @@ struct ThumbRing {
     interaction: Entity<ThumbInteraction>,
     width: Pixels,
     color: Hsla,
+    /// How far the ring has grown, 0 to 1: also how strongly a value label
+    /// shown only while the thumb is active shows.
+    progress: f32,
 }
 
 /// Pointer state of one thumb, written by its own listeners and read on the
@@ -77,6 +80,7 @@ impl ThumbRing {
             interaction,
             width: THUMB_RING_WIDTH * progress,
             color: color.alpha(THUMB_RING_OPACITY * progress),
+            progress,
         }
     }
 
@@ -94,6 +98,79 @@ impl ThumbRing {
     }
 }
 
+/// A labelled point on a slider's track, such as "Low" at 0 or "50%".
+#[derive(Debug, Clone, PartialEq)]
+pub struct SliderMark {
+    value: f32,
+    label: Option<SharedString>,
+}
+
+impl SliderMark {
+    /// A mark at `value`, drawn as a dot on the track.
+    pub fn new(value: f32) -> Self {
+        Self { value, label: None }
+    }
+
+    /// Writes `label` under the mark (beside it on a vertical slider).
+    pub fn label(mut self, label: impl Into<SharedString>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+}
+
+/// When a slider shows its value over the thumb.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SliderValueLabel {
+    /// Never; the default.
+    #[default]
+    Hidden,
+    /// Always, with room kept above the track for it.
+    Always,
+    /// While the thumb is hovered, dragged or focused, fading with its ring.
+    WhileActive,
+}
+
+/// The most step dots a track draws; a finer step draws none.
+pub const MAX_STEP_MARKS: usize = 40;
+
+/// The values a slider from `min` to `max` stops at every `step`, for
+/// drawing a dot at each: empty when there would be more than `limit`, or
+/// the step is not a positive number.
+pub fn step_mark_values(min: f32, max: f32, step: f32, limit: usize) -> Vec<f32> {
+    if !step.is_finite() || step <= 0. || max.partial_cmp(&min) != Some(std::cmp::Ordering::Greater)
+    {
+        return Vec::new();
+    }
+    let count = ((max - min) / step + 1e-4).floor() as usize + 1;
+    if count > limit {
+        return Vec::new();
+    }
+    (0..count).map(|ix| min + step * ix as f32).collect()
+}
+
+/// A value written as a slider's step suggests: whole numbers for a whole
+/// step, otherwise as many decimals as the step has (at most four).
+pub fn format_slider_value(value: f32, step: f32) -> String {
+    let mut decimals = 0;
+    let mut scaled = step.abs();
+    while decimals < 4
+        && scaled.is_finite()
+        && scaled > 0.
+        && (scaled - scaled.round()).abs() > 1e-4
+    {
+        scaled *= 10.;
+        decimals += 1;
+    }
+    format!("{value:.decimals$}")
+}
+
+/// Whether a mark at `fraction` of the track lies on the filled part.
+pub fn mark_is_filled(fraction: f32, filled: std::ops::Range<f32>) -> bool {
+    fraction >= filled.start - 1e-4 && fraction <= filled.end + 1e-4
+}
+
+type ValueFormatter = Rc<dyn Fn(f32) -> SharedString>;
+
 /// A Slider element.
 #[derive(IntoElement)]
 pub struct Slider {
@@ -105,6 +182,10 @@ pub struct Slider {
     reverse: bool,
     tab_stop: bool,
     tab_index: isize,
+    marks: Vec<SliderMark>,
+    step_marks: bool,
+    value_label: SliderValueLabel,
+    format_value: Option<ValueFormatter>,
 }
 
 impl Slider {
@@ -119,7 +200,37 @@ impl Slider {
             reverse: false,
             tab_stop: true,
             tab_index: 0,
+            marks: Vec::new(),
+            step_marks: false,
+            value_label: SliderValueLabel::default(),
+            format_value: None,
         }
+    }
+
+    /// Draws a dot on the track at each mark, and its label beneath.
+    pub fn marks(mut self, marks: impl IntoIterator<Item = SliderMark>) -> Self {
+        self.marks = marks.into_iter().collect();
+        self
+    }
+
+    /// Draws a dot at every step the slider stops at, when there are at most
+    /// [`MAX_STEP_MARKS`] of them. Off by default.
+    pub fn step_marks(mut self, step_marks: bool) -> Self {
+        self.step_marks = step_marks;
+        self
+    }
+
+    /// When to show the value over the thumb, default: never.
+    pub fn value_label(mut self, value_label: SliderValueLabel) -> Self {
+        self.value_label = value_label;
+        self
+    }
+
+    /// How the value label writes a value, such as `"40%"`. By default it
+    /// shows as many decimals as the step has.
+    pub fn format_value(mut self, format: impl Fn(f32) -> SharedString + 'static) -> Self {
+        self.format_value = Some(Rc::new(format));
+        self
     }
 
     /// As a horizontal slider.
@@ -192,6 +303,40 @@ impl RenderOnce for Slider {
             (relative(percentage.start), relative(1. - percentage.end))
         };
         let rem_size = window.rem_size();
+        let (min, max, step) = (state.min_value(), state.max_value(), state.step_value());
+        let value = state.value();
+        let mut dots: Vec<(f32, Option<SharedString>)> = Vec::new();
+        if self.step_marks {
+            dots.extend(
+                step_mark_values(min, max, step, MAX_STEP_MARKS)
+                    .into_iter()
+                    .map(|value| (state.fraction_of(value), None)),
+            );
+        }
+        for mark in &self.marks {
+            let fraction = state.fraction_of(mark.value);
+            // A labelled mark on a step replaces the step's bare dot.
+            dots.retain(|(f, label)| label.is_some() || (f - fraction).abs() > 1e-4);
+            dots.push((fraction, mark.label.clone()));
+        }
+        let has_mark_labels = dots.iter().any(|(_, label)| label.is_some());
+        let format = self.format_value.clone();
+        let step_for_format = step;
+        let label_text = move |value: f32| -> SharedString {
+            match &format {
+                Some(format) => format(value),
+                None => format_slider_value(value, step_for_format).into(),
+            }
+        };
+        let (start_text, end_text) = (
+            value.is_range().then(|| label_text(value.start())),
+            label_text(value.end()),
+        );
+        let filled = if self.reverse && !is_range {
+            percentage.end..1.
+        } else {
+            percentage.clone()
+        };
 
         let bar_color = self
             .style
@@ -248,7 +393,47 @@ impl RenderOnce for Slider {
         // The keys move the end thumb, so it carries the focus ring.
         let end_ring = ThumbRing::new(entity_id, false, is_focused, ring_color, window, cx);
 
-        let thumb = |position: DefiniteLength, start: bool, ring: ThumbRing| {
+        let value_label = self.value_label;
+        let label_bg = cx.theme().foreground;
+        let label_fg = cx.theme().background;
+        let thumb = |position: DefiniteLength, start: bool, ring: ThumbRing, text: SharedString| {
+            let label_strength = match value_label {
+                SliderValueLabel::Hidden => 0.,
+                SliderValueLabel::Always => 1.,
+                SliderValueLabel::WhileActive => ring.progress.clamp(0., 1.),
+            };
+            // Centred over the thumb: a zero-wide box at the thumb's centre
+            // lets the tag overflow evenly to both sides.
+            let tag = (label_strength > 0.).then(|| {
+                div()
+                    .absolute()
+                    .when(axis.is_horizontal(), |this| {
+                        this.left(px(8.))
+                            .bottom(px(22.))
+                            .w(px(0.))
+                            .flex()
+                            .justify_center()
+                    })
+                    .when(axis.is_vertical(), |this| {
+                        this.right(px(22.))
+                            .top(px(8.))
+                            .h(px(0.))
+                            .flex()
+                            .items_center()
+                    })
+                    .child(
+                        div()
+                            .flex_none()
+                            .whitespace_nowrap()
+                            .px(px(6.))
+                            .rounded(cx.theme().radius)
+                            .bg(label_bg)
+                            .text_color(label_fg)
+                            .text_badge()
+                            .opacity(label_strength)
+                            .child(text),
+                    )
+            });
             SliderThumb::new(&self.state)
                 .axis(axis)
                 .start(start)
@@ -307,8 +492,68 @@ impl RenderOnce for Slider {
                                 .rounded_full_style(cx)
                                 .bg(thumb_bg),
                         )
+                        .children(tag)
                 })
         };
+        let dot_filled = if cx.theme().mode.is_dark() {
+            cx.theme().background.opacity(0.55)
+        } else {
+            cx.theme().background.opacity(0.7)
+        };
+        let dot_filled: Background = dot_filled.into();
+        let dot_empty = bar_color.opacity(0.4);
+        let mark_label_color = crate::look::ink::subtle(cx);
+        let mark_elements = dots
+            .iter()
+            .map(|(fraction, _)| {
+                let on = mark_is_filled(*fraction, filled.clone());
+                div()
+                    .absolute()
+                    .size(px(4.))
+                    .rounded_full_style(cx)
+                    .bg(if on { dot_filled } else { dot_empty })
+                    .when(axis.is_horizontal(), |this| {
+                        this.top(px(0.))
+                            .inset_s(relative(*fraction), cx)
+                            .ms(-px(2.), cx)
+                    })
+                    .when(axis.is_vertical(), |this| {
+                        this.left(px(0.)).bottom(relative(*fraction)).mb(-px(2.))
+                    })
+                    .into_any_element()
+            })
+            .collect::<Vec<_>>();
+        let mark_labels = dots
+            .into_iter()
+            .filter_map(|(fraction, label)| label.map(|label| (fraction, label)))
+            .map(|(fraction, label)| {
+                div()
+                    .absolute()
+                    .when(axis.is_horizontal(), |this| {
+                        this.top(px(12.))
+                            .inset_s(relative(fraction), cx)
+                            .w(px(0.))
+                            .flex()
+                            .justify_center()
+                    })
+                    .when(axis.is_vertical(), |this| {
+                        this.left(px(14.))
+                            .bottom(relative(fraction))
+                            .h(px(0.))
+                            .flex()
+                            .items_center()
+                    })
+                    .child(
+                        div()
+                            .flex_none()
+                            .whitespace_nowrap()
+                            .text_caption()
+                            .text_color(mark_label_color)
+                            .child(label),
+                    )
+                    .into_any_element()
+            })
+            .collect::<Vec<_>>();
 
         BaseSlider::new(&self.state)
             .axis(axis)
@@ -331,6 +576,15 @@ impl RenderOnce for Slider {
             .justify_center()
             .when(axis.is_vertical(), |this| this.h(px(120.)))
             .when(axis.is_horizontal(), |this| this.w_full())
+            // Room for what sits outside the track: labels under it and a
+            // value tag that always shows over it.
+            .when(has_mark_labels && axis.is_horizontal(), |this| {
+                this.pb(px(16.))
+            })
+            .when(
+                value_label == SliderValueLabel::Always && axis.is_horizontal(),
+                |this| this.pt(px(22.)),
+            )
             .refine_style(&self.style)
             .bg(cx.theme().transparent)
             .text_color(cx.theme().foreground)
@@ -367,10 +621,17 @@ impl RenderOnce for Slider {
                                     .bg(bar_color)
                                     .rounded_full_style(cx),
                             )
+                            .children(mark_elements)
+                            .children(mark_labels)
                             .when_some(start_ring, |this, ring| {
-                                this.child(thumb(relative(percentage.start), true, ring))
+                                this.child(thumb(
+                                    relative(percentage.start),
+                                    true,
+                                    ring,
+                                    start_text.unwrap_or_default(),
+                                ))
                             })
-                            .child(thumb(relative(percentage.end), false, end_ring)),
+                            .child(thumb(relative(percentage.end), false, end_ring, end_text)),
                     ),
             )
     }
@@ -381,6 +642,37 @@ mod tests {
     use gpui::{AppContext as _, Context, Modifiers, Render, TestAppContext, point};
 
     use super::*;
+
+    #[test]
+    fn step_marks_cover_the_range_and_give_up_when_too_fine() {
+        assert_eq!(step_mark_values(0., 10., 5., 40), vec![0., 5., 10.]);
+        assert_eq!(
+            step_mark_values(0., 1., 0.25, 40),
+            vec![0., 0.25, 0.5, 0.75, 1.]
+        );
+        // A step that does not divide the range stops short of the end.
+        assert_eq!(step_mark_values(0., 10., 4., 40), vec![0., 4., 8.]);
+        assert!(step_mark_values(0., 100., 1., 40).is_empty());
+        assert!(step_mark_values(0., 10., 0., 40).is_empty());
+        assert!(step_mark_values(5., 5., 1., 40).is_empty());
+    }
+
+    #[test]
+    fn values_take_the_steps_decimals() {
+        assert_eq!(format_slider_value(42., 1.), "42");
+        assert_eq!(format_slider_value(42.25, 0.25), "42.25");
+        assert_eq!(format_slider_value(0.5, 0.1), "0.5");
+        assert_eq!(format_slider_value(1.0, 0.05), "1.00");
+        assert_eq!(format_slider_value(3.0, 15.), "3");
+    }
+
+    #[test]
+    fn marks_inside_the_fill_are_filled() {
+        assert!(mark_is_filled(0.2, 0.0..0.5));
+        assert!(mark_is_filled(0.5, 0.0..0.5));
+        assert!(!mark_is_filled(0.6, 0.0..0.5));
+        assert!(!mark_is_filled(0.1, 0.2..0.8));
+    }
 
     struct Harness {
         state: Entity<SliderState>,

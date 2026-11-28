@@ -85,6 +85,34 @@ impl Render for SkeletonStory {
                     ),
             )
             .child(
+                section("List")
+                    .description(
+                        "Round placeholders hold an avatar's place in each row; under reduced \
+                         motion the blocks stay still.",
+                    )
+                    .w(px(360.))
+                    .child(v_flex().w_full().gap_3().children((0..3).map(|ix| {
+                        isonomic_ui::component::h_flex()
+                            .w_full()
+                            .gap_3()
+                            .child(Skeleton::new().circle(px(32.)))
+                            .child(
+                                v_flex()
+                                    .flex_1()
+                                    .gap_2()
+                                    .child(
+                                        Skeleton::new()
+                                            .w(isonomic_ui::relative([0.5, 0.65, 0.4][ix])),
+                                    )
+                                    .child(
+                                        Skeleton::new()
+                                            .secondary()
+                                            .w(isonomic_ui::relative([0.8, 0.7, 0.85][ix])),
+                                    ),
+                            )
+                    }))),
+            )
+            .child(
                 section("Card")
                     .description("Combines media and text placeholders in a content card.")
                     .w(px(360.))

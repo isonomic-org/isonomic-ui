@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use isonomic_ui::{
-    App, AppContext, Context, Entity, Focusable, IntoElement, Keystroke, ParentElement, Render,
-    Styled, Window, px,
+    App, AppContext, Context, Entity, Focusable, InteractiveElement as _, IntoElement, Keystroke,
+    ParentElement, Render, Styled, Window, div, px,
 };
 
-use isonomic_ui::component::{h_flex, kbd::Kbd, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, h_flex,
+    kbd::{Kbd, KeyPlatform},
+    v_flex,
+};
 
 use crate::section;
 
@@ -45,7 +49,22 @@ impl Focusable for KbdStory {
     }
 }
 impl Render for KbdStory {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let quiet = cx.theme().muted_foreground;
+        let platform_row = |platform: KeyPlatform, name: &'static str| {
+            h_flex()
+                .id(name)
+                .w_full()
+                .gap_2()
+                .child(div().w(px(80.)).text_xs().text_color(quiet).child(name))
+                .children(
+                    ["cmd-shift-p", "ctrl-alt-delete", "alt-enter", "escape"]
+                        .into_iter()
+                        .map(move |keys| {
+                            Kbd::new(Keystroke::parse(keys).unwrap()).platform(platform)
+                        }),
+                )
+        };
         v_flex()
             .w_full()
             .items_center()
@@ -83,6 +102,22 @@ impl Render for KbdStory {
                             .child(Kbd::new(Keystroke::parse("cmd-shift-p").unwrap()).outline())
                             .child(Kbd::new(Keystroke::parse("cmd-ctrl-t").unwrap()).outline())
                             .child(Kbd::new(Keystroke::parse("enter").unwrap()).outline()),
+                    ),
+            )
+            .child(
+                section("Per platform")
+                    .description(
+                        "The same shortcuts written the way each platform writes them, on any \
+                         build.",
+                    )
+                    .w(px(560.))
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .gap_2()
+                            .child(platform_row(KeyPlatform::Mac, "Mac"))
+                            .child(platform_row(KeyPlatform::Windows, "Windows"))
+                            .child(platform_row(KeyPlatform::Linux, "Linux")),
                     ),
             )
     }

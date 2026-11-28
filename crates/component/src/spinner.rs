@@ -5,8 +5,9 @@ use std::f32::consts::{FRAC_PI_2, TAU};
 
 use crate::{Icon, Sizable, Size};
 use gpui::{
-    Animation, AnimationExt as _, App, Bounds, Hsla, IntoElement, ParentElement, PathBuilder,
-    Pixels, Point, RenderOnce, Styled as _, Transformation, Window, canvas, div, ease_in_out,
+    Animation, AnimationExt as _, App, Bounds, ElementId, Hsla, InteractiveElement as _,
+    IntoElement, ParentElement, PathBuilder, Pixels, Point, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Transformation, Window, canvas, div, ease_in_out,
     linear, percentage, point, prelude::FluentBuilder as _, px,
 };
 use instant::Duration;
@@ -21,6 +22,9 @@ pub enum SpinnerStyle {
     Rays,
     /// A plain three-quarter arc, turning, with no ring behind it.
     Arc,
+    /// Three dots in a row, each brightening in turn: a quieter "thinking"
+    /// indicator for a line of text.
+    Dots,
 }
 
 /// A cycling loading spinner.
@@ -36,6 +40,7 @@ pub struct Spinner {
     easing: Option<Box<dyn Fn(f32) -> f32>>,
     color: Option<Hsla>,
     style: SpinnerStyle,
+    announce: Option<(ElementId, SharedString)>,
 }
 
 impl Default for Spinner {
@@ -54,6 +59,7 @@ impl Spinner {
             icon: None,
             color: None,
             style: SpinnerStyle::Ring,
+            announce: None,
         }
     }
 
@@ -67,6 +73,24 @@ impl Spinner {
     /// `style(SpinnerStyle::Arc)`.
     pub fn arc(self) -> Self {
         self.style(SpinnerStyle::Arc)
+    }
+
+    /// Three dots brightening in turn: shorthand for
+    /// `style(SpinnerStyle::Dots)`.
+    pub fn dots(self) -> Self {
+        self.style(SpinnerStyle::Dots)
+    }
+
+    /// Announce what is loading, such as "Loading invoices", as a progress
+    /// indicator. Without it the spinner is decoration and a screen reader
+    /// skips it. The id must be unique among siblings.
+    pub fn loading_label(
+        mut self,
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+    ) -> Self {
+        self.announce = Some((id.into(), label.into()));
+        self
     }
 
     /// Set how the spinner is drawn. The default is [`SpinnerStyle::Ring`].
@@ -221,6 +245,33 @@ fn paint_arc(bounds: Bounds<Pixels>, turn: f32, color: Hsla, window: &mut Window
     circle.paint_arc(window, -FRAC_PI_2 + turn * TAU, TAU * 0.75, color, false);
 }
 
+/// How strongly dot `ix` of three shows at `time` (0 to 1 over a cycle):
+/// each brightens in turn, left to right, the others resting at a quarter.
+pub fn dot_strength(ix: usize, time: f32) -> f32 {
+    let center = (ix as f32 + 0.5) / 3.;
+    let offset = (time.rem_euclid(1.) - center).abs();
+    let distance = offset.min(1. - offset);
+    0.25 + 0.75 * (1. - distance * 3.).max(0.)
+}
+
+fn paint_dots(bounds: Bounds<Pixels>, time: f32, color: Hsla, window: &mut Window) {
+    let d = bounds.size.width.min(bounds.size.height);
+    let center = bounds.center();
+    // On a 16-unit square: dots 3.6 across, 5.2 apart.
+    let (dot, pitch) = (d * (3.6 / 16.), d * (5.2 / 16.));
+    for ix in 0..3 {
+        let at = point(center.x + pitch * (ix as f32 - 1.), center.y);
+        let points: Vec<_> = (0..16)
+            .map(|step| on_circle(at, dot / 2., step as f32 / 16. * TAU))
+            .collect();
+        let mut path = PathBuilder::fill();
+        path.add_polygon(&points, true);
+        if let Ok(path) = path.build() {
+            window.paint_path(path, color.alpha(color.a * dot_strength(ix, time)));
+        }
+    }
+}
+
 fn paint_rays(bounds: Bounds<Pixels>, time: f32, color: Hsla, window: &mut Window) {
     let d = bounds.size.width.min(bounds.size.height);
     let center = bounds.center();
@@ -244,7 +295,22 @@ fn paint_rays(bounds: Bounds<Pixels>, time: f32, color: Hsla, window: &mut Windo
 }
 
 impl RenderOnce for Spinner {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(mut self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        match self.announce.take() {
+            Some((id, label)) => div()
+                .id(id)
+                .flex_none()
+                .role(Role::ProgressIndicator)
+                .aria_label(label)
+                .child(self.render_mark(window, cx))
+                .into_any_element(),
+            None => self.render_mark(window, cx),
+        }
+    }
+}
+
+impl Spinner {
+    fn render_mark(self, _window: &mut Window, cx: &mut App) -> gpui::AnyElement {
         if let Some(icon) = self.icon {
             let easing = self.easing.unwrap_or_else(|| Box::new(ease_in_out));
             return div()
@@ -264,12 +330,18 @@ impl RenderOnce for Spinner {
         let size = diameter(self.size);
         let easing = self.easing.unwrap_or_else(|| Box::new(linear));
         let style = self.style;
+        // Dots read as a slow wave; a full cycle at the ring's pace flickers.
+        let speed = if style == SpinnerStyle::Dots && self.speed == Duration::from_millis(800) {
+            Duration::from_millis(1200)
+        } else {
+            self.speed
+        };
         div()
             .flex_none()
             .size(size)
             .with_animation(
                 "ring",
-                Animation::new(self.speed).repeat().with_easing(easing),
+                Animation::new(speed).repeat().with_easing(easing),
                 move |this, turn| {
                     this.child(
                         canvas(
@@ -278,6 +350,7 @@ impl RenderOnce for Spinner {
                                 SpinnerStyle::Ring => paint_ring(bounds, turn, color, window),
                                 SpinnerStyle::Rays => paint_rays(bounds, turn, color, window),
                                 SpinnerStyle::Arc => paint_arc(bounds, turn, color, window),
+                                SpinnerStyle::Dots => paint_dots(bounds, turn, color, window),
                             },
                         )
                         .size_full(),
@@ -307,6 +380,17 @@ mod tests {
         fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
             Spinner::new().arc()
         }
+    }
+
+    #[test]
+    fn dots_brighten_in_turn() {
+        for ix in 0..3 {
+            let moment = (ix as f32 + 0.5) / 3.;
+            assert!((dot_strength(ix, moment) - 1.).abs() < 1e-5);
+            assert!((dot_strength((ix + 1) % 3, moment) - 0.25).abs() < 1e-5);
+        }
+        // The cycle wraps: just past the end looks like just past the start.
+        assert!((dot_strength(0, 1.02) - dot_strength(0, 0.02)).abs() < 1e-5);
     }
 
     #[test]

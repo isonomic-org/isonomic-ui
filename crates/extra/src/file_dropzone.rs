@@ -8,6 +8,13 @@
 //! [`FileDropzoneEvent`]. The owner reports back with
 //! [`FileDropzone::set_progress`], [`FileDropzone::finish`] and
 //! [`FileDropzone::fail`].
+//!
+//! Accepted types are extensions (".pdf") or whole families ("image/*").
+//! Besides the size limit a dropzone can ask for a smallest size (turning away
+//! empty files), cap how many files it holds and turn away a file already in
+//! the list. Each turned-away row says why in words, and the owner can read
+//! the reason as a [`RejectReason`]. While files are dragged over it, the area
+//! turns the danger colour when none of them would be taken.
 
 use std::{
     path::PathBuf,
@@ -41,7 +48,7 @@ pub enum UploadStatus {
     Done,
     /// The upload failed and can be retried.
     Failed,
-    /// Turned away before uploading: the wrong type, or too large.
+    /// Turned away before uploading: see [`UploadItem::rejection`].
     Rejected,
 }
 
@@ -55,7 +62,137 @@ pub struct UploadItem {
     status: UploadStatus,
     progress: f32,
     error: Option<SharedString>,
+    rejection: Option<RejectReason>,
     started: Instant,
+}
+
+/// Why a file was turned away before uploading.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RejectReason {
+    /// Its type is not one the dropzone takes; `extension` is the file's own,
+    /// lower case, if it has one.
+    WrongType {
+        /// The file's extension.
+        extension: Option<String>,
+    },
+    /// Larger than the limit, in bytes.
+    TooLarge {
+        /// The largest size taken.
+        limit: u64,
+    },
+    /// Smaller than the minimum, in bytes; a minimum of one byte turns away
+    /// empty files.
+    TooSmall {
+        /// The smallest size taken.
+        minimum: u64,
+    },
+    /// The list already holds as many files as it takes.
+    TooMany {
+        /// How many files the list holds at most.
+        limit: usize,
+    },
+    /// A file of the same name and size is already in the list.
+    Duplicate,
+}
+
+impl RejectReason {
+    /// The reason in words, as the row shows it.
+    pub fn message(&self) -> String {
+        match self {
+            Self::WrongType {
+                extension: Some(extension),
+            } => format!("{} files are not accepted", extension.to_uppercase()),
+            Self::WrongType { extension: None } => {
+                "Files without an extension are not accepted".into()
+            }
+            Self::TooLarge { limit } => format!("Too large, the limit is {}", format_size(*limit)),
+            Self::TooSmall { minimum } if *minimum <= 1 => "This file is empty".into(),
+            Self::TooSmall { minimum } => {
+                format!("Too small, the minimum is {}", format_size(*minimum))
+            }
+            Self::TooMany { limit: 1 } => "Only one file at a time".into(),
+            Self::TooMany { limit } => format!("Only {limit} files at a time"),
+            Self::Duplicate => "Already in the list".into(),
+        }
+    }
+}
+
+/// The checks a file must pass.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Rules {
+    /// Accepted extensions, lower case and without the dot, or families
+    /// such as "image/*". Empty accepts all.
+    accept: Vec<SharedString>,
+    max_size: u64,
+    min_size: u64,
+    max_files: Option<usize>,
+    reject_duplicates: bool,
+}
+
+/// The extensions a family such as "image/*" stands for.
+pub fn family_extensions(family: &str) -> &'static [&'static str] {
+    match family {
+        "image/*" => &[
+            "png", "jpg", "jpeg", "gif", "webp", "heic", "svg", "tif", "tiff",
+        ],
+        "video/*" => &["mp4", "mov", "webm", "mkv", "avi", "m4v"],
+        "audio/*" => &["mp3", "wav", "m4a", "aac", "flac", "ogg"],
+        "text/*" => &["txt", "md", "csv", "tsv", "json", "log"],
+        _ => &[],
+    }
+}
+
+/// Whether a file with `extension` is taken by the accepted list.
+fn accepts(accept: &[SharedString], extension: Option<&str>) -> bool {
+    if accept.is_empty() {
+        return true;
+    }
+    let Some(extension) = extension else {
+        return false;
+    };
+    accept.iter().any(|accepted| {
+        accepted.as_ref() == extension || family_extensions(accepted).contains(&extension)
+    })
+}
+
+impl Rules {
+    /// Whether a file may join a list holding `held` files (not counting
+    /// turned-away rows), `existing` being the names and sizes already in it.
+    fn check(
+        &self,
+        name: &str,
+        size: u64,
+        held: usize,
+        existing: &[(SharedString, u64)],
+    ) -> Result<(), RejectReason> {
+        let extension = extension(name);
+        if !accepts(&self.accept, extension.as_deref()) {
+            return Err(RejectReason::WrongType { extension });
+        }
+        if size > self.max_size {
+            return Err(RejectReason::TooLarge {
+                limit: self.max_size,
+            });
+        }
+        if size < self.min_size {
+            return Err(RejectReason::TooSmall {
+                minimum: self.min_size,
+            });
+        }
+        if self.reject_duplicates
+            && existing
+                .iter()
+                .any(|(other, other_size)| other.as_ref() == name && *other_size == size)
+        {
+            return Err(RejectReason::Duplicate);
+        }
+        if let Some(limit) = self.max_files
+            && held >= limit
+        {
+            return Err(RejectReason::TooMany { limit });
+        }
+        Ok(())
+    }
 }
 
 impl UploadItem {
@@ -89,7 +226,12 @@ impl UploadItem {
         self.progress
     }
 
-    /// Why the file failed or was turned away.
+    /// Why the file was turned away, for a [`UploadStatus::Rejected`] row.
+    pub fn rejection(&self) -> Option<&RejectReason> {
+        self.rejection.as_ref()
+    }
+
+    /// Why the upload failed or the file was turned away, in words.
     pub fn error(&self) -> Option<&SharedString> {
         self.error.as_ref()
     }
@@ -108,9 +250,7 @@ pub enum FileDropzoneEvent {
 
 /// A drop area with the list of files dropped on it.
 pub struct FileDropzone {
-    /// Accepted extensions, lower case and without the dot. Empty accepts all.
-    accept: Vec<SharedString>,
-    max_size: u64,
+    rules: Rules,
     hint: Option<SharedString>,
     items: Vec<UploadItem>,
     next_id: usize,
@@ -123,8 +263,13 @@ impl FileDropzone {
     /// Create a dropzone that takes any file up to 25 MB.
     pub fn new(cx: &mut Context<Self>) -> Self {
         Self {
-            accept: Vec::new(),
-            max_size: DEFAULT_MAX_SIZE,
+            rules: Rules {
+                accept: Vec::new(),
+                max_size: DEFAULT_MAX_SIZE,
+                min_size: 0,
+                max_files: None,
+                reject_duplicates: false,
+            },
             hint: None,
             items: Vec::new(),
             next_id: 0,
@@ -132,10 +277,11 @@ impl FileDropzone {
         }
     }
 
-    /// Only take files with these extensions, such as `[".pdf", ".png"]`.
-    /// Other files get a row that says why they were turned away.
+    /// Only take files with these extensions, such as `[".pdf", ".png"]`,
+    /// or of these families: `"image/*"`, `"video/*"`, `"audio/*"` and
+    /// `"text/*"`. Other files get a row that says why they were turned away.
     pub fn accept(mut self, extensions: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
-        self.accept = extensions
+        self.rules.accept = extensions
             .into_iter()
             .map(|extension| normalize(extension.as_ref()).into())
             .collect();
@@ -144,7 +290,28 @@ impl FileDropzone {
 
     /// Set the largest file taken, in bytes.
     pub fn max_size(mut self, bytes: u64) -> Self {
-        self.max_size = bytes;
+        self.rules.max_size = bytes;
+        self
+    }
+
+    /// Set the smallest file taken, in bytes. One byte turns away empty
+    /// files. None by default.
+    pub fn min_size(mut self, bytes: u64) -> Self {
+        self.rules.min_size = bytes;
+        self
+    }
+
+    /// Hold at most this many files; more are turned away until one is
+    /// removed. Turned-away rows don't count. No limit by default.
+    pub fn max_files(mut self, count: usize) -> Self {
+        self.rules.max_files = Some(count.max(1));
+        self
+    }
+
+    /// Turn away a file with the same name and size as one already in the
+    /// list. Off by default.
+    pub fn reject_duplicates(mut self, reject: bool) -> Self {
+        self.rules.reject_duplicates = reject;
         self
     }
 
@@ -272,7 +439,18 @@ impl FileDropzone {
     fn push(&mut self, name: SharedString, path: Option<PathBuf>, size: u64) -> (usize, bool) {
         let id = self.next_id;
         self.next_id += 1;
-        let verdict = check(&name, size, &self.accept, self.max_size);
+        let held = self
+            .items
+            .iter()
+            .filter(|item| item.status != UploadStatus::Rejected)
+            .count();
+        let existing: Vec<(SharedString, u64)> = self
+            .items
+            .iter()
+            .filter(|item| item.status != UploadStatus::Rejected)
+            .map(|item| (item.name.clone(), item.size))
+            .collect();
+        let verdict = self.rules.check(&name, size, held, &existing);
         let ok = verdict.is_ok();
         self.items.push(UploadItem {
             id,
@@ -285,7 +463,8 @@ impl FileDropzone {
                 UploadStatus::Rejected
             },
             progress: 0.,
-            error: verdict.err().map(Into::into),
+            error: verdict.as_ref().err().map(|reason| reason.message().into()),
+            rejection: verdict.err(),
             started: Instant::now(),
         });
         (id, ok)
@@ -307,9 +486,23 @@ impl FileDropzone {
     }
 }
 
-/// An extension as the checks compare it: lower case, without the dot.
+/// An extension as the checks compare it: lower case, without the dot. A
+/// family such as "Image/*" stays a family.
 fn normalize(extension: &str) -> String {
     extension.trim().trim_start_matches('.').to_lowercase()
+}
+
+/// Whether any of the dragged files would be taken. Sizes are read from disk;
+/// a file that can't be read counts as empty.
+fn any_taken(rules: &Rules, paths: &[PathBuf], held: usize) -> bool {
+    paths.iter().filter(|path| !path.is_dir()).any(|path| {
+        let name = path
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let size = std::fs::metadata(path).map_or(0, |meta| meta.len());
+        rules.check(&name, size, held, &[]).is_ok()
+    })
 }
 
 /// The extension of a file name, lower case. Dot files have none.
@@ -318,19 +511,18 @@ fn extension(name: &str) -> Option<String> {
     (!stem.is_empty() && !extension.is_empty()).then(|| extension.to_lowercase())
 }
 
-/// Whether a file may be uploaded, or why not.
+/// Whether a file may be uploaded by type and size alone, or why not.
+#[cfg(test)]
 fn check(name: &str, size: u64, accept: &[SharedString], max_size: u64) -> Result<(), String> {
-    if !accept.is_empty() {
-        let known = extension(name)
-            .is_some_and(|extension| accept.iter().any(|accepted| accepted.as_ref() == extension));
-        if !known {
-            return Err("This type is not accepted".into());
-        }
+    Rules {
+        accept: accept.to_vec(),
+        max_size,
+        min_size: 0,
+        max_files: None,
+        reject_duplicates: false,
     }
-    if size > max_size {
-        return Err(format!("Too large, the limit is {}", format_size(max_size)));
-    }
-    Ok(())
+    .check(name, size, 0, &[])
+    .map_err(|reason| reason.message())
 }
 
 /// A size in the largest unit that keeps it readable: "850 KB", "4.2 MB".
@@ -352,6 +544,17 @@ fn format_size(bytes: u64) -> String {
     }
 }
 
+/// How the hint names an accepted entry: "PDF", or "Images" for a family.
+fn accepted_name(entry: &str) -> String {
+    match entry {
+        "image/*" => "Images".into(),
+        "video/*" => "Videos".into(),
+        "audio/*" => "Audio".into(),
+        "text/*" => "Text files".into(),
+        other => other.to_uppercase(),
+    }
+}
+
 /// The line under the title when no hint is given.
 fn default_hint(accept: &[SharedString], max_size: u64) -> String {
     let limit = format!("up to {} each", format_size(max_size));
@@ -361,7 +564,7 @@ fn default_hint(accept: &[SharedString], max_size: u64) -> String {
     let listed = accept
         .iter()
         .take(3)
-        .map(|extension| extension.to_uppercase())
+        .map(|extension| accepted_name(extension))
         .collect::<Vec<_>>()
         .join(", ");
     if accept.len() > 3 {
@@ -417,8 +620,23 @@ impl Render for FileDropzone {
 
         let hint: SharedString = match &self.hint {
             Some(hint) => hint.clone(),
-            None => default_hint(&self.accept, self.max_size).into(),
+            None => {
+                let mut hint = default_hint(&self.rules.accept, self.rules.max_size);
+                if let Some(limit) = self.rules.max_files {
+                    hint.push_str(&format!(
+                        " · at most {limit} file{}",
+                        if limit == 1 { "" } else { "s" }
+                    ));
+                }
+                hint.into()
+            }
         };
+        let rules = self.rules.clone();
+        let held = self
+            .items
+            .iter()
+            .filter(|item| item.status != UploadStatus::Rejected)
+            .count();
         let is_focused = self.focus.is_focused(window);
 
         let rows = self.items.iter().map(|item| {
@@ -589,8 +807,15 @@ impl Render for FileDropzone {
                         .border_1()
                         .border_dashed()
                         .border_color(line)
-                        .drag_over::<ExternalPaths>(move |style, _, _, _| {
-                            style.border_color(accent).bg(accent.opacity(0.06))
+                        // The accent while something here would be taken, the
+                        // danger colour when every dragged file would be turned away.
+                        .drag_over::<ExternalPaths>(move |style, paths, _, _| {
+                            let color = if any_taken(&rules, paths.paths(), held) {
+                                accent
+                            } else {
+                                danger
+                            };
+                            style.border_color(color).bg(color.opacity(0.06))
                         })
                         .on_drop(cx.listener(|this, paths: &ExternalPaths, _, cx| {
                             this.add_paths(paths.paths().to_vec(), cx)
@@ -654,8 +879,98 @@ mod tests {
             status,
             progress: 0.,
             error: None,
+            rejection: None,
             started: Instant::now(),
         }
+    }
+
+    fn rules() -> Rules {
+        Rules {
+            accept: vec!["pdf".into(), "image/*".into()],
+            max_size: 10 * MB,
+            min_size: 1,
+            max_files: Some(2),
+            reject_duplicates: true,
+        }
+    }
+
+    #[test]
+    fn families_take_their_extensions() {
+        let rules = rules();
+        assert!(rules.check("photo.HEIC", MB, 0, &[]).is_ok());
+        assert!(rules.check("scan.pdf", MB, 0, &[]).is_ok());
+        assert_eq!(
+            rules.check("clip.mov", MB, 0, &[]),
+            Err(RejectReason::WrongType {
+                extension: Some("mov".into())
+            })
+        );
+        assert!(family_extensions("video/*").contains(&"mov"));
+        assert!(family_extensions("model/*").is_empty());
+    }
+
+    #[test]
+    fn each_rule_turns_a_file_away_with_its_reason() {
+        let rules = rules();
+        assert_eq!(
+            rules.check("blank.pdf", 0, 0, &[]),
+            Err(RejectReason::TooSmall { minimum: 1 })
+        );
+        assert_eq!(
+            rules.check("big.pdf", 11 * MB, 0, &[]),
+            Err(RejectReason::TooLarge { limit: 10 * MB })
+        );
+        let existing = [("scan.pdf".into(), MB)];
+        assert_eq!(
+            rules.check("scan.pdf", MB, 1, &existing),
+            Err(RejectReason::Duplicate)
+        );
+        // Same name, other size: a different file.
+        assert!(rules.check("scan.pdf", 2 * MB, 1, &existing).is_ok());
+        assert_eq!(
+            rules.check("third.pdf", MB, 2, &[]),
+            Err(RejectReason::TooMany { limit: 2 })
+        );
+    }
+
+    #[test]
+    fn reasons_read_in_words() {
+        assert_eq!(
+            RejectReason::TooSmall { minimum: 1 }.message(),
+            "This file is empty"
+        );
+        assert_eq!(
+            RejectReason::TooSmall { minimum: 2048 }.message(),
+            "Too small, the minimum is 2 KB"
+        );
+        assert_eq!(
+            RejectReason::TooMany { limit: 1 }.message(),
+            "Only one file at a time"
+        );
+        assert_eq!(
+            RejectReason::TooMany { limit: 5 }.message(),
+            "Only 5 files at a time"
+        );
+        assert_eq!(RejectReason::Duplicate.message(), "Already in the list");
+        assert_eq!(
+            default_hint(&["image/*".into(), "pdf".into()], MB),
+            "Images, PDF · up to 1 MB each"
+        );
+    }
+
+    #[test]
+    fn a_drag_of_only_unwanted_files_is_not_taken() {
+        let rules = rules();
+        let paths = [PathBuf::from("/nowhere/clip.mov")];
+        assert!(!any_taken(&rules, &paths, 0));
+        // A missing file reads as empty, and the rules here turn away empty files.
+        let paths = [PathBuf::from("/nowhere/scan.pdf")];
+        assert!(!any_taken(&rules, &paths, 0));
+        let open = Rules {
+            min_size: 0,
+            ..rules
+        };
+        assert!(any_taken(&open, &paths, 0));
     }
 
     #[test]
@@ -681,7 +996,11 @@ mod tests {
         assert!(check("scan.PNG", MB, &accept, 25 * MB).is_ok());
         assert_eq!(
             check("clip.mp4", MB, &accept, 25 * MB),
-            Err("This type is not accepted".into())
+            Err("MP4 files are not accepted".into())
+        );
+        assert_eq!(
+            check("README", MB, &accept, 25 * MB),
+            Err("Files without an extension are not accepted".into())
         );
         assert_eq!(
             check("scan.png", 26 * MB, &accept, 25 * MB),

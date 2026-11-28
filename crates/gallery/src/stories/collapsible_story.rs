@@ -17,7 +17,7 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     App, AppContext, Context, Div, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, Stateful, StatefulInteractiveElement, Styled, Window, div,
+    ParentElement, Render, Stateful, StatefulInteractiveElement, Styled, Window, div, percentage,
     prelude::FluentBuilder as _, px,
 };
 
@@ -32,6 +32,7 @@ const API_KEYS: &str = "api-keys";
 const COMPONENTS_DIR: &str = "components-dir";
 const UI_DIR: &str = "ui-dir";
 const PROFILE: &str = "profile";
+const DISCLOSURE: &str = "disclosure";
 
 /// Order details, as (title, value) pairs.
 const ORDER_DETAILS: [(&str, &str); 2] = [
@@ -248,6 +249,60 @@ impl CollapsibleStory {
                                     .child(div().font_medium().child(title))
                                     .child(div().text_color(muted_foreground).child(value))
                             })),
+                    ),
+            )
+    }
+
+    /// One section whose height animates, its chevron turning in step.
+    fn render_disclosure(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let muted_foreground = cx.theme().muted_foreground;
+        let open = self.is_open(DISCLOSURE);
+        let toggle = cx.listener(|this, _, _, cx| this.toggle(DISCLOSURE, cx));
+
+        section("Animated section")
+            .description(
+                "A single section that grows to its content and shrinks back; the chevron \
+                 turns with the height.",
+            )
+            .w(px(360.))
+            .v_flex()
+            .child(
+                Collapsible::new()
+                    .w_full()
+                    .gap_2()
+                    .motion_id(DISCLOSURE)
+                    .open(open)
+                    .header(move |progress, _, cx| {
+                        Button::new(DISCLOSURE)
+                            .ghost()
+                            .w_full()
+                            .accessibility_label(if open {
+                                "Payment terms, expanded"
+                            } else {
+                                "Payment terms, collapsed"
+                            })
+                            .child(div().font_medium().child("Payment terms"))
+                            // A spacer takes the free width, so the chevron sits at the end.
+                            .child(div().flex_1())
+                            .child(
+                                Icon::new(IconName::ChevronDown)
+                                    .small()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .rotate(percentage(0.5 * progress.clamp(0., 1.))),
+                            )
+                            .on_click(toggle)
+                    })
+                    .content(
+                        v_flex()
+                            .gap_2()
+                            .px_3()
+                            .pb_2()
+                            .text_color(muted_foreground)
+                            .child(
+                                "Invoices are due 30 days from the issue date. A reminder goes \
+                                 out a week before, and again on the day.",
+                            )
+                            .child("Late invoices pick up a 1.5% fee each month after that."),
                     ),
             )
     }
@@ -592,6 +647,7 @@ impl Render for CollapsibleStory {
             .items_center()
             .gap_6()
             .child(self.render_basic(cx))
+            .child(self.render_disclosure(cx))
             .child(self.render_row_trigger(cx))
             .child(self.render_bottom_trigger(cx))
             .child(self.render_settings(cx))

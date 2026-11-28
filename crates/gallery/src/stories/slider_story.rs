@@ -6,7 +6,9 @@ use isonomic_ui::component::{
     button::Button,
     clipboard::Clipboard,
     h_flex,
-    slider::{Slider, SliderEvent, SliderScale, SliderState, SliderValue},
+    slider::{
+        Slider, SliderEvent, SliderMark, SliderScale, SliderState, SliderValue, SliderValueLabel,
+    },
     v_flex,
 };
 use isonomic_ui::prelude::FluentBuilder as _;
@@ -34,6 +36,9 @@ pub struct SliderStory {
     duration_months: f32,
     slider_temperature: Entity<SliderState>,
     temperature_kelvin: f32,
+    slider_rating: Entity<SliderState>,
+    slider_hours: Entity<SliderState>,
+    slider_opacity: Entity<SliderState>,
     disabled: bool,
     _subscritions: Vec<Subscription>,
 }
@@ -138,6 +143,28 @@ impl SliderStory {
                 .default_value(3600.)
         });
 
+        let slider_rating = cx.new(|_| {
+            SliderState::new()
+                .min(0.)
+                .max(10.)
+                .step(1.)
+                .default_value(6.)
+        });
+        let slider_hours = cx.new(|_| {
+            SliderState::new()
+                .min(0.)
+                .max(24.)
+                .step(0.5)
+                .default_value(8.5..17.5)
+        });
+        let slider_opacity = cx.new(|_| {
+            SliderState::new()
+                .min(0.)
+                .max(100.)
+                .step(5.)
+                .default_value(40.)
+        });
+
         let mut _subscritions = vec![
             cx.subscribe(&slider1, |this, _, event: &SliderEvent, cx| match event {
                 SliderEvent::Change(value) => {
@@ -214,6 +241,9 @@ impl SliderStory {
             slider_duration,
             duration_months: 5.,
             slider_temperature,
+            slider_rating,
+            slider_hours,
+            slider_opacity,
             temperature_kelvin: 3600.,
             disabled: false,
             _subscritions,
@@ -551,6 +581,79 @@ impl Render for SliderStory {
                                     .child("Alpha")
                                     .child(format!("{:.0}", self.slider_hsl_value.a * 100.)),
                             ),
+                    ),
+            )
+            .child(
+                section("Steps and marks")
+                    .description(
+                        "Dots at every step, labelled marks under the track, and the value over \
+                         the thumb while it is hovered, dragged or focused.",
+                    )
+                    .w_128()
+                    .items_center()
+                    .child(
+                        v_flex()
+                            .w(px(360.))
+                            .gap_2()
+                            .child(div().font_medium().child("How likely are you to renew?"))
+                            .child(
+                                Slider::new(&self.slider_rating)
+                                    .accessibility_label("Likelihood to renew")
+                                    .step_marks(true)
+                                    .marks([
+                                        SliderMark::new(0.).label("Unlikely"),
+                                        SliderMark::new(5.).label("Neutral"),
+                                        SliderMark::new(10.).label("Certain"),
+                                    ])
+                                    .value_label(SliderValueLabel::WhileActive)
+                                    .disabled(self.disabled),
+                            ),
+                    ),
+            )
+            .child(
+                section("Range with value labels")
+                    .description("Both ends of a range carry their value, always shown.")
+                    .w_128()
+                    .items_center()
+                    .child(
+                        v_flex()
+                            .w(px(360.))
+                            .gap_2()
+                            .child(div().font_medium().child("Support hours"))
+                            .child(
+                                Slider::new(&self.slider_hours)
+                                    .accessibility_label("Support hours")
+                                    .value_label(SliderValueLabel::Always)
+                                    .format_value(|hours| {
+                                        let h = hours.floor() as u32;
+                                        let m = ((hours - hours.floor()) * 60.).round() as u32;
+                                        format!("{h:02}:{m:02}").into()
+                                    })
+                                    .marks([0., 6., 12., 18., 24.].map(|h| {
+                                        SliderMark::new(h).label(format!("{:02}:00", h as u32))
+                                    }))
+                                    .disabled(self.disabled),
+                            ),
+                    ),
+            )
+            .child(
+                section("Vertical with marks")
+                    .description("Marks sit beside a vertical track; the value shows at its side.")
+                    .w_128()
+                    .items_center()
+                    .child(
+                        h_flex().h(px(140.)).child(
+                            Slider::new(&self.slider_opacity)
+                                .vertical()
+                                .accessibility_label("Layer opacity")
+                                .value_label(SliderValueLabel::Always)
+                                .format_value(|v| format!("{v:.0}%").into())
+                                .marks(
+                                    [0., 50., 100.]
+                                        .map(|v| SliderMark::new(v).label(format!("{v:.0}%"))),
+                                )
+                                .disabled(self.disabled),
+                        ),
                     ),
             )
             .child(

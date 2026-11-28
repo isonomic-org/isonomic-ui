@@ -9,7 +9,7 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Selectable as _, Sizable, Size,
     button::{Button, ButtonGroup, ButtonVariants},
     h_flex,
-    tab::{Tab, TabBar},
+    tab::{Tab, TabBar, TabPanels},
     v_flex,
 };
 
@@ -36,6 +36,7 @@ pub struct TabsStory {
     size: Size,
     menu: bool,
     max_width_ix: usize,
+    inbox_tab_ix: usize,
 }
 
 impl super::Story for TabsStory {
@@ -68,6 +69,7 @@ impl TabsStory {
             size: Size::default(),
             menu: false,
             max_width_ix: 0,
+            inbox_tab_ix: 0,
         }
     }
 
@@ -409,6 +411,68 @@ impl Render for TabsStory {
                                     )
                                     .selected(self.dynamic_active_tab_ix == ix)
                             })),
+                    ),
+            )
+            .child(
+                section("Counts and panels")
+                    .description(
+                        "Counts ride inside the tab and the sliding indicator; only the selected \
+                         panel is built, and a switch fades the new one in.",
+                    )
+                    .w_full()
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .gap_3()
+                            .child(
+                                TabBar::new("inbox-tabs")
+                                    .underline()
+                                    .with_size(self.size)
+                                    .selected_index(self.inbox_tab_ix)
+                                    .on_click(cx.listener(|this, ix: &usize, _, cx| {
+                                        this.inbox_tab_ix = *ix;
+                                        cx.notify();
+                                    }))
+                                    .child(Tab::new().label("To review").count(12))
+                                    .child(Tab::new().label("Waiting").count(3))
+                                    .child(Tab::new().label("Archived").count(1280))
+                                    .child(Tab::new().label("Drafts")),
+                            )
+                            .child(
+                                TabBar::new("inbox-tabs-segmented")
+                                    .segmented()
+                                    .with_size(self.size)
+                                    .selected_index(self.inbox_tab_ix)
+                                    .on_click(cx.listener(|this, ix: &usize, _, cx| {
+                                        this.inbox_tab_ix = *ix;
+                                        cx.notify();
+                                    }))
+                                    .child(Tab::new().label("To review").count(12))
+                                    .child(Tab::new().label("Waiting").count(3))
+                                    .child(Tab::new().label("Archived").count(1280))
+                                    .child(Tab::new().label("Drafts")),
+                            )
+                            .child(
+                                TabPanels::new("inbox-panels")
+                                    .selected_index(self.inbox_tab_ix)
+                                    .keep_mounted(true)
+                                    .w_full()
+                                    .p_3()
+                                    .rounded(cx.theme().radius_lg)
+                                    .border_1()
+                                    .border_color(cx.theme().border)
+                                    .panel("To review", |_, _| {
+                                        "Twelve expense reports wait for your approval, the \
+                                         oldest from Monday."
+                                    })
+                                    .panel("Waiting", |_, _| {
+                                        "Three reports are back with their owners for receipts."
+                                    })
+                                    .panel("Archived", |_, _| {
+                                        "1,280 reports are archived. Counts over 99 read as 99+."
+                                    })
+                                    .panel("Drafts", |_, _| "No drafts."),
+                            ),
                     ),
             )
             .child(

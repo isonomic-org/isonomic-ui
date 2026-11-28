@@ -4,7 +4,7 @@
 //! Gallery story for the thinking indicator.
 
 use crate::Story;
-use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
+use isonomic_ui::component::{ActiveTheme as _, Sizable as _, h_flex, spinner::Spinner, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Window, div, px,
@@ -163,5 +163,58 @@ impl Render for ThinkingIndicatorStory {
                         )
                 },
             )))
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("In three sizes: small, medium and large"),
+            )
+            .child(
+                v_flex()
+                    .gap_3()
+                    .child(
+                        ThinkingIndicator::new("size-small", OrbState::Searching)
+                            .small()
+                            .label("Searching 12 receipts\u{2026}")
+                            .elapsed("4s"),
+                    )
+                    .child(
+                        ThinkingIndicator::new("size-medium", OrbState::Searching)
+                            .label("Searching 12 receipts\u{2026}")
+                            .elapsed("4s"),
+                    )
+                    .child(
+                        ThinkingIndicator::new("size-large", OrbState::Searching)
+                            .large()
+                            .label("Searching 12 receipts\u{2026}")
+                            .elapsed("4s"),
+                    )
+                    .child(
+                        ThinkingIndicator::new("size-large-done", OrbState::Reasoning)
+                            .large()
+                            .finished(true)
+                            .label("Thought for 6 seconds")
+                            .reasoning(REASONING),
+                    ),
+            )
+            .child(
+                div()
+                    .text_xs()
+                    .text_color(quiet)
+                    .child("The base spinner's dots, for an inline line of text"),
+            )
+            .child(
+                h_flex()
+                    .gap_4()
+                    .items_center()
+                    .child(Spinner::new().dots().xsmall())
+                    .child(Spinner::new().dots().small())
+                    .child(
+                        Spinner::new()
+                            .dots()
+                            .loading_label("dots-medium", "Loading"),
+                    )
+                    .child(Spinner::new().dots().large()),
+            )
     }
 }

@@ -82,6 +82,39 @@ impl Render for SpinnerStory {
                     ),
             )
             .child(
+                section("Rays and dots")
+                    .description(
+                        "Thinking indicators: rays running round, or three dots brightening in \
+                         turn. The dots carry a spoken label, so a screen reader hears \
+                         \"Loading\".",
+                    )
+                    .gap_x_2()
+                    .child(Spinner::new().rays().with_size(self.size))
+                    .child(
+                        Spinner::new()
+                            .dots()
+                            .with_size(self.size)
+                            .loading_label("spinner-dots", "Loading"),
+                    ),
+            )
+            .child(
+                section("Every size")
+                    .description("Each style at 12, 14, 16 and 20 px.")
+                    .gap_x_4()
+                    .children(
+                        [Size::XSmall, Size::Small, Size::Medium, Size::Large]
+                            .into_iter()
+                            .map(|size| {
+                                isonomic_ui::component::h_flex()
+                                    .gap_2()
+                                    .child(Spinner::new().with_size(size))
+                                    .child(Spinner::new().arc().with_size(size))
+                                    .child(Spinner::new().rays().with_size(size))
+                                    .child(Spinner::new().dots().with_size(size))
+                            }),
+                    ),
+            )
+            .child(
                 section("Color")
                     .description("Use a color that suits the surrounding status.")
                     .gap_x_2()

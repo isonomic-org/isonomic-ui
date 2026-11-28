@@ -320,6 +320,14 @@ impl SliderState {
         }
     }
 
+    /// Where `value` sits along the track, from 0.0 at the minimum to 1.0 at
+    /// the maximum, on the slider's scale. Values outside the range are held
+    /// to its ends.
+    pub fn fraction_of(&self, value: f32) -> f32 {
+        self.value_to_percentage(value.min(self.max).max(self.min))
+            .clamp(0.0, 1.0)
+    }
+
     /// Converts a value between 0.0 and 1.0 to a value between the minimum and maximum value,
     /// depending on the chosen scale.
     fn percentage_to_value(&self, percentage: f32) -> f32 {

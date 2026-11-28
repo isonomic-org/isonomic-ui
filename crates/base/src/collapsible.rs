@@ -42,6 +42,14 @@ impl Collapsible {
         self
     }
 
+    /// Puts `element` before every child given so far, such as a header
+    /// built after the rest.
+    pub fn prepend(mut self, element: impl IntoElement) -> Self {
+        self.children
+            .insert(0, Child::Element(element.into_any_element()));
+        self
+    }
+
     /// Keeps content mounted and reveals it at normalized `progress`.
     pub fn reveal(mut self, id: impl Into<ElementId>, progress: f32) -> Self {
         self.reveal = Some((id.into(), progress));

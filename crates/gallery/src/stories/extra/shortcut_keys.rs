@@ -45,14 +45,15 @@ impl Render for ShortcutKeysStory {
             ("Approve the front request", "a", Some("enter")),
             ("Move a step down", "alt-down", None),
         ];
-        let table = |platform: KeyPlatform, key: &str| {
+        let table = |platform: KeyPlatform, key: &str, joined: bool| {
             v_flex()
                 .gap_2()
                 .child(div().text_xs().font_medium().text_color(quiet).child(
-                    if platform == KeyPlatform::Mac {
-                        "On a Mac"
-                    } else {
-                        "On Windows and Linux"
+                    match (platform, joined) {
+                        (KeyPlatform::Mac, false) => "On a Mac",
+                        (KeyPlatform::Mac, true) => "On a Mac, joined as in a menu",
+                        (KeyPlatform::Linux, true) => "On Linux, joined as in a menu",
+                        _ => "On Windows and Linux",
                     },
                 ))
                 .children(rows.iter().enumerate().map(|(ix, (what, keys, alt))| {
@@ -60,7 +61,8 @@ impl Render for ShortcutKeysStory {
                         isonomic_ui::ElementId::Name(format!("{key}-{ix}").into()),
                         *keys,
                     )
-                    .platform(platform);
+                    .platform(platform)
+                    .joined(joined);
                     if let Some(alt) = alt {
                         shortcut = shortcut.or(*alt);
                     }
@@ -74,7 +76,9 @@ impl Render for ShortcutKeysStory {
             .items_start()
             .flex_wrap()
             .gap_8()
-            .child(table(KeyPlatform::Mac, "mac"))
-            .child(table(KeyPlatform::Other, "other"))
+            .child(table(KeyPlatform::Mac, "mac", false))
+            .child(table(KeyPlatform::Other, "other", false))
+            .child(table(KeyPlatform::Mac, "mac-joined", true))
+            .child(table(KeyPlatform::Linux, "linux-joined", true))
     }
 }

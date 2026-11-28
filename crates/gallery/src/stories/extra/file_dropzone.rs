@@ -19,6 +19,8 @@ const MB: u64 = 1024 * 1024;
 /// try, and one is too large to be taken.
 pub struct FileDropzoneStory {
     dropzone: Entity<FileDropzone>,
+    /// A stricter dropzone whose rows show every reason a file is turned away.
+    strict: Entity<FileDropzone>,
     /// Files that had a first try, so that a retry can go through.
     tried: Vec<usize>,
     _events: Subscription,
@@ -44,8 +46,31 @@ impl FileDropzoneStory {
                 dropzone.add_file("Walkthrough.mov", 80 * MB, cx);
             });
 
+            let strict = cx.new(|cx| {
+                FileDropzone::new(cx)
+                    .accept(["image/*", ".pdf"])
+                    .max_size(10 * MB)
+                    .min_size(1)
+                    .max_files(3)
+                    .reject_duplicates(true)
+            });
+            strict.update(cx, |strict, cx| {
+                let first = strict.add_file("Receipt-0412.jpg", MB, cx);
+                strict.finish(first, cx);
+                let second = strict.add_file("Mileage-log.pdf", 3 * MB, cx);
+                strict.finish(second, cx);
+                strict.add_file("Receipt-0412.jpg", MB, cx);
+                strict.add_file("Notes.docx", 200 * 1024, cx);
+                strict.add_file("Blank-scan.pdf", 0, cx);
+                strict.add_file("Site-photos.png", 14 * MB, cx);
+                let third = strict.add_file("Parking.png", 400 * 1024, cx);
+                strict.finish(third, cx);
+                strict.add_file("Hotel.pdf", 2 * MB, cx);
+            });
+
             Self {
                 dropzone,
+                strict,
                 tried: Vec::new(),
                 _events: events,
             }
@@ -105,11 +130,20 @@ impl Story for FileDropzoneStory {
 
 impl Render for FileDropzoneStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        v_flex().gap_3().child(self.dropzone.clone()).child(
-            div()
-                .text_xs()
-                .text_color(cx.theme().muted_foreground)
-                .child("Uploads here are simulated. Retry the failed file to see it go through."),
-        )
+        let quiet = cx.theme().muted_foreground;
+        v_flex()
+            .gap_3()
+            .child(self.dropzone.clone())
+            .child(
+                div().text_xs().text_color(quiet).child(
+                    "Uploads here are simulated. Retry the failed file to see it go through.",
+                ),
+            )
+            .child(div().h_4())
+            .child(self.strict.clone())
+            .child(div().text_xs().text_color(quiet).child(
+                "Images and PDFs, 10 MB at most, no empty files, three at a time and no \
+                 duplicates: each turned-away row says why.",
+            ))
     }
 }
