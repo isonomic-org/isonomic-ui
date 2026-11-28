@@ -12,7 +12,7 @@ use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+    ActiveTheme as _, Disableable as _, look, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
     switch::Switch, v_flex,
 };
 use isonomic_ui::{
@@ -101,12 +101,18 @@ impl Styled for SettingToggleRow {
 }
 
 impl RenderOnce for SettingToggleRow {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let frozen = self.saving || self.locked.is_some();
+        let (fade, on_hover) = look::tracked_hover(
+            ElementId::NamedChild(self.id.clone().into(), "row-hover".into()),
+            !frozen,
+            window,
+            cx,
+        );
         let theme = cx.theme();
         let quiet = theme.muted_foreground;
-        let hover = theme.muted.opacity(0.5);
+        let hover = crate::common::faded(theme.muted.opacity(0.5), fade);
         let danger = theme.danger;
-        let frozen = self.saving || self.locked.is_some();
         let on = self.on;
         let spoken = spoken_setting(&self.title, on, self.saving, self.locked.as_deref());
         let row_change = self.on_change.clone();
@@ -149,7 +155,7 @@ impl RenderOnce for SettingToggleRow {
                 // A click anywhere on the row flips the setting. It sits on a
                 // layer with no role, so the switch stays the one control
                 // that is announced.
-                this.pressable(true).hover(move |s| s.bg(hover)).child(
+                this.pressable(true).bg(hover).on_hover(on_hover).child(
                     div()
                         .id(ElementId::NamedChild(
                             self.id.clone().into(),

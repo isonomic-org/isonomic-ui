@@ -14,7 +14,7 @@ use std::{cmp::Ordering, rc::Rc};
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, checkbox::Checkbox, h_flex,
-    v_flex,
+    look, v_flex,
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
@@ -287,6 +287,15 @@ impl RenderOnce for SortableTable {
                         )
                         .read(cx)
                         .clone();
+                    let (fade, on_hover) = look::tracked_hover(
+                        ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("head-hover-{col}").into(),
+                        ),
+                        true,
+                        window,
+                        cx,
+                    );
                     h_flex()
                         .id(ElementId::NamedChild(
                             self.id.clone().into(),
@@ -300,7 +309,8 @@ impl RenderOnce for SortableTable {
                         .when(c.width.is_none(), |this| this.flex_1().min_w(px(80.)))
                         .when(c.numeric, |this| this.justify_end())
                         .cursor_pointer()
-                        .hover(|s| s.text_color(ink))
+                        .text_color(look::mix(quiet, ink, fade))
+                        .on_hover(on_hover)
                         .when(here.is_some(), |this| this.text_color(ink))
                         // A Tab stop: Enter or Space on the focused header is a click, so it sorts.
                         .when(self.on_sort.is_some(), |this| {
@@ -342,6 +352,15 @@ impl RenderOnce for SortableTable {
                 let select = self.on_select.clone();
                 let current = self.selected.clone();
                 let id = row.id.clone();
+                let (fade, on_hover) = look::tracked_hover(
+                    ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-hover-{}", row.id).into(),
+                    ),
+                    true,
+                    window,
+                    cx,
+                );
                 h_flex()
                     .id(ElementId::NamedChild(
                         self.id.clone().into(),
@@ -350,8 +369,12 @@ impl RenderOnce for SortableTable {
                     .h(px(34.))
                     .border_b_1()
                     .border_color(line.opacity(0.6))
-                    .when(picked, |this| this.bg(chip.opacity(0.6)))
-                    .hover(|s| s.bg(chip.opacity(0.4)))
+                    .bg(if picked {
+                        chip.opacity(0.6)
+                    } else {
+                        crate::common::faded(chip.opacity(0.4), fade)
+                    })
+                    .on_hover(on_hover)
                     .aria_selected(picked)
                     .child(
                         div().w(px(36.)).flex_none().pl_3().child(

@@ -212,6 +212,15 @@ impl RenderOnce for ProfileMenu {
             .map(|item| child_id(item.id.clone()))
             .collect();
         let handles: Vec<FocusHandle> = item_ids.iter().map(|id| focus(id, window, cx)).collect();
+        let mut hovers = crate::common::tracked_hovers(
+            &self.id,
+            "row-hover",
+            self.items.iter().map(|_| true),
+            window,
+            cx,
+        )
+        .into_iter()
+        .flatten();
 
         let rows = self
             .items
@@ -220,6 +229,7 @@ impl RenderOnce for ProfileMenu {
             .zip(handles.iter())
             .map(|((item, id), handle)| {
                 let is_focused = handle.is_focused(window);
+                let (fade, on_hover) = hovers.next().expect("one hover per row");
                 let on_select = item.on_select;
                 let name = match &item.badge {
                     Some(badge) => format!("{}, {badge}", item.label),
@@ -242,7 +252,8 @@ impl RenderOnce for ProfileMenu {
                     .rounded(radius)
                     .line_height(px(20.))
                     .cursor_pointer()
-                    .hover(|style| style.bg(wash))
+                    .bg(crate::common::faded(wash, fade))
+                    .on_hover(on_hover)
                     .when(is_focused, |this| this.focus_ring_style(window, cx))
                     .child(
                         div()
@@ -274,6 +285,8 @@ impl RenderOnce for ProfileMenu {
             let next_id = child_id("next-step".into());
             let next_focus = focus(&next_id, window, cx);
             let next_focused = next_focus.is_focused(window);
+            let (next_fade, next_on_hover) =
+                look::tracked_hover(child_id("next-step-hover".into()), true, window, cx);
             let on_continue = setup.on_continue;
             v_flex()
                 .gap_2()
@@ -323,7 +336,8 @@ impl RenderOnce for ProfileMenu {
                             .rounded(radius)
                             .line_height(px(20.))
                             .cursor_pointer()
-                            .hover(|style| style.bg(wash))
+                            .bg(crate::common::faded(wash, next_fade))
+                            .on_hover(next_on_hover)
                             .when(next_focused, |this| this.focus_ring_style(window, cx))
                             .child(div().flex_none().text_color(subtle).child("Next:"))
                             .child(div().flex_1().min_w_0().truncate().child(next))
