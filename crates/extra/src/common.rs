@@ -138,16 +138,6 @@ pub fn shell_header(
         })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::Tone;
-
-    #[test]
-    fn tone_defaults_to_neutral() {
-        assert_eq!(Tone::default(), Tone::Neutral);
-    }
-}
-
 /// The reference's ease-out for heights, turns and strokes.
 pub fn ease_out() -> Easing {
     Easing::cubic_bezier(0.22, 1.0, 0.36, 1.0).expect("static curve is valid")
@@ -203,5 +193,15 @@ pub fn track_hover(state: Entity<bool>) -> impl Fn(&bool, &mut Window, &mut App)
             }
         });
         window.refresh();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Tone;
+
+    #[test]
+    fn tone_defaults_to_neutral() {
+        assert_eq!(Tone::default(), Tone::Neutral);
     }
 }
