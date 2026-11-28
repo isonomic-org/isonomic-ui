@@ -74,7 +74,8 @@ impl Link {
 
     /// Set the disabled state, default false.
     ///
-    /// A disabled link shows the arrow cursor. Its press behaviour is kept as
+    /// A disabled link is drawn at 40% opacity with no hover and shows the
+    /// arrow cursor. Its press behaviour is kept as
     /// it was: it still opens its `href` and calls its handler.
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
@@ -108,15 +109,18 @@ impl RenderOnce for Link {
                 this.text_decoration_1()
                     .text_decoration_color(cx.theme().link.opacity(0.5))
             })
-            .hover(|this| {
-                this.text_color(cx.theme().link.opacity(0.8))
-                    .text_decoration_1()
-                    .text_decoration_color(cx.theme().link)
-            })
-            .active(|this| {
-                this.text_color(cx.theme().link.opacity(0.6))
-                    .text_decoration_1()
-                    .text_decoration_color(cx.theme().link)
+            .when(self.disabled, |this| this.opacity(0.4))
+            .when(!self.disabled, |this| {
+                this.hover(|this| {
+                    this.text_color(cx.theme().link.opacity(0.8))
+                        .text_decoration_1()
+                        .text_decoration_color(cx.theme().link)
+                })
+                .active(|this| {
+                    this.text_color(cx.theme().link.opacity(0.6))
+                        .text_decoration_1()
+                        .text_decoration_color(cx.theme().link)
+                })
             })
             .pressable(!self.disabled)
             .refine_style(&self.style)

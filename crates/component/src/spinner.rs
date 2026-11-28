@@ -274,12 +274,10 @@ impl RenderOnce for Spinner {
                     this.child(
                         canvas(
                             |_, _, _| {},
-                            move |bounds, _, window, _| {
-                                match style {
-                                    SpinnerStyle::Ring => paint_ring(bounds, turn, color, window),
-                                    SpinnerStyle::Rays => paint_rays(bounds, turn, color, window),
-                                    SpinnerStyle::Arc => paint_arc(bounds, turn, color, window),
-                                }
+                            move |bounds, _, window, _| match style {
+                                SpinnerStyle::Ring => paint_ring(bounds, turn, color, window),
+                                SpinnerStyle::Rays => paint_rays(bounds, turn, color, window),
+                                SpinnerStyle::Arc => paint_arc(bounds, turn, color, window),
                             },
                         )
                         .size_full(),
