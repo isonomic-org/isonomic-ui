@@ -80,7 +80,7 @@ impl Render for TooltipStory {
             .gap_3()
             .child(
                 section("Button")
-                    .description("Prefer the left, bottom, or right side, with an optional keyboard shortcut hint.")
+                    .description("Prefer the left, bottom, or right side, with an optional keyboard shortcut hint. Each one grows out of the side facing its trigger.")
                     .child(
                         Button::new("btn0")
                             .label("Search")
@@ -107,7 +107,7 @@ impl Render for TooltipStory {
             )
             .child(
                 section("Show delay")
-                    .description("Override the delay per trigger. Moving between triggers switches without waiting again.")
+                    .description("Override the delay per trigger. Moving between triggers switches without waiting again, and for a moment after one closes the next shows at once.")
                     .child(
                         Button::new("delay-immediate")
                             .label("Immediate")

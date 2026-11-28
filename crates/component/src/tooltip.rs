@@ -268,15 +268,46 @@ fn render_tooltip(
                 )
                 .into_any_element()
         }
-        BaseTooltipTransition::Enter { epoch } => EffectTransition::new(ENTER_DURATION)
-            .ease(ease_out_cubic)
-            .slide_y(px(4.), px(0.))
-            .fade(0.0, 1.0)
-            .apply(
-                div().child(content_view).on_prepaint(record_size),
-                ElementId::NamedInteger("tooltip-enter".into(), epoch as u64),
-            )
-            .into_any_element(),
+        BaseTooltipTransition::Enter {
+            epoch,
+            placement,
+            warm,
+        } => {
+            // While tooltips are warm, or motion is reduced, it simply shows.
+            if warm || cx.reduce_motion() {
+                return div()
+                    .child(content_view)
+                    .on_prepaint(record_size)
+                    .into_any_element();
+            }
+            // Otherwise it grows out of the trigger: it starts nudged toward
+            // the side it sits on and settles away from it as it fades in.
+            let (dx, dy) = enter_offset(placement);
+            EffectTransition::new(ENTER_DURATION)
+                .ease(ease_out_cubic)
+                .when(dx != px(0.), |this| this.slide_x(dx, px(0.)))
+                .when(dy != px(0.), |this| this.slide_y(dy, px(0.)))
+                .fade(0.0, 1.0)
+                .apply(
+                    div().child(content_view).on_prepaint(record_size),
+                    ElementId::NamedInteger("tooltip-enter".into(), epoch as u64),
+                )
+                .into_any_element()
+        }
+    }
+}
+
+/// How far a tooltip starts from where it settles, toward its trigger: a
+/// tooltip above its trigger starts lower, one to the right starts further
+/// left. Before the first placement it rises from below, as one above would.
+fn enter_offset(placement: Option<isonomic_ui_base::Placement>) -> (Pixels, Pixels) {
+    use isonomic_ui_base::Placement;
+    let rise = px(4.);
+    match placement {
+        Some(Placement::Top) | None => (px(0.), rise),
+        Some(Placement::Bottom) => (px(0.), -rise),
+        Some(Placement::Left) => (rise, px(0.)),
+        Some(Placement::Right) => (-rise, px(0.)),
     }
 }
 
@@ -489,6 +520,22 @@ mod tests {
 
     use super::{ManagedTooltipExt as _, SLIDE_DURATION};
     use crate::Root;
+
+    #[test]
+    fn a_tooltip_enters_from_its_trigger_side() {
+        use crate::Placement;
+        assert_eq!(super::enter_offset(Some(Placement::Top)), (px(0.), px(4.)));
+        assert_eq!(
+            super::enter_offset(Some(Placement::Bottom)),
+            (px(0.), px(-4.))
+        );
+        assert_eq!(super::enter_offset(Some(Placement::Left)), (px(4.), px(0.)));
+        assert_eq!(
+            super::enter_offset(Some(Placement::Right)),
+            (px(-4.), px(0.))
+        );
+        assert_eq!(super::enter_offset(None), (px(0.), px(4.)));
+    }
 
     // Distinct scene markers let assertions observe retained tooltip output
     // without requiring its renderer to run on every frame.

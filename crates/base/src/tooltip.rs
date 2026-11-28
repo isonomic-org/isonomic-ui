@@ -1,7 +1,11 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::{rc::Rc, time::Duration};
+#[cfg(not(target_family = "wasm"))]
+use std::time::Instant;
+use std::{cell::Cell, rc::Rc, time::Duration};
+#[cfg(target_family = "wasm")]
+use web_time::Instant;
 
 use gpui::{
     AnyElement, AnyTooltip, AnyView, App, AppContext as _, Bounds, Context, Div, ElementId,
@@ -61,17 +65,33 @@ impl RenderOnce for Tooltip {
 pub struct TooltipDefaults {
     show_delay: Duration,
     grace_period: Duration,
+    warm_period: Duration,
 }
 
 impl Global for TooltipDefaults {}
 
 impl TooltipDefaults {
-    /// Creates the Base defaults: a 500 ms show delay and a 300 ms grace period.
+    /// Creates the Base defaults: a 500 ms show delay, a 300 ms grace period
+    /// and a 600 ms warm period.
     pub fn new() -> Self {
         Self {
             show_delay: Duration::from_millis(500),
             grace_period: Duration::from_millis(300),
+            warm_period: Duration::from_millis(600),
         }
+    }
+
+    /// Sets how long tooltips stay warm after one has gone: a trigger
+    /// entered in that time shows its tooltip at once, with no delay and no
+    /// entrance, because the person is already reading tooltips.
+    pub fn with_warm_period(mut self, period: Duration) -> Self {
+        self.warm_period = period;
+        self
+    }
+
+    /// How long tooltips stay warm after one has gone.
+    pub fn warm_period(&self) -> Duration {
+        self.warm_period
     }
 
     /// Sets how long the pointer must rest on a trigger before its tooltip shows.
@@ -167,14 +187,26 @@ impl TooltipRequest {
 /// Presentation transition requested by the Base tooltip lifecycle.
 #[derive(Clone, Copy, Debug)]
 pub enum TooltipTransition {
+    /// A tooltip appears where none was.
     Enter {
         epoch: usize,
+        /// The side of the trigger the tooltip sits on, as last resolved;
+        /// `None` before it has been placed once.
+        placement: Option<Placement>,
+        /// Shown while tooltips are warm: it should appear at once, with no
+        /// entrance.
+        warm: bool,
     },
     Switch {
         epoch: usize,
         previous: Bounds<Pixels>,
         current: Bounds<Pixels>,
     },
+}
+
+/// Whether tooltips are still warm at `now`.
+fn is_warm(warm_until: Option<Instant>, now: Instant) -> bool {
+    warm_until.is_some_and(|until| now < until)
 }
 
 /// Per-window tooltip provider and overlay.
@@ -189,6 +221,12 @@ pub struct TooltipOverlay {
     had_recent_tooltip: bool,
     animation_epoch: usize,
     is_switching: bool,
+    /// Until when a new tooltip shows at once, after one has gone.
+    warm_until: Option<Instant>,
+    /// Whether the tooltip on show appeared while warm.
+    warm_enter: bool,
+    /// The side the positioner last placed the tooltip on.
+    placement: Rc<Cell<Option<Placement>>>,
     show_task: Option<Task<()>>,
     hide_task: Option<Task<()>>,
     renderer: TooltipRenderer,
@@ -208,6 +246,9 @@ impl TooltipOverlay {
             had_recent_tooltip: false,
             animation_epoch: 0,
             is_switching: false,
+            warm_until: None,
+            warm_enter: false,
+            placement: Rc::new(Cell::new(None)),
             show_task: None,
             hide_task: None,
             renderer: Rc::new(|view, _, _, _| div().child(view).into_any_element()),
@@ -244,11 +285,13 @@ impl TooltipOverlay {
             .show_delay
             .unwrap_or_else(|| TooltipDefaults::global(cx).show_delay);
         let was_visible = self.content.is_some();
-        if was_visible || self.had_recent_tooltip || show_delay.is_zero() {
+        let warm = is_warm(self.warm_until, cx.background_executor().now());
+        if was_visible || self.had_recent_tooltip || show_delay.is_zero() || warm {
             self.previous_bounds = self.content.as_ref().map(|content| content.trigger_bounds);
             self.content = Some(content);
             self.show_task = None;
             self.is_switching = was_visible;
+            self.warm_enter = !was_visible && warm;
             self.animation_epoch += 1;
             cx.notify();
             return;
@@ -262,6 +305,7 @@ impl TooltipOverlay {
                     this.content = Some(content);
                     this.previous_bounds = None;
                     this.is_switching = false;
+                    this.warm_enter = false;
                     this.animation_epoch += 1;
                     cx.notify();
                 }
@@ -275,15 +319,19 @@ impl TooltipOverlay {
             return;
         }
         let epoch = self.next_epoch();
-        let grace_period = TooltipDefaults::global(cx).grace_period;
+        let defaults = TooltipDefaults::global(cx);
+        let grace_period = defaults.grace_period;
+        let warm_period = defaults.warm_period;
         self.had_recent_tooltip = true;
         self.hide_task = Some(cx.spawn_in(window, async move |this, cx| {
             cx.background_executor().timer(grace_period).await;
+            let now = cx.background_executor().now();
             let _ = this.update_in(cx, |this, _, cx| {
                 if this.epoch == epoch {
                     this.content = None;
                     this.previous_bounds = None;
                     this.had_recent_tooltip = false;
+                    this.warm_until = now.checked_add(warm_period);
                     cx.notify();
                 }
             });
@@ -300,6 +348,8 @@ impl TooltipOverlay {
         self.previous_bounds = None;
         self.had_recent_tooltip = false;
         self.is_switching = false;
+        self.warm_until = None;
+        self.warm_enter = false;
         self.show_task = None;
         self.hide_task = None;
         if changed {
@@ -328,8 +378,11 @@ impl Render for TooltipOverlay {
             },
             _ => TooltipTransition::Enter {
                 epoch: self.animation_epoch,
+                placement: self.placement.get(),
+                warm: self.warm_enter,
             },
         };
+        let placed = self.placement.clone();
         let rendered = (self.renderer)(view, transition, window, cx);
         let placeholder = self
             .native_placeholder
@@ -340,6 +393,7 @@ impl Render for TooltipOverlay {
                 .child(
                     TooltipPositioner::new(content.trigger_bounds)
                         .offset(content.offset)
+                        .on_position(move |position| placed.set(position.placement))
                         .when_some(content.preferred_placement, |this, placement| {
                             this.placement(placement)
                         })
@@ -376,6 +430,12 @@ impl TooltipPositioner {
 
     pub fn placement(mut self, placement: Placement) -> Self {
         self.0 = self.0.placement(placement);
+        self
+    }
+
+    /// Reports where the tooltip was placed, each time it is laid out.
+    pub fn on_position(mut self, callback: impl Fn(crate::ResolvedPosition) + 'static) -> Self {
+        self.0 = self.0.on_position(callback);
         self
     }
 
@@ -574,6 +634,71 @@ mod tests {
                 assert!(tooltip.show_task.is_none());
             });
         });
+    }
+
+    #[test]
+    fn warmth_runs_out() {
+        let now = Instant::now();
+        assert!(!is_warm(None, now));
+        assert!(is_warm(Some(now + Duration::from_millis(1)), now));
+        assert!(!is_warm(Some(now), now));
+    }
+
+    #[gpui::test]
+    fn a_tooltip_shows_at_once_while_warm(cx: &mut gpui::TestAppContext) {
+        cx.update(|cx| {
+            TooltipDefaults::new()
+                .with_show_delay(Duration::from_millis(100))
+                .with_grace_period(Duration::from_millis(50))
+                .with_warm_period(Duration::from_millis(200))
+                .install(cx)
+        });
+        let (state, cx) = cx.add_window_view(|_, _| TooltipOverlay::new());
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+        let request = || {
+            TooltipRequest::new(bounds(0., 0., 20., 20.), |_, cx| {
+                cx.new(|_| gpui::Empty).into()
+            })
+        };
+        let show = |cx: &mut gpui::VisualTestContext| {
+            cx.update(|window, cx| {
+                state.update(cx, |tooltip, cx| {
+                    tooltip.request_show(request(), window, cx)
+                })
+            });
+        };
+        let hide = |cx: &mut gpui::VisualTestContext| {
+            cx.update(|window, cx| {
+                state.update(cx, |tooltip, cx| tooltip.request_hide(window, cx))
+            });
+        };
+
+        // Cold: the first one waits for its delay.
+        show(cx);
+        cx.update(|_, cx| assert!(state.read(cx).content.is_none()));
+        cx.executor().advance_clock(Duration::from_millis(100));
+        cx.run_until_parked();
+        cx.update(|_, cx| assert!(!state.read(cx).warm_enter));
+
+        // It goes once the grace period has run out.
+        hide(cx);
+        cx.executor().advance_clock(Duration::from_millis(50));
+        cx.run_until_parked();
+        cx.update(|_, cx| assert!(state.read(cx).content.is_none()));
+
+        // Warm: the next one shows at once, marked to skip its entrance.
+        show(cx);
+        cx.update(|_, cx| {
+            assert!(state.read(cx).content.is_some());
+            assert!(state.read(cx).warm_enter);
+        });
+
+        // Once the warm period has passed, the delay is back.
+        hide(cx);
+        cx.executor().advance_clock(Duration::from_millis(50 + 200));
+        cx.run_until_parked();
+        show(cx);
+        cx.update(|_, cx| assert!(state.read(cx).content.is_none()));
     }
 
     #[test]
