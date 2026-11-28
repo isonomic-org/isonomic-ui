@@ -15,14 +15,17 @@
 //! the row is a disclosure button, reached with Tab and pressed with Enter or
 //! Space, that shows the reasoning under it in quiet text. A screen reader
 //! hears whether it is expanded.
+//!
+//! The row comes in three sizes: small (a 16 px orb beside 12 px text, for a
+//! dense list or a tool row), medium (20 px beside 13 px, the default) and
+//! large (24 px beside 15 px, for an empty conversation).
 
 use std::{rc::Rc, time::Instant};
 
 use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::base::Button as Pressable;
-use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _, h_flex,
+    ActiveTheme as _, Icon, IconName, Sizable, Size, StyledExt as _, ThemeStyled as _, h_flex,
     shimmer::ShimmerText, v_flex,
 };
 use isonomic_ui::{
@@ -278,6 +281,44 @@ impl RenderOnce for ActivityOrb {
 
 type ToggleHandler = Rc<dyn Fn(bool, &mut Window, &mut App)>;
 
+/// The measures of an indicator row at one size.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct IndicatorMetrics {
+    /// The orb (and the finished bulb's box) across, in pixels.
+    pub orb: f32,
+    /// The finished bulb icon across.
+    pub bulb: f32,
+    /// The gap between the mark and the label.
+    pub gap: f32,
+    /// The label's text size and line height.
+    pub text: (f32, f32),
+}
+
+/// What a row measures at `size`: small, medium (also any custom size) or
+/// large.
+pub fn indicator_metrics(size: Size) -> IndicatorMetrics {
+    match size {
+        Size::XSmall | Size::Small => IndicatorMetrics {
+            orb: 16.,
+            bulb: 14.,
+            gap: 6.,
+            text: (12., 16.),
+        },
+        Size::Large => IndicatorMetrics {
+            orb: 24.,
+            bulb: 20.,
+            gap: 10.,
+            text: (15., 22.),
+        },
+        Size::Medium | Size::Size(_) => IndicatorMetrics {
+            orb: 20.,
+            bulb: 16.,
+            gap: 8.,
+            text: (13., 20.),
+        },
+    }
+}
+
 /// The row shown while an assistant works before answering, and after it,
 /// the line that says how long it thought.
 ///
@@ -298,6 +339,14 @@ pub struct ThinkingIndicator {
     reasoning: Option<AnyElement>,
     default_expanded: bool,
     on_toggle: Option<ToggleHandler>,
+    size: Size,
+}
+
+impl Sizable for ThinkingIndicator {
+    fn with_size(mut self, size: impl Into<Size>) -> Self {
+        self.size = size.into();
+        self
+    }
 }
 
 /// Whether the reasoning shows, kept between draws.
@@ -318,6 +367,7 @@ impl ThinkingIndicator {
             reasoning: None,
             default_expanded: false,
             on_toggle: None,
+            size: Size::Medium,
         }
     }
 
@@ -391,6 +441,9 @@ impl RenderOnce for ThinkingIndicator {
         let shimmer = !finished && self.state != OrbState::Waiting && !still;
         let id = self.id.clone();
         let part = |name: &str| ElementId::NamedChild(id.clone().into(), name.into());
+        let m = indicator_metrics(self.size);
+        let text_role =
+            move |this: isonomic_ui::Div| this.text_size(px(m.text.0)).line_height(px(m.text.1));
 
         let mark = if finished {
             div()
@@ -398,15 +451,20 @@ impl RenderOnce for ThinkingIndicator {
                 .flex_none()
                 .items_center()
                 .justify_center()
-                .size(px(20.))
-                .child(Icon::new(CatalogIcon::Idea).size(px(16.)).text_color(quiet))
+                .size(px(m.orb))
+                .child(
+                    Icon::new(CatalogIcon::Idea)
+                        .size(px(m.bulb))
+                        .text_color(quiet),
+                )
                 .into_any_element()
         } else {
             ActivityOrb::new(part("orb"), self.state)
+                .size(m.orb)
                 .color(quiet)
                 .into_any_element()
         };
-        let words_el = div().text_body().text_color(quiet).map(|this| {
+        let words_el = text_role(div()).text_color(quiet).map(|this| {
             if shimmer {
                 this.child(ShimmerText::new(label.clone()).id(part("shine")))
             } else {
@@ -414,9 +472,8 @@ impl RenderOnce for ThinkingIndicator {
             }
         });
         let time_el = elapsed.map(|elapsed| {
-            div()
+            text_role(div())
                 .flex_none()
-                .text_body()
                 .text_color(quiet.opacity(0.7))
                 .child(elapsed)
         });
@@ -424,7 +481,7 @@ impl RenderOnce for ThinkingIndicator {
         let Some(reasoning) = self.reasoning else {
             return h_flex()
                 .id(self.id.clone())
-                .gap_2()
+                .gap(px(m.gap))
                 .role(Role::Status)
                 .aria_label(words)
                 .child(mark)
@@ -460,7 +517,7 @@ impl RenderOnce for ThinkingIndicator {
                 }
             })
             .justify_start()
-            .gap_2()
+            .gap(px(m.gap))
             .rounded(px(4.))
             .cursor_pointer()
             .when(focused, |this| this.focus_ring_style(window, cx))
@@ -488,9 +545,10 @@ impl RenderOnce for ThinkingIndicator {
                     div()
                         .id(part("reasoning"))
                         .w_full()
-                        // Under the label, past the 20 px mark and its gap.
-                        .pl(px(28.))
-                        .text_body()
+                        // Under the label, past the mark and its gap.
+                        .pl(px(m.orb + m.gap))
+                        .text_size(px(m.text.0))
+                        .line_height(px(m.text.1))
                         .text_color(quiet)
                         .child(reasoning),
                 )
@@ -516,6 +574,22 @@ mod tests {
         let (x, y) = on_circle((10.0, 10.0), 5.0, 0.25);
         assert!((x - 15.0).abs() < 1e-4 && (y - 10.0).abs() < 1e-4);
         assert!(OrbState::Retrying.period() < OrbState::Waiting.period());
+    }
+
+    #[test]
+    fn sizes_step_the_orb_and_text_together() {
+        let small = indicator_metrics(Size::Small);
+        let medium = indicator_metrics(Size::Medium);
+        let large = indicator_metrics(Size::Large);
+        assert_eq!((small.orb, small.text), (16., (12., 16.)));
+        assert_eq!((medium.orb, medium.gap, medium.text), (20., 8., (13., 20.)));
+        assert_eq!((large.orb, large.text), (24., (15., 22.)));
+        assert_eq!(indicator_metrics(Size::XSmall), small);
+        // The reasoning hangs under the label at every size.
+        for m in [small, medium, large] {
+            assert!(m.orb + m.gap >= 22.);
+            assert!(m.bulb < m.orb);
+        }
     }
 
     #[test]
