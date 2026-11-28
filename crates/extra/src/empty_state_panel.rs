@@ -7,6 +7,12 @@
 //! get their own mark and wording, so a person can tell a fresh start from
 //! a filter that's too narrow, a failure, or a lock. Each can offer a main
 //! action and a second one, and a compact form fits inside a list.
+//!
+//! [`EmptyStatePanel::of`] fills in plain words for a reason when the caller
+//! has none of its own. A failure can carry a detail line (an error code or
+//! a reference, in mono) and show its retry as running; it is announced as an
+//! alert. A bare panel drops the dashed outline to sit inside a card or a
+//! table that already has an edge.
 
 use std::rc::Rc;
 
@@ -38,6 +44,26 @@ pub enum EmptyReason {
 }
 
 impl EmptyReason {
+    /// Plain words for the reason, for a caller with none of its own: a
+    /// title and a line under it.
+    pub fn default_words(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Fresh => ("Nothing here yet", "Items you add will show up here."),
+            Self::NoMatches => (
+                "No results",
+                "Nothing matches the search or filters. Try fewer words or clear the filters.",
+            ),
+            Self::Failed => (
+                "This didn't load",
+                "Something went wrong on the way. Try again in a moment.",
+            ),
+            Self::Locked => (
+                "You don't have access",
+                "Ask the owner to share it with you.",
+            ),
+        }
+    }
+
     fn look(self) -> (IconName, Tone) {
         match self {
             Self::Fresh => (IconName::Inbox, Tone::Info),
@@ -50,6 +76,18 @@ impl EmptyReason {
 
 type Handler = Rc<dyn Fn(&mut Window, &mut App)>;
 
+/// What a screen reader hears: the title, the body, then the detail.
+pub fn spoken_words(title: &str, body: &str, detail: Option<&str>, busy: bool) -> String {
+    let mut out = format!("{title}. {body}");
+    if let Some(detail) = detail.filter(|d| !d.is_empty()) {
+        out.push_str(&format!(" {detail}."));
+    }
+    if busy {
+        out.push_str(" Trying again.");
+    }
+    out
+}
+
 /// What to show in place of empty content.
 #[derive(IntoElement)]
 pub struct EmptyStatePanel {
@@ -61,6 +99,9 @@ pub struct EmptyStatePanel {
     primary: Option<(SharedString, Handler)>,
     secondary: Option<(SharedString, Handler)>,
     compact: bool,
+    detail: Option<SharedString>,
+    busy: bool,
+    bare: bool,
 }
 
 impl EmptyStatePanel {
@@ -80,7 +121,36 @@ impl EmptyStatePanel {
             primary: None,
             secondary: None,
             compact: false,
+            detail: None,
+            busy: false,
+            bare: false,
         }
+    }
+
+    /// Create a panel with the reason's own plain words.
+    pub fn of(id: impl Into<ElementId>, reason: EmptyReason) -> Self {
+        let (title, body) = reason.default_words();
+        Self::new(id, reason, title, body)
+    }
+
+    /// Add a detail line under the body, such as an error code or a request
+    /// reference, set in mono.
+    pub fn detail(mut self, detail: impl Into<SharedString>) -> Self {
+        self.detail = Some(detail.into());
+        self
+    }
+
+    /// Show the main action as running (a retry in flight): it spins and
+    /// can't be pressed again.
+    pub fn busy(mut self, busy: bool) -> Self {
+        self.busy = busy;
+        self
+    }
+
+    /// Drop the dashed outline, to sit inside something that has an edge.
+    pub fn bare(mut self, bare: bool) -> Self {
+        self.bare = bare;
+        self
     }
 
     /// Offer a main action.
@@ -124,15 +194,31 @@ impl RenderOnce for EmptyStatePanel {
         let (icon, tone) = self.reason.look();
         let color = tone.color(cx);
         let tint = tone.tint(cx);
+        let busy = self.busy;
         let button = |which: &'static str, action: Option<(SharedString, Handler)>, main: bool| {
             action.map(|(label, handler)| {
                 Button::new(ElementId::NamedChild(self.id.clone().into(), which.into()))
                     .small()
                     .map(|b| if main { b.primary() } else { b.ghost() })
                     .label(label)
+                    .when(main, |b| b.loading(busy))
                     .on_click(move |_, window, cx| handler(window, cx))
             })
         };
+        let role = if self.reason == EmptyReason::Failed {
+            Role::Alert
+        } else {
+            Role::Group
+        };
+        let spoken = spoken_words(&self.title, &self.body, self.detail.as_deref(), busy);
+        let bare = self.bare;
+        let detail = self.detail.clone().map(|detail| {
+            div()
+                .font_family(cx.theme().mono_font_family.clone())
+                .text_caption()
+                .text_color(isonomic_ui::component::look::ink::subtle(cx))
+                .child(detail)
+        });
         let primary = button("primary", self.primary.clone(), true);
         let secondary = button("secondary", self.secondary.clone(), false);
         if self.compact {
@@ -142,12 +228,12 @@ impl RenderOnce for EmptyStatePanel {
                 .px_3()
                 .py_2p5()
                 .rounded(theme.radius)
-                .border_1()
-                .border_dashed()
-                .border_color(line)
+                .when(!bare, |this| {
+                    this.border_1().border_dashed().border_color(line)
+                })
                 .text_body()
-                .role(Role::Group)
-                .aria_label(format!("{}. {}", self.title, self.body))
+                .role(role)
+                .aria_label(spoken.clone())
                 .child(Icon::new(icon).small().text_color(color))
                 .child(
                     v_flex()
@@ -160,7 +246,8 @@ impl RenderOnce for EmptyStatePanel {
                                 .text_color(quiet)
                                 .truncate()
                                 .child(self.body.clone()),
-                        ),
+                        )
+                        .children(detail.map(|d| d.truncate())),
                 )
                 .children(secondary)
                 .children(primary)
@@ -175,12 +262,12 @@ impl RenderOnce for EmptyStatePanel {
             .px_6()
             .py_8()
             .rounded(theme.radius_lg)
-            .border_1()
-            .border_dashed()
-            .border_color(line)
+            .when(!bare, |this| {
+                this.border_1().border_dashed().border_color(line)
+            })
             .text_body()
-            .role(Role::Group)
-            .aria_label(format!("{}. {}", self.title, self.body))
+            .role(role)
+            .aria_label(spoken)
             .child(
                 div()
                     .size(px(44.))
@@ -209,7 +296,8 @@ impl RenderOnce for EmptyStatePanel {
                             .text_color(quiet)
                             .line_height(relative(1.45))
                             .child(self.body.clone()),
-                    ),
+                    )
+                    .children(detail.map(|d| d.text_center().mt_1())),
             )
             .when(primary.is_some() || secondary.is_some(), |this| {
                 this.child(h_flex().gap_2().children(secondary).children(primary))
@@ -237,6 +325,40 @@ mod tests {
         assert_eq!(
             looks,
             [Tone::Info, Tone::Neutral, Tone::Danger, Tone::Warning]
+        );
+    }
+
+    #[test]
+    fn every_reason_has_plain_words_of_its_own() {
+        let words: Vec<_> = [
+            EmptyReason::Fresh,
+            EmptyReason::NoMatches,
+            EmptyReason::Failed,
+            EmptyReason::Locked,
+        ]
+        .iter()
+        .map(|r| r.default_words())
+        .collect();
+        assert_eq!(words[1].0, "No results");
+        for (ix, (title, body)) in words.iter().enumerate() {
+            assert!(!title.is_empty() && body.ends_with('.'));
+            assert!(words.iter().skip(ix + 1).all(|(other, _)| other != title));
+        }
+    }
+
+    #[test]
+    fn spoken_words_add_the_detail_and_a_running_retry() {
+        assert_eq!(
+            spoken_words("Feed failed", "It timed out.", None, false),
+            "Feed failed. It timed out."
+        );
+        assert_eq!(
+            spoken_words("Feed failed", "It timed out.", Some("Error 504"), true),
+            "Feed failed. It timed out. Error 504. Trying again."
+        );
+        assert_eq!(
+            spoken_words("Feed failed", "It timed out.", Some(""), false),
+            "Feed failed. It timed out."
         );
     }
 }
