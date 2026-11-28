@@ -4,17 +4,19 @@
 //! Gallery story for the segmented switcher.
 
 use crate::Story;
-use isonomic_ui::component::{ActiveTheme as _, IconName, v_flex};
+use isonomic_ui::component::{ActiveTheme as _, IconName, Sizable as _, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
     Window, div, px,
 };
 use isonomic_ui_extra::segmented_switcher::{Segment, SegmentedSwitcher};
 
-/// Filtering invoices by status, and switching a report between periods.
+/// Filtering invoices by status, switching a report between periods, and a
+/// small view switch.
 pub struct SegmentedSwitcherStory {
     status: usize,
     period: usize,
+    view: usize,
 }
 
 impl SegmentedSwitcherStory {
@@ -23,6 +25,7 @@ impl SegmentedSwitcherStory {
         cx.new(|_| Self {
             status: 1,
             period: 0,
+            view: 0,
         })
     }
 }
@@ -33,7 +36,7 @@ impl Story for SegmentedSwitcherStory {
     }
 
     fn description() -> &'static str {
-        "A short row of joined choices where exactly one is on, each with an optional icon and count."
+        "A short row of joined choices where exactly one is on, on the tab bar's sliding pill, each with an optional icon and count."
     }
 
     fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
@@ -46,6 +49,7 @@ impl Render for SegmentedSwitcherStory {
         let quiet = cx.theme().muted_foreground;
         let status = cx.entity();
         let period = cx.entity();
+        let view = cx.entity();
         let statuses = ["All", "Unpaid", "Overdue", "Paid", "Void"];
         v_flex()
             .gap_4()
@@ -70,7 +74,7 @@ impl Render for SegmentedSwitcherStory {
                 }),
             )
             .child(div().text_xs().text_color(quiet).child(format!(
-                "Showing {} invoices.",
+                "Showing {} invoices. Arrow keys switch at once; a click slides.",
                 statuses[self.status].to_lowercase()
             )))
             .child(
@@ -93,6 +97,24 @@ impl Render for SegmentedSwitcherStory {
                         })
                     }),
                 ),
+            )
+            .child(
+                SegmentedSwitcher::new(
+                    "ledger-view",
+                    vec![
+                        Segment::new("List").icon(IconName::Menu),
+                        Segment::new("Board").icon(IconName::LayoutDashboard),
+                    ],
+                    self.view,
+                )
+                .label("Ledger view")
+                .small()
+                .on_select(move |ix, _, cx| {
+                    view.update(cx, |this, cx| {
+                        this.view = ix;
+                        cx.notify();
+                    })
+                }),
             )
     }
 }

@@ -625,6 +625,7 @@ pub struct InputAccessibility {
     label: Option<SharedString>,
     placeholder: Option<SharedString>,
     accessibility_id: Option<SharedString>,
+    description: Option<SharedString>,
     value_exposed: bool,
 }
 
@@ -635,8 +636,16 @@ impl InputAccessibility {
             label: None,
             placeholder: None,
             accessibility_id: None,
+            description: None,
             value_exposed: true,
         }
+    }
+
+    /// Extra words read after the name: a hint, or what is wrong with the
+    /// value.
+    pub fn with_description(mut self, description: Option<SharedString>) -> Self {
+        self.description = description;
+        self
     }
 
     pub fn with_label(mut self, label: Option<SharedString>) -> Self {
@@ -674,6 +683,10 @@ impl InputAccessibility {
 
     pub fn accessibility_id(&self) -> Option<&SharedString> {
         self.accessibility_id.as_ref()
+    }
+
+    pub fn description(&self) -> Option<&SharedString> {
+        self.description.as_ref()
     }
 
     pub fn value_exposed(&self) -> bool {
@@ -5260,6 +5273,9 @@ impl<M: InputModeKind> Render for InputBaseState<M> {
                     })
                     .when_some(accessibility.accessibility_id.clone(), |this, id| {
                         this.accessibility_id(id)
+                    })
+                    .when_some(accessibility.description.clone(), |this, text| {
+                        this.aria_description(text)
                     })
                     .when(
                         accessibility.value_exposed

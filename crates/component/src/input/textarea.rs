@@ -26,6 +26,8 @@ pub struct Textarea {
     bordered: bool,
     disabled: bool,
     readonly: bool,
+    invalid: bool,
+    description: Option<SharedString>,
     tab_index: isize,
     role: RoleOverride,
     accessibility_id: Option<SharedString>,
@@ -80,6 +82,8 @@ impl Textarea {
             bordered: true,
             disabled: false,
             readonly: false,
+            invalid: false,
+            description: None,
             tab_index: 0,
             role: RoleOverride::default(),
             accessibility_id: None,
@@ -90,6 +94,19 @@ impl Textarea {
             token_click_listener: None,
             token_hover_listener: None,
         }
+    }
+
+    /// Mark the value wrong: the field's ring turns to the danger colour.
+    pub fn invalid(mut self, invalid: bool) -> Self {
+        self.invalid = invalid;
+        self
+    }
+
+    /// Words a screen reader reads after the field's name, such as its hint
+    /// or what is wrong with the value.
+    pub fn description(mut self, description: impl Into<SharedString>) -> Self {
+        self.description = Some(description.into());
+        self
     }
 
     pub fn h(mut self, height: impl Into<DefiniteLength>) -> Self {
@@ -203,6 +220,8 @@ impl Textarea {
             .bordered(self.bordered)
             .disabled(self.disabled)
             .readonly(self.readonly)
+            .invalid(self.invalid)
+            .when_some(self.description, |this, text| this.description(text))
             .tab_index(self.tab_index)
             .role(self.role)
             .with_size(self.size)

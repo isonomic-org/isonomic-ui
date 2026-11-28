@@ -3,24 +3,25 @@
 
 //! Segmented switcher: a short row of choices joined into one control, where exactly one is on, each with an optional icon and count.
 //!
-//! The chosen segment sits raised on a sunken track. Segments can carry a
+//! It is the tab bar's segmented variant: the chosen segment's raised pill
+//! slides between segments when one is clicked, and jumps at once when the
+//! keyboard moves it. Arrow keys, Home and End pick the next segment that is
+//! on, wrapping at the ends; the row is one tab stop. Segments can carry a
 //! count, such as how many invoices are unpaid, and can be turned off one at
 //! a time. With `fill` the segments share the full width equally.
 
-use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
+    ActiveTheme as _, Icon, IconName, Sizable, Size, StyledExt as _, h_flex,
+    tab::{Tab, TabBar},
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
-    Window, div, prelude::FluentBuilder as _, px,
+    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    prelude::FluentBuilder as _, px,
 };
-
-use crate::common::resting_shadow;
 
 /// One choice.
 #[derive(Clone)]
@@ -121,6 +122,7 @@ pub struct SegmentedSwitcher {
     segments: Vec<Segment>,
     selected: usize,
     fill: bool,
+    size: Size,
     label: SharedString,
     on_select: Option<SelectHandler>,
 }
@@ -134,6 +136,7 @@ impl SegmentedSwitcher {
             segments,
             selected,
             fill: false,
+            size: Size::default(),
             label: "Choices".into(),
             on_select: None,
         }
@@ -158,6 +161,13 @@ impl SegmentedSwitcher {
     }
 }
 
+impl Sizable for SegmentedSwitcher {
+    fn with_size(mut self, size: impl Into<Size>) -> Self {
+        self.size = size.into();
+        self
+    }
+}
+
 impl Styled for SegmentedSwitcher {
     fn style(&mut self) -> &mut StyleRefinement {
         &mut self.style
@@ -165,105 +175,72 @@ impl Styled for SegmentedSwitcher {
 }
 
 impl RenderOnce for SegmentedSwitcher {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let focus = window
-            .use_keyed_state(
-                ElementId::NamedChild(self.id.clone().into(), "focus".into()),
-                cx,
-                |_, cx| cx.focus_handle().tab_stop(true),
-            )
-            .read(cx)
-            .clone();
-        let focused = focus.is_focused(window);
-        let enabled: Vec<bool> = self.segments.iter().map(|s| !s.disabled).collect();
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let selected = self.selected;
-        let key_pick = self.on_select.clone();
-        let theme = cx.theme();
-        let ring = theme.ring;
-        let track = theme.muted;
-        let raised = theme.background;
-        let ink = theme.foreground;
-        let quiet = theme.muted_foreground;
-        let shadow = resting_shadow(cx);
+        let small = matches!(self.size, Size::XSmall | Size::Small);
+        let on_chip = cx.theme().muted;
+        let off_chip = cx.theme().popover.opacity(0.6);
+        let fill = self.fill;
 
-        let segments = self.segments.into_iter().enumerate().map(|(ix, segment)| {
-            let on = ix == self.selected;
-            let pick = self.on_select.clone();
-            div()
-                .id(ElementId::NamedChild(
-                    self.id.clone().into(),
-                    format!("segment-{ix}").into(),
-                ))
-                .flex()
-                .items_center()
-                .justify_center()
-                .gap_1p5()
-                .h(px(26.))
-                .px_3()
-                .rounded(px(6.))
-                .text_body()
-                .when(self.fill, |this| this.flex_1())
-                .role(Role::RadioButton)
+        let tabs = self.segments.into_iter().enumerate().map(|(ix, segment)| {
+            let on = ix == selected;
+            Tab::new()
                 .aria_label(segment_label(&segment.label, segment.count))
-                .aria_selected(on)
-                .when(on, |this| {
-                    this.bg(raised)
-                        .shadow(shadow.clone())
-                        .text_color(ink)
-                        .font_medium()
-                })
-                .when(on && focused, |this| this.border_1().border_color(ring))
-                .when(!on && !segment.disabled, |this| {
-                    this.text_color(quiet)
-                        .pressable(true)
-                        .hover(|s| s.text_color(ink))
-                        .on_click(move |_, window, cx| {
-                            if let Some(pick) = &pick {
-                                pick(ix, window, cx);
-                            }
+                .disabled(segment.disabled)
+                .when(fill, |tab| tab.flex_1())
+                .child(
+                    h_flex()
+                        .gap(if small { px(4.) } else { px(6.) })
+                        .when_some(segment.icon, |this, icon| {
+                            this.child(Icon::new(icon).with_size(if small {
+                                Size::XSmall
+                            } else {
+                                Size::Small
+                            }))
                         })
-                })
-                .when(segment.disabled, |this| {
-                    this.text_color(quiet.opacity(0.5)).pressable(false)
-                })
-                .when_some(segment.icon, |this, icon| {
-                    this.child(Icon::new(icon).small())
-                })
-                .child(segment.label.clone())
-                .when_some(segment.count, |this, count| {
-                    this.child(
-                        div()
-                            .px_1()
-                            .min_w(px(18.))
-                            .rounded(px(4.))
-                            .bg(if on { track } else { raised.opacity(0.6) })
-                            .text_caption()
-                            .text_center()
-                            .child(short_count(count)),
-                    )
-                })
+                        .child(segment.label.clone())
+                        .when_some(segment.count, |this, count| {
+                            this.child(
+                                div()
+                                    .px_1()
+                                    .min_w(px(18.))
+                                    .rounded(px(4.))
+                                    .bg(if on { on_chip } else { off_chip })
+                                    .text_badge()
+                                    .text_center()
+                                    .child(short_count(count)),
+                            )
+                        }),
+                )
         });
 
-        h_flex()
-            .id(self.id.clone())
-            .p_0p5()
-            .gap_0p5()
-            .rounded(px(8.))
-            .bg(track)
-            .when(!self.fill, |this| this.flex_none())
-            .when(self.fill, |this| this.w_full())
-            .role(Role::RadioGroup)
-            .aria_label(self.label.clone())
-            .track_focus(&focus)
-            .on_key_down(move |event: &KeyDownEvent, window, cx| {
-                if let Some(next) = step_segment(selected, &enabled, event.keystroke.key.as_str()) {
-                    cx.stop_propagation();
-                    if let Some(pick) = &key_pick {
-                        pick(next, window, cx);
+        let pick = self.on_select.clone();
+        let bar = TabBar::new(self.id.clone())
+            .segmented()
+            .activate_on_focus(true)
+            .with_size(self.size)
+            .selected_index(selected)
+            .when(fill, |bar| bar.w_full())
+            .on_click(move |ix, window, cx| {
+                if *ix != selected {
+                    if let Some(pick) = &pick {
+                        pick(*ix, window, cx);
                     }
                 }
             })
-            .children(segments)
+            .children(tabs);
+
+        div()
+            .id(ElementId::NamedChild(
+                self.id.clone().into(),
+                "group".into(),
+            ))
+            .flex()
+            .when(!fill, |this| this.flex_none())
+            .when(fill, |this| this.w_full())
+            .role(Role::Group)
+            .aria_label(self.label.clone())
+            .child(bar)
             .refine_style(&self.style)
     }
 }

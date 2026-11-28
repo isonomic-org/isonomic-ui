@@ -4,9 +4,16 @@
 //! Due date picker: a month calendar with one-click presets for the dates people actually pick, and days that can't be picked greyed out.
 //!
 //! Presets sit above the grid: today, in a week, in 30 days, end of month.
-//! Days before the earliest allowed date, and weekends when they're off,
-//! can't be picked. Arrow keys move a day or a week, Page Up and Down move a
-//! month, and Enter picks. Today is ringed; the picked day is filled.
+//! Days before the earliest allowed date or after the latest, and weekends
+//! when they're off, can't be picked, and the month arrows stop at the ends.
+//! Arrow keys move a day or a week, Page Up and Down move a month, and Enter
+//! picks; the keyboard never leaves the allowed days. Today is ringed; the
+//! picked day is filled.
+//!
+//! In range mode the first and last days are filled and the days between are
+//! tinted; with only the first picked, the days up to the one under the
+//! pointer or the keyboard are tinted as a preview. [`next_range`] says what
+//! a pick does to a range.
 
 use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
@@ -15,7 +22,7 @@ use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
+    h_flex, look, v_flex,
 };
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
@@ -138,6 +145,60 @@ pub fn days_in_month(year: i32, month: u32) -> u32 {
     }
 }
 
+/// A range being picked: the first day, then the last.
+pub type DayRange = (Option<Day>, Option<Day>);
+
+/// What picking `day` does to `range`: it starts a range, ends one that has
+/// begun (on or after its first day), or starts again.
+pub fn next_range(range: DayRange, day: Day) -> DayRange {
+    match range {
+        (Some(start), None) if day >= start => (Some(start), Some(day)),
+        _ => (Some(day), None),
+    }
+}
+
+/// The days a range covers, inclusive, with a preview end while only its
+/// first day is picked.
+pub fn range_span(range: DayRange, preview: Option<Day>) -> Option<(Day, Day)> {
+    match range {
+        (Some(start), Some(end)) => Some((start.min(end), start.max(end))),
+        (Some(start), None) => preview
+            .filter(|day| *day >= start)
+            .map(|day| (start, day))
+            .or(Some((start, start))),
+        _ => None,
+    }
+}
+
+/// A range read out: "3 April 2026 to 9 April 2026, 7 days".
+pub fn range_words(range: DayRange) -> String {
+    match range {
+        (Some(start), Some(end)) => {
+            let days = (end.number() - start.number()).abs() + 1;
+            format!(
+                "{} to {}, {days} day{}",
+                start.words(),
+                end.words(),
+                if days == 1 { "" } else { "s" }
+            )
+        }
+        (Some(start), None) => format!("from {}, pick the last day", start.words()),
+        _ => "none picked".to_string(),
+    }
+}
+
+/// Pull `day` inside the earliest and latest days.
+pub fn clamp_day(day: Day, earliest: Option<Day>, latest: Option<Day>) -> Day {
+    let day = earliest.map_or(day, |e| day.max(e));
+    latest.map_or(day, |l| day.min(l))
+}
+
+/// Whether any day of `year`-`month` lies inside the earliest and latest.
+pub fn month_reachable(year: i32, month: u32, earliest: Option<Day>, latest: Option<Day>) -> bool {
+    let first = Day::new(year, month, 1);
+    earliest.is_none_or(|e| first.end_of_month() >= e) && latest.is_none_or(|l| first <= l)
+}
+
 /// The 42 days of a month's grid, starting on the Monday on or before the 1st.
 pub fn month_grid(year: i32, month: u32) -> Vec<Day> {
     let first = Day::new(year, month, 1);
@@ -157,6 +218,8 @@ pub struct DueDatePicker {
     picked: Option<Day>,
     cursor: Option<Day>,
     earliest: Option<Day>,
+    latest: Option<Day>,
+    range: Option<DayRange>,
     weekends: bool,
     on_pick: Option<PickHandler>,
     on_cursor: Option<PickHandler>,
@@ -173,6 +236,8 @@ impl DueDatePicker {
             picked: None,
             cursor: None,
             earliest: None,
+            latest: None,
+            range: None,
             weekends: true,
             on_pick: None,
             on_cursor: None,
@@ -203,6 +268,23 @@ impl DueDatePicker {
         self
     }
 
+    /// The latest day that can be picked.
+    pub fn latest(mut self, day: Day) -> Self {
+        self.latest = Some(day);
+        self
+    }
+
+    /// Pick a range instead of one day: the first and last days so far.
+    /// Feed each pick through [`next_range`]. Its first day's month is shown
+    /// unless the cursor is elsewhere.
+    pub fn range(mut self, range: DayRange) -> Self {
+        self.range = Some(range);
+        if let Some(day) = range.0.or(range.1).filter(|_| self.cursor.is_none()) {
+            self.shown = (day.year, day.month);
+        }
+        self
+    }
+
     /// Whether weekends can be picked. They can by default.
     pub fn weekends(mut self, allowed: bool) -> Self {
         self.weekends = allowed;
@@ -228,8 +310,10 @@ impl Styled for DueDatePicker {
     }
 }
 
-fn allowed(day: Day, earliest: Option<Day>, weekends: bool) -> bool {
-    earliest.is_none_or(|e| day >= e) && (weekends || day.weekday() < 5)
+fn allowed(day: Day, earliest: Option<Day>, latest: Option<Day>, weekends: bool) -> bool {
+    earliest.is_none_or(|e| day >= e)
+        && latest.is_none_or(|l| day <= l)
+        && (weekends || day.weekday() < 5)
 }
 
 impl RenderOnce for DueDatePicker {
@@ -242,11 +326,19 @@ impl RenderOnce for DueDatePicker {
         let accent = theme.primary;
         let radius_lg = theme.radius_lg;
         let (year, month) = self.shown;
-        let (earliest, weekends) = (self.earliest, self.weekends);
-        let cursor = self
-            .cursor
-            .or(self.picked)
-            .unwrap_or(Day::new(year, month, 1));
+        let (earliest, latest, weekends) = (self.earliest, self.latest, self.weekends);
+        let range = self.range;
+        let cursor = clamp_day(
+            self.cursor
+                .or(self.picked)
+                .or(range.and_then(|r| r.1.or(r.0)))
+                .unwrap_or(Day::new(year, month, 1)),
+            earliest,
+            latest,
+        );
+        // The day under the pointer, for the range preview.
+        let hover_day =
+            window.use_keyed_state((self.id.clone(), "hover-day"), cx, |_, _| None::<Day>);
 
         let focus = window
             .use_keyed_state((self.id.clone(), "focus"), cx, |_, cx| {
@@ -255,6 +347,9 @@ impl RenderOnce for DueDatePicker {
             .read(cx)
             .clone();
         let is_focused = focus.is_focused(window);
+        let preview = (*hover_day.read(cx)).or(is_focused.then_some(cursor));
+        let span = range.and_then(|r| range_span(r, preview));
+        let ends = range.unwrap_or((None, None));
 
         let presets = [
             ("Today", self.today),
@@ -267,14 +362,14 @@ impl RenderOnce for DueDatePicker {
             .map(|(label, day)| {
                 let pick = self.on_pick.clone();
                 let day = *day;
-                let ok = allowed(day, earliest, weekends);
+                let ok = allowed(day, earliest, latest, weekends);
                 Button::new(ElementId::NamedChild(
                     self.id.clone().into(),
                     format!("preset-{label}").into(),
                 ))
                 .xsmall()
                 .map(|b| {
-                    if self.picked == Some(day) {
+                    if self.picked == Some(day) && range.is_none() {
                         b.primary()
                     } else {
                         b.outline()
@@ -298,9 +393,12 @@ impl RenderOnce for DueDatePicker {
             } else {
                 "Next month"
             };
+            let target = Day::new(year, month, 1).add_months(n);
+            let reachable = month_reachable(target.year, target.month, earliest, latest);
             Button::new(ElementId::NamedChild(self.id.clone().into(), label.into()))
                 .xsmall()
                 .ghost()
+                .disabled(!reachable)
                 .icon(if n < 0 {
                     IconName::ChevronLeft
                 } else {
@@ -309,7 +407,11 @@ impl RenderOnce for DueDatePicker {
                 .accessibility_label(label)
                 .on_click(move |_, window, cx| {
                     if let Some(move_to) = &move_to {
-                        move_to(cursor.add_months(n), window, cx);
+                        move_to(
+                            clamp_day(cursor.add_months(n), earliest, latest),
+                            window,
+                            cx,
+                        );
                     }
                 })
         };
@@ -318,16 +420,30 @@ impl RenderOnce for DueDatePicker {
             .into_iter()
             .map(|day| {
                 let in_month = day.month == month;
-                let ok = allowed(day, earliest, weekends);
-                let picked = self.picked == Some(day);
+                let ok = allowed(day, earliest, latest, weekends);
+                let picked = match range {
+                    Some(_) => ends.0 == Some(day) || ends.1 == Some(day),
+                    None => self.picked == Some(day),
+                };
+                let between = !picked && span.is_some_and(|(a, b)| day > a && day < b);
                 let is_today = day == self.today;
                 let at_cursor = is_focused && day == cursor;
                 let pick = self.on_pick.clone();
+                let cell_id = ElementId::NamedChild(
+                    self.id.clone().into(),
+                    format!("day-{}", day.number()).into(),
+                );
+                let (fade, hover) = look::tracked_hover(cell_id.clone(), ok && !picked, window, cx);
+                let hover_day = hover_day.clone();
+                let rest = if between {
+                    accent.opacity(0.1)
+                } else if at_cursor && !picked {
+                    chip
+                } else {
+                    chip.opacity(0.)
+                };
                 div()
-                    .id(ElementId::NamedChild(
-                        self.id.clone().into(),
-                        format!("day-{}", day.number()).into(),
-                    ))
+                    .id(cell_id)
                     .size(px(34.))
                     .flex()
                     .items_center()
@@ -344,14 +460,35 @@ impl RenderOnce for DueDatePicker {
                     .when(picked, |this| {
                         this.bg(accent).text_color(fill).font_medium()
                     })
-                    .when(at_cursor && !picked, |this| this.bg(chip))
-                    .when(!picked, |this| this.pressable(ok))
-                    .when(ok && !picked, |this| this.hover(|s| s.bg(chip)))
+                    .when(!picked, |this| {
+                        this.bg(look::mix(rest, chip, fade)).pressable(ok)
+                    })
+                    .on_hover(move |hovered, window, cx| {
+                        hover(hovered, window, cx);
+                        let now = *hover_day.read(cx);
+                        let next = if *hovered {
+                            Some(day)
+                        } else {
+                            now.filter(|d| *d != day)
+                        };
+                        if now != next {
+                            hover_day.update(cx, |state, cx| {
+                                *state = next;
+                                cx.notify();
+                            });
+                        }
+                    })
                     .role(Role::GridCell)
                     .aria_label(format!(
-                        "{}{}{}",
+                        "{}{}{}{}",
                         day.words(),
                         if is_today { ", today" } else { "" },
+                        match (range.is_some() && picked, ends.0 == Some(day)) {
+                            (true, true) => ", first day",
+                            (true, false) => ", last day",
+                            _ if between && ends.1.is_some() => ", in range",
+                            _ => "",
+                        },
                         if ok { "" } else { ", not available" }
                     ))
                     .aria_selected(picked)
@@ -378,7 +515,7 @@ impl RenderOnce for DueDatePicker {
                     "pageup" => cursor.add_months(-1),
                     "pagedown" => cursor.add_months(1),
                     "enter" | "space" => {
-                        if allowed(cursor, earliest, weekends) {
+                        if allowed(cursor, earliest, latest, weekends) {
                             if let Some(pick) = &pick {
                                 pick(cursor, window, cx);
                             }
@@ -389,7 +526,7 @@ impl RenderOnce for DueDatePicker {
                     _ => return,
                 };
                 if let Some(move_to) = &move_to {
-                    move_to(next, window, cx);
+                    move_to(clamp_day(next, earliest, latest), window, cx);
                 }
                 cx.stop_propagation();
             }
@@ -400,9 +537,10 @@ impl RenderOnce for DueDatePicker {
             .track_focus(&focus)
             .on_key_down(key_down)
             .role(Role::Grid)
-            .aria_label(match self.picked {
-                Some(day) => format!("Due date, {}", day.words()),
-                None => "Due date, none picked".to_string(),
+            .aria_label(match (range, self.picked) {
+                (Some(range), _) => format!("Dates, {}", range_words(range)),
+                (None, Some(day)) => format!("Due date, {}", day.words()),
+                (None, None) => "Due date, none picked".to_string(),
             })
             .w(px(280.))
             .gap_3()
@@ -441,9 +579,22 @@ impl RenderOnce for DueDatePicker {
                 div()
                     .text_caption()
                     .text_color(quiet)
-                    .child(match self.picked {
-                        Some(day) => SharedString::from(format!("Due {}", day.words())),
-                        None => "Pick a day, or a preset.".into(),
+                    .child(match (range, self.picked) {
+                        (Some((Some(start), Some(end))), _) => {
+                            let days = (end.number() - start.number()).abs() + 1;
+                            SharedString::from(format!(
+                                "{} to {}, {days} day{}",
+                                start.words(),
+                                end.words(),
+                                if days == 1 { "" } else { "s" }
+                            ))
+                        }
+                        (Some((Some(start), None)), _) => {
+                            format!("From {}. Pick the last day.", start.words()).into()
+                        }
+                        (Some(_), _) => "Pick the first day.".into(),
+                        (None, Some(day)) => SharedString::from(format!("Due {}", day.words())),
+                        (None, None) => "Pick a day, or a preset.".into(),
                     }),
             )
             .refine_style(&self.style)
@@ -467,5 +618,69 @@ mod tests {
         assert_eq!(grid.len(), 42);
         assert_eq!(grid[0].weekday(), 0);
         assert!(grid[0] <= Day::new(2026, 4, 1));
+    }
+
+    #[test]
+    fn a_range_starts_ends_and_starts_again() {
+        let (a, b, c) = (
+            Day::new(2026, 4, 6),
+            Day::new(2026, 4, 9),
+            Day::new(2026, 4, 2),
+        );
+        assert_eq!(next_range((None, None), a), (Some(a), None));
+        assert_eq!(next_range((Some(a), None), b), (Some(a), Some(b)));
+        assert_eq!(next_range((Some(a), None), a), (Some(a), Some(a)));
+        // Before the first day, the range starts over from there.
+        assert_eq!(next_range((Some(a), None), c), (Some(c), None));
+        assert_eq!(next_range((Some(a), Some(b)), c), (Some(c), None));
+    }
+
+    #[test]
+    fn a_range_spans_its_days_and_previews_its_end() {
+        let (a, b) = (Day::new(2026, 4, 6), Day::new(2026, 4, 9));
+        assert_eq!(range_span((Some(a), Some(b)), None), Some((a, b)));
+        assert_eq!(range_span((Some(a), None), Some(b)), Some((a, b)));
+        assert_eq!(
+            range_span((Some(b), None), Some(a)),
+            Some((b, b)),
+            "no preview backwards"
+        );
+        assert_eq!(range_span((None, None), Some(a)), None);
+        assert_eq!(
+            range_words((Some(a), Some(b))),
+            "Mon 6 April 2026 to Thu 9 April 2026, 4 days"
+        );
+        assert_eq!(
+            range_words((Some(a), Some(a))),
+            "Mon 6 April 2026 to Mon 6 April 2026, 1 day"
+        );
+        assert_eq!(
+            range_words((Some(a), None)),
+            "from Mon 6 April 2026, pick the last day"
+        );
+    }
+
+    #[test]
+    fn the_keyboard_and_the_arrows_stay_inside_the_limits() {
+        let (lo, hi) = (Some(Day::new(2026, 4, 14)), Some(Day::new(2026, 6, 10)));
+        assert_eq!(
+            clamp_day(Day::new(2026, 4, 1), lo, hi),
+            Day::new(2026, 4, 14)
+        );
+        assert_eq!(
+            clamp_day(Day::new(2026, 7, 1), lo, hi),
+            Day::new(2026, 6, 10)
+        );
+        assert_eq!(
+            clamp_day(Day::new(2026, 5, 1), lo, hi),
+            Day::new(2026, 5, 1)
+        );
+        assert!(!month_reachable(2026, 3, lo, hi));
+        assert!(month_reachable(2026, 4, lo, hi));
+        assert!(month_reachable(2026, 6, lo, hi));
+        assert!(!month_reachable(2026, 7, lo, hi));
+        assert!(month_reachable(1999, 1, None, None));
+        assert!(!allowed(Day::new(2026, 6, 11), lo, hi, true));
+        assert!(allowed(Day::new(2026, 6, 10), lo, hi, true));
     }
 }

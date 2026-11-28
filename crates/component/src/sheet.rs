@@ -5,13 +5,13 @@ use isonomic_ui_base::TestSupportExt as _;
 use std::{rc::Rc, time::Duration};
 
 use gpui::{
-    Animation, AnimationExt as _, AnyElement, App, ClickEvent, DefiniteLength, DismissEvent, Edges,
-    EventEmitter, FocusHandle, InteractiveElement as _, IntoElement, ParentElement, Pixels,
-    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
+    AbsoluteLength, AnyElement, App, ClickEvent, DefiniteLength, DismissEvent, Edges, EventEmitter,
+    FocusHandle, InteractiveElement as _, IntoElement, ParentElement, Pixels, RenderOnce,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 use isonomic_ui_base::{
     ElementExt as _, LayoutDirection, LogicalStyledExt as _, Sheet as BaseSheet,
-    TextSelectionScopeId, actions::Cancel,
+    TextSelectionScopeId, actions::Cancel, motion::Transition,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -27,6 +27,29 @@ use crate::{
 };
 
 pub(crate) fn init(_: &mut App) {}
+
+/// How long a sheet takes to slide in or out: the theme's normal duration,
+/// nothing under reduced motion.
+pub(crate) fn sheet_motion_duration(cx: &App) -> Duration {
+    if cx.reduce_motion() {
+        Duration::ZERO
+    } else {
+        cx.theme().motion_tokens().duration_normal
+    }
+}
+
+/// The entrance and exit a sheet rides: the same curve both ways, so closing
+/// mid-entrance reverses from where it is.
+pub(crate) fn sheet_transition(cx: &App) -> Transition {
+    let easing = cx.theme().motion_tokens().easing_enter.clone();
+    Transition::new(sheet_motion_duration(cx)).ease(move |delta| easing.sample(delta).clamp(0., 1.))
+}
+
+/// How far a sheet of `extent` sits past its edge at `visibility` (0 hidden,
+/// 1 at rest).
+pub(crate) fn slide_offset(extent: Pixels, visibility: f32) -> Pixels {
+    extent.max(px(0.)) * (1. - visibility.clamp(0., 1.))
+}
 
 /// The physical side a sheet opened at `placement` slides in from.
 ///
@@ -71,6 +94,10 @@ pub struct Sheet {
     children: Vec<AnyElement>,
     overlay: bool,
     overlay_closable: bool,
+    /// How far through its entrance (or exit) the sheet is, 0 to 1.
+    pub(crate) visibility: f32,
+    /// Set while the sheet slides out after closing; it takes no input.
+    pub(crate) closing: bool,
 }
 
 impl Sheet {
@@ -89,6 +116,8 @@ impl Sheet {
             overlay: true,
             overlay_closable: true,
             on_close: Rc::new(|_, _, _| {}),
+            visibility: 1.,
+            closing: false,
         }
     }
 
@@ -184,11 +213,24 @@ impl RenderOnce for Sheet {
             paddings.bottom = pb.to_pixels(base_size, rem_size);
         }
 
+        let visibility = self.visibility.clamp(0., 1.);
+        let closing = self.closing;
+        let scrim = overlay_color(self.overlay, cx);
+        // A leaving sheet's backdrop no longer blocks the page beneath it.
         let overlay = div()
-            .occlude()
+            .when(!closing, |this| this.occlude())
             .w(size.width)
             .h(size.height)
-            .bg(overlay_color(self.overlay, cx));
+            .bg(scrim.alpha(scrim.a * visibility));
+        let extent = self.size.to_pixels(
+            AbsoluteLength::Pixels(if placement.is_horizontal() {
+                size.width
+            } else {
+                size.height - top
+            }),
+            rem_size,
+        );
+        let offset = -slide_offset(extent, visibility);
 
         let surface = v_flex()
             .id("sheet-content")
@@ -262,20 +304,36 @@ impl RenderOnce for Sheet {
                         .child(footer),
                 )
             })
-            .with_animation(
-                "slide",
-                Animation::new(Duration::from_secs_f64(0.15)),
-                move |this, delta| {
-                    let y = px(-100.) + delta * px(100.);
-                    this.map(|this| match placement {
-                        Placement::Top => this.top(top + y),
-                        Placement::Right => this.right(y),
-                        Placement::Bottom => this.bottom(y),
-                        Placement::Left => this.left(y),
+            .map(|this| match placement {
+                Placement::Top => this.top(top + offset),
+                Placement::Right => this.right(offset),
+                Placement::Bottom => this.bottom(offset),
+                Placement::Left => this.left(offset),
+            })
+            .when(closing, |this| {
+                // Content that is leaving must not take a press or a key.
+                this.capture_any_mouse_down(|_, _, cx| cx.stop_propagation())
+                    .capture_any_mouse_up(|_, _, cx| cx.stop_propagation())
+                    .capture_key_down(|_, window, cx| {
+                        window.prevent_default();
+                        cx.stop_propagation();
                     })
-                },
-            );
+            });
         let surface = surface.text_selection_scope(selection_scope);
+
+        if closing {
+            // No focus trap, Escape or backdrop press: the sheet is already
+            // closed and only finishing its slide.
+            return div()
+                .absolute()
+                .top(frame_insets.top)
+                .left(frame_insets.left)
+                .w(size.width)
+                .h(size.height)
+                .child(overlay)
+                .child(surface)
+                .into_any_element();
+        }
 
         BaseSheet::new(cx)
             .top(frame_insets.top)
@@ -289,12 +347,22 @@ impl RenderOnce for Sheet {
             .on_close(move |event, window, cx| (self.on_close)(event, window, cx))
             .overlay(overlay)
             .surface(surface)
+            .into_any_element()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_sheet_slides_its_whole_extent() {
+        assert_eq!(slide_offset(px(350.), 0.), px(350.));
+        assert_eq!(slide_offset(px(350.), 0.5), px(175.));
+        assert_eq!(slide_offset(px(350.), 1.), px(0.));
+        assert_eq!(slide_offset(px(350.), 1.4), px(0.));
+        assert_eq!(slide_offset(px(-10.), 0.), px(0.));
+    }
 
     #[test]
     fn rtl_mirrors_left_and_right_sheets() {

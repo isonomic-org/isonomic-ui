@@ -28,6 +28,10 @@ pub(crate) fn init(cx: &mut App) {
 /// Component-owned window state and presentation; Base owns the actual root.
 pub(crate) struct WindowState {
     pub(crate) active_sheet: Option<ActiveSheet>,
+    /// A sheet that was closed and is still sliding out; it takes no input.
+    closing_sheet: Option<ActiveSheet>,
+    /// Source of stable sheet identities, so each opening slides in afresh.
+    next_sheet_id: usize,
     pub(crate) active_dialogs: Vec<ActiveDialog>,
     pub(super) focused_input: Option<AnyInputState>,
     pub notification: Entity<NotificationList>,
@@ -47,6 +51,10 @@ pub(crate) struct WindowState {
 
 #[derive(Clone)]
 pub(crate) struct ActiveSheet {
+    /// Stable for the sheet's lifetime; keys its entrance and exit.
+    id: usize,
+    /// Whether closing plays an exit transition, refreshed on every render.
+    exit_enabled: Rc<Cell<bool>>,
     focus_handle: FocusHandle,
     /// The previous focused handle before opening the Sheet.
     previous_focused_handle: Option<WeakFocusHandle>,
@@ -107,6 +115,8 @@ impl WindowState {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             active_sheet: None,
+            closing_sheet: None,
+            next_sheet_id: 0,
             active_dialogs: Vec::new(),
             focused_input: None,
             notification: cx.new(|cx| NotificationList::new(window, cx)),
@@ -217,32 +227,85 @@ impl WindowState {
         )
     }
 
+    /// Builds one sheet with its entrance or exit sampled.
+    ///
+    /// Returns `None` for a closing sheet whose exit has finished, after
+    /// scheduling its removal.
+    fn build_sheet(
+        root: &Entity<WindowState>,
+        active_sheet: &ActiveSheet,
+        closing: bool,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Option<Sheet> {
+        let mut sheet = Sheet::new(window, cx);
+        sheet = (active_sheet.builder)(sheet, window, cx);
+        sheet.focus_handle = active_sheet.focus_handle.clone();
+        sheet.placement = crate::sheet::physical_placement(
+            active_sheet.placement,
+            isonomic_ui_base::LayoutDirection::global(cx),
+        );
+        sheet.selection_scope = active_sheet.selection_scope;
+
+        let transition = crate::sheet::sheet_transition(cx);
+        active_sheet
+            .exit_enabled
+            .set(!crate::sheet::sheet_motion_duration(cx).is_zero());
+        let sample = Presence::new(
+            ElementId::NamedInteger("sheet-presence".into(), active_sheet.id as u64),
+            !closing,
+        )
+        .transition(transition)
+        .sample(window, cx);
+        if closing && !sample.should_render() {
+            let root = root.clone();
+            let id = active_sheet.id;
+            window.defer(cx, move |_, cx| {
+                root.update(cx, |state, cx| {
+                    if state.closing_sheet.as_ref().is_some_and(|s| s.id == id) {
+                        state.closing_sheet = None;
+                        cx.notify();
+                    }
+                });
+            });
+            return None;
+        }
+        sheet.visibility = sample.progress;
+        sheet.closing = closing;
+        Some(sheet)
+    }
+
     fn sheet_layer(
         root: Entity<WindowState>,
         window: &mut Window,
         cx: &mut App,
     ) -> Option<impl IntoElement + use<>> {
-        if let Some(active_sheet) = root.read(cx).active_sheet.clone() {
-            let mut sheet = Sheet::new(window, cx);
-            sheet = (active_sheet.builder)(sheet, window, cx);
-            sheet.focus_handle = active_sheet.focus_handle.clone();
-            sheet.placement = crate::sheet::physical_placement(
-                active_sheet.placement,
-                isonomic_ui_base::LayoutDirection::global(cx),
-            );
-            sheet.selection_scope = active_sheet.selection_scope;
-
-            let size = sheet.size;
-
-            return Some(
-                div()
-                    .relative()
-                    .child(sheet)
-                    .on_prepaint(move |_, _, cx| root.update(cx, |r, _| r.sheet_size = Some(size))),
-            );
+        let leaving = root
+            .read(cx)
+            .closing_sheet
+            .clone()
+            .and_then(|sheet| Self::build_sheet(&root, &sheet, true, window, cx));
+        let open = root
+            .read(cx)
+            .active_sheet
+            .clone()
+            .and_then(|sheet| Self::build_sheet(&root, &sheet, false, window, cx));
+        if leaving.is_none() && open.is_none() {
+            return None;
         }
+        let size = open.as_ref().map(|sheet| sheet.size);
 
-        None
+        Some(
+            div()
+                .relative()
+                .children(leaving.map(|sheet| div().id("sheet-leaving").child(sheet)))
+                .children(open)
+                .when_some(size, |this, size| {
+                    this.on_prepaint(move |_, _, cx| {
+                        root.update(cx, |r, _| r.sheet_size = Some(size))
+                    })
+                }),
+        )
     }
 
     fn dialog_layer(
@@ -549,7 +612,11 @@ impl WindowState {
         let focus_handle = cx.focus_handle();
         focus_handle.focus(window, cx);
         let selection_scope = self.allocate_text_selection_scope();
+        let id = self.next_sheet_id;
+        self.next_sheet_id += 1;
         self.active_sheet = Some(ActiveSheet {
+            id,
+            exit_enabled: Rc::new(Cell::new(false)),
             focus_handle,
             previous_focused_handle,
             placement,
@@ -572,7 +639,16 @@ impl WindowState {
         {
             window.focus(&previous_handle, cx);
         }
-        self.active_sheet = None;
+        // A sheet with an exit transition slides back out before it unmounts;
+        // it gives up focus, Escape and the backdrop at once.
+        if let Some(sheet) = self.active_sheet.take() {
+            if sheet.exit_enabled.get() {
+                if sheet.focus_handle.contains_focused(window, cx) {
+                    window.blur(cx);
+                }
+                self.closing_sheet = Some(sheet);
+            }
+        }
         isonomic_ui_base::TextSelection::clear(window, cx);
         cx.notify();
     }

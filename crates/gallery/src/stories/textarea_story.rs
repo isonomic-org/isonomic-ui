@@ -36,6 +36,7 @@ pub struct TextareaStory {
     textarea_auto_grow: Entity<TextareaState>,
     textarea_no_wrap: Entity<TextareaState>,
     textarea_auto_grow_no_wrap: Entity<TextareaState>,
+    textarea_invalid: Entity<TextareaState>,
     chat_input: Entity<TextareaState>,
     chat_messages: Vec<String>,
     composer: Entity<TextareaState>,
@@ -132,6 +133,12 @@ impl TextareaStory {
                 .default_value("Hello 世界，this is Isonomic UI.")
         });
 
+        let textarea_invalid = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .auto_grow(2, 4)
+                .default_value("Ship it")
+        });
+
         let chat_input = cx.new(|cx| {
             TextareaState::new(window, cx)
                 .auto_grow(1, 5)
@@ -169,6 +176,7 @@ impl TextareaStory {
             textarea_auto_grow,
             textarea_no_wrap,
             textarea_auto_grow_no_wrap,
+            textarea_invalid,
             chat_input,
             chat_messages: Vec::new(),
             composer,
@@ -269,6 +277,16 @@ impl Render for TextareaStory {
                 section("Auto Grow with No Wrap")
                     .w(px(560.))
                     .child(Textarea::new(&self.textarea_auto_grow_no_wrap).with_size(self.size)),
+            )
+            .child(
+                section("Invalid")
+                    .w(px(560.))
+                    .child(
+                        Textarea::new(&self.textarea_invalid)
+                            .with_size(self.size)
+                            .invalid(true)
+                            .description("Error: a release note needs at least 20 characters"),
+                    ),
             )
             .child(
                 section("Submit on Enter (Chat)").w(px(560.)).child(
