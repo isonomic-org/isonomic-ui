@@ -10,8 +10,10 @@ use isonomic_ui::{
 };
 use isonomic_ui_extra::memory_manager_panel::{MemoryEvent, MemoryItem, MemoryManagerPanel};
 
-/// What a bookkeeping assistant remembers about one business. The story
-/// keeps the items and applies every change the panel reports.
+/// What a bookkeeping assistant remembers about one business, its team and
+/// its clients. The story keeps the items and applies every change the
+/// panel reports, including moving an item to another scope and forgetting
+/// a whole scope.
 pub struct MemoryManagerPanelStory {
     panel: Entity<MemoryManagerPanel>,
     items: Vec<MemoryItem>,
@@ -26,29 +28,43 @@ fn items() -> Vec<MemoryItem> {
             "Suppliers are paid on Fridays, from the operating account.",
             "Payables setup",
         )
-        .updated("2 weeks ago"),
+        .updated("2 weeks ago")
+        .scope("Business"),
         MemoryItem::new(
             "m2",
             "Fuel receipts go under Vehicle costs, not Office supplies.",
             "Receipt filing",
         )
-        .updated("5 days ago"),
+        .updated("5 days ago")
+        .scope("Business"),
         MemoryItem::new("m3", "Maya approves anything over $1,000.", "Approvals")
-            .updated("1 month ago"),
+            .updated("1 month ago")
+            .scope("Team"),
         MemoryItem::new(
             "m4",
             "Northwind Dental pays late but always pays; send gentle reminders.",
             "Collections",
         )
-        .updated("yesterday"),
-        MemoryItem::new("m5", "The year end is 31 December.", "Onboarding").updated("3 months ago"),
+        .updated("yesterday")
+        .scope("Clients"),
+        MemoryItem::new("m5", "The year end is 31 December.", "Onboarding")
+            .updated("3 months ago")
+            .scope("Business"),
         MemoryItem::new(
             "m6",
             "Round card matches to three days either side.",
             "March close",
         )
         .updated("today")
-        .paused(true),
+        .paused(true)
+        .scope("Team"),
+        MemoryItem::new(
+            "m7",
+            "Lena prefers invoices summarised in one line.",
+            "Weekly review",
+        )
+        .updated("4 days ago")
+        .scope("Team"),
     ]
 }
 
@@ -80,6 +96,14 @@ impl MemoryManagerPanelStory {
                         if let Some((at, item)) = this.removed.pop() {
                             this.items.insert(at.min(this.items.len()), item);
                         }
+                    }
+                    MemoryEvent::Rescoped { id, scope } => {
+                        if let Some(item) = this.items.iter_mut().find(|i| &i.id == id) {
+                            item.scope = scope.clone();
+                        }
+                    }
+                    MemoryEvent::ForgotScope { ids, .. } => {
+                        this.items.retain(|i| !ids.contains(&i.id));
                     }
                 }
                 let items = this.items.clone();
