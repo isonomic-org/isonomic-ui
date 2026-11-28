@@ -233,7 +233,7 @@ impl RenderOnce for EmptyStatePanel {
                 })
                 .text_body()
                 .role(role)
-                .aria_label(spoken.clone())
+                .aria_label(spoken)
                 .child(Icon::new(icon).small().text_color(color))
                 .child(
                     v_flex()

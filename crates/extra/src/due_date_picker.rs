@@ -349,7 +349,7 @@ impl RenderOnce for DueDatePicker {
         let is_focused = focus.is_focused(window);
         let preview = (*hover_day.read(cx)).or(is_focused.then_some(cursor));
         let span = range.and_then(|r| range_span(r, preview));
-        let ends = range.map_or((None, None), |r| r);
+        let ends = range.unwrap_or((None, None));
 
         let presets = [
             ("Today", self.today),
