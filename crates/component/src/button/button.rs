@@ -880,6 +880,7 @@ impl RenderOnce for Button {
             self.loading.then(|| {
                 ButtonIcon::from(
                     Spinner::new()
+                        .color(normal_style.fg)
                         .when_some(self.loading_icon.clone(), |this, icon| this.icon(icon)),
                 )
             })
@@ -904,6 +905,7 @@ impl RenderOnce for Button {
                 this.child(
                     icon.loading_icon(self.loading_icon)
                         .loading(self.loading)
+                        .spinner_color(normal_style.fg)
                         .with_size(icon_size),
                 )
             })

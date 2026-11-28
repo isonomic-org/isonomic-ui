@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::{Icon, Sizable, Size, progress::ProgressCircle, spinner::Spinner};
-use gpui::{App, IntoElement, RenderOnce, Window, prelude::FluentBuilder};
+use gpui::{App, Hsla, IntoElement, RenderOnce, Window, prelude::FluentBuilder};
 
 /// Button icon which can be an Icon, Spinner, or Progress use for `icon` method of Button.
 #[doc(hidden)]
@@ -11,6 +11,7 @@ pub struct ButtonIcon {
     icon: ButtonIconVariant,
     loading_icon: Option<Icon>,
     loading: bool,
+    spinner_color: Option<Hsla>,
     size: Size,
 }
 
@@ -30,6 +31,7 @@ impl ButtonIcon {
             icon: icon.into(),
             loading_icon: None,
             loading: false,
+            spinner_color: None,
             size: Size::Medium,
         }
     }
@@ -41,6 +43,13 @@ impl ButtonIcon {
 
     pub(crate) fn loading(mut self, loading: bool) -> Self {
         self.loading = loading;
+        self
+    }
+
+    /// The color of the spinner shown while loading, so it reads on the
+    /// button's own fill instead of the page's.
+    pub(crate) fn spinner_color(mut self, color: Hsla) -> Self {
+        self.spinner_color = Some(color);
         self
     }
 }
@@ -124,6 +133,7 @@ impl RenderOnce for ButtonIcon {
             } else {
                 Spinner::new()
                     .when_some(self.loading_icon, |this, icon| this.icon(icon))
+                    .when_some(self.spinner_color, |this, color| this.color(color))
                     .with_size(self.size)
                     .into_any_element()
             }
