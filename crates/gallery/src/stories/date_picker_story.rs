@@ -24,6 +24,8 @@ pub struct DatePickerStory {
     date_range_picker: Entity<DatePickerState>,
     default_range_mode_picker: Entity<DatePickerState>,
     birthday_picker: Entity<DatePickerState>,
+    limited_picker: Entity<DatePickerState>,
+    limited_calendar: Entity<calendar::CalendarState>,
     without_appearance_picker: Entity<DatePickerState>,
     date_time_picker: Entity<DatePickerState>,
     date_time_second_picker: Entity<DatePickerState>,
@@ -106,6 +108,25 @@ impl DatePickerStory {
 
         let without_appearance_picker = cx.new(|cx| DatePickerState::new(window, cx));
 
+        // A booking window: from today to six weeks out.
+        let latest = now.checked_add_days(Days::new(42)).unwrap_or(now);
+        let limited_picker = cx.new(|cx| {
+            DatePickerState::range(window, cx)
+                .min_date(now)
+                .max_date(latest)
+        });
+        let limited_calendar = cx.new(|cx| {
+            let mut calendar = calendar::CalendarState::new(window, cx)
+                .min_date(now)
+                .max_date(latest);
+            calendar.set_date(
+                calendar::Date::Range(Some(now), now.checked_add_days(Days::new(3))),
+                window,
+                cx,
+            );
+            calendar
+        });
+
         let date_time_picker = cx.new(|cx| {
             let mut picker = DatePickerState::new(window, cx).time_precision(TimePrecision::Minute);
             picker.set_date_time(chrono::Local::now().naive_local(), window, cx);
@@ -164,6 +185,8 @@ impl DatePickerStory {
             date_range_picker,
             default_range_mode_picker,
             birthday_picker,
+            limited_picker,
+            limited_calendar,
             without_appearance_picker,
             date_time_picker,
             date_time_second_picker,
@@ -300,6 +323,28 @@ impl Render for DatePickerStory {
                     )
                     .child(
                         DatePicker::new(&self.data_picker_custom)
+                            .with_size(self.size)
+                            .w(px(280.)),
+                    ),
+            )
+            .child(
+                section("Earliest and latest")
+                    .description(
+                        "Days outside the window are disabled and the month arrows stop at its ends.",
+                    )
+                    .w_128()
+                    .v_flex()
+                    .gap_3()
+                    .child(
+                        DatePicker::new(&self.limited_picker)
+                            .with_size(self.size)
+                            .w(px(280.))
+                            .cleanable(true)
+                            .placeholder("Pick a stay within six weeks")
+                            .presets(range_presets.clone()),
+                    )
+                    .child(
+                        calendar::Calendar::new(&self.limited_calendar)
                             .with_size(self.size)
                             .w(px(280.)),
                     ),

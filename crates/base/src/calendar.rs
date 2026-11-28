@@ -11,7 +11,8 @@ use chrono::{Datelike, Local, NaiveDate, Weekday};
 use gpui::{
     AnyElement, App, Context, ElementId, Empty, Entity, EventEmitter, FocusHandle,
     InteractiveElement, IntoElement, ParentElement, Render, RenderOnce, SharedString,
-    StatefulInteractiveElement, StyleRefinement, Styled, Window, div, px,
+    StatefulInteractiveElement, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    px,
 };
 
 /// A controlled calendar value.
@@ -171,6 +172,30 @@ pub enum CalendarEvent {
     Selected(Date),
 }
 
+/// The first and last day of a month, `offset` months after `year`-`month`.
+fn month_span(year: i32, month: u32, offset: i64) -> (NaiveDate, NaiveDate) {
+    let total = year as i64 * 12 + month as i64 - 1 + offset;
+    let (y, m) = (total.div_euclid(12) as i32, total.rem_euclid(12) as u32 + 1);
+    let first = NaiveDate::from_ymd_opt(y, m, 1).expect("valid month");
+    let next = if m == 12 {
+        NaiveDate::from_ymd_opt(y + 1, 1, 1)
+    } else {
+        NaiveDate::from_ymd_opt(y, m + 1, 1)
+    }
+    .expect("valid month");
+    (first, next.pred_opt().expect("a day before the next month"))
+}
+
+/// Whether any day from `first` to `last` lies between `min` and `max`.
+fn span_overlaps(
+    first: NaiveDate,
+    last: NaiveDate,
+    min: Option<NaiveDate>,
+    max: Option<NaiveDate>,
+) -> bool {
+    min.is_none_or(|min| last >= min) && max.is_none_or(|max| first <= max)
+}
+
 pub struct CalendarState {
     pub focus_handle: FocusHandle,
     view: CalendarView,
@@ -182,6 +207,8 @@ pub struct CalendarState {
     today: NaiveDate,
     number_of_months: usize,
     disabled_matcher: Option<Rc<Matcher>>,
+    min_date: Option<NaiveDate>,
+    max_date: Option<NaiveDate>,
 }
 
 impl CalendarState {
@@ -198,6 +225,8 @@ impl CalendarState {
             today,
             number_of_months: 1,
             disabled_matcher: None,
+            min_date: None,
+            max_date: None,
         }
         .year_range((today.year() - 50, today.year() + 50))
     }
@@ -219,6 +248,74 @@ impl CalendarState {
     pub fn disabled_matcher_ref(&self) -> Option<&Matcher> {
         self.disabled_matcher.as_deref()
     }
+    /// The earliest day that can be picked. Earlier days are disabled, and
+    /// the calendar does not page to a month that ends before it.
+    pub fn min_date(mut self, date: NaiveDate) -> Self {
+        self.set_bounds(Some(date), self.max_date);
+        self
+    }
+    /// The latest day that can be picked. Later days are disabled, and the
+    /// calendar does not page to a month that starts after it.
+    pub fn max_date(mut self, date: NaiveDate) -> Self {
+        self.set_bounds(self.min_date, Some(date));
+        self
+    }
+    /// Set or clear both limits. A shown month wholly outside them moves to
+    /// the nearest month inside.
+    pub fn set_bounds(&mut self, min: Option<NaiveDate>, max: Option<NaiveDate>) {
+        self.min_date = min;
+        self.max_date = max;
+        let (first, last) = month_span(self.current_year, self.current_month as u32, 0);
+        let target = match (min, max) {
+            (Some(min), _) if last < min => Some(min),
+            (_, Some(max)) if first > max => Some(max),
+            _ => None,
+        };
+        if let Some(target) = target {
+            self.current_year = target.year();
+            self.current_month = target.month() as u8;
+        }
+    }
+    /// The earliest and latest days that can be picked.
+    pub fn bounds(&self) -> (Option<NaiveDate>, Option<NaiveDate>) {
+        (self.min_date, self.max_date)
+    }
+    /// Whether `date` lies inside the limits.
+    pub fn in_bounds(&self, date: &NaiveDate) -> bool {
+        self.min_date.is_none_or(|min| *date >= min) && self.max_date.is_none_or(|max| *date <= max)
+    }
+    fn is_unavailable(&self, date: &NaiveDate) -> bool {
+        !self.in_bounds(date)
+            || self
+                .disabled_matcher
+                .as_ref()
+                .is_some_and(|m| m.matched(date))
+    }
+    /// Whether paging back a month still shows a day that can be picked.
+    pub fn has_prev_month(&self) -> bool {
+        let (first, last) = month_span(self.current_year, self.current_month as u32, -1);
+        span_overlaps(first, last, self.min_date, None)
+    }
+    /// Whether paging on a month still shows a day that can be picked.
+    pub fn has_next_month(&self) -> bool {
+        let (first, last) = month_span(
+            self.current_year,
+            self.current_month as u32,
+            self.number_of_months.max(1) as i64,
+        );
+        span_overlaps(first, last, None, self.max_date)
+    }
+    /// Whether any day of `month` in the shown year is inside the limits.
+    pub fn month_in_bounds(&self, month: u8) -> bool {
+        let (first, last) = month_span(self.current_year, month as u32, 0);
+        span_overlaps(first, last, self.min_date, self.max_date)
+    }
+    /// Whether any day of `year` is inside the limits.
+    pub fn year_in_bounds(&self, year: i32) -> bool {
+        let first = NaiveDate::from_ymd_opt(year, 1, 1).expect("valid year");
+        let last = NaiveDate::from_ymd_opt(year, 12, 31).expect("valid year");
+        span_overlaps(first, last, self.min_date, self.max_date)
+    }
     pub fn set_date(&mut self, date: impl Into<Date>, _: &mut Window, cx: &mut Context<Self>) {
         if self.apply_date(date.into()) {
             cx.notify();
@@ -232,6 +329,13 @@ impl CalendarState {
         {
             return false;
         }
+        if [date.start(), date.end()]
+            .into_iter()
+            .flatten()
+            .any(|day| !self.in_bounds(&day))
+        {
+            return false;
+        }
         self.date = date;
         if let Some(v) = date.start() {
             self.current_month = v.month() as u8;
@@ -240,11 +344,7 @@ impl CalendarState {
         true
     }
     pub fn select_date(&mut self, value: NaiveDate) -> bool {
-        if self
-            .disabled_matcher
-            .as_ref()
-            .is_some_and(|m| m.matched(&value))
-        {
+        if self.is_unavailable(&value) {
             return false;
         }
         let next = match self.date {
@@ -673,7 +773,8 @@ impl RenderOnce for Calendar {
             .child({
                 let st = CalendarItemState::new(CalendarItemKind::Previous).disabled(
                     view.is_month()
-                        || (view.is_year() && !self.state.read(cx).has_prev_year_page()),
+                        || (view.is_year() && !self.state.read(cx).has_prev_year_page())
+                        || (view.is_day() && !self.state.read(cx).has_prev_month()),
                 );
                 let mut item =
                     CalendarItem::new("calendar-prev", st).with_label((self.label)(st.kind(), 0));
@@ -742,7 +843,9 @@ impl RenderOnce for Calendar {
         }
         header = header.child({
             let st = CalendarItemState::new(CalendarItemKind::Next).disabled(
-                view.is_month() || (view.is_year() && !self.state.read(cx).has_next_year_page()),
+                view.is_month()
+                    || (view.is_year() && !self.state.read(cx).has_next_year_page())
+                    || (view.is_day() && !self.state.read(cx).has_next_month()),
             );
             let mut item =
                 CalendarItem::new("calendar-next", st).with_label((self.label)(st.kind(), 0));
@@ -794,8 +897,7 @@ impl RenderOnce for Calendar {
                         let st = {
                             let s = self.state.read(cx);
                             let (_, m) = s.offset_year_month(offset);
-                            let disabled =
-                                s.disabled_matcher_ref().is_some_and(|x| x.matched(&date));
+                            let disabled = s.is_unavailable(&date);
                             CalendarItemState::new(CalendarItemKind::Day)
                                 .active(s.date().is_active(&date))
                                 .in_range(s.date().is_in_range(&date))
@@ -824,14 +926,18 @@ impl RenderOnce for Calendar {
         } else if view.is_month() {
             let current = self.state.read(cx).current_month();
             for month in 1..=12u8 {
-                let st = CalendarItemState::new(CalendarItemKind::Month).active(month == current);
+                let st = CalendarItemState::new(CalendarItemKind::Month)
+                    .active(month == current)
+                    .disabled(!self.state.read(cx).month_in_bounds(month));
                 let entity = self.state.clone();
                 let item = CalendarItem::new(format!("calendar-month-{month}"), st)
                     .with_label((self.label)(st.kind(), month as i32))
-                    .on_click(move |_, _, cx| {
-                        entity.update(cx, |s, cx| {
-                            s.select_month(month);
-                            cx.notify();
+                    .when(!st.is_disabled(), |item| {
+                        item.on_click(move |_, _, cx| {
+                            entity.update(cx, |s, cx| {
+                                s.select_month(month);
+                                cx.notify();
+                            })
                         })
                     });
                 body = body.child((self.item)(item, st, window, cx));
@@ -840,14 +946,18 @@ impl RenderOnce for Calendar {
             let current = self.state.read(cx).current_year();
             let years = self.state.read(cx).years_on_page().to_vec();
             for year in years {
-                let st = CalendarItemState::new(CalendarItemKind::Year).active(year == current);
+                let st = CalendarItemState::new(CalendarItemKind::Year)
+                    .active(year == current)
+                    .disabled(!self.state.read(cx).year_in_bounds(year));
                 let entity = self.state.clone();
                 let item = CalendarItem::new(format!("calendar-year-{year}"), st)
                     .with_label((self.label)(st.kind(), year))
-                    .on_click(move |_, _, cx| {
-                        entity.update(cx, |s, cx| {
-                            s.select_year(year);
-                            cx.notify();
+                    .when(!st.is_disabled(), |item| {
+                        item.on_click(move |_, _, cx| {
+                            entity.update(cx, |s, cx| {
+                                s.select_year(year);
+                                cx.notify();
+                            })
                         })
                     });
                 body = body.child((self.item)(item, st, window, cx));
@@ -893,6 +1003,74 @@ mod tests {
     use gpui::{AppContext as _, Context, Entity, IntoElement, Render, Subscription, Window};
 
     use super::*;
+
+    fn ymd(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn month_spans_cross_years_and_know_their_last_day() {
+        assert_eq!(
+            month_span(2026, 1, -1),
+            (ymd(2025, 12, 1), ymd(2025, 12, 31))
+        );
+        assert_eq!(month_span(2028, 2, 0), (ymd(2028, 2, 1), ymd(2028, 2, 29)));
+        assert_eq!(month_span(2026, 11, 2), (ymd(2027, 1, 1), ymd(2027, 1, 31)));
+        assert!(span_overlaps(
+            ymd(2026, 3, 1),
+            ymd(2026, 3, 31),
+            Some(ymd(2026, 3, 31)),
+            None
+        ));
+        assert!(!span_overlaps(
+            ymd(2026, 3, 1),
+            ymd(2026, 3, 31),
+            Some(ymd(2026, 4, 1)),
+            None
+        ));
+        assert!(!span_overlaps(
+            ymd(2026, 3, 1),
+            ymd(2026, 3, 31),
+            None,
+            Some(ymd(2026, 2, 28))
+        ));
+    }
+
+    #[gpui::test]
+    fn limits_disable_days_paging_months_and_years(cx: &mut gpui::TestAppContext) {
+        let s = state(cx, Date::Single(None));
+        s.update(cx, |s, _| {
+            s.current_year = 2026;
+            s.current_month = 1;
+            s.set_bounds(Some(ymd(2026, 3, 10)), Some(ymd(2026, 5, 20)));
+            // January ends before the earliest day, so the calendar moves on.
+            assert_eq!((s.current_year(), s.current_month()), (2026, 3));
+            assert!(!s.has_prev_month());
+            assert!(s.has_next_month());
+            assert!(!s.select_date(ymd(2026, 3, 9)));
+            assert!(s.select_date(ymd(2026, 3, 10)));
+            assert!(!s.apply_date(Date::Single(Some(ymd(2026, 5, 21)))));
+            s.next_month();
+            s.next_month();
+            assert!(!s.has_next_month());
+            assert!(s.month_in_bounds(5) && !s.month_in_bounds(6) && !s.month_in_bounds(2));
+            assert!(s.year_in_bounds(2026) && !s.year_in_bounds(2027));
+            s.set_bounds(None, None);
+            assert!(s.has_next_month() && s.month_in_bounds(12));
+        });
+    }
+
+    #[gpui::test]
+    fn a_range_cannot_reach_past_a_limit(cx: &mut gpui::TestAppContext) {
+        let s = state(cx, Date::Range(None, None));
+        s.update(cx, |s, _| {
+            s.set_bounds(None, Some(ymd(2026, 6, 30)));
+            assert!(!s.select_date(ymd(2026, 6, 1)));
+            assert!(!s.select_date(ymd(2026, 7, 2)));
+            assert_eq!(s.date(), Date::Range(Some(ymd(2026, 6, 1)), None));
+            assert!(s.select_date(ymd(2026, 6, 30)));
+        });
+    }
 
     #[test]
     fn calendar_items_get_roles() {

@@ -161,6 +161,8 @@ pub struct DatePickerState {
     date_format: Option<SharedString>,
     number_of_months: usize,
     disabled_matcher: Option<Rc<Matcher>>,
+    min_date: Option<NaiveDate>,
+    max_date: Option<NaiveDate>,
     /// `None` edits dates only.
     time_precision: Option<TimePrecision>,
     hour_cycle: HourCycle,
@@ -239,6 +241,8 @@ impl DatePickerState {
             date_format: None,
             number_of_months: 1,
             disabled_matcher: None,
+            min_date: None,
+            max_date: None,
             time_precision: None,
             hour_cycle: HourCycle::default(),
             default_time: NaiveTime::MIN,
@@ -348,6 +352,48 @@ impl DatePickerState {
         self
     }
 
+    /// The earliest day that can be picked. Earlier days are disabled, the
+    /// calendar does not page to a month before it, and presets that fall
+    /// earlier are disabled too.
+    pub fn min_date(mut self, date: NaiveDate) -> Self {
+        self.min_date = Some(date);
+        self
+    }
+
+    /// The latest day that can be picked, the counterpart of
+    /// [`Self::min_date`].
+    pub fn max_date(mut self, date: NaiveDate) -> Self {
+        self.max_date = Some(date);
+        self
+    }
+
+    /// Change or clear the earliest and latest days that can be picked.
+    pub fn set_bounds(
+        &mut self,
+        min: Option<NaiveDate>,
+        max: Option<NaiveDate>,
+        cx: &mut Context<Self>,
+    ) {
+        self.min_date = min;
+        self.max_date = max;
+        cx.notify();
+    }
+
+    /// Whether a preset's days all lie inside the earliest and latest days.
+    fn preset_in_bounds(&self, preset: &DateRangePreset) -> bool {
+        let inside = |day: NaiveDate| {
+            self.min_date.is_none_or(|min| day >= min) && self.max_date.is_none_or(|max| day <= max)
+        };
+        match &preset.value {
+            DateRangePresetValue::Single(day) => inside(*day),
+            DateRangePresetValue::Range(start, end) => inside(*start) && inside(*end),
+            DateRangePresetValue::DateTime(value) => [value.start(), value.end()]
+                .into_iter()
+                .flatten()
+                .all(|at| inside(at.date())),
+        }
+    }
+
     /// Set the year range for the internal calendar.
     ///
     /// Default is 50 years before and after the current year.
@@ -435,8 +481,12 @@ impl DatePickerState {
     /// Sync the builder configuration into the child states before they render.
     fn sync_children(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let matcher = self.disabled_matcher.clone();
+        let bounds = (self.min_date, self.max_date);
         self.calendar.update(cx, |state, _| {
             state.set_disabled_matcher_shared(matcher);
+            if state.bounds() != bounds {
+                state.set_bounds(bounds.0, bounds.1);
+            }
         });
         // Builders cannot reach the field, so apply them before the first render.
         if !self.time_field_pushed {
@@ -831,10 +881,13 @@ impl RenderOnce for DatePicker {
                                     .when_some(self.presets.clone(), |this, presets| {
                                         this.child(v_flex().my_1().gap_2().justify_end().children(
                                             presets.into_iter().enumerate().map(|(i, preset)| {
+                                                let allowed =
+                                                    self.state.read(cx).preset_in_bounds(&preset);
                                                 Button::new(("preset", i))
                                                     .small()
                                                     .ghost()
                                                     .tab_stop(false)
+                                                    .disabled(!allowed)
                                                     .label(preset.label.clone())
                                                     .on_click(window.listener_for(
                                                         &self.state,
