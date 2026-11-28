@@ -435,8 +435,10 @@ fn snippet(text: &str, max: usize) -> String {
         return text;
     }
     let cut: String = text.chars().take(max).collect();
+    // A cut that lands on a space already ends a whole word.
+    let ends_word = text.chars().nth(max).is_some_and(char::is_whitespace);
     let cut = match cut.rfind(' ') {
-        Some(at) if at > max / 2 => &cut[..at],
+        Some(at) if !ends_word && at > max / 2 => &cut[..at],
         _ => cut.as_str(),
     };
     format!(
