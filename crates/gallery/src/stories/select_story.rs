@@ -54,6 +54,10 @@ pub struct SelectStory {
     disabled_select: Entity<SelectState<Vec<SharedString>>>,
     appearance_select: Entity<SelectState<Vec<SharedString>>>,
     input_state: Entity<InputState>,
+    /// People and teams, each with an icon and a hint, in two groups.
+    assignee_select: Entity<SelectState<SearchableVec<SelectGroup<SelectOption<&'static str>>>>>,
+    /// Plain options to try typeahead on: focus it and type a letter.
+    status_select: Entity<SelectState<Vec<SelectOption<&'static str>>>>,
 }
 
 impl super::Story for SelectStory {
@@ -123,6 +127,56 @@ impl SelectStory {
         ]);
         let fruit_select = cx.new(|cx| SelectState::new(fruits, None, window, cx).searchable(true));
 
+        let mut assignees: SearchableVec<SelectGroup<SelectOption<&'static str>>> =
+            SearchableVec::new(vec![]);
+        assignees.push(
+            SelectGroup::new("People").items([
+                SelectOption::new("amara", "Amara Osei")
+                    .icon(isonomic_ui::assets::IconName::User)
+                    .hint("Owner"),
+                SelectOption::new("bruno", "Bruno Lindqvist")
+                    .icon(isonomic_ui::assets::IconName::User)
+                    .hint("Editor"),
+                SelectOption::new("chen", "Chen Wei")
+                    .icon(isonomic_ui::assets::IconName::User)
+                    .hint("Away")
+                    .disabled(true),
+            ]),
+        );
+        assignees.push(
+            SelectGroup::new("Teams").items([
+                SelectOption::new("billing", "Billing")
+                    .icon(isonomic_ui::assets::IconName::UserMultiple)
+                    .hint("6")
+                    .description("Invoices, refunds and dunning"),
+                SelectOption::new("support", "Support")
+                    .icon(isonomic_ui::assets::IconName::UserMultiple)
+                    .hint("14")
+                    .description("Tickets and the help centre"),
+            ]),
+        );
+        let assignee_select = cx.new(|cx| {
+            SelectState::new(assignees, Some(IndexPath::new(0)), window, cx).searchable(true)
+        });
+        let status_select = cx.new(|cx| {
+            SelectState::new(
+                vec![
+                    SelectOption::new("draft", "Draft").icon(isonomic_ui::assets::IconName::Edit),
+                    SelectOption::new("review", "In review")
+                        .icon(isonomic_ui::assets::IconName::View),
+                    SelectOption::new("ready", "Ready")
+                        .icon(isonomic_ui::assets::IconName::CheckmarkOutline),
+                    SelectOption::new("released", "Released")
+                        .icon(isonomic_ui::assets::IconName::Rocket),
+                    SelectOption::new("retired", "Retired")
+                        .icon(isonomic_ui::assets::IconName::Archive),
+                ],
+                Some(IndexPath::new(1)),
+                window,
+                cx,
+            )
+        });
+
         cx.new(|cx| {
             cx.subscribe_in(&country_select, window, Self::on_select_event)
                 .detach();
@@ -176,6 +230,8 @@ impl SelectStory {
                     .new(|cx| SelectState::new(Vec::<SharedString>::new(), None, window, cx)),
                 appearance_select,
                 input_state,
+                assignee_select,
+                status_select,
             }
         })
     }
@@ -231,6 +287,31 @@ impl Render for SelectStory {
                             .with_size(self.size)
                             .search_placeholder("Search…")
                             .cleanable(true)
+                            .disabled(self.disabled),
+                    ),
+            )
+            .child(
+                section("Icons, hints and groups")
+                    .description("Options lead with an icon, end with a hint, and sit in named groups. Search reaches the hints too.")
+                    .w(px(280.))
+                    .items_center()
+                    .child(
+                        Select::new(&self.assignee_select)
+                            .w(px(280.))
+                            .with_size(self.size)
+                            .search_placeholder("Find a person or team")
+                            .disabled(self.disabled),
+                    ),
+            )
+            .child(
+                section("Typeahead")
+                    .description("Focus it and type: R moves to Ready, again to Released, then Retired. Open, the letters move the highlight.")
+                    .w(px(280.))
+                    .items_center()
+                    .child(
+                        Select::new(&self.status_select)
+                            .w(px(280.))
+                            .with_size(self.size)
                             .disabled(self.disabled),
                     ),
             )

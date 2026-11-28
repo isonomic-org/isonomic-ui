@@ -5,6 +5,7 @@ pub(crate) mod adapter;
 pub mod change;
 mod delegate;
 mod item;
+mod option;
 pub mod state;
 mod vec;
 
@@ -12,5 +13,6 @@ pub(crate) use adapter::SearchableListAdapter;
 pub use change::SearchableListChange;
 pub use delegate::{SearchableListDelegate, SearchableListItem};
 pub use item::SearchableListItemElement;
+pub use option::SelectOption;
 pub use state::SearchableListState;
 pub use vec::{SearchableGroup, SearchableVec};
