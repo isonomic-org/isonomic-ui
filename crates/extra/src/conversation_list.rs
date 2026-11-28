@@ -158,7 +158,10 @@ pub fn grouped(
     utc_offset_minutes: i32,
 ) -> Vec<(DateGroup, Vec<Conversation>)> {
     let mut groups: Vec<(DateGroup, Vec<Conversation>)> = Vec::new();
-    for chat in chats.iter().filter(|chat| title_matches(&chat.title, typed)) {
+    for chat in chats
+        .iter()
+        .filter(|chat| title_matches(&chat.title, typed))
+    {
         let group = group_of(chat, now, utc_offset_minutes);
         match groups.iter_mut().find(|(key, _)| *key == group) {
             Some((_, list)) => list.push(chat.clone()),
@@ -356,7 +359,9 @@ impl ConversationList {
 
     /// The chat waiting out its undo time, and how it was removed.
     pub fn pending_removal(&self) -> Option<(&Conversation, Removal)> {
-        self.removed.as_ref().map(|(chat, removal)| (chat, *removal))
+        self.removed
+            .as_ref()
+            .map(|(chat, removal)| (chat, *removal))
     }
 
     /// Open the title of a chat for editing in its row.
@@ -583,7 +588,13 @@ impl ConversationList {
                         .on_click(cx.listener(move |_, _, _, cx| {
                             cx.emit(ConversationListEvent::Select(id.clone()))
                         }))
-                        .child(div().flex_1().min_w_0().truncate().child(chat.title.clone()))
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .truncate()
+                                .child(chat.title.clone()),
+                        )
                         .when(chat.running, |this| {
                             this.child(Spinner::new().xsmall().color(accent))
                         }),
@@ -595,8 +606,7 @@ impl ConversationList {
                         .top_0()
                         .bottom_0()
                         .when(!active, |this| {
-                            this.opacity(0.)
-                                .group_hover(hover, |this| this.opacity(1.))
+                            this.opacity(0.).group_hover(hover, |this| this.opacity(1.))
                         })
                         .child(self.row_menu(chat, cx)),
                 )
@@ -791,7 +801,11 @@ impl Render for ConversationList {
                         Input::new(&self.search)
                             .h(px(36.))
                             .rounded(px(18.))
-                            .prefix(Icon::new(CatalogIcon::Search).size(px(14.)).text_color(quiet))
+                            .prefix(
+                                Icon::new(CatalogIcon::Search)
+                                    .size(px(14.))
+                                    .text_color(quiet),
+                            )
                             .cleanable(true)
                             .aria_label("Search chats"),
                     ),
@@ -886,7 +900,10 @@ mod tests {
         assert!(title_matches("Glaze test tiles", "  GLAZE "));
         assert!(title_matches("Glaze test tiles", ""));
         assert!(!title_matches("Glaze test tiles", "kiln"));
-        let chats = [chat("a", "Kiln schedule", HOUR), chat("b", "Clay order", HOUR)];
+        let chats = [
+            chat("a", "Kiln schedule", HOUR),
+            chat("b", "Clay order", HOUR),
+        ];
         let found = grouped(&chats, "clay", NOW, 0);
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].1[0].id.as_ref(), "b");

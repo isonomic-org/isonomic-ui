@@ -207,9 +207,8 @@ pub fn place_turns(
             let unread = unread_from == Some(ix);
             let grouped = !new_day
                 && !unread
-                && before.is_some_and(|(side, earlier)| {
-                    side == *speaker && at - earlier < GROUP_WITHIN
-                });
+                && before
+                    .is_some_and(|(side, earlier)| side == *speaker && at - earlier < GROUP_WITHIN);
             TurnPlace {
                 new_day,
                 unread,
@@ -491,7 +490,9 @@ impl RenderOnce for ChatThread {
                 );
             }
             if place.unread {
-                rows.push(divider(part("unread"), "Unread".to_string(), true, cx).into_any_element());
+                rows.push(
+                    divider(part("unread"), "Unread".to_string(), true, cx).into_any_element(),
+                );
             }
 
             let avatar = (!dense).then(|| {
@@ -582,11 +583,9 @@ impl RenderOnce for ChatThread {
                                 h_flex()
                                     .flex_wrap()
                                     .min_h(px(22.))
-                                    .children(
-                                        words.into_iter().map(|word| {
-                                            div().max_w_full().whitespace_nowrap().child(word)
-                                        }),
-                                    )
+                                    .children(words.into_iter().map(|word| {
+                                        div().max_w_full().whitespace_nowrap().child(word)
+                                    }))
                                     .children(caret),
                             )
                         })

@@ -45,8 +45,7 @@ impl SentMessageStory {
                     .edited(true),
                 SentMessageData::new("Can someone lend me a wheelbarrow on Saturday morning?")
                     .status(Delivery::Sending),
-                SentMessageData::new("The shed key is back on its hook.")
-                    .status(Delivery::Failed),
+                SentMessageData::new("The shed key is back on its hook.").status(Delivery::Failed),
             ];
             let mut messages = Vec::new();
             let mut events = Vec::new();

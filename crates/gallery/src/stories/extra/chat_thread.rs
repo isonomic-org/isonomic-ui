@@ -31,8 +31,14 @@ const REPLY: &str = "The rear wheel is trued and the new chain is on. The front 
 /// Turns that arrive when the story's button is pressed.
 const LATER: [(Speaker, &str); 3] = [
     (Speaker::Person, "Go ahead with the pads."),
-    (Speaker::Assistant, "Done. They are bedding in on the stand now."),
-    (Speaker::Assistant, "Ready from four o'clock. Bring the lock key."),
+    (
+        Speaker::Assistant,
+        "Done. They are bedding in on the stand now.",
+    ),
+    (
+        Speaker::Assistant,
+        "Ready from four o'clock. Bring the lock key.",
+    ),
 ];
 
 /// A bike workshop's thread: two days, an unread mark, a reply being written.

@@ -620,11 +620,20 @@ mod tests {
 
     #[test]
     fn the_line_under_the_bubble_says_where_delivery_stands() {
-        assert_eq!(delivery_text(Delivery::Sending, false, Some("14:02")), "Sending");
+        assert_eq!(
+            delivery_text(Delivery::Sending, false, Some("14:02")),
+            "Sending"
+        );
         assert_eq!(delivery_text(Delivery::Failed, true, None), "Not sent");
         assert_eq!(delivery_text(Delivery::Sent, false, None), "Sent");
-        assert_eq!(delivery_text(Delivery::Sent, false, Some("14:02")), "Sent · 14:02");
-        assert_eq!(delivery_text(Delivery::Sent, true, Some("14:02")), "Edited · 14:02");
+        assert_eq!(
+            delivery_text(Delivery::Sent, false, Some("14:02")),
+            "Sent · 14:02"
+        );
+        assert_eq!(
+            delivery_text(Delivery::Sent, true, Some("14:02")),
+            "Edited · 14:02"
+        );
     }
 
     #[test]
