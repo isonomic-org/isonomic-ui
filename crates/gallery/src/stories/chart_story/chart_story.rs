@@ -432,6 +432,7 @@ enum ChartCard {
     RadarMultiple,
     RadarDots,
     RadarLinesOnly,
+    RadarTarget,
     Bar,
     BarMixed,
     BarStacked,
@@ -803,6 +804,46 @@ impl ChartCard {
                 )
                 .headline("Strongest on reliability and support")
                 .note("Outline only, five grid rings"),
+            Self::RadarTarget => {
+                // Four reviewers each scored every dimension; the polygon is
+                // their average, the dashed outline the goal for Q3.
+                let reviewers = |d: &ProductScore| {
+                    [-12., 7., -3., 10.]
+                        .iter()
+                        .map(|shift| (d.alpha + shift).clamp(0., 100.))
+                        .collect::<Vec<f64>>()
+                };
+                let short = data
+                    .product_scores
+                    .iter()
+                    .filter(|d| d.alpha < (d.alpha.max(d.beta) + 6.).min(95.))
+                    .count();
+                let palette = [
+                    cx.theme().chart_2,
+                    cx.theme().chart_3,
+                    cx.theme().chart_4,
+                    cx.theme().chart_5,
+                ];
+                Card::new("Against the Q3 goal", "Alpha, four reviewers")
+                    .centered()
+                    .legend(accent, "Average")
+                    .legend(cx.theme().foreground.opacity(0.6), "Goal")
+                    .chart(
+                        RadarChart::new(data.product_scores.clone())
+                            .label(|d| d.dimension.clone())
+                            .value(|d| d.alpha)
+                            .stroke(accent)
+                            .fill(accent.opacity(0.18))
+                            .name("Average")
+                            .target(|d| (d.alpha.max(d.beta) + 6.).min(95.))
+                            .member_dots(reviewers)
+                            .member_colors(palette)
+                            .max_value(100.)
+                            .id("radar-chart-target"),
+                    )
+                    .headline(format!("{short} of six dimensions short of the goal"))
+                    .note("Dots are each reviewer's score on the spoke")
+            }
             Self::Bar => Card::new("Monthly Revenue", "2025")
                 .chart(
                     BarChart::new(data.metrics.clone())
@@ -1608,7 +1649,7 @@ fn sections(sankey_count: usize) -> Vec<ChartSection> {
     vec![
         ChartSection::new([AreaStacked]),
         ChartSection::new([Pie, PieDonut, PiePadAngle, PieLabel]),
-        ChartSection::after_rule([Radar, RadarMultiple, RadarDots, RadarLinesOnly]),
+        ChartSection::after_rule([Radar, RadarMultiple, RadarDots, RadarLinesOnly, RadarTarget]),
         ChartSection::after_rule([
             Bar,
             BarMixed,

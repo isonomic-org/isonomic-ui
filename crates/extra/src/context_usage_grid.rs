@@ -8,14 +8,20 @@
 //! at a part lights its cells and puts its size in the headline. Files can be
 //! removed one by one, and a long part can be compacted: the card asks, and
 //! its owner passes the parts as they are afterwards.
+//!
+//! Opt-in extras: a slim meter (one bar split by part, with a tick where
+//! the warning starts) in place of the field, and a near-limit warning
+//! that says how much room is left and offers to compact the whole
+//! context, with a working state while that runs.
 
 use std::{collections::HashSet, rc::Rc};
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
+    alert::Alert,
     button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
+    h_flex, look, v_flex,
 };
 use isonomic_ui::{
     App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
@@ -103,6 +109,16 @@ impl BudgetPart {
     }
 }
 
+/// How the budget is drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ContextDisplay {
+    /// A field of small cells.
+    #[default]
+    Cells,
+    /// One slim bar split by part, with a tick where the warning starts.
+    Meter,
+}
+
 type RemoveHandler = Rc<dyn Fn(&SharedString, &SharedString, &mut Window, &mut App)>;
 type CompactHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 type ActionHandler = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -123,6 +139,10 @@ pub struct ContextUsageGrid {
     on_remove_item: Option<RemoveHandler>,
     on_compact: Option<CompactHandler>,
     action: Option<(SharedString, ActionHandler)>,
+    display: ContextDisplay,
+    on_compact_all: Option<ActionHandler>,
+    compacting: bool,
+    frees: Option<u64>,
 }
 
 impl ContextUsageGrid {
@@ -141,7 +161,37 @@ impl ContextUsageGrid {
             on_remove_item: None,
             on_compact: None,
             action: None,
+            display: ContextDisplay::default(),
+            on_compact_all: None,
+            compacting: false,
+            frees: None,
         }
+    }
+
+    /// Draw the budget as a field of cells (the default) or a slim meter.
+    pub fn display(mut self, display: ContextDisplay) -> Self {
+        self.display = display;
+        self
+    }
+
+    /// Near the limit, warn and offer to compact the whole context; run
+    /// when Compact is pressed. Pass `compacting` while it runs, then the
+    /// parts at their new sizes.
+    pub fn on_compact_all(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_compact_all = Some(Rc::new(handler));
+        self
+    }
+
+    /// Say the whole context is being compacted: Compact shows it working.
+    pub fn compacting(mut self, compacting: bool) -> Self {
+        self.compacting = compacting;
+        self
+    }
+
+    /// Say about how many tokens compacting would free, for the warning.
+    pub fn frees(mut self, tokens: u64) -> Self {
+        self.frees = Some(tokens);
+        self
     }
 
     /// Set the heading.
@@ -250,6 +300,52 @@ fn cell_counts(sizes: &[u64], limit: u64, cells: usize) -> Vec<usize> {
         .collect()
 }
 
+/// The near-limit warning's title and words, or `None` below the warning
+/// share. From 0.95 of the limit the budget counts as full.
+pub fn limit_warning(
+    used: u64,
+    limit: u64,
+    warn_at: f32,
+    frees: Option<u64>,
+) -> Option<(&'static str, String)> {
+    let share = used as f32 / limit.max(1) as f32;
+    if share < warn_at {
+        return None;
+    }
+    let left = limit.saturating_sub(used);
+    let title = if share >= 0.95 {
+        "Context is full"
+    } else {
+        "Context is nearly full"
+    };
+    let mut words = format!(
+        "{}% used, {} tokens left. Older turns will be dropped soon.",
+        (share * 100.).round() as u32,
+        tokens_words(left)
+    );
+    if let Some(frees) = frees.filter(|frees| *frees > 0) {
+        words.push_str(&format!(" Compacting frees about {}.", tokens_words(frees)));
+    }
+    Some((title, words))
+}
+
+/// What the meter's bar says out loud: the total, then each part.
+pub fn meter_words(labels: &[SharedString], sizes: &[u64], limit: u64) -> String {
+    let used: u64 = sizes.iter().sum();
+    let mut words = format!(
+        "{} of {} tokens used, {}%",
+        tokens_words(used),
+        tokens_words(limit),
+        (used as f64 / limit.max(1) as f64 * 100.).round() as u32
+    );
+    for (label, size) in labels.iter().zip(sizes) {
+        if *size > 0 {
+            words.push_str(&format!(", {label} {}", tokens_words(*size)));
+        }
+    }
+    words
+}
+
 #[derive(Default)]
 struct GridState {
     hovered: Option<usize>,
@@ -269,6 +365,7 @@ impl RenderOnce for ContextUsageGrid {
         let danger = theme.danger;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
+        let ring = theme.ring;
         // Distinct hues, so neighbouring parts can be told apart.
         let palette = [
             theme.blue,
@@ -330,7 +427,7 @@ impl RenderOnce for ContextUsageGrid {
             cells.extend(std::iter::repeat_n(Some(ix), *count));
         }
         cells.resize(self.cells, None);
-        let field = v_flex()
+        let cell_field = v_flex()
             .gap(px(2.))
             .children(cells.chunks(self.columns).map(|row| {
                 h_flex().gap(px(2.)).children(row.iter().map(|cell| {
@@ -344,6 +441,83 @@ impl RenderOnce for ContextUsageGrid {
                     div().flex_1().h(px(7.)).rounded(px(1.5)).bg(color)
                 }))
             }));
+        let field = match self.display {
+            ContextDisplay::Cells => cell_field.into_any_element(),
+            ContextDisplay::Meter => {
+                let labels: Vec<SharedString> =
+                    self.parts.iter().map(|part| part.label.clone()).collect();
+                let spoken = meter_words(&labels, &sizes, self.limit);
+                let limit = self.limit.max(1) as f32;
+                let segments = sizes.iter().enumerate().map(|(ix, size)| {
+                    let lit = hovered.is_none_or(|hovered| hovered == ix);
+                    div()
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("segment-{ix}").into(),
+                        ))
+                        .h_full()
+                        .flex_basis(relative((*size as f32 / limit).min(1.)))
+                        .flex_shrink(1.)
+                        .bg(colors[ix].opacity(if lit { 0.85 } else { 0.25 }))
+                        .when(ix > 0, |this| this.border_l_1().border_color(fill))
+                        .on_hover(hover(ix))
+                });
+                v_flex()
+                    .gap_1()
+                    .child(
+                        div()
+                            .id(ElementId::NamedChild(
+                                self.id.clone().into(),
+                                "meter".into(),
+                            ))
+                            .relative()
+                            .h(px(10.))
+                            .role(isonomic_ui::Role::Meter)
+                            .aria_label(spoken)
+                            .child(
+                                h_flex()
+                                    .size_full()
+                                    .rounded(px(3.))
+                                    .overflow_hidden()
+                                    .bg(chip)
+                                    .children(segments),
+                            )
+                            .child(
+                                div()
+                                    .absolute()
+                                    .top(px(-3.))
+                                    .bottom(px(-3.))
+                                    .left(relative(self.warn_at.clamp(0., 1.)))
+                                    .w(px(1.5))
+                                    .rounded_full()
+                                    .bg(if warn { warning } else { quiet.opacity(0.6) }),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .relative()
+                            .h(px(16.))
+                            .text_size(px(10.))
+                            .line_height(px(16.))
+                            .text_color(quiet)
+                            .child(div().absolute().left_0().child("0"))
+                            .child(
+                                div()
+                                    .absolute()
+                                    .left(relative(self.warn_at.clamp(0., 1.)))
+                                    .w(px(0.))
+                                    .flex()
+                                    .justify_center()
+                                    .child(div().flex_none().whitespace_nowrap().child(format!(
+                                        "warn {}%",
+                                        (self.warn_at * 100.).round() as u32
+                                    ))),
+                            )
+                            .child(div().absolute().right_0().child(tokens_words(self.limit))),
+                    )
+                    .into_any_element()
+            }
+        };
 
         let (figure, caption) = match hovered {
             Some(ix) => (
@@ -402,18 +576,33 @@ impl RenderOnce for ContextUsageGrid {
                         .into_any_element()
                 }
             });
+            let lit = look::hover_fade(
+                ElementId::NamedChild(self.id.clone().into(), format!("head-{ix}").into()),
+                hovered == Some(ix),
+                window,
+                cx,
+            );
             let head = h_flex()
                 .id(("part", ix))
                 .gap_2()
                 .h(px(30.))
                 .px_1()
                 .rounded(radius)
-                .when(hovered == Some(ix), |this| this.bg(chip))
+                .bg(look::mix(chip.opacity(0.), chip, lit))
                 .on_hover(hover(ix))
                 .when(has_items, |this| {
                     let state = state.clone();
                     let id = part.id.clone();
                     this.cursor_pointer()
+                        .tab_index(0)
+                        .focus_visible(move |s| s.border_1().border_color(ring))
+                        .role(isonomic_ui::Role::Button)
+                        .aria_label(format!(
+                            "{}, {} tokens, {}",
+                            part.label,
+                            tokens_words(*tokens),
+                            if is_open { "open" } else { "closed" }
+                        ))
                         .aria_expanded(is_open)
                         .on_click(move |_, _, cx| {
                             state.update(cx, |state, cx| {
@@ -506,6 +695,38 @@ impl RenderOnce for ContextUsageGrid {
         } else {
             format!("{} left", tokens_words(left))
         };
+        let warning_note = self
+            .on_compact_all
+            .is_some()
+            .then(|| limit_warning(used, self.limit, self.warn_at, self.frees))
+            .flatten()
+            .map(|(title, words)| {
+                Alert::warning(
+                    ElementId::NamedChild(self.id.clone().into(), "warning".into()),
+                    words,
+                )
+                .small()
+                .title(title)
+            });
+        let compact_all = self
+            .on_compact_all
+            .clone()
+            .filter(|_| warn || self.compacting)
+            .map(|handler| {
+                Button::new((self.id.clone(), "compact-all"))
+                    .when(full, |this| this.primary())
+                    .when(!full, |this| this.outline())
+                    .small()
+                    .icon(IconName::Minimize)
+                    .label(if self.compacting {
+                        "Compacting…"
+                    } else {
+                        "Compact"
+                    })
+                    .loading(self.compacting)
+                    .disabled(self.compacting)
+                    .on_click(move |_, window, cx| handler(window, cx))
+            });
         let action = self.action.map(|(label, handler)| {
             Button::new((self.id.clone(), "action"))
                 .outline()
@@ -572,6 +793,7 @@ impl RenderOnce for ContextUsageGrid {
                             .child(tag),
                     )
                     .child(field)
+                    .children(warning_note)
                     .child(v_flex().children(rows)),
             )
             .child(
@@ -591,6 +813,7 @@ impl RenderOnce for ContextUsageGrid {
                             .text_color(if warn { warning } else { quiet })
                             .child(footer_words),
                     )
+                    .children(compact_all)
                     .children(action),
             )
             .refine_style(&self.style)
@@ -613,6 +836,29 @@ mod tests {
     fn every_part_with_tokens_gets_a_cell() {
         // 100 tokens a cell: 40 rounds to nothing but still gets one.
         assert_eq!(cell_counts(&[40, 1000, 0], 10_000, 100), [1, 10, 0]);
+    }
+
+    #[test]
+    fn warning_starts_at_the_share_and_names_the_room_left() {
+        assert_eq!(limit_warning(70_000, 100_000, 0.8, None), None);
+        let (title, words) = limit_warning(84_000, 100_000, 0.8, Some(30_000)).unwrap();
+        assert_eq!(title, "Context is nearly full");
+        assert_eq!(
+            words,
+            "84% used, 16K tokens left. Older turns will be dropped soon. Compacting frees about 30K."
+        );
+        let (title, words) = limit_warning(97_000, 100_000, 0.8, Some(0)).unwrap();
+        assert_eq!(title, "Context is full");
+        assert!(!words.contains("Compacting"));
+    }
+
+    #[test]
+    fn meter_speaks_the_total_then_each_part() {
+        let labels: Vec<SharedString> = vec!["Tools".into(), "Files".into(), "Notes".into()];
+        assert_eq!(
+            meter_words(&labels, &[9_800, 0, 2_700], 128_000),
+            "12.5K of 128K tokens used, 10%, Tools 9.8K, Notes 2.7K"
+        );
     }
 
     #[test]

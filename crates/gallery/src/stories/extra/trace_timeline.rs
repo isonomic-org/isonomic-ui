@@ -6,17 +6,26 @@
 use std::time::Duration;
 
 use crate::Story;
+use isonomic_ui::component::v_flex;
 use isonomic_ui::{
-    App, AppContext as _, Context, Entity, IntoElement, Render, SharedString, Task, Window,
+    App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Task, Window, px,
 };
-use isonomic_ui_extra::trace_timeline::{TraceSpan, TraceTimeline};
+use isonomic_ui_extra::trace_timeline::{TraceMetric, TraceSpan, TraceTimeline, TraceView};
 
 /// A live reconciliation trace whose clock ticks while two spans run. The
-/// story keeps the open spans and the selection.
+/// story keeps the open spans, the selection, the view, the zoom and the
+/// breakdown metric; a second copy opens as a flame graph zoomed into the
+/// card matcher with its cost split by step.
 pub struct TraceTimelineStory {
     now: u32,
     open: Vec<SharedString>,
     selected: Option<SharedString>,
+    view: TraceView,
+    zoom: Option<SharedString>,
+    metric: TraceMetric,
+    flame_selected: Option<SharedString>,
+    flame_zoom: Option<SharedString>,
     _tick: Task<()>,
 }
 
@@ -78,6 +87,11 @@ impl TraceTimelineStory {
                 now: 44_000,
                 open: vec!["recon".into(), "cards".into()],
                 selected: Some("cards".into()),
+                view: TraceView::Timeline,
+                zoom: None,
+                metric: TraceMetric::Time,
+                flame_selected: Some("match".into()),
+                flame_zoom: Some("cards".into()),
                 _tick: tick,
             }
         })
@@ -102,24 +116,78 @@ impl Render for TraceTimelineStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let select = cx.entity();
         let toggle = cx.entity();
-        TraceTimeline::new("close-trace", spans(), self.now)
-            .open(self.open.clone())
-            .selected(self.selected.clone())
-            .on_select(move |id, _, cx| {
-                select.update(cx, |this, cx| {
-                    this.selected = Some(id.clone());
-                    cx.notify();
-                })
-            })
-            .on_toggle(move |id, _, cx| {
-                toggle.update(cx, |this, cx| {
-                    if let Some(at) = this.open.iter().position(|o| o == id) {
-                        this.open.remove(at);
-                    } else {
-                        this.open.push(id.clone());
-                    }
-                    cx.notify();
-                })
-            })
+        let view = cx.entity();
+        let zoom = cx.entity();
+        let metric = cx.entity();
+        let flame_select = cx.entity();
+        let flame_zoom = cx.entity();
+        v_flex()
+            .gap(px(24.))
+            .child(
+                TraceTimeline::new("close-trace", spans(), self.now)
+                    .open(self.open.clone())
+                    .selected(self.selected.clone())
+                    .view(self.view)
+                    .zoom(self.zoom.clone())
+                    .breakdown(self.metric)
+                    .on_select(move |id, _, cx| {
+                        select.update(cx, |this, cx| {
+                            this.selected = Some(id.clone());
+                            cx.notify();
+                        })
+                    })
+                    .on_toggle(move |id, _, cx| {
+                        toggle.update(cx, |this, cx| {
+                            if let Some(at) = this.open.iter().position(|o| o == id) {
+                                this.open.remove(at);
+                            } else {
+                                this.open.push(id.clone());
+                            }
+                            cx.notify();
+                        })
+                    })
+                    .on_view(move |next, _, cx| {
+                        view.update(cx, |this, cx| {
+                            this.view = next;
+                            cx.notify();
+                        })
+                    })
+                    .on_zoom(move |id, _, cx| {
+                        zoom.update(cx, |this, cx| {
+                            this.zoom = id.cloned();
+                            if let Some(id) = id
+                                && !this.open.contains(id)
+                            {
+                                this.open.push(id.clone());
+                            }
+                            cx.notify();
+                        })
+                    })
+                    .on_breakdown(move |next, _, cx| {
+                        metric.update(cx, |this, cx| {
+                            this.metric = next;
+                            cx.notify();
+                        })
+                    }),
+            )
+            .child(
+                TraceTimeline::new("close-flame", spans(), self.now)
+                    .view(TraceView::Flame)
+                    .selected(self.flame_selected.clone())
+                    .zoom(self.flame_zoom.clone())
+                    .breakdown(TraceMetric::Cost)
+                    .on_select(move |id, _, cx| {
+                        flame_select.update(cx, |this, cx| {
+                            this.flame_selected = Some(id.clone());
+                            cx.notify();
+                        })
+                    })
+                    .on_zoom(move |id, _, cx| {
+                        flame_zoom.update(cx, |this, cx| {
+                            this.flame_zoom = id.cloned();
+                            cx.notify();
+                        })
+                    }),
+            )
     }
 }

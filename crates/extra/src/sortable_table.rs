@@ -8,18 +8,29 @@
 //! the right. A box at the start of each row selects it, and the header's
 //! box selects all. Numeric columns can be totalled in a footer row, over
 //! the selection when there is one.
+//!
+//! Opt-in data table parts: a filter field over the rows that matches any
+//! cell, pages of a set size with a pager underneath, and Copy as CSV,
+//! which copies the selected rows (or every row the filter leaves) with
+//! their headings. The header's box then selects what the filter leaves.
 
 use std::{cmp::Ordering, rc::Rc};
 
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, checkbox::Checkbox, h_flex,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
+    checkbox::Checkbox,
+    clipboard::Clipboard,
+    h_flex,
+    input::{Input, InputState},
+    look,
+    pagination::Pagination,
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, TestSupportExt as _,
-    Window, div, prelude::FluentBuilder as _, px,
+    App, AppContext as _, ElementId, Entity, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, TestSupportExt as _, Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::common::resting_shadow;
@@ -128,6 +139,70 @@ pub fn sorted_order(rows: &[TableRow], col: usize, ascending: bool) -> Vec<usize
     order
 }
 
+/// Whether a row has a cell containing every word of the filter, ignoring
+/// case.
+pub fn row_matches(row: &TableRow, query: &str) -> bool {
+    let query = query.to_lowercase();
+    query.split_whitespace().all(|word| {
+        row.cells
+            .iter()
+            .any(|cell| cell.to_lowercase().contains(word))
+    })
+}
+
+/// The rows on a page: the start and end of the slice, and how many pages
+/// there are. `page` counts from 0 and is kept within the pages.
+pub fn page_slice(rows: usize, size: usize, page: usize) -> (usize, usize, usize) {
+    let size = size.max(1);
+    let pages = rows.div_ceil(size).max(1);
+    let page = page.min(pages - 1);
+    let start = page * size;
+    (start, (start + size).min(rows), pages)
+}
+
+/// Write rows as comma-separated values under their headings. A cell with a
+/// comma, quote or line break is quoted, with quotes doubled.
+pub fn to_csv(columns: &[TableColumn], rows: &[&TableRow]) -> String {
+    fn field(text: &str) -> String {
+        if text.contains([',', '"', '\n', '\r']) {
+            format!("\"{}\"", text.replace('"', "\"\""))
+        } else {
+            text.to_string()
+        }
+    }
+    let mut out = columns
+        .iter()
+        .map(|c| field(&c.title))
+        .collect::<Vec<_>>()
+        .join(",");
+    for row in rows {
+        out.push('\n');
+        out.push_str(
+            &row.cells
+                .iter()
+                .map(|c| field(c))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
+    }
+    out
+}
+
+/// The words under the table: which rows show of how many.
+pub fn range_words(start: usize, end: usize, shown: usize, total: usize) -> String {
+    let of = if shown == total {
+        format!("{total}")
+    } else {
+        format!("{shown} matching ({total} in all)")
+    };
+    if shown == 0 {
+        format!("No rows of {total}")
+    } else {
+        format!("Rows {}\u{2013}{end} of {of}", start + 1)
+    }
+}
+
+type CopyHandler = Rc<dyn Fn(&str, &mut Window, &mut App)>;
 type SortHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 type SelectHandler = Rc<dyn Fn(Vec<SharedString>, &mut Window, &mut App)>;
 
@@ -143,6 +218,16 @@ pub struct SortableTable {
     empty: SharedString,
     on_sort: Option<SortHandler>,
     on_select: Option<SelectHandler>,
+    filter: Option<SharedString>,
+    page_size: Option<usize>,
+    copy: bool,
+    on_copy: Option<CopyHandler>,
+}
+
+#[derive(Default)]
+struct TableState {
+    page: usize,
+    query: String,
 }
 
 impl SortableTable {
@@ -158,7 +243,36 @@ impl SortableTable {
             empty: "Nothing to show.".into(),
             on_sort: None,
             on_select: None,
+            filter: None,
+            page_size: None,
+            copy: false,
+            on_copy: None,
         }
+    }
+
+    /// Show a filter field over the rows, with this placeholder.
+    pub fn filterable(mut self, placeholder: impl Into<SharedString>) -> Self {
+        self.filter = Some(placeholder.into());
+        self
+    }
+
+    /// Show this many rows a page, with a pager underneath.
+    pub fn page_size(mut self, rows: usize) -> Self {
+        self.page_size = Some(rows.max(1));
+        self
+    }
+
+    /// Offer Copy as CSV: the selected rows, or every row the filter leaves.
+    pub fn copyable(mut self) -> Self {
+        self.copy = true;
+        self
+    }
+
+    /// Run with the text copied as CSV.
+    pub fn on_copy(mut self, handler: impl Fn(&str, &mut Window, &mut App) + 'static) -> Self {
+        self.copy = true;
+        self.on_copy = Some(Rc::new(handler));
+        self
     }
 
     /// Sort by a column, ascending or not.
@@ -228,11 +342,42 @@ impl RenderOnce for SortableTable {
         let line = theme.border;
         let chip = theme.muted;
         let radius_lg = theme.radius_lg;
-        let order = match self.sort {
+        let part = |name: &str| ElementId::NamedChild(self.id.clone().into(), name.into());
+        let state = window.use_keyed_state(part("table-state"), cx, |_, _| TableState::default());
+        let search: Option<Entity<InputState>> = self.filter.clone().map(|placeholder| {
+            window
+                .use_keyed_state(part("filter"), cx, move |window, cx| {
+                    cx.new(|cx| InputState::new(window, cx).placeholder(placeholder.clone()))
+                })
+                .read(cx)
+                .clone()
+        });
+        let query = search
+            .as_ref()
+            .map(|s| s.read(cx).value().trim().to_string())
+            .unwrap_or_default();
+        if state.read(cx).query != query {
+            // A new filter starts from the first page.
+            state.update(cx, |state, _| {
+                state.query = query.clone();
+                state.page = 0;
+            });
+        }
+        let order: Vec<usize> = match self.sort {
             Some((col, asc)) => sorted_order(&self.rows, col, asc),
             None => (0..self.rows.len()).collect(),
+        }
+        .into_iter()
+        .filter(|ix| row_matches(&self.rows[*ix], &query))
+        .collect();
+        let shown = order.len();
+        let (start, end, pages) = match self.page_size {
+            Some(size) => page_slice(shown, size, state.read(cx).page),
+            None => (0, shown, 1),
         };
-        let all = !self.rows.is_empty() && self.rows.iter().all(|r| self.selected.contains(&r.id));
+        let visible_ids: Vec<SharedString> =
+            order.iter().map(|ix| self.rows[*ix].id.clone()).collect();
+        let all = !visible_ids.is_empty() && visible_ids.iter().all(|r| self.selected.contains(r));
         let over_selection = !self.selected.is_empty();
         let columns = self.columns.clone();
         let cell = move |col: usize, text: SharedString, bold: bool| {
@@ -249,7 +394,7 @@ impl RenderOnce for SortableTable {
 
         let header = {
             let select_all = self.on_select.clone();
-            let ids: Vec<SharedString> = self.rows.iter().map(|r| r.id.clone()).collect();
+            let ids = visible_ids;
             h_flex()
                 .h(px(34.))
                 .border_b_1()
@@ -300,8 +445,36 @@ impl RenderOnce for SortableTable {
                         .when(c.width.is_none(), |this| this.flex_1().min_w(px(80.)))
                         .when(c.numeric, |this| this.justify_end())
                         .cursor_pointer()
-                        .hover(|s| s.text_color(ink))
-                        .when(here.is_some(), |this| this.text_color(ink))
+                        .map(|this| {
+                            let hovered = window.use_keyed_state(
+                                ElementId::NamedChild(
+                                    self.id.clone().into(),
+                                    format!("head-hover-{col}").into(),
+                                ),
+                                cx,
+                                |_, _| false,
+                            );
+                            let fade = look::hover_fade(
+                                ElementId::NamedChild(
+                                    self.id.clone().into(),
+                                    format!("head-fade-{col}").into(),
+                                ),
+                                *hovered.read(cx),
+                                window,
+                                cx,
+                            );
+                            this.text_color(if here.is_some() {
+                                ink
+                            } else {
+                                look::mix(quiet, ink, fade)
+                            })
+                            .on_hover(move |over, _, cx| {
+                                hovered.update(cx, |state, cx| {
+                                    *state = *over;
+                                    cx.notify();
+                                })
+                            })
+                        })
                         // A Tab stop: Enter or Space on the focused header is a click, so it sorts.
                         .when(self.on_sort.is_some(), |this| {
                             this.track_focus(&focus)
@@ -334,11 +507,28 @@ impl RenderOnce for SortableTable {
                 }))
         };
 
-        let rows: Vec<_> = order
+        let rows: Vec<_> = order[start..end]
             .iter()
             .map(|ix| {
                 let row = &self.rows[*ix];
                 let picked = self.selected.contains(&row.id);
+                let hovered = window.use_keyed_state(
+                    ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-hover-{}", row.id).into(),
+                    ),
+                    cx,
+                    |_, _| false,
+                );
+                let fade = look::hover_fade(
+                    ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-fade-{}", row.id).into(),
+                    ),
+                    *hovered.read(cx),
+                    window,
+                    cx,
+                );
                 let select = self.on_select.clone();
                 let current = self.selected.clone();
                 let id = row.id.clone();
@@ -350,8 +540,17 @@ impl RenderOnce for SortableTable {
                     .h(px(34.))
                     .border_b_1()
                     .border_color(line.opacity(0.6))
-                    .when(picked, |this| this.bg(chip.opacity(0.6)))
-                    .hover(|s| s.bg(chip.opacity(0.4)))
+                    .bg(if picked {
+                        chip.opacity(0.6)
+                    } else {
+                        look::mix(chip.opacity(0.), chip.opacity(0.4), fade)
+                    })
+                    .on_hover(move |over, _, cx| {
+                        hovered.update(cx, |state, cx| {
+                            *state = *over;
+                            cx.notify();
+                        })
+                    })
                     .aria_selected(picked)
                     .child(
                         div().w(px(36.)).flex_none().pl_3().child(
@@ -418,6 +617,93 @@ impl RenderOnce for SortableTable {
                 }))
         });
 
+        let csv_rows: Vec<&TableRow> = if over_selection {
+            order
+                .iter()
+                .map(|ix| &self.rows[*ix])
+                .filter(|r| self.selected.contains(&r.id))
+                .collect()
+        } else {
+            order.iter().map(|ix| &self.rows[*ix]).collect()
+        };
+        let csv_count = csv_rows.len();
+        let csv: SharedString = to_csv(&self.columns, &csv_rows).into();
+        let toolbar = (search.is_some() || self.copy).then(|| {
+            let on_copy = self.on_copy.clone();
+            h_flex()
+                .gap_2()
+                .px_3()
+                .py_2()
+                .border_b_1()
+                .border_color(line)
+                .children(search.as_ref().map(|search| {
+                    div().flex_1().max_w(px(280.)).child(
+                        Input::new(search)
+                            .small()
+                            .cleanable(true)
+                            .prefix(Icon::new(IconName::Search).xsmall().text_color(quiet)),
+                    )
+                }))
+                .child(div().flex_1())
+                .when(over_selection, |this| {
+                    this.child(
+                        div()
+                            .text_caption()
+                            .text_color(quiet)
+                            .child(format!("{} selected", self.selected.len())),
+                    )
+                })
+                .when(self.copy, |this| {
+                    this.child(
+                        Clipboard::new(part("copy-csv"))
+                            .label(if over_selection {
+                                "Copy selected as CSV"
+                            } else {
+                                "Copy as CSV"
+                            })
+                            .accessibility_label(format!("Copy {csv_count} rows as CSV"))
+                            .value(csv.clone())
+                            .on_copied(move |text, window, cx| {
+                                if let Some(on_copy) = &on_copy {
+                                    on_copy(&text, window, cx);
+                                }
+                            }),
+                    )
+                })
+        });
+        let pager = self.page_size.map(|_| {
+            let page_state = state.clone();
+            h_flex()
+                .gap_2()
+                .px_3()
+                .py_1p5()
+                .border_t_1()
+                .border_color(line)
+                .child(
+                    div()
+                        .id(part("range"))
+                        .flex_1()
+                        .text_caption()
+                        .text_color(quiet)
+                        .role(Role::Status)
+                        .aria_label(range_words(start, end, shown, self.rows.len()))
+                        .child(range_words(start, end, shown, self.rows.len())),
+                )
+                .child(
+                    Pagination::new(part("pager"))
+                        .small()
+                        .current_page(state.read(cx).page.min(pages - 1) + 1)
+                        .total_pages(pages)
+                        .on_click(move |page, _, cx| {
+                            page_state.update(cx, |state, cx| {
+                                state.page = page.saturating_sub(1);
+                                cx.notify();
+                            })
+                        }),
+                )
+        });
+        let filtered_out = self.rows.len() > 0 && shown == 0;
+
         v_flex()
             .id(self.id.clone())
             .w_full()
@@ -427,8 +713,19 @@ impl RenderOnce for SortableTable {
             .text_body()
             .overflow_hidden()
             .shadow(resting_shadow(cx))
+            .children(toolbar)
             .child(header)
             .children(rows)
+            .when(filtered_out, |this| {
+                this.child(
+                    div()
+                        .px_4()
+                        .py_6()
+                        .text_center()
+                        .text_color(quiet)
+                        .child(format!("No rows match \u{201c}{query}\u{201d}.")),
+                )
+            })
             .when(self.rows.is_empty(), |this| {
                 this.child(
                     div()
@@ -440,6 +737,7 @@ impl RenderOnce for SortableTable {
                 )
             })
             .children(totals)
+            .children(pager)
             .refine_style(&self.style)
     }
 }
@@ -462,5 +760,46 @@ mod tests {
         assert_eq!(sorted_order(&rows, 0, true), [2, 1, 0]);
         assert_eq!(sorted_order(&rows, 0, false), [0, 1, 2]);
         assert_eq!(money(14822.1), "14,822.10");
+    }
+
+    #[test]
+    fn the_filter_matches_every_word_in_any_cell() {
+        let row = TableRow::new("a", vec!["Harbour Books", "Paid", "$90.00"]);
+        assert!(row_matches(&row, ""));
+        assert!(row_matches(&row, "harbour paid"));
+        assert!(row_matches(&row, "90"));
+        assert!(!row_matches(&row, "harbour overdue"));
+    }
+
+    #[test]
+    fn pages_slice_the_rows() {
+        assert_eq!(page_slice(23, 10, 0), (0, 10, 3));
+        assert_eq!(page_slice(23, 10, 2), (20, 23, 3));
+        assert_eq!(
+            page_slice(23, 10, 9),
+            (20, 23, 3),
+            "a page past the end is the last"
+        );
+        assert_eq!(page_slice(0, 10, 0), (0, 0, 1));
+        assert_eq!(range_words(20, 23, 23, 23), "Rows 21\u{2013}23 of 23");
+        assert_eq!(
+            range_words(0, 4, 4, 23),
+            "Rows 1\u{2013}4 of 4 matching (23 in all)"
+        );
+        assert_eq!(range_words(0, 0, 0, 23), "No rows of 23");
+    }
+
+    #[test]
+    fn csv_quotes_what_needs_it() {
+        let columns = vec![TableColumn::text("Client"), TableColumn::number("Amount")];
+        let rows = [
+            TableRow::new("a", vec!["Kestrel, Ltd", "$1,240.50"]),
+            TableRow::new("b", vec!["The \"Bay\"", "80"]),
+        ];
+        let refs: Vec<&TableRow> = rows.iter().collect();
+        assert_eq!(
+            to_csv(&columns, &refs),
+            "Client,Amount\n\"Kestrel, Ltd\",\"$1,240.50\"\n\"The \"\"Bay\"\"\",80"
+        );
     }
 }

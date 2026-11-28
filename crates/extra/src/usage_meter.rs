@@ -7,20 +7,29 @@
 //! it went into, how fast it goes each day, and how close the other limits of
 //! the plan are. The share tag and the button change before the allowance
 //! runs out, in words as well as colour.
+//!
+//! Opt-in: a history of tokens and cost over the days of the period, split
+//! by model, against a spending budget. Daily bars stack by model and
+//! switch between tokens and cost; under them the running spend climbs
+//! toward the budget line, with the pace carried on to the period's end.
+//! Pointing at a day, or moving along with the arrow keys, reads it out.
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::base::TestSupportExt as _;
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
-    h_flex,
+    h_flex, look,
+    tab::{Tab, TabBar},
     tooltip::Tooltip,
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
+    App, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, PathBuilder, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
     prelude::FluentBuilder as _, px, relative,
 };
 
@@ -162,6 +171,192 @@ fn part_strength(ix: usize) -> Option<f32> {
     [1., 0.7, 0.45, 0.28].get(ix).copied()
 }
 
+/// One model's use on each day of the history.
+#[derive(Debug, Clone)]
+pub struct UsageModel {
+    label: SharedString,
+    days: Vec<(f64, f64)>,
+    color: Option<Hsla>,
+}
+
+impl UsageModel {
+    /// Create a model's line, with its tokens and cost on each day so far,
+    /// oldest first.
+    pub fn new(label: impl Into<SharedString>, days: impl IntoIterator<Item = (f64, f64)>) -> Self {
+        Self {
+            label: label.into(),
+            days: days.into_iter().collect(),
+            color: None,
+        }
+    }
+
+    /// Set its colour. The theme's chart colours otherwise, in order.
+    pub fn color(mut self, color: impl Into<Hsla>) -> Self {
+        self.color = Some(color.into());
+        self
+    }
+}
+
+/// What the history's bars count.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum UsageMetric {
+    /// Tokens used.
+    #[default]
+    Tokens,
+    /// Money spent.
+    Cost,
+}
+
+/// Tokens and cost over the days of a period, by model, against a budget.
+#[derive(Debug, Clone)]
+pub struct UsageHistory {
+    days: Vec<SharedString>,
+    models: Vec<UsageModel>,
+    budget: Option<f64>,
+    currency: SharedString,
+    metric: UsageMetric,
+}
+
+impl UsageHistory {
+    /// Create a history over these days, named as they should be read
+    /// ("Mar 3"). Days past the models' data are still to come.
+    pub fn new(days: impl IntoIterator<Item = impl Into<SharedString>>) -> Self {
+        Self {
+            days: days.into_iter().map(Into::into).collect(),
+            models: Vec::new(),
+            budget: None,
+            currency: "$".into(),
+            metric: UsageMetric::default(),
+        }
+    }
+
+    /// Add a model. Up to five read well.
+    pub fn model(mut self, model: UsageModel) -> Self {
+        self.models.push(model);
+        self
+    }
+
+    /// Set the spending budget for the whole period.
+    pub fn budget(mut self, budget: f64) -> Self {
+        self.budget = Some(budget);
+        self
+    }
+
+    /// Set the sign written before money. "$" by default.
+    pub fn currency(mut self, sign: impl Into<SharedString>) -> Self {
+        self.currency = sign.into();
+        self
+    }
+
+    /// Set what the bars count at first. Tokens by default.
+    pub fn metric(mut self, metric: UsageMetric) -> Self {
+        self.metric = metric;
+        self
+    }
+}
+
+/// Each day's amount per model, for the metric: `[day][model]`, as many
+/// days as any model has data for.
+pub fn stack_days(models: &[UsageModel], metric: UsageMetric) -> Vec<Vec<f64>> {
+    let known = models.iter().map(|m| m.days.len()).max().unwrap_or(0);
+    (0..known)
+        .map(|day| {
+            models
+                .iter()
+                .map(|m| {
+                    m.days.get(day).map_or(0., |(tokens, cost)| match metric {
+                        UsageMetric::Tokens => *tokens,
+                        UsageMetric::Cost => *cost,
+                    })
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// The running total of the daily cost, across every model.
+pub fn running_cost(models: &[UsageModel]) -> Vec<f64> {
+    let mut total = 0.;
+    stack_days(models, UsageMetric::Cost)
+        .iter()
+        .map(|day| {
+            total += day.iter().sum::<f64>();
+            total
+        })
+        .collect()
+}
+
+/// Where the spend ends if it keeps the pace of the days so far, over a
+/// period of `days` days.
+pub fn projected_spend(running: &[f64], days: usize) -> f64 {
+    match running.last() {
+        Some(last) => last / running.len() as f64 * days.max(running.len()) as f64,
+        None => 0.,
+    }
+}
+
+/// Money in a few characters: "$4.20", "$1,240".
+pub fn money_words(sign: &str, value: f64) -> String {
+    if value.abs() >= 1000. {
+        format!("{sign}{}", amount_words(value.round()))
+    } else {
+        format!("{sign}{value:.2}")
+    }
+}
+
+/// Tokens in a few characters: "950", "48K", "1.2M".
+pub fn token_words(tokens: f64) -> String {
+    if tokens >= 1e6 {
+        format!("{:.1}M", tokens / 1e6)
+    } else if tokens >= 1e3 {
+        format!("{:.0}K", tokens / 1e3)
+    } else {
+        format!("{tokens:.0}")
+    }
+}
+
+/// The line under the budget plot: spent so far and where the pace leads.
+pub fn pace_words(sign: &str, spent: f64, projected: f64, budget: Option<f64>) -> String {
+    let mut words = format!(
+        "{} spent, on pace for {}",
+        money_words(sign, spent),
+        money_words(sign, projected)
+    );
+    if let Some(budget) = budget.filter(|b| *b > 0.) {
+        if spent >= budget {
+            words.push_str(&format!(", over the {} budget", money_words(sign, budget)));
+        } else if projected > budget {
+            words.push_str(&format!(
+                ", {} over the {} budget",
+                money_words(sign, projected - budget),
+                money_words(sign, budget)
+            ));
+        } else {
+            words.push_str(&format!(
+                ", within the {} budget",
+                money_words(sign, budget)
+            ));
+        }
+    }
+    words
+}
+
+/// Step the picked day with a key over `known` days with data.
+pub fn step_day(at: Option<usize>, key: &str, known: usize) -> Option<Option<usize>> {
+    if known == 0 {
+        return None;
+    }
+    let last = known - 1;
+    Some(match key {
+        "right" => Some(at.map_or(0, |at| (at + 1).min(last))),
+        "left" => Some(at.map_or(last, |at| at.saturating_sub(1))),
+        "home" => Some(0),
+        "end" => Some(last),
+        "escape" => None,
+        _ => return None,
+    })
+}
+
 type PeriodHandler = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 type ActionHandler = Rc<dyn Fn(UsageLevel, &mut Window, &mut App)>;
 
@@ -186,6 +381,7 @@ pub struct UsageMeter {
     low_action_label: SharedString,
     on_period_change: Option<PeriodHandler>,
     on_action: Option<ActionHandler>,
+    history: Option<UsageHistory>,
 }
 
 impl UsageMeter {
@@ -211,7 +407,15 @@ impl UsageMeter {
             low_action_label: "Top up".into(),
             on_period_change: None,
             on_action: None,
+            history: None,
         }
+    }
+
+    /// Show tokens and cost over the days of the period, by model, against
+    /// a budget.
+    pub fn history(mut self, history: UsageHistory) -> Self {
+        self.history = Some(history);
+        self
     }
 
     /// Set the heading, such as the workspace name.
@@ -325,6 +529,10 @@ struct MeterState {
     /// The part the pointer is on, in the bar or in the list.
     hovered: Option<usize>,
     period: Option<SharedString>,
+    /// The day picked in the history.
+    day: Option<usize>,
+    /// What the history counts, once switched.
+    metric: Option<UsageMetric>,
 }
 
 impl RenderOnce for UsageMeter {
@@ -344,6 +552,8 @@ impl RenderOnce for UsageMeter {
         let state = window.use_keyed_state(self.id.clone(), cx, |_, _| MeterState {
             hovered: None,
             period: None,
+            day: None,
+            metric: None,
         });
         let (hovered, kept_period) = {
             let state = state.read(cx);
@@ -550,6 +760,312 @@ impl RenderOnce for UsageMeter {
                     ))
             });
 
+        let history = self.history.as_ref().map(|history| {
+            let (day, metric) = {
+                let s = state.read(cx);
+                (s.day, s.metric.unwrap_or(history.metric))
+            };
+            let theme = cx.theme();
+            let palette = [
+                theme.chart_1,
+                theme.chart_2,
+                theme.chart_3,
+                theme.chart_4,
+                theme.chart_5,
+            ];
+            let ring = theme.ring;
+            let model_colors: Vec<Hsla> = history
+                .models
+                .iter()
+                .enumerate()
+                .map(|(ix, m)| m.color.unwrap_or(palette[ix % palette.len()]))
+                .collect();
+            let stacks = stack_days(&history.models, metric);
+            let known = stacks.len();
+            let day = day.filter(|d| *d < known);
+            let total_days = history.days.len().max(known).max(1);
+            let peak = stacks
+                .iter()
+                .map(|d| d.iter().sum::<f64>())
+                .fold(0., f64::max)
+                .max(1e-9);
+            let sign = history.currency.clone();
+            let amount = {
+                let sign = sign.clone();
+                move |v: f64| match metric {
+                    UsageMetric::Tokens => token_words(v),
+                    UsageMetric::Cost => money_words(&sign, v),
+                }
+            };
+            const BARS: f32 = 72.;
+            let bars = (0..total_days).map(|ix| {
+                let stack = stacks.get(ix);
+                let total: f64 = stack.map_or(0., |d| d.iter().sum());
+                let dim = day.is_some_and(|d| d != ix);
+                let set_day = state.clone();
+                div()
+                    .id(("history-day", ix))
+                    .flex_1()
+                    .h_full()
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .when(day == Some(ix), |this| {
+                        this.rounded(px(2.)).bg(look::ink::wash(cx))
+                    })
+                    .on_hover(move |over, _, cx| {
+                        set_day.update(cx, |state, cx| {
+                            if *over && ix < known {
+                                state.day = Some(ix);
+                                cx.notify();
+                            } else if !*over && state.day == Some(ix) {
+                                state.day = None;
+                                cx.notify();
+                            }
+                        })
+                    })
+                    .child(match stack {
+                        Some(stack) => v_flex()
+                            .mx(px(1.))
+                            .h(relative((total / peak) as f32))
+                            .min_h(px(2.))
+                            .rounded_t(px(2.))
+                            .overflow_hidden()
+                            .children(stack.iter().enumerate().rev().map(|(m, v)| {
+                                div()
+                                    .w_full()
+                                    .flex_basis(relative((*v / total.max(1e-9)) as f32))
+                                    .flex_shrink_0()
+                                    .bg(model_colors[m].opacity(if dim { 0.35 } else { 0.9 }))
+                            }))
+                            .into_any_element(),
+                        None => div()
+                            .mx(px(1.))
+                            .h(px(2.))
+                            .rounded(px(1.))
+                            .bg(line)
+                            .into_any_element(),
+                    })
+            });
+            let running = running_cost(&history.models);
+            let spent = running.last().copied().unwrap_or(0.);
+            let projected = projected_spend(&running, total_days);
+            let budget = history.budget;
+            let top = budget.unwrap_or(0.).max(projected).max(spent).max(1e-9);
+            let over = budget.is_some_and(|b| projected > b);
+            let pace_color = if budget.is_some_and(|b| spent >= b) {
+                danger
+            } else if over {
+                warning
+            } else {
+                accent
+            };
+            let plot_running = running;
+            let budget_plot = canvas(
+                |_, _, _| {},
+                move |bounds, _, window, _| {
+                    let w = f32::from(bounds.size.width);
+                    let h = f32::from(bounds.size.height);
+                    let step = w / total_days as f32;
+                    let at = |ix: f32, v: f64| {
+                        point(
+                            bounds.left() + px(step * (ix + 0.5)),
+                            bounds.top() + px(h - 2. - (v / top) as f32 * (h - 4.)),
+                        )
+                    };
+                    if let Some(budget) = budget {
+                        let y = bounds.top() + px(h - 2. - (budget / top) as f32 * (h - 4.));
+                        let mut path = PathBuilder::stroke(px(1.)).dash_array(&[px(3.), px(3.)]);
+                        path.move_to(point(bounds.left(), y));
+                        path.line_to(point(bounds.right(), y));
+                        if let Ok(path) = path.build() {
+                            window.paint_path(path, quiet);
+                        }
+                    }
+                    if plot_running.len() > 1 {
+                        let mut path = PathBuilder::stroke(px(2.));
+                        path.move_to(at(0., plot_running[0]));
+                        for (ix, v) in plot_running.iter().enumerate().skip(1) {
+                            path.line_to(at(ix as f32, *v));
+                        }
+                        if let Ok(path) = path.build() {
+                            window.paint_path(path, pace_color);
+                        }
+                    }
+                    if let Some(last) = plot_running.last()
+                        && plot_running.len() < total_days
+                    {
+                        let mut path = PathBuilder::stroke(px(1.5)).dash_array(&[px(2.), px(3.)]);
+                        path.move_to(at(plot_running.len() as f32 - 1., *last));
+                        path.line_to(at(total_days as f32 - 1., projected));
+                        if let Ok(path) = path.build() {
+                            window.paint_path(path, pace_color.opacity(0.7));
+                        }
+                    }
+                },
+            )
+            .size_full();
+            let readout = match day {
+                Some(d) => {
+                    let stack = &stacks[d];
+                    let total: f64 = stack.iter().sum();
+                    let name = history.days.get(d).cloned().unwrap_or_default();
+                    let mut words = format!("{name}: {}", amount(total));
+                    for (m, v) in stack.iter().enumerate() {
+                        if *v > 0. {
+                            words.push_str(&format!(
+                                ", {} {}",
+                                history.models[m].label,
+                                amount(*v)
+                            ));
+                        }
+                    }
+                    words
+                }
+                None => {
+                    let total: f64 = stacks.iter().flatten().sum();
+                    format!("{} so far over {known} of {total_days} days", amount(total))
+                }
+            };
+            let metric_state = state.clone();
+            let key_state = state.clone();
+            let legend = history.models.iter().enumerate().map(|(m, model)| {
+                let total: f64 = stacks.iter().map(|d| d[m]).sum();
+                h_flex()
+                    .gap(px(6.))
+                    .child(div().size(px(8.)).rounded(px(2.)).bg(model_colors[m]))
+                    .child(div().text_color(quiet).child(model.label.clone()))
+                    .child(
+                        div()
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(ink)
+                            .child(amount(total)),
+                    )
+            });
+            let first = history.days.first().cloned().unwrap_or_default();
+            let last_day = history.days.last().cloned().unwrap_or_default();
+            v_flex()
+                .gap_2()
+                .pt_3()
+                .border_t_1()
+                .border_color(line)
+                .child(
+                    h_flex()
+                        .gap_2()
+                        .child(
+                            div()
+                                .flex_1()
+                                .text_caption()
+                                .text_color(quiet)
+                                .child("By model, each day"),
+                        )
+                        .child(
+                            TabBar::new((self.id.clone(), "history-metric"))
+                                .segmented()
+                                .small()
+                                .selected_index(usize::from(metric == UsageMetric::Cost))
+                                .on_click(move |ix: &usize, _, cx| {
+                                    metric_state.update(cx, |state, cx| {
+                                        state.metric = Some(if *ix == 0 {
+                                            UsageMetric::Tokens
+                                        } else {
+                                            UsageMetric::Cost
+                                        });
+                                        cx.notify();
+                                    })
+                                })
+                                .child(Tab::new().label("Tokens"))
+                                .child(Tab::new().label("Cost")),
+                        ),
+                )
+                .child(
+                    h_flex()
+                        .id((self.id.clone(), "history-plot"))
+                        .test_support()
+                        .h(px(BARS))
+                        .items_end()
+                        .rounded(px(4.))
+                        .tab_index(0)
+                        .focus_visible(move |s| s.border_1().border_color(ring))
+                        .role(Role::Group)
+                        .aria_label(format!(
+                            "{} by model over the period. {readout}",
+                            match metric {
+                                UsageMetric::Tokens => "Tokens",
+                                UsageMetric::Cost => "Cost",
+                            }
+                        ))
+                        .on_key_down(move |event: &KeyDownEvent, _, cx| {
+                            let now = key_state.read(cx).day;
+                            let Some(next) = step_day(now, event.keystroke.key.as_str(), known)
+                            else {
+                                return;
+                            };
+                            key_state.update(cx, |state, cx| {
+                                state.day = next;
+                                cx.notify();
+                            });
+                            cx.stop_propagation();
+                        })
+                        .children(bars),
+                )
+                .child(
+                    h_flex()
+                        .text_size(px(10.))
+                        .line_height(px(16.))
+                        .text_color(quiet)
+                        .child(div().flex_1().child(first))
+                        .child(last_day),
+                )
+                .child(
+                    div()
+                        .text_caption()
+                        .text_color(ink)
+                        .min_h(px(16.))
+                        .child(readout),
+                )
+                .child(
+                    h_flex()
+                        .flex_wrap()
+                        .gap_x_4()
+                        .gap_y_1()
+                        .text_caption()
+                        .children(legend),
+                )
+                .child(
+                    div()
+                        .id((self.id.clone(), "budget-plot"))
+                        .relative()
+                        .h(px(44.))
+                        .mt_1()
+                        .role(Role::Image)
+                        .aria_label(pace_words(&sign, spent, projected, budget))
+                        .child(budget_plot)
+                        .when_some(budget, |this, budget| {
+                            this.child(
+                                div()
+                                    .absolute()
+                                    .right_0()
+                                    .top(px((44. - 2. - (budget / top) as f32 * 40.) - 16.))
+                                    .text_size(px(10.))
+                                    .line_height(px(16.))
+                                    .text_color(quiet)
+                                    .child(format!("Budget {}", money_words(&sign, budget))),
+                            )
+                        }),
+                )
+                .child(
+                    h_flex()
+                        .gap_1()
+                        .text_caption()
+                        .text_color(if over { warning } else { quiet })
+                        .when(over, |this| {
+                            this.child(Icon::new(IconName::TriangleAlert).size_3())
+                        })
+                        .child(pace_words(&sign, spent, projected, budget)),
+                )
+        });
+
         let limits = (!self.limits.is_empty()).then(|| {
             h_flex()
                 .items_start()
@@ -685,6 +1201,7 @@ impl RenderOnce for UsageMeter {
                     .child(bar)
                     .child(v_flex().children(list))
                     .children(days)
+                    .children(history)
                     .children(limits),
             )
             .child(
@@ -758,6 +1275,71 @@ mod tests {
         assert_eq!(daily_average(&[Some(10.), Some(20.), None]), Some(15.));
         assert_eq!(daily_average(&[None, None]), None);
         assert_eq!(daily_average(&[]), None);
+    }
+
+    fn models() -> Vec<UsageModel> {
+        vec![
+            UsageModel::new("Large", [(1000., 2.), (3000., 6.)]),
+            UsageModel::new("Small", [(500., 0.5), (100., 0.1), (200., 0.2)]),
+        ]
+    }
+
+    #[test]
+    fn days_stack_by_model_for_either_metric() {
+        let tokens = stack_days(&models(), UsageMetric::Tokens);
+        assert_eq!(
+            tokens,
+            [vec![1000., 500.], vec![3000., 100.], vec![0., 200.]]
+        );
+        let cost = stack_days(&models(), UsageMetric::Cost);
+        assert_eq!(cost[1], [6., 0.1]);
+        assert!(stack_days(&[], UsageMetric::Cost).is_empty());
+    }
+
+    #[test]
+    fn the_running_cost_projects_to_the_period_end() {
+        let running = running_cost(&models());
+        assert_eq!(running.len(), 3);
+        assert!((running[2] - 8.8).abs() < 1e-9);
+        // 8.8 over 3 days kept up for 30 days.
+        assert!((projected_spend(&running, 30) - 88.).abs() < 1e-9);
+        assert_eq!(projected_spend(&[], 30), 0.);
+        // A period shorter than the data does not shrink the spend.
+        assert!((projected_spend(&running, 2) - 8.8).abs() < 1e-9);
+    }
+
+    #[test]
+    fn pace_words_compare_against_the_budget() {
+        assert_eq!(
+            pace_words("$", 40., 90., Some(100.)),
+            "$40.00 spent, on pace for $90.00, within the $100.00 budget"
+        );
+        assert_eq!(
+            pace_words("$", 60., 130., Some(100.)),
+            "$60.00 spent, on pace for $130.00, $30.00 over the $100.00 budget"
+        );
+        assert_eq!(
+            pace_words("$", 120., 150., Some(100.)),
+            "$120.00 spent, on pace for $150.00, over the $100.00 budget"
+        );
+        assert_eq!(
+            pace_words("€", 1500., 3000., None),
+            "€1,500 spent, on pace for €3,000"
+        );
+        assert_eq!(token_words(1_260_000.), "1.3M");
+        assert_eq!(token_words(48_200.), "48K");
+    }
+
+    #[test]
+    fn arrow_keys_step_through_known_days() {
+        assert_eq!(step_day(None, "right", 5), Some(Some(0)));
+        assert_eq!(step_day(None, "left", 5), Some(Some(4)));
+        assert_eq!(step_day(Some(4), "right", 5), Some(Some(4)));
+        assert_eq!(step_day(Some(0), "left", 5), Some(Some(0)));
+        assert_eq!(step_day(Some(2), "end", 5), Some(Some(4)));
+        assert_eq!(step_day(Some(2), "escape", 5), Some(None));
+        assert_eq!(step_day(Some(2), "x", 5), None);
+        assert_eq!(step_day(None, "right", 0), None);
     }
 
     #[test]

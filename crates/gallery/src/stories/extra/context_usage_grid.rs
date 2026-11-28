@@ -7,9 +7,11 @@ use crate::Story;
 use isonomic_ui::component::{ActiveTheme as _, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Window, div,
+    Styled as _, Task, Window, div, px,
 };
-use isonomic_ui_extra::context_usage_grid::{BudgetItem, BudgetPart, ContextUsageGrid};
+use isonomic_ui_extra::context_usage_grid::{
+    BudgetItem, BudgetPart, ContextDisplay, ContextUsageGrid,
+};
 
 /// The attached files: id, name and size.
 const FILES: [(&str, &str, u64); 3] = [
@@ -21,10 +23,17 @@ const FILES: [(&str, &str, u64); 3] = [
 /// Shows a bookkeeping assistant's context, close to full, with files to drop.
 /// The story plays the session: it drops the files, compacts the conversation
 /// to a quarter and starts afresh when asked.
+///
+/// Under it, the same budget as a slim meter for a coding session close to
+/// its limit: the warning offers to compact everything, shows it working
+/// for a moment, then the conversation shrinks.
 pub struct ContextUsageGridStory {
     removed: Vec<SharedString>,
     compacted: bool,
     last: SharedString,
+    meter_compacting: bool,
+    meter_compacted: bool,
+    _compact: Option<Task<()>>,
 }
 
 impl ContextUsageGridStory {
@@ -34,6 +43,9 @@ impl ContextUsageGridStory {
             removed: Vec::new(),
             compacted: false,
             last: "Nothing changed yet".into(),
+            meter_compacting: false,
+            meter_compacted: false,
+            _compact: None,
         })
     }
 }
@@ -114,5 +126,54 @@ impl Render for ContextUsageGridStory {
                     .text_color(cx.theme().muted_foreground)
                     .child(self.last.clone()),
             )
+            .child(div().h(px(12.)))
+            .child({
+                let compact = cx.entity();
+                let restart = cx.entity();
+                let history = if self.meter_compacted {
+                    21_000
+                } else {
+                    148_500
+                };
+                ContextUsageGrid::new("session-meter", 200_000)
+                    .title("Session context")
+                    .model("planner-long")
+                    .display(ContextDisplay::Meter)
+                    .warn_at(0.8)
+                    .part(BudgetPart::new("rules", "Instructions", 4_200).locked(true))
+                    .part(BudgetPart::new("tools", "Tools", 12_600))
+                    .part(BudgetPart::new("repo", "Open files", 18_900))
+                    .part(BudgetPart::new("chat", "Conversation", history))
+                    .frees(127_500)
+                    .compacting(self.meter_compacting)
+                    .on_compact_all(move |_, cx| {
+                        compact.update(cx, |this, cx| {
+                            this.meter_compacting = true;
+                            this._compact = Some(cx.spawn(
+                                async move |this: isonomic_ui::WeakEntity<Self>,
+                                            cx: &mut isonomic_ui::AsyncApp| {
+                                    cx.background_executor()
+                                        .timer(std::time::Duration::from_millis(1_600))
+                                        .await;
+                                    this.update(cx, |this, cx| {
+                                        this.meter_compacting = false;
+                                        this.meter_compacted = true;
+                                        cx.notify();
+                                    })
+                                    .ok();
+                                },
+                            ));
+                            cx.notify();
+                        })
+                    })
+                    .action("Reset", move |_, cx| {
+                        restart.update(cx, |this, cx| {
+                            this.meter_compacted = false;
+                            this.meter_compacting = false;
+                            this._compact = None;
+                            cx.notify();
+                        })
+                    })
+            })
     }
 }
