@@ -4,8 +4,13 @@
 //! Permission prompt: an assistant asks for one specific right.
 //!
 //! The prompt says who asks, for what, why, and exactly what will happen. The
-//! right can be given just once, for a while, or always. Once answered the
-//! prompt folds into one line with the time left and a way to revoke it.
+//! right can be given just once, for this chat, for a while, or always. Once
+//! answered the prompt folds into one line with the time left and a way to
+//! revoke it.
+//!
+//! A preview shows long text whole, such as a full command, and can hold a
+//! diff. For risky and destructive prompts the allow key is deliberate: only
+//! the modified Enter allows, a plain Enter does nothing, and Escape denies.
 
 use std::{
     rc::Rc,
@@ -17,13 +22,14 @@ use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonCustomVariant, ButtonVariants as _},
     h_flex,
-    kbd::Kbd,
+    kbd::{Kbd, spoken_keystroke},
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, FocusHandle, InteractiveElement as _, IntoElement, Keystroke,
-    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
-    StyleRefinement, Styled, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, ClickEvent, ElementId, FocusHandle, InteractiveElement as _, IntoElement,
+    Keystroke, ParentElement as _, Pixels, RenderOnce, Role, ScrollHandle, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Task, TestSupportExt as _, Window,
+    accesskit::Toggled, div, point, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -44,6 +50,8 @@ pub enum PermissionRisk {
 pub enum PermissionScope {
     /// This one time.
     Once,
+    /// Until this chat ends. The owner ends it with the chat.
+    Chat,
     /// For a set time.
     Timed,
     /// Until it is revoked.
@@ -102,6 +110,48 @@ impl PermissionItem {
     }
 }
 
+/// Long text shown whole, such as a full command or a file's new content.
+///
+/// The text is set in the mono face and wrapped, never cut with an ellipsis.
+/// Past its height the box scrolls, by wheel or by the arrow keys once it has
+/// focus. A diff can sit under the text, or stand alone.
+pub struct PermissionPreview {
+    title: SharedString,
+    text: SharedString,
+    diff: Option<AnyElement>,
+    max_height: Pixels,
+}
+
+impl PermissionPreview {
+    /// Create a preview of `text`. Pass empty text for a diff alone.
+    pub fn new(text: impl Into<SharedString>) -> Self {
+        Self {
+            title: "Preview".into(),
+            text: text.into(),
+            diff: None,
+            max_height: px(240.),
+        }
+    }
+
+    /// Set the heading over the preview, such as "Command". "Preview" by default.
+    pub fn title(mut self, title: impl Into<SharedString>) -> Self {
+        self.title = title.into();
+        self
+    }
+
+    /// Show a diff under the text, such as an inline diff review.
+    pub fn diff(mut self, diff: impl IntoElement) -> Self {
+        self.diff = Some(diff.into_any_element());
+        self
+    }
+
+    /// How tall the box grows before it scrolls. 240 pixels by default.
+    pub fn max_height(mut self, height: impl Into<Pixels>) -> Self {
+        self.max_height = height.into();
+        self
+    }
+}
+
 type DecisionHandler = Rc<dyn Fn(Option<&PermissionDecision>, &mut Window, &mut App)>;
 type Handler = Rc<dyn Fn(&mut Window, &mut App)>;
 type Decide = Rc<dyn Fn(Option<PermissionDecision>, &mut Window, &mut App)>;
@@ -120,9 +170,11 @@ pub struct PermissionPrompt {
     items: Vec<PermissionItem>,
     preview_title: SharedString,
     preview_limit: usize,
+    preview: Option<PermissionPreview>,
     scopes: Vec<PermissionScope>,
     default_scope: PermissionScope,
     duration: Duration,
+    deliberate: Option<bool>,
     decision: Option<Option<PermissionDecision>>,
     on_decision_change: Option<DecisionHandler>,
 }
@@ -146,13 +198,16 @@ impl PermissionPrompt {
             items: Vec::new(),
             preview_title: "What it will do".into(),
             preview_limit: 3,
+            preview: None,
             scopes: vec![
                 PermissionScope::Once,
+                PermissionScope::Chat,
                 PermissionScope::Timed,
                 PermissionScope::Always,
             ],
             default_scope: PermissionScope::Once,
             duration: Duration::from_secs(60 * 60),
+            deliberate: None,
             decision: None,
             on_decision_change: None,
         }
@@ -197,6 +252,21 @@ impl PermissionPrompt {
     /// Show this many things before "N more". Three by default.
     pub fn preview_limit(mut self, limit: usize) -> Self {
         self.preview_limit = limit;
+        self
+    }
+
+    /// Show long text whole, such as the full command, above the things that
+    /// will happen.
+    pub fn preview(mut self, preview: PermissionPreview) -> Self {
+        self.preview = Some(preview);
+        self
+    }
+
+    /// Require the modified Enter (Command or Control) to allow. A plain
+    /// Enter then does nothing, the Allow button ignores the keyboard, and
+    /// Escape still denies. On by default for risky and destructive prompts.
+    pub fn deliberate_allow(mut self, deliberate: bool) -> Self {
+        self.deliberate = Some(deliberate);
         self
     }
 
@@ -290,6 +360,90 @@ fn step_scope(
     Some(scopes[next])
 }
 
+/// Whether only the modified Enter allows: on for risky and destructive
+/// prompts unless the owner says otherwise.
+fn is_deliberate(setting: Option<bool>, risk: PermissionRisk) -> bool {
+    setting.unwrap_or(risk != PermissionRisk::Safe)
+}
+
+/// What a key pressed inside the prompt does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KeyOutcome {
+    /// Give the right.
+    Allow,
+    /// Refuse it.
+    Deny,
+    /// Pick another choice of how long.
+    Pick(PermissionScope),
+    /// Do nothing, and let nothing around the prompt act on it either.
+    Swallow,
+    /// Not the prompt's key: let it go on.
+    Pass,
+}
+
+/// A key pressed somewhere inside the prompt.
+#[derive(Debug, Clone, Copy)]
+struct PromptKey<'a> {
+    key: &'a str,
+    /// Any modifier is held.
+    modified: bool,
+    /// The platform's main modifier is held: Command on a Mac, Control
+    /// elsewhere.
+    secondary: bool,
+    /// The prompt itself has focus, not a button inside it.
+    on_prompt: bool,
+}
+
+/// What a key does. The modified Enter always allows. A plain Enter allows
+/// only on the prompt itself, and never when the allow key is deliberate.
+fn key_outcome(
+    press: PromptKey<'_>,
+    deliberate: bool,
+    scopes: &[PermissionScope],
+    current: PermissionScope,
+) -> KeyOutcome {
+    if press.key == "enter" && press.secondary {
+        return KeyOutcome::Allow;
+    }
+    if press.modified {
+        return KeyOutcome::Pass;
+    }
+    match press.key {
+        // A focused button answers Enter itself: Deny must deny.
+        "enter" if !press.on_prompt => KeyOutcome::Pass,
+        "enter" if deliberate => KeyOutcome::Swallow,
+        "enter" => KeyOutcome::Allow,
+        "escape" => KeyOutcome::Deny,
+        key => step_scope(scopes, current, key).map_or(KeyOutcome::Pass, KeyOutcome::Pick),
+    }
+}
+
+/// How far a key scrolls the preview, in pixels down, given its height.
+fn preview_scroll(key: &str, height: Pixels) -> Option<Pixels> {
+    let line = px(36.);
+    let page = (height - line).max(line);
+    match key {
+        "down" => Some(line),
+        "up" => Some(-line),
+        "pagedown" | "space" => Some(page),
+        "pageup" => Some(-page),
+        _ => None,
+    }
+}
+
+/// A count with commas between thousands: "2,000".
+fn group_thousands(n: usize) -> String {
+    let digits = n.to_string();
+    let mut out = String::new();
+    for (ix, ch) in digits.chars().enumerate() {
+        if ix > 0 && (digits.len() - ix) % 3 == 0 {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out
+}
+
 /// Two capitals that stand for whoever asks.
 fn initials(name: &str) -> String {
     name.split_whitespace()
@@ -308,6 +462,9 @@ struct PromptState {
     /// The prompt's own focus. Enter only allows while the prompt itself has
     /// it, never while a button inside it does.
     focus: FocusHandle,
+    /// The preview's focus, so the keyboard can scroll it.
+    preview_focus: FocusHandle,
+    preview_scroll: ScrollHandle,
 }
 
 impl RenderOnce for PermissionPrompt {
@@ -323,6 +480,8 @@ impl RenderOnce for PermissionPrompt {
         let success = theme.success;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
+        let mono = theme.mono_font_family.clone();
+        let body_font = theme.font_family.clone();
 
         let scopes = offered_scopes(&self.scopes, self.risk);
         let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| PromptState {
@@ -331,8 +490,11 @@ impl RenderOnce for PermissionPrompt {
             show_all: false,
             ticker: None,
             focus: cx.focus_handle().tab_stop(true),
+            preview_focus: cx.focus_handle().tab_stop(true),
+            preview_scroll: ScrollHandle::new(),
         });
         let focus = state.read(cx).focus.clone();
+        let deliberate = is_deliberate(self.deliberate, self.risk);
         let controlled = self.decision.is_some();
         let now = Instant::now();
         let (scope, decision, show_all) = state.update(cx, |state, cx| {
@@ -403,6 +565,7 @@ impl RenderOnce for PermissionPrompt {
 
         let card = v_flex()
             .id(self.id.clone())
+            .test_support()
             .w_full()
             .max_w(px(400.))
             .overflow_hidden()
@@ -434,6 +597,11 @@ impl RenderOnce for PermissionPrompt {
                     "Allowed this once".to_string(),
                     "For this one time only".to_string(),
                     "Change",
+                ),
+                (true, PermissionScope::Chat) => (
+                    "Allowed for this chat".to_string(),
+                    "Until this chat ends".to_string(),
+                    "Revoke",
                 ),
                 (true, PermissionScope::Timed) => (
                     format!("Allowed for {}", duration_words(duration)),
@@ -520,14 +688,36 @@ impl RenderOnce for PermissionPrompt {
         };
         let allow_label = match scope {
             PermissionScope::Once => "Allow this once".to_string(),
+            PermissionScope::Chat => "Allow for this chat".to_string(),
             PermissionScope::Timed => format!("Allow for {}", duration_words(duration)),
             PermissionScope::Always => "Allow for good".to_string(),
         };
         let scope_label = |scope: PermissionScope| match scope {
             PermissionScope::Once => "This once".to_string(),
+            PermissionScope::Chat => "This chat".to_string(),
             PermissionScope::Timed => duration_words(duration),
             PermissionScope::Always => "For good".to_string(),
         };
+        // The key that allows, drawn on the button and spoken to a screen reader.
+        let allow_keys = if deliberate {
+            "secondary-enter"
+        } else {
+            "enter"
+        };
+        // `secondary` names Command on a Mac and Control elsewhere, so it can
+        // only be read with the platform in hand.
+        let os = cx.platform_info().os;
+        let spoken_allow = Keystroke::parse_with_os(allow_keys, os)
+            .map(|stroke| spoken_keystroke(&stroke, cfg!(target_os = "macos")))
+            .unwrap_or_default();
+        let keys_note = format!(
+            "{}{spoken_allow} allows, Escape denies",
+            if scopes.len() > 1 {
+                "Left and right arrows choose how long. "
+            } else {
+                ""
+            }
+        );
         let pick = |to: PermissionScope| {
             let state = state.clone();
             move |_: &isonomic_ui::ClickEvent, _: &mut Window, cx: &mut App| {
@@ -537,7 +727,7 @@ impl RenderOnce for PermissionPrompt {
                 })
             }
         };
-        let hint = |keys: &'static str| Keystroke::parse(keys).ok().map(Kbd::new);
+        let hint = |keys: &str| Keystroke::parse_with_os(keys, os).ok().map(Kbd::new);
         let shown = if show_all {
             self.items.len()
         } else {
@@ -552,32 +742,35 @@ impl RenderOnce for PermissionPrompt {
                 window.focus(&focus, cx)
             }
         };
-        // The prompt is a named group a keyboard can land on; Enter there allows.
+        // The prompt is a named group a keyboard can land on. It says what is
+        // picked and which keys answer, so a screen reader hears both.
         let card = card
             .track_focus(&focus)
             .role(Role::Group)
-            .aria_label(format!("{} wants to {}", self.who, self.action));
+            .aria_label(format!("{} wants to {}", self.who, self.action))
+            .aria_description(format!("{allow_label}. {keys_note}"));
         card.on_key_down({
             let allow = allow.clone();
             let deny = deny.clone();
             let state = state.clone();
             let scopes = scopes.clone();
             move |event, window, cx| {
-                if event.keystroke.modifiers.modified() {
-                    return;
-                }
-                match event.keystroke.key.as_str() {
-                    // A focused button answers Enter itself: Deny must deny.
-                    "enter" if !focus.is_focused(window) => return,
-                    "enter" => allow(window, cx),
-                    "escape" => deny(window, cx),
-                    key => match step_scope(&scopes, scope, key) {
-                        Some(next) => state.update(cx, |state, cx| {
-                            state.scope = next;
-                            cx.notify();
-                        }),
-                        None => return,
-                    },
+                let stroke = &event.keystroke;
+                let press = PromptKey {
+                    key: stroke.key.as_str(),
+                    modified: stroke.modifiers.modified(),
+                    secondary: stroke.modifiers.secondary(cx),
+                    on_prompt: focus.is_focused(window),
+                };
+                match key_outcome(press, deliberate, &scopes, scope) {
+                    KeyOutcome::Allow => allow(window, cx),
+                    KeyOutcome::Deny => deny(window, cx),
+                    KeyOutcome::Pick(next) => state.update(cx, |state, cx| {
+                        state.scope = next;
+                        cx.notify();
+                    }),
+                    KeyOutcome::Swallow => {}
+                    KeyOutcome::Pass => return,
                 }
                 cx.stop_propagation();
             }
@@ -649,6 +842,81 @@ impl RenderOnce for PermissionPrompt {
                         .child(reason)
                 })),
         )
+        .children(self.preview.map(|preview| {
+            let (preview_focus, scroll) = {
+                let state = state.read(cx);
+                (state.preview_focus.clone(), state.preview_scroll.clone())
+            };
+            let chars = preview.text.chars().count();
+            let size_note = match chars {
+                0 => String::new(),
+                1 => "1 character. ".to_string(),
+                n => format!("{} characters. ", group_thousands(n)),
+            };
+            let scroll_keys = scroll.clone();
+            v_flex()
+                .gap_1p5()
+                .px_4()
+                .py_3()
+                .border_t_1()
+                .border_color(line)
+                .child(div().text_color(quiet).child(preview.title.clone()))
+                .child(
+                    div()
+                        .id((self.id.clone(), "preview"))
+                        .test_support()
+                        .track_focus(&preview_focus)
+                        .role(Role::Document)
+                        .aria_label(preview.title)
+                        .aria_description(format!("{size_note}Up and down arrows scroll."))
+                        .on_key_down(move |event, _, cx| {
+                            if event.keystroke.modifiers.modified() {
+                                return;
+                            }
+                            let height = scroll_keys.bounds().size.height;
+                            let Some(down) = preview_scroll(&event.keystroke.key, height) else {
+                                return;
+                            };
+                            let offset = scroll_keys.offset();
+                            let most = scroll_keys.max_offset().y;
+                            let y = (offset.y - down).clamp(-most, px(0.));
+                            scroll_keys.set_offset(point(offset.x, y));
+                            cx.stop_propagation();
+                        })
+                        .max_h(preview.max_height)
+                        .overflow_y_scroll()
+                        .track_scroll(&scroll)
+                        .on_scroll(|_, window, _| window.refresh())
+                        .p_2()
+                        .rounded(radius)
+                        .border_1()
+                        .border_color(line)
+                        .bg(chip.opacity(0.5))
+                        .when(preview_focus.is_focused(window), |this| {
+                            this.border_color(cx.theme().ring)
+                        })
+                        .font_family(mono.clone())
+                        .text_size(px(12.))
+                        .line_height(px(18.))
+                        // Wrapped and whole: no truncation, no ellipsis.
+                        .whitespace_normal()
+                        .when(chars > 0, |this| {
+                            this.child(
+                                div()
+                                    .id("preview-text")
+                                    .test_support()
+                                    .w_full()
+                                    .child(preview.text),
+                            )
+                        })
+                        .children(preview.diff.map(|diff| {
+                            div()
+                                .when(chars > 0, |this| this.mt_2())
+                                .font_family(body_font.clone())
+                                .child(diff)
+                        })),
+                )
+        }))
         .when(!self.items.is_empty(), |this| {
             this.child(
                 v_flex()
@@ -713,28 +981,49 @@ impl RenderOnce for PermissionPrompt {
                 .border_t_1()
                 .border_color(line)
                 .when(scopes.len() > 1, |this| {
-                    this.child(h_flex().gap_1().p_0p5().rounded(radius).bg(chip).children(
-                        scopes.iter().enumerate().map(|(ix, option)| {
-                            div()
-                                .id((self.id.clone(), SharedString::from(format!("scope-{ix}"))))
-                                .flex()
-                                .flex_1()
-                                .items_center()
-                                .justify_center()
-                                .h(px(28.))
-                                .rounded(radius)
-                                .cursor_pointer()
-                                .map(|this| {
-                                    if *option == scope {
-                                        this.bg(fill).font_medium().shadow(resting_shadow(cx))
+                    this.child(
+                        h_flex()
+                            .id((self.id.clone(), "scopes"))
+                            .role(Role::RadioGroup)
+                            .aria_label("How long")
+                            .gap_1()
+                            .p_0p5()
+                            .rounded(radius)
+                            .bg(chip)
+                            .children(scopes.iter().enumerate().map(|(ix, option)| {
+                                let picked = *option == scope;
+                                div()
+                                    .id((
+                                        self.id.clone(),
+                                        SharedString::from(format!("scope-{ix}")),
+                                    ))
+                                    .test_support()
+                                    .role(Role::RadioButton)
+                                    .aria_label(scope_label(*option))
+                                    .aria_toggled(if picked {
+                                        Toggled::True
                                     } else {
-                                        this.text_color(quiet)
-                                    }
-                                })
-                                .on_click(pick(*option))
-                                .child(scope_label(*option))
-                        }),
-                    ))
+                                        Toggled::False
+                                    })
+                                    .aria_selected(picked)
+                                    .flex()
+                                    .flex_1()
+                                    .items_center()
+                                    .justify_center()
+                                    .h(px(28.))
+                                    .rounded(radius)
+                                    .cursor_pointer()
+                                    .map(|this| {
+                                        if *option == scope {
+                                            this.bg(fill).font_medium().shadow(resting_shadow(cx))
+                                        } else {
+                                            this.text_color(quiet)
+                                        }
+                                    })
+                                    .on_click(pick(*option))
+                                    .child(scope_label(*option))
+                            })),
+                    )
                 })
                 .when(self.risk == PermissionRisk::Destructive, |this| {
                     this.child(
@@ -786,12 +1075,21 @@ impl RenderOnce for PermissionPrompt {
                                         // The hint takes the filled button's
                                         // own ink so it sits on the colour
                                         // instead of punching a grey hole in it.
-                                        .children(hint("enter").map(|kbd| {
+                                        .children(hint(allow_keys).map(|kbd| {
                                             kbd.bg(on_fill.opacity(0.16))
                                                 .text_color(on_fill.opacity(0.72))
                                         })),
                                 )
-                                .on_click(move |_, window, cx| allow(window, cx))
+                                .on_click(move |event, window, cx| {
+                                    // With a deliberate allow key, Enter or
+                                    // Space on a focused Allow button does
+                                    // nothing: only a pointer or the modified
+                                    // Enter allows.
+                                    if deliberate && matches!(event, ClickEvent::Keyboard(_)) {
+                                        return;
+                                    }
+                                    allow(window, cx)
+                                })
                         }),
                 ),
         )
@@ -802,7 +1100,7 @@ impl RenderOnce for PermissionPrompt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use PermissionScope::{Always, Once, Timed};
+    use PermissionScope::{Always, Chat, Once, Timed};
 
     #[test]
     fn destructive_actions_are_never_offered_for_good() {
@@ -812,6 +1110,151 @@ mod tests {
             offered_scopes(&all, PermissionRisk::Destructive),
             [Once, Timed]
         );
+    }
+
+    #[test]
+    fn this_chat_is_offered_beside_the_others_and_for_good_never_when_destructive() {
+        let all = [Once, Chat, Timed, Always];
+        assert_eq!(offered_scopes(&all, PermissionRisk::Safe), all);
+        assert_eq!(offered_scopes(&all, PermissionRisk::Risky), all);
+        assert_eq!(
+            offered_scopes(&all, PermissionRisk::Destructive),
+            [Once, Chat, Timed]
+        );
+        assert_eq!(offered_scopes(&[Once], PermissionRisk::Destructive), [Once]);
+        assert_eq!(
+            offered_scopes(&[Always], PermissionRisk::Destructive),
+            [] as [PermissionScope; 0]
+        );
+    }
+
+    #[test]
+    fn the_default_choices_hold_this_chat_and_never_for_good_when_destructive() {
+        let prompt = PermissionPrompt::new("p", "assistant", "run a command");
+        assert_eq!(prompt.scopes, [Once, Chat, Timed, Always]);
+        let destructive = prompt.risk(PermissionRisk::Destructive);
+        assert!(!offered_scopes(&destructive.scopes, destructive.risk).contains(&Always));
+    }
+
+    #[test]
+    fn the_allow_key_is_deliberate_for_risky_and_destructive_prompts() {
+        assert!(!is_deliberate(None, PermissionRisk::Safe));
+        assert!(is_deliberate(None, PermissionRisk::Risky));
+        assert!(is_deliberate(None, PermissionRisk::Destructive));
+        assert!(is_deliberate(Some(true), PermissionRisk::Safe));
+        assert!(!is_deliberate(Some(false), PermissionRisk::Destructive));
+    }
+
+    fn press(key: &str, modified: bool, secondary: bool, on_prompt: bool) -> PromptKey<'_> {
+        PromptKey {
+            key,
+            modified,
+            secondary,
+            on_prompt,
+        }
+    }
+
+    #[test]
+    fn with_a_deliberate_key_plain_enter_does_nothing_and_escape_denies() {
+        let scopes = [Once, Chat, Timed];
+        let outcome = |p| key_outcome(p, true, &scopes, Once);
+        assert_eq!(
+            outcome(press("enter", false, false, true)),
+            KeyOutcome::Swallow
+        );
+        assert_eq!(
+            outcome(press("enter", false, false, false)),
+            KeyOutcome::Pass
+        );
+        assert_eq!(
+            outcome(press("escape", false, false, true)),
+            KeyOutcome::Deny
+        );
+        assert_eq!(
+            outcome(press("escape", false, false, false)),
+            KeyOutcome::Deny
+        );
+        assert_eq!(outcome(press("enter", true, true, true)), KeyOutcome::Allow);
+        assert_eq!(
+            outcome(press("enter", true, true, false)),
+            KeyOutcome::Allow
+        );
+        // Shift or Alt with Enter is not the allow key.
+        assert_eq!(outcome(press("enter", true, false, true)), KeyOutcome::Pass);
+        assert_eq!(
+            outcome(press("right", false, false, true)),
+            KeyOutcome::Pick(Chat)
+        );
+        assert_eq!(outcome(press("a", false, false, true)), KeyOutcome::Pass);
+    }
+
+    #[test]
+    fn without_a_deliberate_key_plain_enter_allows_on_the_prompt_only() {
+        let scopes = [Once, Chat, Timed, Always];
+        let outcome = |p| key_outcome(p, false, &scopes, Chat);
+        assert_eq!(
+            outcome(press("enter", false, false, true)),
+            KeyOutcome::Allow
+        );
+        assert_eq!(
+            outcome(press("enter", false, false, false)),
+            KeyOutcome::Pass
+        );
+        assert_eq!(
+            outcome(press("enter", true, true, false)),
+            KeyOutcome::Allow
+        );
+        assert_eq!(
+            outcome(press("escape", false, false, true)),
+            KeyOutcome::Deny
+        );
+        assert_eq!(
+            outcome(press("escape", true, false, true)),
+            KeyOutcome::Pass
+        );
+        assert_eq!(
+            outcome(press("left", false, false, true)),
+            KeyOutcome::Pick(Once)
+        );
+        assert_eq!(
+            outcome(press("right", false, false, true)),
+            KeyOutcome::Pick(Timed)
+        );
+    }
+
+    #[test]
+    fn no_plain_key_allows_a_deliberate_prompt() {
+        let scopes = [Once, Chat, Timed];
+        for key in [
+            "enter", "space", "a", "y", "tab", "right", "left", "up", "down",
+        ] {
+            for on_prompt in [true, false] {
+                assert_ne!(
+                    key_outcome(press(key, false, false, on_prompt), true, &scopes, Once),
+                    KeyOutcome::Allow,
+                    "{key} allowed"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn preview_keys_scroll_by_a_line_or_a_page() {
+        let height = px(240.);
+        assert_eq!(preview_scroll("down", height), Some(px(36.)));
+        assert_eq!(preview_scroll("up", height), Some(px(-36.)));
+        assert_eq!(preview_scroll("pagedown", height), Some(px(204.)));
+        assert_eq!(preview_scroll("pageup", height), Some(px(-204.)));
+        assert_eq!(preview_scroll("pagedown", px(10.)), Some(px(36.)));
+        assert_eq!(preview_scroll("enter", height), None);
+    }
+
+    #[test]
+    fn counts_group_thousands() {
+        assert_eq!(group_thousands(7), "7");
+        assert_eq!(group_thousands(999), "999");
+        assert_eq!(group_thousands(2000), "2,000");
+        assert_eq!(group_thousands(1_234_567), "1,234,567");
     }
 
     #[test]
