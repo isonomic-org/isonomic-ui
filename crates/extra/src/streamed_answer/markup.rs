@@ -268,7 +268,7 @@ mod tests {
     #[test]
     fn reasoning_streams_by_the_word_and_keeps_its_paragraphs() {
         let text = "Check the rent.\n\nThen the  fees and the tax.";
-        assert_eq!(reasoning_steps(text), 8);
+        assert_eq!(reasoning_steps(text), 9);
         assert_eq!(reasoning_cut(text, 0), Vec::<String>::new());
         assert_eq!(reasoning_cut(text, 2), ["Check the"]);
         assert_eq!(reasoning_cut(text, 5), ["Check the rent.", "Then the"]);

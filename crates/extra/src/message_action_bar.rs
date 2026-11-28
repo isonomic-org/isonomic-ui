@@ -878,7 +878,7 @@ impl RenderOnce for MessageActionBar {
                                             SharedString::from(format!("branch-{n}")),
                                         ))
                                         .role(Role::Button)
-                                        .aria_label(words.clone())
+                                        .aria_label(words)
                                         .flex()
                                         .items_center()
                                         .h(px(12.))
