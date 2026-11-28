@@ -133,7 +133,7 @@ impl BookingAssistantScreenStory {
                 Speaker::Assistant,
                 "Sorry to hear that. Pain on the outside of the knee after a long run is \
                  common and usually settles with the right exercises. Andrea has evening \
-                 openings on Wednesday and Thursday, and your plan covers 40 of the visit.",
+                 openings on Wednesday and Thursday, and your plan covers \u{20ac}40 of the visit.",
                 NOW - 5 * MINUTE,
             ),
             ThreadMessage::new(
