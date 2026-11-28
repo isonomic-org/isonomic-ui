@@ -1,7 +1,9 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::{ActiveTheme, Collapsible, Icon, IconName, h_flex, sidebar::SidebarItem, v_flex};
+use crate::{
+    ActiveTheme, Collapsible, Icon, IconName, TextRole as _, h_flex, sidebar::SidebarItem, v_flex,
+};
 use gpui::{
     App, Edges, ElementId, InteractiveElement as _, IntoElement, ParentElement, Pixels, Role,
     SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
@@ -117,8 +119,9 @@ impl<E: SidebarItem> SidebarItem for SidebarGroup<E> {
                         .flex_shrink_0()
                         .px_2()
                         .rounded(cx.theme().radius)
-                        .text_xs()
-                        .text_color(cx.theme().sidebar_foreground.opacity(0.7))
+                        // A small section heading: a subtle 12/16 medium label.
+                        .text_label_small()
+                        .text_color(crate::look::ink::subtle(cx))
                         .h_8()
                         .when_some(open_state, |this, open_state| {
                             this.gap_1()

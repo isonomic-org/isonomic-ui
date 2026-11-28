@@ -13,7 +13,9 @@ use isonomic_ui_base::{
     TableRow as BaseTableRow,
 };
 
-use crate::{ActiveTheme as _, AnyChildElement, ChildElement, Sizable, Size, StyledExt as _};
+use crate::{
+    ActiveTheme as _, AnyChildElement, ChildElement, Sizable, Size, StyledExt as _, TextRole as _,
+};
 
 const MIN_CELL_WIDTH: Pixels = px(100.);
 
@@ -112,7 +114,7 @@ impl RenderOnce for Table {
                 this.accessibility_label(label)
             })
             .w_full()
-            .text_sm()
+            .text_body()
             .overflow_hidden()
             .bg(cx.theme().tokens.table)
             .refine_style(&self.style)
@@ -704,8 +706,8 @@ impl RenderOnce for TableCaption {
             .w_full()
             .px(paddings.left)
             .py(paddings.top)
-            .text_sm()
-            .text_color(cx.theme().muted_foreground)
+            .text_caption()
+            .text_color(crate::look::ink::subtle(cx))
             .text_center()
             .refine_style(&self.style)
             .children(self.children)

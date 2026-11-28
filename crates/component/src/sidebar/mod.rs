@@ -483,7 +483,7 @@ impl<E: SidebarItem> RenderOnce for Sidebar<E> {
             .relative()
             .bg(cx.theme().tokens.sidebar)
             .text_color(cx.theme().sidebar_foreground)
-            .border_color(cx.theme().sidebar_border)
+            .border_color(crate::look::ink::hairline(cx))
             .map(|this| match side {
                 Side::Left => this.border_r_1(),
                 Side::Right => this.border_l_1(),

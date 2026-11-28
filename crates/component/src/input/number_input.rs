@@ -14,7 +14,6 @@ use gpui::{
 use crate::{Disableable, Icon, IconName, Sizable, Size, StyleSized as _, StyledExt as _};
 
 use super::{Input, InputState, input::input_style};
-use crate::ThemeStyled as _;
 use isonomic_ui_base::NumberInput as BaseNumberInput;
 pub use isonomic_ui_base::{NumberInputEvent, NumberStep, StepAction};
 use rust_i18n::t;
@@ -138,23 +137,33 @@ impl RenderOnce for NumberInput {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let focused = self.state.read(cx).focus_handle(cx).is_focused(window) && !self.disabled;
         let (bg, _) = input_style(self.disabled, cx);
-        let border_color = if self.disabled {
-            cx.theme().input.opacity(0.5)
-        } else {
-            cx.theme().input
-        };
-        // Transparent like a ghost button, but tinted to the frame on hover.
-        let button_foreground = cx.theme().secondary_foreground;
-        let button_hover = cx.theme().input.opacity(0.4);
-        let button_active = cx.theme().input.opacity(0.6);
+        // The frame is a field: a hairline ring that firms under the pointer
+        // and steps to a full pixel with the caret in it. Fields show no halo.
+        let (fade, on_hover) = crate::look::tracked_hover(
+            ("number-input", self.state.entity_id()),
+            self.appearance && !self.disabled,
+            window,
+            cx,
+        );
+        let frame_shadow = crate::look::surface::field_for(
+            fade,
+            focused && self.focus_ring_enabled,
+            false,
+            self.disabled,
+            cx,
+        );
+        // Ghost steppers: muted ink at rest, the hover wash under the pointer.
+        let button_foreground = crate::look::ink::icon(cx);
+        let button_hover = crate::look::ink::wash(cx);
+        let button_active = crate::look::ink::wash_strong(cx);
         let button_size = self.size;
-        // The buttons sit inside the 1px frame, so their corners are a pixel
-        // tighter than the frame's, or they paint over its inner curve.
-        let button_radius = if self.appearance {
-            (cx.theme().radius - px(1.)).max(px(0.))
+        let frame_radius = if cx.theme().radius > px(0.) {
+            cx.theme().radius + px(1.)
         } else {
-            cx.theme().radius
+            px(0.)
         };
+        // The buttons fill the frame's ends, so they share its outer corners.
+        let button_radius = frame_radius;
         let base_state = self.state.clone();
         let content = BaseNumberInput::new(&base_state)
             .disabled(self.disabled)
@@ -223,24 +232,14 @@ impl RenderOnce for NumberInput {
         // application children into its text slot, so putting the ring on that
         // element would incorrectly surround only the editable middle region.
         div()
+            .id(("number-input-frame", self.state.entity_id()))
             .flex_1()
             .input_h(self.size)
-            .rounded(cx.theme().radius)
-            .when(self.appearance, |this| {
-                this.bg(bg)
-                    .border_1()
-                    .border_color(border_color)
-                    .when(focused, |this| {
-                        this.border_1().border_color(cx.theme().ring)
-                    })
-            })
+            .rounded(frame_radius)
+            .when(self.appearance, |this| this.bg(bg).shadow(frame_shadow))
             .refine_style(&self.style)
-            .when(self.disabled, |this| this.opacity(0.5))
+            .on_hover(on_hover)
             .child(content)
-            .when(
-                focused && self.appearance && self.focus_ring_enabled,
-                |this| this.focus_ring_style(window, cx),
-            )
     }
 }
 

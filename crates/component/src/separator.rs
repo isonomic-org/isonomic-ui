@@ -1,7 +1,7 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::{ActiveTheme, StyledExt};
+use crate::{ActiveTheme, StyledExt, TextRole as _};
 use gpui::{
     App, Axis, Div, Hsla, IntoElement, ParentElement, PathBuilder, RenderOnce, SharedString,
     StyleRefinement, Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px,
@@ -128,7 +128,8 @@ impl Styled for Separator {
 
 impl RenderOnce for Separator {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
-        let color = self.color.unwrap_or(cx.theme().border);
+        // A hairline, the same rule menus and cards split their sections with.
+        let color = self.color.unwrap_or_else(|| crate::look::ink::hairline(cx));
         let axis = self.axis;
         let line_style = self.line_style;
 
@@ -148,9 +149,9 @@ impl RenderOnce for Separator {
                         .px_2()
                         .py_1()
                         .mx_auto()
-                        .text_xs()
+                        .text_caption()
                         .bg(cx.theme().tokens.background)
-                        .text_color(cx.theme().muted_foreground)
+                        .text_color(crate::look::ink::subtle(cx))
                         .child(label),
                 )
             })

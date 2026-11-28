@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use gpui::{
-    AnyElement, App, Bounds, ClickEvent, Context, DismissEvent, Edges, ElementId, Entity,
-    EventEmitter, FocusHandle, Focusable, Hsla, InteractiveElement, IntoElement, Length,
+    AnyElement, App, Bounds, BoxShadow, ClickEvent, Context, DismissEvent, Edges, ElementId,
+    Entity, EventEmitter, FocusHandle, Focusable, Hsla, InteractiveElement, IntoElement, Length,
     MouseDownEvent, ParentElement, Pixels, Render, RenderOnce, SharedString,
     StatefulInteractiveElement, StyleRefinement, Styled, Window, deferred, div,
     prelude::FluentBuilder, px, rems,
@@ -645,6 +645,26 @@ where
 
         let (bg, fg) = input_style(disabled, cx);
 
+        // The trigger is a field, like the select's: a hairline ring that
+        // firms under the pointer and steps to a full pixel while open.
+        let (fade, on_hover) = crate::look::tracked_hover(
+            ("combobox-trigger", cx.entity_id()),
+            self.state.appearance && allow_open && !self.state.open,
+            window,
+            cx,
+        );
+        let trigger_shadow =
+            crate::look::surface::field_for(fade, self.state.open, false, disabled, cx);
+        // The caret turns over as the list opens.
+        let turn = isonomic_ui_base::motion::transition(
+            ElementId::from(("combobox-caret", cx.entity_id())),
+            if self.state.open { 1. } else { 0. },
+            isonomic_ui_base::motion::Transition::new(std::time::Duration::from_millis(240))
+                .easing(cx.theme().motion.easing_enter.clone()),
+            window,
+            cx,
+        );
+
         self.state.list.update(cx, |list, cx| {
             list.set_searchable(searchable, cx);
             list.delegate_mut().size = self.state.size;
@@ -686,11 +706,12 @@ where
                 .into_any_element()
         } else if let Some(icon) = self.trigger_icon.clone() {
             icon.xsmall()
-                .text_color(cx.theme().muted_foreground)
+                .text_color(crate::look::ink::icon(cx))
                 .into_any_element()
         } else {
             Caret::new(size)
-                .text_color(cx.theme().muted_foreground)
+                .text_color(crate::look::ink::icon(cx))
+                .turn(turn)
                 .into_any_element()
         };
 
@@ -714,15 +735,16 @@ where
                     move |bounds, _, cx| state.update(cx, |r, _| r.state.bounds = bounds)
                 })
                 .child(render_trigger_container(
-                    disabled,
                     self.state.appearance,
                     self.focus_ring_enabled,
                     self.state.size,
                     &self.state.style,
                     bg,
                     fg,
-                    outline_visible,
+                    outline_visible && !self.state.open,
                     allow_open,
+                    trigger_shadow,
+                    on_hover,
                     trigger_body,
                     trailing,
                     toggle_handler,
@@ -1026,15 +1048,16 @@ where
 /// Renders the styled trigger container.
 #[allow(clippy::too_many_arguments)]
 fn render_trigger_container(
-    disabled: bool,
     appearance: bool,
     focus_ring_enabled: bool,
     size: Size,
     style: &StyleRefinement,
     bg: Hsla,
     fg: Hsla,
-    outline_visible: bool,
+    focus_visible: bool,
     allow_open: bool,
+    shadow: Vec<BoxShadow>,
+    on_hover: Box<dyn Fn(&bool, &mut Window, &mut App) + 'static>,
     trigger_body: AnyElement,
     trailing: AnyElement,
     toggle_handler: Option<Box<dyn Fn(&ClickEvent, &mut Window, &mut App) + 'static>>,
@@ -1047,26 +1070,30 @@ fn render_trigger_container(
         .flex()
         .items_center()
         .justify_between()
-        .border_1()
-        .border_color(cx.theme().transparent)
         .when(appearance, |this| {
             this.bg(bg)
                 .text_color(fg)
-                .when(disabled, |this| this.opacity(0.5))
-                .border_color(cx.theme().input)
-                .rounded(cx.theme().radius)
+                .rounded(if cx.theme().radius > px(0.) {
+                    cx.theme().radius + px(1.)
+                } else {
+                    px(0.)
+                })
+                .shadow(shadow)
         })
         .input_size(size)
+        // The caret sits 2px nearer its edge than the text.
+        .pr(px(match size {
+            Size::XSmall | Size::Small => 6.,
+            Size::Large => 10.,
+            _ => 8.,
+        }))
         .input_text_size(size)
-        .pressable(!disabled)
+        .pressable(allow_open)
         .refine_style(style)
-        .when(outline_visible && appearance, |this| {
-            this.border_1().border_color(cx.theme().ring)
+        .when(focus_visible && appearance && focus_ring_enabled, |this| {
+            this.focus_ring_style(window, cx)
         })
-        .when(
-            outline_visible && appearance && focus_ring_enabled,
-            |this| this.focus_ring_style(window, cx),
-        )
+        .on_hover(on_hover)
         .when(allow_open, |this| {
             this.when_some(toggle_handler, |this, handler| this.on_click(handler))
         })

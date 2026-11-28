@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use gpui::{
-    AnyElement, App, Entity, Focusable, InteractiveElement as _, IntoElement, MouseButton,
-    ParentElement as _, RenderOnce, Styled as _, Window, div, prelude::FluentBuilder,
+    AnyElement, App, ElementId, Entity, Focusable, InteractiveElement as _, IntoElement,
+    MouseButton, ParentElement as _, RenderOnce, StatefulInteractiveElement as _, Styled as _,
+    Window, div, prelude::FluentBuilder, px,
 };
 
 use super::input::input_style;
 use super::state::sync_focused_input_registry;
+use crate::StyleSized as _;
 use crate::{ActiveTheme, Disableable, Icon, IconName, Sizable, Size, h_flex, v_flex};
-use crate::{StyleSized as _, ThemeStyled as _};
 use isonomic_ui_base::OtpInput as BaseOtpInput;
 pub use isonomic_ui_base::{OtpEvent, OtpState};
 
@@ -77,6 +78,21 @@ impl Sizable for OtpInput {
 impl RenderOnce for OtpInput {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         sync_focused_input_registry(self.state.clone(), window, cx);
+        // Each cell is a field: a hairline ring that firms under the pointer
+        // and steps to a full pixel on the cell taking the next character.
+        // Fields show no halo.
+        let cell_count = self.state.read(cx).len();
+        let cell_id = std::sync::Arc::new(ElementId::from(("otp-cell", self.state.entity_id())));
+        let mut hovers: Vec<_> = (0..cell_count)
+            .map(|ix| {
+                Some(crate::look::tracked_hover(
+                    ElementId::NamedChild(cell_id.clone(), ix.to_string().into()),
+                    !self.disabled,
+                    window,
+                    cx,
+                ))
+            })
+            .collect();
         let state = self.state.read(cx);
         let blink_show = state.cursor_visible(cx);
         let is_focused = state.focus_handle(cx).is_focused(window);
@@ -104,19 +120,24 @@ impl RenderOnce for OtpInput {
 
             let is_input_focused = ix == cursor_ix && is_focused;
             let focus_visible = is_input_focused && !self.disabled && self.focus_ring_enabled;
+            let (fade, on_hover) = hovers[ix].take().expect("one hover per cell");
+            let cell_shadow =
+                crate::look::surface::field_for(fade, focus_visible, false, self.disabled, cx);
 
             groups[group_ix].push(
                 h_flex()
                     .id(ix)
-                    .border_1()
-                    .border_color(cx.theme().input)
                     .bg(bg)
                     .text_color(fg)
-                    .when(self.disabled, |this| this.opacity(0.5))
-                    .when(focus_visible, |this| this.border_color(cx.theme().ring))
+                    .shadow(cell_shadow)
+                    .on_hover(on_hover)
                     .items_center()
                     .justify_center()
-                    .rounded(cx.theme().radius)
+                    .rounded(if cx.theme().radius > px(0.) {
+                        cx.theme().radius + px(1.)
+                    } else {
+                        px(0.)
+                    })
                     .map(|this| match self.size {
                         Size::Size(v) => this.text_size(v * 0.5),
                         size => this.input_text_size(size),
@@ -128,7 +149,6 @@ impl RenderOnce for OtpInput {
                         Size::Large => this.w_11().h_11(),
                         Size::Size(px) => this.w(px).h(px),
                     })
-                    .when(focus_visible, |this| this.focus_ring_style(window, cx))
                     .on_mouse_down(MouseButton::Left, {
                         let state = self.state.clone();
                         move |_, window, cx| state.read(cx).focus_handle(cx).focus(window, cx)
@@ -138,7 +158,7 @@ impl RenderOnce for OtpInput {
                             if state.is_masked() {
                                 this.child(
                                     Icon::new(IconName::Asterisk)
-                                        .text_color(cx.theme().secondary_foreground)
+                                        .text_color(crate::look::ink::strong(cx))
                                         .when(self.disabled, |this| {
                                             this.text_color(cx.theme().muted_foreground)
                                         }),

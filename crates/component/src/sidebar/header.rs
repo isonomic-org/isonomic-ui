@@ -94,12 +94,12 @@ impl RenderOnce for SidebarHeader {
             .rounded(cx.theme().radius)
             .refine_style(&self.style)
             .hover(|this| {
-                this.bg(cx.theme().tokens.sidebar_accent)
-                    .text_color(cx.theme().sidebar_accent_foreground)
+                this.bg(crate::look::ink::wash_strong(cx))
+                    .text_color(crate::look::ink::strong(cx))
             })
             .when(self.selected, |this| {
-                this.bg(cx.theme().tokens.sidebar_accent)
-                    .text_color(cx.theme().sidebar_accent_foreground)
+                this.bg(crate::look::ink::wash_strong(cx))
+                    .text_color(crate::look::ink::strong(cx))
             })
             .children(self.children)
     }
