@@ -271,7 +271,9 @@ pub fn percent(share: f64) -> String {
 
 /// A value with at most two decimals and no trailing zeros.
 pub fn plain_number(value: f64) -> String {
-    let text = format!("{value:.2}");
+    // Round half away from zero first: formatting alone rounds 0.125 down.
+    let rounded = (value * 100.).round() / 100.;
+    let text = format!("{rounded:.2}");
     text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
