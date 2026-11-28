@@ -1,11 +1,14 @@
 // Copyright 2026 Anud Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::{ActiveTheme, Disableable, Icon, Selectable, Sizable as _, StyledExt, h_flex};
+use crate::{
+    ActiveTheme, Disableable, Icon, Selectable, Sizable as _, StyledExt, TextRole as _, h_flex,
+};
 use gpui::{
     AnyElement, App, ClickEvent, Div, ElementId, InteractiveElement, Interactivity, IntoElement,
     MouseButton, MouseDownEvent, MouseMoveEvent, ParentElement, RenderOnce, SharedString, Stateful,
     StatefulInteractiveElement, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    px,
 };
 use isonomic_ui_base::TestSupportExt as _;
 use isonomic_ui_base::{LogicalStyledExt as _, PressableExt as _};
@@ -203,10 +206,12 @@ impl RenderOnce for ListItem {
             .flex_row_dir(cx)
             .test_support()
             .relative()
+            // A 32px row like a menu's: 13/20 text, 6px above and below,
+            // 10px sides.
             .gap_x_1()
-            .py_1()
-            .px_3()
-            .text_base()
+            .py(px(6.))
+            .px(px(10.))
+            .text_body()
             .text_color(cx.theme().foreground)
             .relative()
             .items_center()
@@ -236,12 +241,12 @@ impl RenderOnce for ListItem {
                         if is_active {
                             this
                         } else {
-                            this.bg(cx.theme().tokens.list_hover)
+                            this.bg(crate::look::ink::wash_strong(cx))
                         }
                     })
             })
             .when(!is_selectable, |this| {
-                this.text_color(cx.theme().muted_foreground)
+                this.text_color(crate::look::ink::subtle(cx))
             })
             .child(
                 h_flex()
@@ -256,7 +261,7 @@ impl RenderOnce for ListItem {
                             div().w_5().items_center().justify_center().when(
                                 self.confirmed,
                                 |this| {
-                                    this.child(icon.small().text_color(cx.theme().muted_foreground))
+                                    this.child(icon.small().text_color(crate::look::ink::icon(cx)))
                                 },
                             ),
                         )

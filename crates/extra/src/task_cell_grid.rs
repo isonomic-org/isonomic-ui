@@ -586,6 +586,13 @@ impl RenderOnce for TaskCellGrid {
                             let status = *status;
                             let is_on = only == Some(status);
                             let state = state.clone();
+                            let (hover_fade, hover_on_hover) =
+                                isonomic_ui::component::look::tracked_hover(
+                                    ("filter-hover", ix),
+                                    true,
+                                    window,
+                                    cx,
+                                );
                             Some(
                                 h_flex()
                                     .id(("filter", ix))
@@ -595,7 +602,8 @@ impl RenderOnce for TaskCellGrid {
                                     .rounded(radius)
                                     .cursor_pointer()
                                     .text_caption()
-                                    .hover(|this| this.bg(chip))
+                                    .bg(crate::common::faded(chip, hover_fade))
+                                    .on_hover(hover_on_hover)
                                     .when(is_on, |this| this.bg(chip).font_medium())
                                     .on_click(move |_, _, cx| {
                                         state.update(cx, |state, cx| {

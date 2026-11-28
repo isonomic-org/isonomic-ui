@@ -254,6 +254,35 @@ pub mod surface {
         ]
     }
 
+    /// A field-like box (a text field, a picker or select trigger) in the
+    /// state it is showing: a softer ring when disabled, the danger ring when
+    /// invalid, the full-pixel ring while `active` (caret in it, or its list
+    /// open), otherwise the resting ring eased toward hover by `hover`.
+    pub fn field_for(
+        hover: f32,
+        active: bool,
+        invalid: bool,
+        disabled: bool,
+        cx: &App,
+    ) -> Vec<BoxShadow> {
+        if disabled {
+            field(cx)
+                .into_iter()
+                .take(1)
+                .map(|mut ring| {
+                    ring.color = ring.color.alpha(ring.color.a * 0.75);
+                    ring
+                })
+                .collect()
+        } else if invalid {
+            field_invalid(cx)
+        } else if active {
+            field_focus(cx)
+        } else {
+            mix_shadows(&field(cx), &field_hover(cx), hover)
+        }
+    }
+
     /// Menus, popovers and tooltips floating over the page.
     pub fn floating(cx: &App) -> Vec<BoxShadow> {
         if dark(cx) {
@@ -300,6 +329,45 @@ pub fn hover_fade(
         window,
         cx,
     )
+}
+
+/// An `on_hover` listener from [`tracked_hover`].
+pub type HoverListener = Box<dyn Fn(&bool, &mut Window, &mut App) + 'static>;
+
+/// Tracks whether the pointer is over `id` and eases it with [`hover_fade`].
+///
+/// Returns the eased value and the listener to hand to the element's
+/// `on_hover`. While `enabled` is false the value rests at 0.
+pub fn tracked_hover(
+    id: impl Into<ElementId>,
+    enabled: bool,
+    window: &mut Window,
+    cx: &mut App,
+) -> (f32, HoverListener) {
+    let id = std::sync::Arc::new(id.into());
+    let state = window.use_keyed_state(
+        ElementId::NamedChild(id.clone(), "hovered".into()),
+        cx,
+        |_, _| false,
+    );
+    let hovered = enabled && *state.read(cx);
+    let fade = hover_fade(
+        ElementId::NamedChild(id, "tracked".into()),
+        hovered,
+        window,
+        cx,
+    );
+    let listener = move |hovered: &bool, window: &mut Window, cx: &mut App| {
+        let hovered = *hovered;
+        state.update(cx, |state, cx| {
+            if *state != hovered {
+                *state = hovered;
+                cx.notify();
+            }
+        });
+        window.refresh();
+    };
+    (fade, Box::new(listener))
 }
 
 /// Mixes two colours for a fade.

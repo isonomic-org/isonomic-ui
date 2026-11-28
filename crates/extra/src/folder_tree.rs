@@ -11,7 +11,9 @@
 use std::collections::HashSet;
 
 use isonomic_ui::component::TextRole as _;
-use isonomic_ui::component::{ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, v_flex};
+use isonomic_ui::component::{
+    ActiveTheme as _, Icon, IconName, Sizable as _, h_flex, look, v_flex,
+};
 use isonomic_ui::{
     App, Context, ElementId, EventEmitter, FocusHandle, Focusable, InteractiveElement as _,
     IntoElement, KeyDownEvent, ParentElement as _, Render, Role, SharedString,
@@ -243,8 +245,19 @@ impl Render for FolderTree {
         let ring = theme.ring;
         let focused = self.focus.is_focused(window);
         let rows = visible_rows(&self.nodes, &self.open);
+        let hovers: Vec<_> = rows
+            .iter()
+            .map(|row| {
+                look::tracked_hover(
+                    ElementId::Name(format!("tree-row-hover-{}", row.id).into()),
+                    true,
+                    window,
+                    cx,
+                )
+            })
+            .collect();
 
-        let items = rows.into_iter().map(|row| {
+        let items = rows.into_iter().zip(hovers).map(|(row, (fade, on_hover))| {
             let node = find(&self.nodes, &row.id).cloned();
             let open = self.open.contains(&row.id);
             let picked = self.picked.as_ref() == Some(&row.id);
@@ -261,7 +274,8 @@ impl Render for FolderTree {
                 .cursor_pointer()
                 .when(picked, |this| this.bg(picked_bg))
                 .when(picked && focused, |this| this.border_1().border_color(ring))
-                .when(!picked, |this| this.hover(move |s| s.bg(hover)))
+                .when(!picked, |this| this.bg(crate::common::faded(hover, fade)))
+                .on_hover(on_hover)
                 .role(Role::TreeItem)
                 .aria_level(row.depth + 1)
                 .when(row.folder, |this| this.aria_expanded(open))

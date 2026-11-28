@@ -15,8 +15,8 @@ use isonomic_ui::component::{
 };
 use isonomic_ui::{
     Animation, AnimationExt as _, App, ElementId, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StyleRefinement, Styled, Transformation, Window,
-    div, prelude::FluentBuilder as _, px, size,
+    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, Transformation, Window, div, prelude::FluentBuilder as _, px, size,
 };
 
 const POP: Duration = Duration::from_millis(320);
@@ -348,6 +348,12 @@ impl RenderOnce for ReactionBar {
 
             let state = state.clone();
             let on_react = on_react.clone();
+            let (press_fade, press_hover) = isonomic_ui::component::look::tracked_hover(
+                (toggle_id.clone(), "hover"),
+                !shown.active,
+                window,
+                cx,
+            );
             Toggle::new(toggle_id)
                 .pressed(shown.active)
                 .accessibility_label(reaction.spoken(shown.count))
@@ -377,14 +383,14 @@ impl RenderOnce for ReactionBar {
                 .border_1()
                 .text_label()
                 .cursor_pointer()
+                .on_hover(press_hover)
                 .map(|this| {
                     if shown.active {
                         this.bg(tint).border_color(tint_edge).text_color(accent)
                     } else {
-                        this.bg(fill)
+                        this.bg(isonomic_ui::component::look::mix(fill, wash, press_fade))
                             .border_color(line)
-                            .text_color(quiet)
-                            .hover(|style| style.bg(wash).text_color(ink))
+                            .text_color(isonomic_ui::component::look::mix(quiet, ink, press_fade))
                     }
                 })
                 .when(is_focused, |this| this.focus_ring_style(window, cx))

@@ -501,8 +501,30 @@ impl Render for DataTreeViewer {
         let mono = theme.mono_font_family.clone();
         let focused = self.focus.is_focused(window);
         let keys = rows.clone();
+        let mut hovers = rows
+            .iter()
+            .map(|&ix| {
+                (
+                    isonomic_ui::component::look::tracked_hover(
+                        ("row-hover", ix),
+                        true,
+                        window,
+                        cx,
+                    ),
+                    isonomic_ui::component::look::tracked_hover(
+                        ("key-hover", ix),
+                        true,
+                        window,
+                        cx,
+                    ),
+                )
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
 
         let lines = rows.iter().map(|&ix| {
+            let ((row_fade, row_on_hover), (key_fade, key_on_hover)) =
+                hovers.next().expect("one hover per row");
             let node = &self.nodes[ix];
             let is_open = self.open.contains(&ix)
                 || (!query.trim().is_empty() && {
@@ -537,9 +559,10 @@ impl Render for DataTreeViewer {
                 .gap_1()
                 .pr_2()
                 .pl(px(INDENT_START + INDENT * node.depth as f32))
+                .bg(crate::common::faded(hover, row_fade))
+                .on_hover(row_on_hover)
                 .when(matches.contains(&ix), |this| this.bg(match_wash))
                 .when(focused && self.cursor == ix, |this| this.bg(cursor_wash))
-                .hover(move |style| style.bg(hover))
                 .role(Role::TreeItem)
                 .aria_label(format!(
                     "{label}: {}{}",
@@ -585,7 +608,8 @@ impl Render for DataTreeViewer {
                         .rounded(px(4.))
                         .text_color(key_ink)
                         .cursor_pointer()
-                        .hover(move |style| style.bg(cursor_wash))
+                        .bg(crate::common::faded(cursor_wash, key_fade))
+                        .on_hover(key_on_hover)
                         .on_click(cx.listener(move |this, _, _, cx| {
                             cx.stop_propagation();
                             this.cursor = ix;

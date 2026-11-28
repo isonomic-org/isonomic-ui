@@ -157,7 +157,7 @@ impl Styled for ContextTreemap {
 }
 
 impl RenderOnce for ContextTreemap {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -198,6 +198,15 @@ impl RenderOnce for ContextTreemap {
                         let shrank = after && block.compacted.is_some();
                         let select = self.on_select.clone();
                         let id = block.id.clone();
+                        let (block_fade, block_hover) = isonomic_ui::component::look::tracked_hover(
+                            ElementId::NamedChild(
+                                self.id.clone().into(),
+                                format!("block-hover-{}", block.id).into(),
+                            ),
+                            true,
+                            window,
+                            cx,
+                        );
                         div()
                             .id(ElementId::NamedChild(
                                 self.id.clone().into(),
@@ -211,9 +220,13 @@ impl RenderOnce for ContextTreemap {
                             .border_1()
                             .border_color(fill)
                             .rounded(px(3.))
-                            .bg(color.opacity(if is_selected { 0.55 } else { 0.28 }))
+                            .bg(color.opacity(if is_selected {
+                                0.55
+                            } else {
+                                0.28 + 0.17 * block_fade
+                            }))
+                            .on_hover(block_hover)
                             .when(shrank, |this| this.border_dashed().border_color(color))
-                            .hover(|style| style.bg(color.opacity(0.45)))
                             .cursor_pointer()
                             .role(Role::Button)
                             .aria_label(format!(

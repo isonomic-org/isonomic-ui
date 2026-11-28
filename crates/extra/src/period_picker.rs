@@ -220,7 +220,7 @@ impl Styled for PeriodPicker {
 }
 
 impl RenderOnce for PeriodPicker {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -241,6 +241,23 @@ impl RenderOnce for PeriodPicker {
             _ => (None, None),
         };
 
+        let day_hovers: std::collections::HashMap<_, _> =
+            [self.first_month, month_shift(self.first_month, 1)]
+                .into_iter()
+                .flat_map(|(y, m)| (1..=days_in(y, m)).map(move |d| day_number((y, m, d))))
+                .map(|n| {
+                    let (fade, listener) = isonomic_ui::component::look::tracked_hover(
+                        ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("d-hover-{n}").into(),
+                        ),
+                        true,
+                        window,
+                        cx,
+                    );
+                    (n, (fade, Rc::new(listener)))
+                })
+                .collect();
         let month_view = |(y, m): (i32, u32)| {
             let first = day_number((y, m, 1));
             let lead = (first + 3).rem_euclid(7);
@@ -254,6 +271,7 @@ impl RenderOnce for PeriodPicker {
                     let is_today = ymd == self.today;
                     let span = self.on_span.clone();
                     let hover = self.on_hover.clone();
+                    let (cell_fade, cell_hover) = day_hovers[&n].clone();
                     let (start, end) = (self.start, self.end);
                     div()
                         .id(ElementId::NamedChild(
@@ -276,11 +294,15 @@ impl RenderOnce for PeriodPicker {
                         .when(is_today && !edge, |this| {
                             this.border_1().border_color(accent).rounded(px(8.))
                         })
-                        .when(!inside, |this| this.rounded(px(8.)).hover(|s| s.bg(chip)))
+                        .when(!inside, |this| {
+                            this.rounded(px(8.))
+                                .bg(crate::common::faded(chip, cell_fade))
+                        })
                         .role(Role::GridCell)
                         .aria_label(format!("{d} {} {y}", MONTHS[m as usize - 1]))
                         .aria_selected(inside)
                         .on_hover(move |on, window, cx| {
+                            cell_hover(on, window, cx);
                             if let Some(hover) = &hover {
                                 hover(on.then_some(ymd), window, cx);
                             }

@@ -496,10 +496,10 @@ fn group_variant_overrides_the_settings_default(cx: &mut TestAppContext) {
         "the overridden group must lose the global Outline chrome"
     );
     // A group without the override keeps the global Outline chrome:
-    // a 1px border and 16px padding above its items.
+    // 16px padding above its items (its edge is a ring, not a border).
     assert_eq!(
         f64::from(inherited_second.top() - baseline_second.top()),
-        17.,
+        16.,
         "groups without an override must keep the settings-level variant"
     );
 }

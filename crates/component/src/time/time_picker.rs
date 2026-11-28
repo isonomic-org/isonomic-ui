@@ -424,7 +424,8 @@ impl TimePicker {
             .overflow_y_scroll()
             .track_scroll(scroll)
             .when(column != Column::Hour, |this| {
-                this.border_l_1().border_color(cx.theme().border)
+                this.border_l_1()
+                    .border_color(crate::look::ink::hairline(cx))
             })
             .children(options.values(column).into_iter().map(|value| {
                 let active = value == selected;
@@ -447,9 +448,9 @@ impl TimePicker {
                     })
                     .pressable(true)
                     .when(!active, |this| {
-                        this.hover(|this| {
-                            this.bg(cx.theme().tokens.secondary_hover)
-                                .text_color(cx.theme().foreground)
+                        this.text_color(crate::look::ink::muted(cx)).hover(|this| {
+                            this.bg(crate::look::ink::wash_strong(cx))
+                                .text_color(crate::look::ink::strong(cx))
                         })
                     })
                     .when(active, |this| {
@@ -497,12 +498,27 @@ impl RenderOnce for TimePicker {
                 state.apply_scroll(size);
             }
         });
+        // The frame is a field: a hairline ring that firms under the pointer
+        // and steps to a full pixel with the caret in it. Fields show no halo.
+        let (fade, on_hover) = crate::look::tracked_hover(
+            ("time-picker-frame", self.state.entity_id()),
+            !self.disabled,
+            window,
+            cx,
+        );
         let state = self.state.read(cx);
         let open = state.open && !self.disabled;
         let field = state.field.clone();
         let (options, time, bounds) = (state.options, state.time, state.bounds);
         let scroll = state.columns.clone();
         let focused = field.focus_handle(cx).is_focused(window);
+        let frame_shadow = crate::look::surface::field_for(
+            fade,
+            (focused || open) && !self.disabled,
+            self.invalid,
+            self.disabled,
+            cx,
+        );
         let (bg, fg) = input_style(self.disabled, cx);
         let toggle_label = SharedString::from(t!("TimePicker.toggle"));
         let columns = open.then(|| {
@@ -527,21 +543,21 @@ impl RenderOnce for TimePicker {
             .flex_none()
             .child(
                 div()
+                    .id(("time-picker-frame", self.state.entity_id()))
                     .flex()
                     .items_center()
                     .font_features(tabular_figures())
                     .bg(bg)
                     .text_color(fg)
-                    .border_1()
-                    .border_color(cx.theme().input)
-                    .rounded(cx.theme().radius)
+                    .rounded(if cx.theme().radius > px(0.) {
+                        cx.theme().radius + px(1.)
+                    } else {
+                        px(0.)
+                    })
+                    .shadow(frame_shadow)
+                    .on_hover(on_hover)
                     .input_text_size(self.size)
                     .input_h(self.size)
-                    .when(self.disabled, |this| this.opacity(0.5))
-                    .when(focused && !self.disabled, |this| {
-                        this.focus_ring_style(window, cx)
-                    })
-                    .when(self.invalid, |this| this.border_color(cx.theme().danger))
                     .on_prepaint({
                         let state = self.state.clone();
                         move |bounds, _, cx| state.update(cx, |state, _| state.bounds = bounds)

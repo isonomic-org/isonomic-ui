@@ -81,12 +81,12 @@ impl RenderOnce for SidebarFooter {
             .justify_between()
             .rounded(cx.theme().radius)
             .hover(|this| {
-                this.bg(cx.theme().tokens.sidebar_accent)
-                    .text_color(cx.theme().sidebar_accent_foreground)
+                this.bg(crate::look::ink::wash_strong(cx))
+                    .text_color(crate::look::ink::strong(cx))
             })
             .when(self.selected, |this| {
-                this.bg(cx.theme().tokens.sidebar_accent)
-                    .text_color(cx.theme().sidebar_accent_foreground)
+                this.bg(crate::look::ink::wash_strong(cx))
+                    .text_color(crate::look::ink::strong(cx))
             })
             .child(self.base)
     }

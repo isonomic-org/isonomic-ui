@@ -196,6 +196,42 @@ pub fn track_hover(state: Entity<bool>) -> impl Fn(&bool, &mut Window, &mut App)
     }
 }
 
+/// The hover wash at `fade` of its strength, for a quiet row, chip or icon
+/// button whose hover is eased with `look::tracked_hover` instead of
+/// snapping. Set it before any selected fill, so the selected fill wins.
+pub fn hover_wash(fade: f32, cx: &App) -> Hsla {
+    faded(look::ink::wash(cx), fade)
+}
+
+/// `color` let in by an eased hover: clear at 0, itself at 1.
+pub fn faded(color: Hsla, fade: f32) -> Hsla {
+    color.alpha(color.a * fade.clamp(0., 1.))
+}
+
+/// Eased hovers for a run of parts of `id` (rows, chips, segments), one per
+/// item of `enabled`, named `<part>-<index>`. Take each with `Option::take`
+/// while building the part. Call before borrowing the theme.
+pub fn tracked_hovers(
+    id: &ElementId,
+    part: &str,
+    enabled: impl IntoIterator<Item = bool>,
+    window: &mut Window,
+    cx: &mut App,
+) -> Vec<Option<(f32, look::HoverListener)>> {
+    enabled
+        .into_iter()
+        .enumerate()
+        .map(|(ix, enabled)| {
+            Some(look::tracked_hover(
+                ElementId::NamedChild(id.clone().into(), format!("{part}-{ix}").into()),
+                enabled,
+                window,
+                cx,
+            ))
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::Tone;

@@ -13,7 +13,7 @@ use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
-    h_flex,
+    h_flex, look,
     menu::{DropdownMenu as _, PopupMenuItem},
 };
 use isonomic_ui::{
@@ -85,7 +85,7 @@ impl Styled for PathBreadcrumb {
 }
 
 impl RenderOnce for PathBreadcrumb {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -119,6 +119,15 @@ impl RenderOnce for PathBreadcrumb {
                     let ix = *ix;
                     let current = ix + 1 == count;
                     let go = self.on_go.clone();
+                    let (fade, on_hover) = look::tracked_hover(
+                        ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("place-hover-{ix}").into(),
+                        ),
+                        !current,
+                        window,
+                        cx,
+                    );
                     items.push(
                         div()
                             .id(ElementId::NamedChild(
@@ -131,9 +140,10 @@ impl RenderOnce for PathBreadcrumb {
                             .rounded(px(4.))
                             .when(current, |this| this.text_color(ink).font_medium())
                             .when(!current, |this| {
-                                this.text_color(quiet)
+                                this.text_color(look::mix(quiet, ink, fade))
+                                    .bg(crate::common::faded(chip, fade))
                                     .cursor_pointer()
-                                    .hover(|s| s.bg(chip).text_color(ink))
+                                    .on_hover(on_hover)
                                     .on_click(move |_, window, cx| {
                                         if let Some(go) = &go {
                                             go(ix, window, cx);

@@ -4,13 +4,14 @@
 use std::sync::Arc;
 
 use gpui::{
-    App, ElementId, Entity, Focusable as _, FontFeatures, IntoElement, ParentElement as _,
-    RenderOnce, SharedString, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _,
+    App, ElementId, Entity, Focusable as _, FontFeatures, InteractiveElement as _, IntoElement,
+    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 
 use crate::{
     ActiveTheme as _, Disableable, Sizable, Size, StyleSized as _, StyledExt as _,
-    ThemeStyled as _, input::input_style,
+    input::input_style,
 };
 
 use isonomic_ui_base::TimeField as BaseTimeField;
@@ -135,33 +136,49 @@ impl Styled for TimeField {
 
 impl RenderOnce for TimeField {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        // The frame is a field: a hairline ring that firms under the pointer
+        // and steps to a full pixel with the caret in it. Fields show no halo.
+        let (fade, on_hover) = crate::look::tracked_hover(
+            ("time-field-frame", self.state.entity_id()),
+            !self.disabled,
+            window,
+            cx,
+        );
         let focused = self.state.read(cx).focus_handle(cx).is_focused(window);
         let (bg, fg) = input_style(self.disabled, cx);
+        let frame_shadow = crate::look::surface::field_for(
+            fade,
+            focused && !self.disabled,
+            self.invalid,
+            self.disabled,
+            cx,
+        );
 
         div()
+            .id(("time-field-frame", self.state.entity_id()))
             .flex()
             .items_center()
             .flex_none()
             .font_features(tabular_figures())
             .bg(bg)
             .text_color(fg)
-            .border_1()
-            .border_color(cx.theme().input)
-            .rounded(cx.theme().radius)
+            .rounded(if cx.theme().radius > px(0.) {
+                cx.theme().radius + px(1.)
+            } else {
+                px(0.)
+            })
+            .shadow(frame_shadow)
+            .on_hover(on_hover)
             .input_text_size(self.size)
             .input_h(self.size)
-            .when(self.disabled, |this| this.opacity(0.5))
-            .when(focused && !self.disabled, |this| {
-                this.focus_ring_style(window, cx)
-            })
-            .when(self.invalid, |this| this.border_color(cx.theme().danger))
             .child(
                 // The base field fills the frame, so a press anywhere inside it lands on the
                 // field rather than on the frame around it.
                 styled_base_field(self.id, &self.state, self.disabled, cx)
                     .when_some(self.aria_label, |this, label| this.aria_label(label))
                     .size_full()
-                    .px_1(),
+                    // Segments carry 2px of their own: 8 + 2 is a field's 10px inset.
+                    .px_2(),
             )
             .refine_style(&self.style)
     }

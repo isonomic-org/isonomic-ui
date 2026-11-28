@@ -391,6 +391,15 @@ impl RenderOnce for ReviewQueueWorkspace {
                     None => None,
                 };
                 let decided = proposal.decision.is_some();
+                let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                    ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("row-hover-{}", proposal.id).into(),
+                    ),
+                    !is_current,
+                    window,
+                    cx,
+                );
                 h_flex()
                     .id(ElementId::NamedChild(
                         self.id.clone().into(),
@@ -403,7 +412,8 @@ impl RenderOnce for ReviewQueueWorkspace {
                     .cursor_pointer()
                     .when(is_current, |this| this.bg(chip))
                     .when(!is_current, |this| {
-                        this.hover(|style| style.bg(chip.opacity(0.5)))
+                        this.bg(crate::common::faded(chip.opacity(0.5), hover_fade))
+                            .on_hover(hover_on_hover)
                     })
                     .role(Role::ListItem)
                     .aria_label(format!(

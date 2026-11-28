@@ -9,7 +9,7 @@ use gpui::{
     prelude::FluentBuilder as _,
 };
 
-use crate::{ActiveTheme, Icon, IconName, StyledExt, h_flex};
+use crate::{Icon, IconName, StyledExt, TextRole as _, h_flex};
 use isonomic_ui_base::{LayoutDirection, LogicalStyledExt as _, PressableExt as _};
 
 /// A breadcrumb navigation element.
@@ -93,7 +93,22 @@ impl From<SharedString> for BreadcrumbItem {
 }
 
 impl RenderOnce for BreadcrumbItem {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        // Earlier places are muted ink that fades to full under the pointer;
+        // the last one, where you are, is full ink.
+        let clickable = self.on_click.is_some() && !self.disabled && !self.is_last;
+        let (fade, on_hover) = crate::look::tracked_hover(self.id.clone(), clickable, window, cx);
+        let ink = if self.is_last {
+            crate::look::ink::strong(cx)
+        } else if self.disabled {
+            crate::look::ink::subtle(cx)
+        } else {
+            crate::look::mix(
+                crate::look::ink::muted(cx),
+                crate::look::ink::strong(cx),
+                fade,
+            )
+        };
         div()
             .id(self.id)
             .role(if self.on_click.is_some() && !self.disabled {
@@ -108,11 +123,8 @@ impl RenderOnce for BreadcrumbItem {
                 self.label.clone()
             })
             .child(self.label)
-            .text_color(cx.theme().muted_foreground)
-            .when(self.is_last, |this| this.text_color(cx.theme().foreground))
-            .when(self.disabled, |this| {
-                this.text_color(cx.theme().muted_foreground)
-            })
+            .text_color(ink)
+            .on_hover(on_hover)
             .refine_style(&self.style)
             .when(!self.disabled, |this| {
                 this.when_some(self.on_click, |this, on_click| {
@@ -156,7 +168,7 @@ impl RenderOnce for BreadcrumbSeparator {
         } else {
             IconName::ChevronRight
         })
-        .text_color(cx.theme().muted_foreground)
+        .text_color(crate::look::ink::faint(cx))
         .size_3p5()
         .into_any_element()
     }
@@ -186,8 +198,8 @@ impl RenderOnce for Breadcrumb {
         h_flex()
             .flex_row_dir(cx)
             .gap_1p5()
-            .text_sm()
-            .text_color(cx.theme().muted_foreground)
+            .text_body()
+            .text_color(crate::look::ink::muted(cx))
             .refine_style(&self.style)
             .children(children)
     }

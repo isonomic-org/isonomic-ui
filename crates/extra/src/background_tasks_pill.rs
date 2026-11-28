@@ -224,6 +224,28 @@ impl RenderOnce for BackgroundTasksPill {
             .clone();
         let is_focused = focus.is_focused(window);
 
+        let (pill_fade, pill_on_hover) = isonomic_ui::component::look::tracked_hover(
+            ElementId::NamedChild(self.id.clone().into(), "pill-hover".into()),
+            true,
+            window,
+            cx,
+        );
+        let mut task_hovers = self
+            .tasks
+            .iter()
+            .map(|task| {
+                isonomic_ui::component::look::tracked_hover(
+                    ElementId::NamedChild(
+                        self.id.clone().into(),
+                        format!("task-hover-{}", task.id).into(),
+                    ),
+                    true,
+                    window,
+                    cx,
+                )
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
         let spinner = |_: &str| -> AnyElement {
             Spinner::new()
                 .xsmall()
@@ -247,8 +269,12 @@ impl RenderOnce for BackgroundTasksPill {
             } else {
                 tone_color.opacity(0.5)
             })
-            .bg(if open { chip } else { fill })
-            .hover(|style| style.bg(chip))
+            .bg(if open {
+                chip
+            } else {
+                isonomic_ui::component::look::mix(fill, chip, pill_fade)
+            })
+            .on_hover(pill_on_hover)
             .cursor_pointer()
             .text_caption()
             .text_color(ink)
@@ -304,6 +330,8 @@ impl RenderOnce for BackgroundTasksPill {
                             task.state,
                             BackgroundState::Running | BackgroundState::Paused
                         );
+                        let (task_fade, task_on_hover) =
+                            task_hovers.next().expect("one hover per task");
                         v_flex()
                             .id(ElementId::NamedChild(
                                 self.id.clone().into(),
@@ -314,7 +342,8 @@ impl RenderOnce for BackgroundTasksPill {
                             .py_2()
                             .rounded(radius)
                             .cursor_pointer()
-                            .hover(|style| style.bg(chip.opacity(0.6)))
+                            .bg(crate::common::faded(chip.opacity(0.6), task_fade))
+                            .on_hover(task_on_hover)
                             .role(Role::Button)
                             .aria_label(format!("{}, {}", task.label, task.note))
                             .on_click(move |_, window, cx| {

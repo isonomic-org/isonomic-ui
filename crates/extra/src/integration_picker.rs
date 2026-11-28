@@ -289,7 +289,7 @@ impl IntegrationPicker {
 }
 
 impl Render for IntegrationPicker {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -353,10 +353,16 @@ impl Render for IntegrationPicker {
                 })
         };
 
-        let row = |ix: usize, cx: &mut Context<Self>| {
+        let mut row = |ix: usize, cx: &mut Context<Self>| {
             let service = &self.services[ix];
             let is_picked = self.picked.as_ref() == Some(&service.id);
             let id = service.id.clone();
+            let (hover_fade, hover_on_hover) = isonomic_ui::component::look::tracked_hover(
+                ("integration-hover", ix),
+                true,
+                window,
+                cx,
+            );
             h_flex()
                 .id(("integration", ix))
                 .gap_2p5()
@@ -365,7 +371,10 @@ impl Render for IntegrationPicker {
                 .rounded(radius)
                 .cursor_pointer()
                 .when(is_picked, |this| this.bg(chip))
-                .hover(|style| style.bg(chip.opacity(0.6)))
+                .when(!is_picked, |this| {
+                    this.bg(crate::common::faded(chip.opacity(0.6), hover_fade))
+                })
+                .on_hover(hover_on_hover)
                 .on_click(cx.listener(move |this, _, _, cx| {
                     this.picked = Some(id.clone());
                     cx.notify();

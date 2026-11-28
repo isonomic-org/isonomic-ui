@@ -137,6 +137,12 @@ impl RenderOnce for MediaListRow {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let has_handler = self.on_click.is_some();
         let clickable = has_handler && !self.disabled;
+        let (row_fade, row_hover) = isonomic_ui::component::look::tracked_hover(
+            ElementId::NamedChild(self.id.clone().into(), "hover".into()),
+            clickable && !self.picked,
+            window,
+            cx,
+        );
         let focus = clickable.then(|| {
             window
                 .use_keyed_state(
@@ -189,12 +195,15 @@ impl RenderOnce for MediaListRow {
             .when_some(focus, |this, focus| this.track_focus(&focus))
             .when(has_handler, |this| this.pressable(!self.disabled))
             .when(clickable, |this| {
-                this.when(!self.picked, |this| this.hover(move |s| s.bg(hover)))
-                    .on_click(move |event, window, cx| {
-                        if let Some(click) = &click {
-                            click(event, window, cx);
-                        }
-                    })
+                this.when(!self.picked, |this| {
+                    this.bg(crate::common::faded(hover, row_fade))
+                })
+                .on_hover(row_hover)
+                .on_click(move |event, window, cx| {
+                    if let Some(click) = &click {
+                        click(event, window, cx);
+                    }
+                })
             })
             .children(media.map(|m| {
                 div()

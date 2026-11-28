@@ -143,6 +143,8 @@ impl RenderOnce for Rating {
             .flex_row_dir(cx)
             .id(id)
             .flex_nowrap()
+            // Disabled controls sit back at 40%.
+            .when(disabled, |this| this.opacity(0.4))
             .refine_style(&self.style)
             .on_hover(window.listener_for(&state, move |state, hovered, _, cx| {
                 if !hovered && state.hovered_value != 0 {
@@ -161,6 +163,9 @@ impl RenderOnce for Rating {
                             .p_0p5()
                             .flex_none()
                             .flex_shrink_0()
+                            // Empty stars are icon ink; filled and previewed ones
+                            // take the rating colour.
+                            .text_color(crate::look::ink::icon(cx))
                             .when(filled || hovered, |this| this.text_color(active_color))
                             .child(
                                 Icon::new(if filled {
