@@ -119,6 +119,22 @@ fn exposes_accessibility_value(content_type: Option<InputContentType>) -> bool {
     )
 }
 
+/// The fill of an invalid field. Where the usual fill is translucent (dark
+/// themes) it is laid onto the page colour and the resting ring, so the
+/// field looks the same as its neighbours: a translucent fill would let the
+/// danger ring's shadow show through as a red slab instead of an edge.
+pub(crate) fn invalid_fill(cx: &App) -> Hsla {
+    let fill = cx.theme().input_background();
+    if fill.a >= 1. {
+        return fill;
+    }
+    let rest = crate::look::surface::field(cx)
+        .first()
+        .map(|ring| ring.color)
+        .unwrap_or(cx.theme().transparent);
+    cx.theme().background.blend(rest).blend(fill)
+}
+
 /// Returns `(background, foreground)` colors for input-like components.
 pub(crate) fn input_style(disabled: bool, cx: &App) -> (Hsla, Hsla) {
     if disabled {
@@ -785,6 +801,8 @@ impl RenderOnce for Input {
         let (bg, _) = input_style(presentation.is_disabled(), cx);
         let bg = if presentation.is_code_editor() {
             cx.theme().editor_background()
+        } else if self.invalid && !presentation.is_disabled() {
+            invalid_fill(cx)
         } else {
             bg
         };
