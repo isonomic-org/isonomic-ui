@@ -197,6 +197,15 @@ impl TabBar {
         self
     }
 
+    /// Select each tab the arrow, Home or End keys move focus to, as a
+    /// segmented control does, instead of waiting for Enter or Space. The
+    /// switch counts as a keyboard one, so the indicator jumps rather than
+    /// slides. Off by default.
+    pub fn activate_on_focus(mut self, activate: bool) -> Self {
+        self.base = self.base.activate_on_focus(activate);
+        self
+    }
+
     /// Set the on_click callback of the TabBar, the first parameter is the index of the clicked tab.
     ///
     /// When this is set, the children's on_click will be ignored.

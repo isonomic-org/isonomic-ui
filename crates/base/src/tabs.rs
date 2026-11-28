@@ -170,6 +170,7 @@ impl RenderOnce for Tab {
                 focus_handle: handle.clone(),
                 selected: self.selected,
                 disabled,
+                on_click: self.on_click.clone(),
             });
             handle
         });
@@ -225,13 +226,16 @@ impl RenderOnce for Tab {
 /// - Disabled tabs are skipped and never take focus from the keyboard.
 ///
 /// Moving focus does not select: selection follows activation, so a
-/// controlled list never changes behind the application's back.
+/// controlled list never changes behind the application's back. A list built
+/// with [`Tabs::activate_on_focus`] activates each tab the arrows reach
+/// instead, as a segmented control does.
 #[derive(IntoElement)]
 pub struct Tabs {
     id: ElementId,
     base: gpui::Stateful<Div>,
     style: StyleRefinement,
     axis: Axis,
+    activate_on_focus: bool,
     children: SmallVec<[AnyElement; 2]>,
 }
 
@@ -242,6 +246,7 @@ impl Tabs {
             base: div().id(id.clone()),
             style: StyleRefinement::default(),
             axis: Axis::Horizontal,
+            activate_on_focus: false,
             children: SmallVec::new(),
             id,
         }
@@ -251,6 +256,14 @@ impl Tabs {
     /// vertical (Up/Down). Assistive technology hears the same orientation.
     pub fn axis(mut self, axis: Axis) -> Self {
         self.axis = axis;
+        self
+    }
+
+    /// Activate the tab the arrow, Home or End keys move focus to, running
+    /// its click handler as a keyboard click (automatic activation). Off by
+    /// default: focus moves and Enter or Space activates.
+    pub fn activate_on_focus(mut self, activate: bool) -> Self {
+        self.activate_on_focus = activate;
         self
     }
 }
@@ -263,6 +276,7 @@ struct TabEntry {
     focus_handle: FocusHandle,
     selected: bool,
     disabled: bool,
+    on_click: Option<ClickHandler>,
 }
 
 type TabRegistry = Rc<RefCell<Vec<TabEntry>>>;
@@ -387,6 +401,7 @@ enum Step {
 
 fn handle_key_down(
     axis: Axis,
+    activate_on_focus: bool,
     registry: &TabRegistry,
     event: &KeyDownEvent,
     window: &mut Window,
@@ -438,12 +453,25 @@ fn handle_key_down(
                 .find(|&ix| ix < current)
                 .unwrap_or(last),
         };
-        entries[target].focus_handle.clone()
+        (
+            entries[target].focus_handle.clone(),
+            activate_on_focus
+                .then(|| entries[target].on_click.clone())
+                .flatten(),
+        )
     };
+    let (target, activate) = target;
 
     window.focus(&target, cx);
     sync_tab_stops(&registry.borrow(), window, cx);
     cx.stop_propagation();
+    if let Some(activate) = activate {
+        activate(
+            &ClickEvent::Keyboard(gpui::KeyboardClickEvent::default()),
+            window,
+            cx,
+        );
+    }
 }
 
 impl Styled for Tabs {
@@ -473,6 +501,7 @@ impl RenderOnce for Tabs {
             base,
             style,
             axis,
+            activate_on_focus,
             children,
         } = self;
 
@@ -485,7 +514,7 @@ impl RenderOnce for Tabs {
         let key_handler = {
             let registry = registry.clone();
             move |event: &KeyDownEvent, window: &mut Window, cx: &mut App| {
-                handle_key_down(axis, &registry, event, window, cx);
+                handle_key_down(axis, activate_on_focus, &registry, event, window, cx);
             }
         };
 
@@ -679,6 +708,7 @@ mod tests {
         /// Four tabs, the third disabled, between two plain focus stops.
         struct KeyHarness {
             axis: Axis,
+            automatic: bool,
             selected: usize,
             activated: Rc<RefCell<Vec<usize>>>,
             before: FocusHandle,
@@ -704,7 +734,12 @@ mod tests {
                 });
                 div()
                     .child(div().id("before").size(px(10.)).track_focus(&self.before))
-                    .child(Tabs::new("tabs").axis(self.axis).children(tabs))
+                    .child(
+                        Tabs::new("tabs")
+                            .axis(self.axis)
+                            .activate_on_focus(self.automatic)
+                            .children(tabs),
+                    )
                     .child(div().id("after").size(px(10.)).track_focus(&self.after))
             }
         }
@@ -733,6 +768,15 @@ mod tests {
         }
 
         fn fixture(cx: &mut TestAppContext, axis: Axis, selected: usize) -> Fixture<'_> {
+            fixture_with(cx, axis, false, selected)
+        }
+
+        fn fixture_with(
+            cx: &mut TestAppContext,
+            axis: Axis,
+            automatic: bool,
+            selected: usize,
+        ) -> Fixture<'_> {
             let activated: Rc<RefCell<Vec<usize>>> = Rc::default();
             let (view, cx) = cx.add_window_view({
                 let activated = activated.clone();
@@ -741,6 +785,7 @@ mod tests {
                     before.focus(window, cx);
                     KeyHarness {
                         axis,
+                        automatic,
                         selected,
                         activated,
                         before,
@@ -803,6 +848,21 @@ mod tests {
             // A horizontal list ignores the vertical arrows.
             f.cx.simulate_keystrokes("down");
             assert_eq!(f.focused_tab(), Some(1));
+        }
+
+        #[gpui::test]
+        fn automatic_activation_selects_each_tab_the_arrows_reach(cx: &mut TestAppContext) {
+            let f = fixture_with(cx, Axis::Horizontal, true, 0);
+            f.cx.simulate_keystrokes("right");
+            assert_eq!(*f.activated.borrow(), vec![1]);
+            f.cx.run_until_parked();
+            f.cx.simulate_keystrokes("right");
+            assert_eq!(*f.activated.borrow(), vec![1, 3], "skips the disabled tab");
+            f.cx.simulate_keystrokes("home");
+            assert_eq!(*f.activated.borrow(), vec![1, 3, 0]);
+            // A key that moves nothing activates nothing.
+            f.cx.simulate_keystrokes("down");
+            assert_eq!(f.activated.borrow().len(), 3);
         }
 
         #[gpui::test]
