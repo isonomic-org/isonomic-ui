@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Tool server list: the tool servers an assistant is connected to, each with its state, a prompt to sign in or reconnect when it needs one, and a switch per tool.
 //!

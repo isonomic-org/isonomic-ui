@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! File change review: the files a change touches beside their hunks, each hunk kept or reverted, and one action to apply what is kept.
 //!
