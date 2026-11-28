@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Event log with a timeline brush: every event of a run as a dot on a time
 //! track, a brush that narrows the log to a window of time, and the log
