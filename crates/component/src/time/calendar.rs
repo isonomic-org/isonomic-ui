@@ -174,6 +174,11 @@ impl RenderOnce for Calendar {
                     this.text_color(cx.theme().muted_foreground)
                         .when(state.is_disabled(), |this| this.opacity(0.5))
                 })
+                // A month arrow or a month or year past a limit is dimmed
+                // like a day past one.
+                .when(state.is_disabled() && !state.is_muted(), |this| {
+                    this.text_color(cx.theme().muted_foreground).opacity(0.5)
+                })
                 .when(state.is_in_range(), |this| {
                     this.bg(cx.theme().accent)
                         .text_color(cx.theme().accent_foreground)
