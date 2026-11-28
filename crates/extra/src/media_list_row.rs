@@ -9,6 +9,7 @@
 //! Enter or Space opens. The compact form drops the second line's spacing
 //! for dense lists.
 
+use isonomic_ui::base::PressableExt as _;
 use std::rc::Rc;
 
 use isonomic_ui::component::TextRole as _;
@@ -134,7 +135,8 @@ impl Styled for MediaListRow {
 
 impl RenderOnce for MediaListRow {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let clickable = self.on_click.is_some() && !self.disabled;
+        let has_handler = self.on_click.is_some();
+        let clickable = has_handler && !self.disabled;
         let focus = clickable.then(|| {
             window
                 .use_keyed_state(
@@ -185,9 +187,9 @@ impl RenderOnce for MediaListRow {
             .when(self.picked, |this| this.bg(picked_bg))
             .when(self.disabled, |this| this.opacity(0.5))
             .when_some(focus, |this, focus| this.track_focus(&focus))
+            .when(has_handler, |this| this.pressable(!self.disabled))
             .when(clickable, |this| {
-                this.cursor_pointer()
-                    .when(!self.picked, |this| this.hover(move |s| s.bg(hover)))
+                this.when(!self.picked, |this| this.hover(move |s| s.bg(hover)))
                     .on_click(move |event, window, cx| {
                         if let Some(click) = &click {
                             click(event, window, cx);
