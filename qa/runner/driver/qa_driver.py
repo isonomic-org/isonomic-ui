@@ -42,6 +42,7 @@ HERE = Path(__file__).resolve().parent
 QA = HERE.parent.parent  # qa/
 REPO = QA.parent
 STORIES_DIR = Path(os.environ.get("QA_STORIES_DIR", REPO / "crates/gallery/src/stories/extra"))
+SCREENS_DIR = STORIES_DIR.parent / "screens"
 COMPONENTS_DIR = REPO / "crates/extra/src"
 BASE_DIR = REPO / "crates/component/src"
 SCRIPTS_DIR = QA / "scripts"
@@ -413,8 +414,10 @@ STORIES: dict[str, str] = {}
 def stories() -> dict[str, str]:
     """Every story the gallery lists, as slug -> story name, in gallery order.
 
-    The gallery lists its own stories first and then one story per file in
-    `stories/extra`, in file-name order.
+    The gallery lists its own stories first, then one story per file in
+    `stories/extra`, in file-name order, and last one per file in
+    `stories/screens`. Screens are compositions, not components, so they
+    are left out here.
     """
     if STORIES:
         return STORIES
@@ -424,6 +427,8 @@ def stories() -> dict[str, str]:
         log("the QA gallery listed no stories:", r.stderr[-2000:])
         return STORIES
     extra = sorted(p.stem for p in STORIES_DIR.glob("*.rs") if p.stem != "mod")
+    screens = [p for p in SCREENS_DIR.glob("*.rs") if p.stem != "mod"]
+    names = names[: len(names) - len(screens)]
     split = len(names) - len(extra)
     for name in names[:split]:
         STORIES["base-" + slugify(name)] = name

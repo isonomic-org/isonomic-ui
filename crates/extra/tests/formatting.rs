@@ -21,6 +21,7 @@ fn components_and_stories_are_formatted() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut files = rust_files(&root.join("src"));
     files.extend(rust_files(&root.join("../gallery/src/stories/extra")));
+    files.extend(rust_files(&root.join("../gallery/src/stories/screens")));
 
     let output = match Command::new("rustfmt")
         .args(["--edition", "2024", "--check"])
