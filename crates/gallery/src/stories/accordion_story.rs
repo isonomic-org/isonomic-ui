@@ -91,6 +91,7 @@ fn settings_item(
 pub struct AccordionStory {
     open_ixs: Vec<usize>,
     styled_open_ixs: Vec<usize>,
+    always_open_ixs: Vec<usize>,
     size: Size,
     bordered: bool,
     disabled: bool,
@@ -123,6 +124,7 @@ impl AccordionStory {
             bordered: false,
             open_ixs: vec![0],
             styled_open_ixs: vec![0],
+            always_open_ixs: vec![1],
             size: Size::default(),
             disabled: false,
             multiple: false,
@@ -258,6 +260,42 @@ impl Render for AccordionStory {
                                         this.toggle_accordion(open_ixs.to_vec(), window, cx);
                                     },
                                 )),
+                        ),
+                    ),
+            )
+            .child(
+                section("Always one open")
+                    .description(
+                        "A one-at-a-time accordion that is not collapsible: pressing the open \
+                         item keeps it open; another one swaps in.",
+                    )
+                    .child(
+                        div().w(px(480.)).child(
+                            Accordion::new("always-open")
+                                .with_size(self.size)
+                                .collapsible(false)
+                                .disabled(self.disabled)
+                                .item(|this| {
+                                    this.open(self.always_open_ixs.contains(&0))
+                                        .title("Monthly plan")
+                                        .child(
+                                            "Billed on the first of each month. Cancel any time.",
+                                        )
+                                })
+                                .item(|this| {
+                                    this.open(self.always_open_ixs.contains(&1))
+                                        .title("Yearly plan")
+                                        .child("Two months free, billed once a year in January.")
+                                })
+                                .item(|this| {
+                                    this.open(self.always_open_ixs.contains(&2))
+                                        .title("Pay as you go")
+                                        .child("Each invoice is billed on the day it is sent.")
+                                })
+                                .on_toggle_click(cx.listener(|this, open: &[usize], _, cx| {
+                                    this.always_open_ixs = open.to_vec();
+                                    cx.notify();
+                                })),
                         ),
                     ),
             )

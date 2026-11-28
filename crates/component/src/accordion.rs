@@ -26,6 +26,7 @@ pub struct Accordion {
     size: Size,
     bordered: bool,
     disabled: bool,
+    collapsible: bool,
     children: Vec<AccordionItem>,
     on_toggle_click: Option<Rc<dyn Fn(&[usize], &mut Window, &mut App)>>,
 }
@@ -41,8 +42,17 @@ impl Accordion {
             bordered: true,
             children: Vec::new(),
             disabled: false,
+            collapsible: true,
             on_toggle_click: None,
         }
+    }
+
+    /// Set whether the open item of a one-at-a-time accordion can be closed
+    /// again, leaving every item shut, default: true. With `false` one item
+    /// always stays open: pressing it does nothing, opening another swaps.
+    pub fn collapsible(mut self, collapsible: bool) -> Self {
+        self.collapsible = collapsible;
+        self
     }
 
     /// Set whether multiple accordion items can be opened simultaneously, default: false
@@ -102,6 +112,7 @@ impl RenderOnce for Accordion {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let open_indices = Rc::new(RefCell::new(HashSet::new()));
         let multiple = self.multiple;
+        let collapsible = self.collapsible;
         let last_ix = self.children.len().saturating_sub(1);
         // The group reports its open items from each trigger, not from a
         // click on the group, so the group itself is not something to press.
@@ -143,15 +154,20 @@ impl RenderOnce for Accordion {
                                 move |open, window, cx| {
                                     let open_now = {
                                         let mut open_indices = open_indices.borrow_mut();
-                                        if *open {
-                                            if !multiple {
-                                                open_indices.clear();
-                                            }
-                                            open_indices.insert(ix);
-                                        } else {
-                                            open_indices.remove(&ix);
-                                        }
-                                        open_indices.iter().copied().collect::<Vec<_>>()
+                                        let mut current =
+                                            open_indices.iter().copied().collect::<Vec<_>>();
+                                        current.sort_unstable();
+                                        let Some(next) = next_open_items(
+                                            &current,
+                                            ix,
+                                            *open,
+                                            multiple,
+                                            collapsible,
+                                        ) else {
+                                            return;
+                                        };
+                                        *open_indices = next.iter().copied().collect();
+                                        next
                                     };
                                     if let Some(on_toggle) = &on_toggle {
                                         on_toggle(&open_now, window, cx);
@@ -161,6 +177,31 @@ impl RenderOnce for Accordion {
                     }),
             )
     }
+}
+
+/// The items open after item `ix` asks to open (`opening`) or close, in
+/// ascending order. `None` when the press changes nothing: the last open item
+/// of a one-at-a-time accordion that is not collapsible.
+pub fn next_open_items(
+    open: &[usize],
+    ix: usize,
+    opening: bool,
+    multiple: bool,
+    collapsible: bool,
+) -> Option<Vec<usize>> {
+    let mut next: Vec<usize> = if opening {
+        let mut next = if multiple { open.to_vec() } else { Vec::new() };
+        next.push(ix);
+        next
+    } else {
+        if !multiple && !collapsible && open == [ix] {
+            return None;
+        }
+        open.iter().copied().filter(|open| *open != ix).collect()
+    };
+    next.sort_unstable();
+    next.dedup();
+    Some(next)
 }
 
 /// An Accordion is a vertically stacked list of items, each of which can be expanded to reveal the content associated with it.
@@ -364,7 +405,8 @@ impl RenderOnce for AccordionItem {
                         .xsmall()
                         .flex_none()
                         .text_color(cx.theme().muted_foreground)
-                        .rotate(percentage(if self.open { 0.5 } else { 0. })),
+                        // Turns with the panel's reveal rather than snapping.
+                        .rotate(percentage(0.5 * progress.clamp(0., 1.))),
                 )
                 .when_some(self.on_toggle_click, |this, on_toggle_click| {
                     this.on_change(move |open, _, window, cx| {
@@ -432,6 +474,30 @@ mod tests {
     use gpui::{Context, Render, TestAppContext, div, px};
 
     use super::*;
+
+    #[test]
+    fn one_at_a_time_opening_replaces_the_open_item() {
+        assert_eq!(next_open_items(&[0], 2, true, false, true), Some(vec![2]));
+        assert_eq!(next_open_items(&[], 1, true, false, false), Some(vec![1]));
+    }
+
+    #[test]
+    fn multiple_opening_adds_and_closing_removes() {
+        assert_eq!(next_open_items(&[0], 2, true, true, true), Some(vec![0, 2]));
+        assert_eq!(
+            next_open_items(&[0, 2], 0, false, true, true),
+            Some(vec![2])
+        );
+        assert_eq!(next_open_items(&[2], 2, true, true, true), Some(vec![2]));
+    }
+
+    #[test]
+    fn a_non_collapsible_accordion_keeps_its_last_item_open() {
+        assert_eq!(next_open_items(&[1], 1, false, false, false), None);
+        assert_eq!(next_open_items(&[1], 1, false, false, true), Some(vec![]));
+        // Multiple accordions ignore the setting.
+        assert_eq!(next_open_items(&[1], 1, false, true, false), Some(vec![]));
+    }
 
     #[test]
     fn plain_text_titles_name_the_trigger() {
