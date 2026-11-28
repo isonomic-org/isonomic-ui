@@ -7,12 +7,17 @@
 //! "mod" means Command on a Mac and Ctrl elsewhere and a space separates
 //! the steps of a sequence. Each step shows as key caps; a screen reader
 //! hears it in words, such as "Command K, then P".
+//!
+//! Caps are the base key cap. A joined hint puts each step in one cap, the
+//! way a menu writes it: "⌘⇧P" on a Mac, "Ctrl+Shift+P" elsewhere. The
+//! platform defaults to the one the build runs on and can be set, so a
+//! settings page can show each platform's keys side by side.
 
 use isonomic_ui::component::TextRole as _;
-use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex};
+use isonomic_ui::component::{ActiveTheme as _, StyledExt as _, h_flex, kbd::Kbd};
 use isonomic_ui::{
     App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce, Role,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div, px,
+    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
 };
 
 /// Which platform's way of writing keys to use.
@@ -22,6 +27,10 @@ pub enum KeyPlatform {
     Mac,
     /// Words such as Ctrl and Alt.
     Other,
+    /// Words, with the system key written Win.
+    Windows,
+    /// Words, with the system key written Super.
+    Linux,
 }
 
 impl KeyPlatform {
@@ -29,9 +38,17 @@ impl KeyPlatform {
     pub fn current() -> Self {
         if cfg!(target_os = "macos") {
             Self::Mac
+        } else if cfg!(target_os = "windows") {
+            Self::Windows
         } else {
-            Self::Other
+            Self::Linux
         }
+    }
+
+    /// What joins the keys of one step in a joined hint: nothing on a Mac,
+    /// "+" elsewhere.
+    pub fn joiner(self) -> &'static str {
+        if self == Self::Mac { "" } else { "+" }
     }
 }
 
@@ -60,6 +77,11 @@ pub fn key_cap(key: &str, platform: KeyPlatform) -> (String, String) {
                 ("Alt", "Alt")
             }
         }
+        "super" | "win" | "meta" => match platform {
+            KeyPlatform::Mac => ("\u{2318}", "Command"),
+            KeyPlatform::Linux => ("Super", "Super"),
+            KeyPlatform::Windows | KeyPlatform::Other => ("Win", "Windows"),
+        },
         "shift" => {
             if mac {
                 ("\u{21e7}", "Shift")
@@ -95,6 +117,15 @@ pub fn parse_shortcut(shortcut: &str) -> Vec<Vec<String>> {
         .collect()
 }
 
+/// One step's keys as a single joined label, such as "⌘⇧P" or
+/// "Ctrl+Shift+P".
+pub fn joined_step(step: &[String], platform: KeyPlatform) -> String {
+    step.iter()
+        .map(|k| key_cap(k, platform).0)
+        .collect::<Vec<_>>()
+        .join(platform.joiner())
+}
+
 /// A shortcut in words, such as "Command K, then P".
 pub fn spoken_shortcut(shortcut: &str, platform: KeyPlatform) -> String {
     parse_shortcut(shortcut)
@@ -116,6 +147,7 @@ pub struct ShortcutKeys {
     style: StyleRefinement,
     shortcuts: Vec<SharedString>,
     platform: KeyPlatform,
+    joined: bool,
 }
 
 impl ShortcutKeys {
@@ -126,7 +158,16 @@ impl ShortcutKeys {
             style: StyleRefinement::default(),
             shortcuts: vec![shortcut.into()],
             platform: KeyPlatform::current(),
+            joined: false,
         }
+    }
+
+    /// Put each step's keys in one cap, the way a menu writes a shortcut:
+    /// "⌘⇧P" on a Mac, "Ctrl+Shift+P" elsewhere. Off by default: one cap
+    /// per key.
+    pub fn joined(mut self, joined: bool) -> Self {
+        self.joined = joined;
+        self
     }
 
     /// Add another way to do the same thing.
@@ -150,11 +191,9 @@ impl Styled for ShortcutKeys {
 
 impl RenderOnce for ShortcutKeys {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
-        let theme = cx.theme();
-        let quiet = theme.muted_foreground;
-        let line = theme.border;
-        let chip = theme.muted;
+        let quiet = cx.theme().muted_foreground;
         let platform = self.platform;
+        let joined = self.joined;
         let spoken = self
             .shortcuts
             .iter()
@@ -184,25 +223,31 @@ impl RenderOnce for ShortcutKeys {
                             .into_any_element(),
                     );
                 }
+                let spoken_step = step
+                    .iter()
+                    .map(|k| key_cap(k, platform).1)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let caps: Vec<Kbd> = if joined {
+                    vec![Kbd::text(joined_step(step, platform), spoken_step)]
+                } else {
+                    step.iter()
+                        .map(|k| {
+                            let (cap, word) = key_cap(k, platform);
+                            Kbd::text(cap, word)
+                        })
+                        .collect()
+                };
+                // Each step is its own id scope, so a key used in two steps
+                // ("mod-k mod-p") names two distinct caps.
                 parts.push(
                     h_flex()
+                        .id(ElementId::NamedChild(
+                            self.id.clone().into(),
+                            format!("step-{alt}-{ix}").into(),
+                        ))
                         .gap_0p5()
-                        .children(step.iter().map(|k| {
-                            div()
-                                .min_w(px(20.))
-                                .h(px(20.))
-                                .px_1()
-                                .flex()
-                                .items_center()
-                                .justify_center()
-                                .rounded(px(4.))
-                                .border_1()
-                                .border_b_2()
-                                .border_color(line)
-                                .bg(chip.opacity(0.5))
-                                .text_label_small()
-                                .child(key_cap(k, platform).0)
-                        }))
+                        .children(caps)
                         .into_any_element(),
                 );
             }
@@ -221,6 +266,31 @@ impl RenderOnce for ShortcutKeys {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn joined_steps_follow_the_platform() {
+        let step = parse_shortcut("mod-shift-p").remove(0);
+        assert_eq!(joined_step(&step, KeyPlatform::Mac), "\u{2318}\u{21e7}P");
+        assert_eq!(joined_step(&step, KeyPlatform::Windows), "Ctrl+Shift+P");
+        assert_eq!(joined_step(&step, KeyPlatform::Other), "Ctrl+Shift+P");
+    }
+
+    #[test]
+    fn the_system_key_is_named_per_platform() {
+        assert_eq!(key_cap("super", KeyPlatform::Mac).0, "\u{2318}");
+        assert_eq!(
+            key_cap("super", KeyPlatform::Windows),
+            ("Win".into(), "Windows".into())
+        );
+        assert_eq!(
+            key_cap("win", KeyPlatform::Linux),
+            ("Super".into(), "Super".into())
+        );
+        assert_eq!(
+            spoken_shortcut("super-l", KeyPlatform::Windows),
+            "Windows L"
+        );
+    }
 
     #[test]
     fn shortcuts_read_per_platform() {

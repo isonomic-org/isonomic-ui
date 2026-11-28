@@ -19,6 +19,8 @@ pub struct Kbd {
     stroke: Keystroke,
     appearance: bool,
     outline: bool,
+    platform: Option<KeyPlatform>,
+    text: Option<SharedString>,
 }
 
 impl From<Keystroke> for Kbd {
@@ -28,6 +30,8 @@ impl From<Keystroke> for Kbd {
             stroke,
             appearance: true,
             outline: false,
+            platform: None,
+            text: None,
         }
     }
 }
@@ -40,6 +44,49 @@ impl Kbd {
             stroke,
             appearance: true,
             outline: false,
+            platform: None,
+            text: None,
+        }
+    }
+
+    /// A key cap holding `text` as it is, such as "⌘" or "Ctrl", for a key
+    /// written outside a [`Keystroke`]. `spoken` is what a screen reader says.
+    pub fn text(text: impl Into<SharedString>, spoken: impl Into<SharedString>) -> Self {
+        let spoken = spoken.into();
+        Self {
+            style: StyleRefinement::default(),
+            stroke: Keystroke {
+                key: spoken.to_string(),
+                ..Keystroke::default()
+            },
+            appearance: true,
+            outline: false,
+            platform: None,
+            text: Some(text.into()),
+        }
+    }
+
+    /// Write the keys the way `platform` does, rather than the platform this
+    /// build runs on. A settings page can show a shortcut for each platform.
+    pub fn platform(mut self, platform: KeyPlatform) -> Self {
+        self.platform = Some(platform);
+        self
+    }
+
+    /// What this cap shows.
+    fn label(&self) -> String {
+        match &self.text {
+            Some(text) => text.to_string(),
+            None => Self::format_for(&self.stroke, self.platform.unwrap_or(KeyPlatform::legacy())),
+        }
+    }
+
+    /// What a screen reader says for this cap.
+    fn spoken(&self) -> String {
+        match (&self.text, self.platform) {
+            (Some(_), _) => self.stroke.key.clone(),
+            (None, Some(platform)) => spoken_keystroke_for(&self.stroke, platform),
+            (None, None) => spoken_keystroke(&self.stroke, cfg!(target_os = "macos")),
         }
     }
 
@@ -106,126 +153,118 @@ impl Kbd {
 
     /// Return the Platform specific keybinding string by KeyStroke
     ///
-    /// macOS: https://support.apple.com/en-us/HT201236
-    /// Windows: https://support.microsoft.com/en-us/windows/keyboard-shortcuts-in-windows-dcc61a57-8ff0-cffe-9796-cb9706c75eec
+    /// macOS writes modifiers as symbols run together (⌃⌥⇧⌘); other platforms
+    /// write words joined by "+" (Ctrl+Alt+Shift+Win).
     pub fn format(key: &Keystroke) -> String {
-        #[cfg(target_os = "macos")]
-        const SEPARATOR: &str = "";
-        #[cfg(not(target_os = "macos"))]
-        const SEPARATOR: &str = "+";
+        Self::format_for(key, KeyPlatform::legacy())
+    }
 
-        let mut parts = vec![];
+    /// The keystroke written the way `platform` writes it, whatever this build
+    /// runs on: "⌘⇧P" for [`KeyPlatform::Mac`], "Ctrl+Shift+P" elsewhere, with
+    /// the platform key as "Win" on Windows and "Super" on Linux.
+    pub fn format_for(key: &Keystroke, platform: KeyPlatform) -> String {
+        let mac = platform == KeyPlatform::Mac;
+        let separator = if mac { "" } else { "+" };
+        let platform_key = match platform {
+            KeyPlatform::Mac => "⌘",
+            KeyPlatform::Windows => "Win",
+            KeyPlatform::Linux => "Super",
+        };
+        let pick = |mac_text: &'static str, other: &'static str| if mac { mac_text } else { other };
 
         // The key map order in macOS is: ⌃⌥⇧⌘
         // And in Windows is: Ctrl+Alt+Shift+Win
-
+        let mut parts: Vec<String> = vec![];
         if key.modifiers.control {
-            #[cfg(target_os = "macos")]
-            parts.push("⌃");
-
-            #[cfg(not(target_os = "macos"))]
-            parts.push("Ctrl");
+            parts.push(pick("⌃", "Ctrl").into());
         }
-
         if key.modifiers.alt {
-            #[cfg(target_os = "macos")]
-            parts.push("⌥");
-
-            #[cfg(not(target_os = "macos"))]
-            parts.push("Alt");
+            parts.push(pick("⌥", "Alt").into());
         }
-
         if key.modifiers.shift {
-            #[cfg(target_os = "macos")]
-            parts.push("⇧");
-
-            #[cfg(not(target_os = "macos"))]
-            parts.push("Shift");
+            parts.push(pick("⇧", "Shift").into());
         }
-
         if key.modifiers.platform {
-            #[cfg(target_os = "macos")]
-            parts.push("⌘");
-
-            #[cfg(not(target_os = "macos"))]
-            parts.push("Win");
+            parts.push(platform_key.into());
         }
 
-        let mut keys = String::new();
         let key_str = key.key.as_str();
-        match key_str {
-            #[cfg(target_os = "macos")]
-            "ctrl" => keys.push('⌃'),
-            #[cfg(not(target_os = "macos"))]
-            "ctrl" => keys.push_str("Ctrl"),
-            #[cfg(target_os = "macos")]
-            "alt" => keys.push('⌥'),
-            #[cfg(not(target_os = "macos"))]
-            "alt" => keys.push_str("Alt"),
-            #[cfg(target_os = "macos")]
-            "shift" => keys.push('⇧'),
-            #[cfg(not(target_os = "macos"))]
-            "shift" => keys.push_str("Shift"),
-            #[cfg(target_os = "macos")]
-            "cmd" => keys.push('⌘'),
-            #[cfg(not(target_os = "macos"))]
-            "cmd" => keys.push_str("Win"),
-            #[cfg(target_os = "macos")]
-            "space" => keys.push_str("Space"),
-            #[cfg(target_os = "macos")]
-            "backspace" => keys.push('⌫'),
-            #[cfg(not(target_os = "macos"))]
-            "backspace" => keys.push_str("Backspace"),
-            #[cfg(target_os = "macos")]
-            "delete" => keys.push('⌫'),
-            #[cfg(not(target_os = "macos"))]
-            "delete" => keys.push_str("Delete"),
-            #[cfg(target_os = "macos")]
-            "escape" => keys.push('⎋'),
-            #[cfg(not(target_os = "macos"))]
-            "escape" => keys.push_str("Esc"),
-            #[cfg(target_os = "macos")]
-            "enter" => keys.push('⏎'),
-            #[cfg(not(target_os = "macos"))]
-            "enter" => keys.push_str("Enter"),
-            "pagedown" => keys.push_str("Page Down"),
-            "pageup" => keys.push_str("Page Up"),
-            #[cfg(target_os = "macos")]
-            "left" => keys.push('←'),
-            #[cfg(not(target_os = "macos"))]
-            "left" => keys.push_str("Left"),
-            #[cfg(target_os = "macos")]
-            "right" => keys.push('→'),
-            #[cfg(not(target_os = "macos"))]
-            "right" => keys.push_str("Right"),
-            #[cfg(target_os = "macos")]
-            "up" => keys.push('↑'),
-            #[cfg(not(target_os = "macos"))]
-            "up" => keys.push_str("Up"),
-            #[cfg(target_os = "macos")]
-            "down" => keys.push('↓'),
-            #[cfg(not(target_os = "macos"))]
-            "down" => keys.push_str("Down"),
+        let keys: String = match key_str {
+            "ctrl" => pick("⌃", "Ctrl").into(),
+            "alt" => pick("⌥", "Alt").into(),
+            "shift" => pick("⇧", "Shift").into(),
+            "cmd" => platform_key.into(),
+            "space" => "Space".into(),
+            "backspace" => pick("⌫", "Backspace").into(),
+            "delete" => pick("⌫", "Delete").into(),
+            "escape" => pick("⎋", "Esc").into(),
+            "enter" => pick("⏎", "Enter").into(),
+            "pagedown" => "Page Down".into(),
+            "pageup" => "Page Up".into(),
+            "left" => pick("←", "Left").into(),
+            "right" => pick("→", "Right").into(),
+            "up" => pick("↑", "Up").into(),
+            "down" => pick("↓", "Down").into(),
             _ => {
                 if key_str.len() == 1 {
-                    keys.push_str(&key_str.to_uppercase());
+                    key_str.to_uppercase()
                 } else {
                     let mut chars = key_str.chars();
-                    if let Some(first_char) = chars.next() {
-                        keys.push_str(&format!(
-                            "{}{}",
-                            first_char.to_uppercase(),
-                            chars.collect::<String>()
-                        ));
-                    } else {
-                        keys.push_str(&key_str);
+                    match chars.next() {
+                        Some(first_char) => {
+                            format!("{}{}", first_char.to_uppercase(), chars.collect::<String>())
+                        }
+                        None => key_str.to_string(),
                     }
                 }
             }
-        }
+        };
 
-        parts.push(&keys);
-        parts.join(SEPARATOR)
+        parts.push(keys);
+        parts.join(separator)
+    }
+}
+
+/// Which platform's way of writing keys a [`Kbd`] follows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyPlatform {
+    /// Symbols run together: ⌃⌥⇧⌘.
+    Mac,
+    /// Words joined by "+", the platform key written "Win".
+    Windows,
+    /// Words joined by "+", the platform key written "Super".
+    Linux,
+}
+
+impl KeyPlatform {
+    /// The platform this build runs on.
+    pub fn current() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::Mac
+        } else if cfg!(target_os = "windows") {
+            Self::Windows
+        } else {
+            Self::Linux
+        }
+    }
+
+    /// What [`Kbd::format`] has always written: the Mac's symbols on a Mac,
+    /// the Windows words everywhere else.
+    fn legacy() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::Mac
+        } else {
+            Self::Windows
+        }
+    }
+
+    /// The word a screen reader says for the platform key.
+    fn platform_key_word(self) -> &'static str {
+        match self {
+            Self::Mac => "Command",
+            Self::Windows => "Windows",
+            Self::Linux => "Super",
+        }
     }
 }
 
@@ -249,7 +288,44 @@ pub fn spoken_keystroke(stroke: &Keystroke, mac: bool) -> String {
     if m.platform {
         words.push(if mac { "Command" } else { "Super" }.into());
     }
-    let key = match stroke.key.as_str() {
+    words.push(spoken_key(&stroke.key));
+    words.join(" ")
+}
+
+/// A keystroke in words the way `platform` names its keys: "Option" and
+/// "Command" on a Mac, "Alt" and "Windows" or "Super" elsewhere.
+pub fn spoken_keystroke_for(stroke: &Keystroke, platform: KeyPlatform) -> String {
+    let m = &stroke.modifiers;
+    let mut words: Vec<String> = Vec::new();
+    if m.function {
+        words.push("Function".into());
+    }
+    if m.control {
+        words.push("Control".into());
+    }
+    if m.alt {
+        words.push(
+            if platform == KeyPlatform::Mac {
+                "Option"
+            } else {
+                "Alt"
+            }
+            .into(),
+        );
+    }
+    if m.shift {
+        words.push("Shift".into());
+    }
+    if m.platform {
+        words.push(platform.platform_key_word().into());
+    }
+    words.push(spoken_key(&stroke.key));
+    words.join(" ")
+}
+
+/// A key's own name in words.
+fn spoken_key(key: &str) -> String {
+    match key {
         "enter" => "Enter".to_string(),
         "escape" => "Escape".to_string(),
         "backspace" => "Backspace".to_string(),
@@ -270,9 +346,7 @@ pub fn spoken_keystroke(stroke: &Keystroke, mac: bool) -> String {
         "." => "Period".to_string(),
         "/" => "Slash".to_string(),
         other => other.to_uppercase(),
-    };
-    words.push(key);
-    words.join(" ")
+    }
 }
 
 impl Styled for Kbd {
@@ -283,11 +357,12 @@ impl Styled for Kbd {
 
 impl RenderOnce for Kbd {
     fn render(self, _: &mut gpui::Window, cx: &mut gpui::App) -> impl gpui::IntoElement {
+        let label = self.label();
         if !self.appearance {
-            return Self::format(&self.stroke).into_any_element();
+            return label.into_any_element();
         }
 
-        let spoken = spoken_keystroke(&self.stroke, cfg!(target_os = "macos"));
+        let spoken = self.spoken();
         div()
             // Lets a test ask whether a given shortcut hint was painted this
             // frame; a no-op outside test-support builds.
@@ -350,19 +425,73 @@ impl RenderOnce for Kbd {
             .whitespace_normal()
             .flex_shrink_0()
             .refine_style(&self.style)
-            .child(Self::format(&self.stroke))
-            .test_text(Self::format(&self.stroke))
+            .child(label.clone())
+            .test_text(label)
             .into_any_element()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::{Kbd, KeyPlatform, spoken_keystroke_for};
+    use gpui::Keystroke;
+
+    fn key(text: &'static str) -> Keystroke {
+        Keystroke::parse(text).unwrap()
+    }
+
+    #[test]
+    fn every_platform_writes_its_own_keys_on_any_build() {
+        assert_eq!(
+            Kbd::format_for(&key("cmd-shift-p"), KeyPlatform::Mac),
+            "⇧⌘P"
+        );
+        assert_eq!(
+            Kbd::format_for(&key("cmd-shift-p"), KeyPlatform::Windows),
+            "Shift+Win+P"
+        );
+        assert_eq!(
+            Kbd::format_for(&key("cmd-shift-p"), KeyPlatform::Linux),
+            "Shift+Super+P"
+        );
+        assert_eq!(Kbd::format_for(&key("ctrl-alt-a"), KeyPlatform::Mac), "⌃⌥A");
+        assert_eq!(
+            Kbd::format_for(&key("ctrl-alt-a"), KeyPlatform::Linux),
+            "Ctrl+Alt+A"
+        );
+        assert_eq!(Kbd::format_for(&key("escape"), KeyPlatform::Mac), "⎋");
+        assert_eq!(Kbd::format_for(&key("escape"), KeyPlatform::Windows), "Esc");
+        assert_eq!(Kbd::format_for(&key("f12"), KeyPlatform::Mac), "F12");
+    }
+
+    #[test]
+    fn spoken_keys_follow_the_platform() {
+        assert_eq!(
+            spoken_keystroke_for(&key("cmd-alt-k"), KeyPlatform::Mac),
+            "Option Command K"
+        );
+        assert_eq!(
+            spoken_keystroke_for(&key("cmd-alt-k"), KeyPlatform::Windows),
+            "Alt Windows K"
+        );
+        assert_eq!(
+            spoken_keystroke_for(&key("ctrl-pagedown"), KeyPlatform::Linux),
+            "Control Page Down"
+        );
+    }
+
+    #[test]
+    fn a_text_cap_shows_and_says_its_own_words() {
+        let cap = Kbd::text("⌘", "Command");
+        assert_eq!(cap.label(), "⌘");
+        assert_eq!(cap.spoken(), "Command");
+        let cap = Kbd::new(key("cmd-k")).platform(KeyPlatform::Windows);
+        assert_eq!(cap.label(), "Win+K");
+        assert_eq!(cap.spoken(), "Windows K");
+    }
+
     #[test]
     fn test_format() {
-        use super::Kbd;
-        use gpui::Keystroke;
-
         if cfg!(target_os = "macos") {
             assert_eq!(Kbd::format(&Keystroke::parse("cmd-a").unwrap()), "⌘A");
             assert_eq!(
