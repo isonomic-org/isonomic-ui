@@ -131,6 +131,7 @@ pub struct Popover {
     mouse_button: MouseButton,
     appearance: bool,
     overlay_closable: bool,
+    trap_focus: bool,
     on_open_change: Option<Rc<dyn Fn(&bool, &mut Window, &mut App)>>,
 }
 
@@ -151,10 +152,19 @@ impl Popover {
             mouse_button: MouseButton::Left,
             appearance: true,
             overlay_closable: true,
+            trap_focus: false,
             default_open: false,
             open: None,
             on_open_change: None,
         }
+    }
+
+    /// Keep Tab and Shift-Tab inside the open popover, cycling through its
+    /// controls, for a popover that holds a small form. Off by default.
+    /// Escape still closes it and gives focus back to the trigger.
+    pub fn keep_focus_inside(mut self, keep: bool) -> Self {
+        self.trap_focus = keep;
+        self
     }
 
     /// Set the anchor corner of the popover, default is [`Anchor::TopLeft`].
@@ -346,6 +356,13 @@ impl RenderOnce for Popover {
         let children = self.children;
         let content = self.content;
         let trigger_style = self.trigger_style;
+        let trap_focus = self.trap_focus;
+        // It grows out of its trigger: it starts nudged toward the trigger
+        // and fades in as it settles, with its shadow held back until the
+        // panel is opaque enough to cover it.
+        let (enter_x, enter_y) = popover_enter_offset(anchor);
+        let enter_ring = ring;
+        let reduce_motion = cx.reduce_motion();
 
         BasePopover::new(self.id)
             .anchor(self.anchor)
@@ -354,6 +371,7 @@ impl RenderOnce for Popover {
             .mouse_button(self.mouse_button)
             .default_open(self.default_open)
             .overlay_closable(self.overlay_closable)
+            .trap_focus(trap_focus)
             .content(move |state, window, cx| {
                 v_flex()
                     .id("content")
@@ -408,6 +426,21 @@ impl RenderOnce for Popover {
                             .size_full(),
                         )
                     })
+                    .with_animation(
+                        "popover-enter",
+                        Animation::new(POPOVER_ENTER_DURATION).with_easing(ease_out_cubic),
+                        move |surface, delta| {
+                            let delta = if reduce_motion { 1. } else { delta };
+                            let rest = 1. - delta;
+                            surface
+                                .left(enter_x * rest)
+                                .top(enter_y * rest)
+                                .opacity(delta)
+                                .when(appearance, |this| {
+                                    this.shadow(popover_shadow(enter_ring, delta * delta * delta))
+                                })
+                        },
+                    )
             })
             .when_some(self.trigger, |this, trigger| this.trigger_with(trigger))
             .when_some(trigger_style, |this, style| this.refine_style(&style))
@@ -419,6 +452,22 @@ impl RenderOnce for Popover {
                 this.on_open_change(move |open, window, cx| callback(open, window, cx))
             })
             .into_any_element()
+    }
+}
+
+/// How long a popover takes to grow out of its trigger.
+const POPOVER_ENTER_DURATION: Duration = Duration::from_millis(160);
+
+/// Where a popover starts, relative to where it settles: 4px toward its
+/// trigger. One that opens below its trigger starts higher, one that opens to
+/// the right starts further left.
+fn popover_enter_offset(anchor: Anchor) -> (Pixels, Pixels) {
+    let rise = px(4.);
+    match arrow_anchor(anchor, Bounds::default()).0 {
+        Placement::Bottom => (px(0.), -rise),
+        Placement::Top => (px(0.), rise),
+        Placement::Right => (-rise, px(0.)),
+        Placement::Left => (rise, px(0.)),
     }
 }
 
@@ -506,6 +555,18 @@ mod tests {
     use gpui::{Bounds, Context, MouseButton, Point, Render, div, point, px, size};
     use isonomic_ui_base::Popup as BasePopup;
     use std::{cell::RefCell, rc::Rc};
+
+    #[test]
+    fn a_popover_grows_out_of_its_trigger() {
+        // Opening below the trigger, it starts higher and settles down.
+        assert_eq!(popover_enter_offset(Anchor::TopLeft), (px(0.), px(-4.)));
+        assert_eq!(popover_enter_offset(Anchor::TopRight), (px(0.), px(-4.)));
+        // Opening above, it starts lower and settles up.
+        assert_eq!(popover_enter_offset(Anchor::BottomCenter), (px(0.), px(4.)));
+        // Opening to the right, it starts further left.
+        assert_eq!(popover_enter_offset(Anchor::LeftCenter), (px(-4.), px(0.)));
+        assert_eq!(popover_enter_offset(Anchor::RightCenter), (px(4.), px(0.)));
+    }
 
     #[test]
     fn test_popover_builder_chaining() {
@@ -601,6 +662,8 @@ mod tests {
 
     #[gpui::test]
     fn anchor_and_offset_position_the_surface_on_each_trigger_edge(cx: &mut gpui::TestAppContext) {
+        // These measure where the surface rests, not where it grows from.
+        cx.update(|cx| cx.set_reduce_motion(true));
         cx.update(crate::init);
         let (view, window) = cx.add_window_view(|_, _| AnchorHarness {
             anchor: Anchor::TopLeft,
@@ -692,6 +755,8 @@ mod tests {
     /// resolve against a container that only wraps its content.
     #[gpui::test]
     fn trigger_style_is_applied_to_the_trigger_container(cx: &mut gpui::TestAppContext) {
+        // These measure where the surface rests, not where it grows from.
+        cx.update(|cx| cx.set_reduce_motion(true));
         cx.update(crate::init);
         let (view, window) = cx.add_window_view(|_, _| TriggerStyleHarness { styled: false });
         window.update(|window, cx| crate::test_redraw(window, cx));
@@ -721,6 +786,8 @@ mod tests {
 
     #[gpui::test]
     fn arrow_reserves_space_without_changing_anchor_alignment(cx: &mut gpui::TestAppContext) {
+        // These measure where the surface rests, not where it grows from.
+        cx.update(|cx| cx.set_reduce_motion(true));
         cx.update(crate::init);
         let (view, window) = cx.add_window_view(|_, _| AnchorHarness {
             anchor: Anchor::TopLeft,
@@ -751,6 +818,8 @@ mod tests {
 
     #[gpui::test]
     fn anchor_does_not_flip_when_offset_or_arrow_is_enabled(cx: &mut gpui::TestAppContext) {
+        // These measure where the surface rests, not where it grows from.
+        cx.update(|cx| cx.set_reduce_motion(true));
         cx.update(crate::init);
         let (_, window) = cx.add_window_view(|_, _| AnchorHarness {
             anchor: Anchor::BottomCenter,

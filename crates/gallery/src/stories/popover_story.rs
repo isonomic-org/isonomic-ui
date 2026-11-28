@@ -269,9 +269,12 @@ impl Render for PopoverStory {
             )
             .child(
                 section("Form")
-                    .description("Keep focus and controlled open state around a form.")
+                    .description(
+                        "Tab and Shift-Tab cycle inside the open form; Escape closes it and gives focus back.",
+                    )
                     .child(
                         Popover::new("popover-form")
+                            .keep_focus_inside(true)
                             .p_0()
                             .text_sm()
                             .trigger(Button::new("pop").outline().label("Popup Form"))
