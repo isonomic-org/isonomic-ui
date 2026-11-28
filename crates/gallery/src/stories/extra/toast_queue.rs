@@ -17,6 +17,8 @@ use isonomic_ui_extra::toast_queue::{Toast, ToastEvent, ToastQueue};
 /// to keep it.
 pub struct ToastQueueStory {
     queue: Entity<ToastQueue>,
+    /// A folded queue, already holding a few notices.
+    stacked: Entity<ToastQueue>,
     archived: usize,
     undone: usize,
     _events: Subscription,
@@ -33,8 +35,25 @@ impl ToastQueueStory {
                     cx.notify();
                 }
             });
+            let stacked = cx.new(|cx| {
+                let mut stacked = ToastQueue::new().stacked(true);
+                stacked.push(
+                    Toast::new(Tone::Danger, "Payroll export failed")
+                        .body("The March file is still open in another session."),
+                    cx,
+                );
+                stacked.push(Toast::new(Tone::Info, "3 receipts matched"), cx);
+                stacked.push(
+                    Toast::new(Tone::Success, "Report shared with Finance")
+                        .second_action("View")
+                        .action("Undo"),
+                    cx,
+                );
+                stacked
+            });
             Self {
                 queue,
+                stacked,
                 archived: 0,
                 undone: 0,
                 _events: events,
@@ -131,6 +150,26 @@ impl Render for ToastQueueStory {
                             .bottom_3()
                             .right_3()
                             .child(self.queue.clone()),
+                    ),
+            )
+            .child(div().text_xs().text_color(quiet).child(
+                "Stacked: older notices fold behind the newest and open out under the pointer, \
+                 which also keeps them all. Drag a notice sideways to close it.",
+            ))
+            .child(
+                div()
+                    .relative()
+                    .w(px(560.))
+                    .h(px(300.))
+                    .rounded(px(8.))
+                    .border_1()
+                    .border_color(line)
+                    .child(
+                        div()
+                            .absolute()
+                            .bottom_3()
+                            .right_3()
+                            .child(self.stacked.clone()),
                     ),
             )
     }
