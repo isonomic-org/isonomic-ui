@@ -507,9 +507,12 @@ impl RenderOnce for ApprovalCard {
             Some(ApprovalRisk::Medium) => (warning, warning.opacity(0.12)),
             _ => (muted, chip),
         };
+        // `secondary` names Command on a Mac and Control elsewhere, so it can
+        // only be read with the platform in hand.
+        let os = cx.platform_info().os;
         let hint = |keys: &'static str| {
             self.shortcuts
-                .then(|| Keystroke::parse(keys).ok().map(Kbd::new))
+                .then(|| Keystroke::parse_with_os(keys, os).ok().map(Kbd::new))
                 .flatten()
         };
         let has_preview = self.preview.is_some() || !self.details.is_empty();
