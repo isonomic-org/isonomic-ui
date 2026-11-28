@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A meter: a measured value within a known range, such as disk use or a
 //! score. Unlike a progress bar it does not show a task moving towards done.

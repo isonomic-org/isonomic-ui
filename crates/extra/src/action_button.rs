@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Action button: the kit's button with the states an action goes through: working, done, failed, and a second click to confirm.
 //!

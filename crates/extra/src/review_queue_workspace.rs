@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Review queue workspace: an assistant's proposals reviewed one at a time, riskiest first.
 //!

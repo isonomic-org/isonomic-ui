@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 use gpui::{
     Anchor, Animation, AnimationExt as _, AnyElement, App, Bounds, Context, Div, ElementId,

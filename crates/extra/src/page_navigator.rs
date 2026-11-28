@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page navigator: moves through a long list a page at a time, showing which rows are on screen and the pages around the current one.
 //!

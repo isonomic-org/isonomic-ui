@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A command palette: a search field over a filtered list of commands, with
 //! groups, Action keybinding hints and keyboard navigation.

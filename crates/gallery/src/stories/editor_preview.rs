@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 use isonomic_ui::{Context, IntoElement, ParentElement, Render, Styled, Window, div};
 use isonomic_ui::component::{ActiveTheme, Icon, IconName, StyledExt, h_flex, progress::Progress, v_flex};

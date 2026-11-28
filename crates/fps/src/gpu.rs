@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! How much of the GPU this process is using, on the platforms that attribute
 //! it per process without a vendor SDK or elevated privileges.

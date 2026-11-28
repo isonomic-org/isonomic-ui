@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Live cursors overlay: who else is in a shared document, where their cursors are, what they've selected and what they suggest.
 //!

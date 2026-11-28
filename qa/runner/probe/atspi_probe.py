@@ -1,5 +1,5 @@
 # Copyright 2026 Anud Inc.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """Reads the QA gallery's accessibility tree over the desktop accessibility bus and acts on it.
 

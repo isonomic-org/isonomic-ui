@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Reads this process' DRM `fdinfo` counters, the per-client GPU accounting the
 //! kernel publishes and tools like `nvtop` and `intel_gpu_top` read. amdgpu,

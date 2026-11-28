@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Toast queue: short notices that stack in a corner, leave on their own after a while, wait while the pointer rests on them, and can carry one action such as Undo.
 //!

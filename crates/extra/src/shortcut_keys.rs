@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Shortcut keys: a keyboard shortcut written the way each platform writes it, including sequences ("⌘K, then P") and alternatives ("or").
 //!

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The isonomic-ui-component appearance for the dock area: the outer frame, the
 //! split frames, and one dock's chrome.

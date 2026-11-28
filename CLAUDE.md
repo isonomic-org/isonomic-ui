@@ -10,7 +10,7 @@ Shared GPUI component library and design system for Isonomic apps. See
 - Start from main, the open pull requests and docs/status.md. Open pull requests and branches from earlier sessions are yours now: finish, rebase or close them.
 - Commit as Omar Qadmiri <omar@isonomic.com>; check `git config user.email` first. Commit and push work in progress often.
 - This repository is public. Only collaborators can open pull requests. Never commit secrets, keys, tokens or private notes: everything pushed is visible to anyone.
-- This repository is licensed Apache-2.0: keep LICENSE at the root unmodified, keep `license = "Apache-2.0"` in every Cargo.toml, and start every new source file with `Copyright 2026 Anud Inc.` and `SPDX-License-Identifier: Apache-2.0`. Never remove an existing copyright or licence notice. Never rename or delete a repo.
+- This repository is licensed GPL-3.0-or-later: keep LICENSE at the root unmodified, keep `license = "GPL-3.0-or-later"` in every Cargo.toml, and start every new source file with `Copyright 2026 Anud Inc.` and `SPDX-License-Identifier: GPL-3.0-or-later`. The code under `vendor/` keeps its upstream Apache-2.0 licence and headers: do not change them. Never remove an existing copyright or licence notice. Never rename or delete a repo.
 - In code, comments, commits, branches, issues and pull requests, never name a third-party product or company, another AI system, or an older product name.
 - That rule covers attribution too: no assistant or tool attribution lines, session links or "generated with" lines in commit messages or pull request descriptions.
 - Branch from main and open a pull request. Required checks: "rust / fmt, clippy, test (ubuntu-latest)" and "rust / file sizes and names". macOS runs after merge.

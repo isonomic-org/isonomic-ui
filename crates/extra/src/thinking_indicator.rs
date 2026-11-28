@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Thinking indicator: the row that shows an assistant is working between a message going out and the first words coming back, with a small orb that shows what kind of work it is.
 //!

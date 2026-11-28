@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Reads `RssAnon` out of `/proc/self/status`: the resident anonymous memory of
 //! this process — its heap, its thread stacks and every private mapping — and

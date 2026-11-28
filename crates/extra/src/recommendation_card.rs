@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Recommendation card: one suggested option with the reason for it, how sure
 //! the suggestion is, alternatives to switch to, and accept with undo.

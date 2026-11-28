@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Setting toggle row: one on-or-off setting with a title, a line on what it does, and a switch, where the whole row flips it.
 //!

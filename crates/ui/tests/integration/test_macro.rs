@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `#[isonomic_ui::test]` is GPUI's test attribute reached through the umbrella
 //! crate; it needs the `test-support` feature.

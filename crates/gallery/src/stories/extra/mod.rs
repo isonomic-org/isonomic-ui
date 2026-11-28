@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Stories for the components of `isonomic-ui-extra`, one file per
 //! component. `build.rs` finds the files here and registers each story with

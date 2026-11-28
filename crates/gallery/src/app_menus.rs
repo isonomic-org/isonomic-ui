@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 use isonomic_ui::component::{ActiveTheme as _, GlobalState, Theme, ThemeMode, menu::AppMenuBar};
 use isonomic_ui::{App, Entity, Menu, MenuItem, SharedString};

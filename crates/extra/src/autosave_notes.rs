@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Autosave notes: a growing multi-line field that asks to be saved a moment after typing stops, and says whether its text is saved.
 //!

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Fault tree: the possible causes of a failure, joined by and/or gates, each with a verdict and its evidence.
 //!

@@ -1,5 +1,5 @@
 // Copyright 2026 Anud Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Plays one gallery story offscreen and writes a strip of frames, so motion
 //! can be checked without a screen: a slide, a roll, a fade.
