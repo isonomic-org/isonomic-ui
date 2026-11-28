@@ -650,7 +650,6 @@ impl Render for WritingAssistantCard {
         let radius_lg = theme.radius_lg;
 
         let ring = theme.ring;
-        let mono = theme.mono_font_family.clone();
         let rewriting = self.tone.is_some();
         let chatting = !self.turns.is_empty() || self.state != State::Idle;
         let typed = !self.field.read(cx).value().trim().is_empty();
@@ -982,9 +981,10 @@ impl Render for WritingAssistantCard {
                                         .child("Formal \u{2192}"),
                                 )
                                 .child(div().font_medium().child(tone_words(at)))
-                                .child(div().font_family(mono.clone()).text_color(quiet).child(
-                                    format!("{:+.2} formal, {:+.2} warm", at.formality, at.warmth),
-                                )),
+                                .child(div().text_color(quiet).child(format!(
+                                    "{:+.2} formal, {:+.2} warm",
+                                    at.formality, at.warmth
+                                ))),
                         ),
                 )
         });

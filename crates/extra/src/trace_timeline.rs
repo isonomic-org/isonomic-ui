@@ -28,9 +28,9 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
-    Window, div, prelude::FluentBuilder as _, px, relative,
+    App, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, RenderOnce, Role, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::{Tone, resting_shadow};
@@ -607,7 +607,6 @@ impl RenderOnce for TraceTimeline {
         let ring = theme.ring;
         let radius = theme.radius;
         let radius_lg = theme.radius_lg;
-        let mono = theme.mono_font_family.clone();
         let danger = Tone::Danger.color(cx);
         let wash = look::ink::wash(cx);
 
@@ -988,7 +987,6 @@ impl RenderOnce for TraceTimeline {
                                             .ml_auto()
                                             .text_size(px(10.))
                                             .line_height(px(16.))
-                                            .font_family(mono.clone())
                                             .text_color(quiet)
                                             .child(
                                                 span.end
@@ -1040,7 +1038,6 @@ impl RenderOnce for TraceTimeline {
                         h_flex()
                             .text_size(px(10.))
                             .line_height(px(16.))
-                            .font_family(mono.clone())
                             .text_color(quiet)
                             .child(div().flex_1().child(if w0 == 0 {
                                 "0".to_string()
@@ -1142,7 +1139,7 @@ impl RenderOnce for TraceTimeline {
                         .child(div().text_color(quiet).child(p.label.clone()))
                         .child(
                             div()
-                                .font_family(mono.clone())
+                                .font_weight(FontWeight::MEDIUM)
                                 .text_color(ink)
                                 .child(format!("{} · {share}%", metric.amount(p.value))),
                         )

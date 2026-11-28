@@ -152,6 +152,8 @@ impl Render for UsageMeterStory {
                     .child(self.last.clone()),
             )
             .child({
+                let theme = cx.theme();
+                let colors = [theme.chart_1, theme.chart_2, theme.chart_3];
                 let days: Vec<String> = (1..=30).map(|d| format!("Jun {d}")).collect();
                 let history = MODEL_DAYS.iter().fold(
                     UsageHistory::new(days).budget(140.),
@@ -167,9 +169,9 @@ impl Render for UsageMeterStory {
                     .plan("Model usage, June")
                     .renews_in(Duration::from_secs(12 * 86_400))
                     .unit("tokens")
-                    .part(UsagePart::new("Large", 4_350_000. * 0.2))
-                    .part(UsagePart::new("Medium", 4_720_000. * 0.2))
-                    .part(UsagePart::new("Small", 9_870_000. * 0.2))
+                    .part(UsagePart::new("Large", 4_350_000. * 0.2).color(colors[0]))
+                    .part(UsagePart::new("Medium", 4_720_000. * 0.2).color(colors[1]))
+                    .part(UsagePart::new("Small", 9_870_000. * 0.2).color(colors[2]))
                     .history(history)
             })
     }

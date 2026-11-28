@@ -27,9 +27,10 @@ use isonomic_ui::component::{
     v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _,
-    PathBuilder, RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, Window, canvas, div, point, prelude::FluentBuilder as _, px, relative,
+    App, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, PathBuilder, RenderOnce, Role, SharedString,
+    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, point,
+    prelude::FluentBuilder as _, px, relative,
 };
 
 use crate::common::resting_shadow;
@@ -773,7 +774,6 @@ impl RenderOnce for UsageMeter {
                 theme.chart_5,
             ];
             let ring = theme.ring;
-            let mono = theme.mono_font_family.clone();
             let model_colors: Vec<Hsla> = history
                 .models
                 .iter()
@@ -937,7 +937,7 @@ impl RenderOnce for UsageMeter {
                     .child(div().text_color(quiet).child(model.label.clone()))
                     .child(
                         div()
-                            .font_family(mono.clone())
+                            .font_weight(FontWeight::MEDIUM)
                             .text_color(ink)
                             .child(amount(total)),
                     )
@@ -1020,7 +1020,7 @@ impl RenderOnce for UsageMeter {
                 .child(
                     div()
                         .text_caption()
-                        .font_family(mono.clone())
+                        .text_color(ink)
                         .min_h(px(16.))
                         .child(readout),
                 )

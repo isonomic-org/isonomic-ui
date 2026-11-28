@@ -39,7 +39,17 @@ fn ledger() -> Vec<TableRow> {
     ];
     (0..23)
         .map(|n: usize| {
-            let amount = format!("${}.{:02}", 120 + (n * 397) % 3_900, (n * 37) % 100);
+            let dollars = 120 + (n * 397) % 3_900;
+            let amount = if dollars >= 1_000 {
+                format!(
+                    "${},{:03}.{:02}",
+                    dollars / 1_000,
+                    dollars % 1_000,
+                    (n * 37) % 100
+                )
+            } else {
+                format!("${dollars}.{:02}", (n * 37) % 100)
+            };
             TableRow::new(
                 format!("p{n}"),
                 vec![
