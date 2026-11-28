@@ -3,6 +3,8 @@
 
 mod tab;
 mod tab_bar;
+mod tab_panels;
 
 pub use tab::*;
 pub use tab_bar::*;
+pub use tab_panels::*;

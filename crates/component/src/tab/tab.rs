@@ -16,6 +16,28 @@ use gpui::{
 };
 use isonomic_ui_base::LogicalStyledExt as _;
 
+/// The largest count a tab shows in full; larger counts read "99+".
+pub const TAB_COUNT_MAX: usize = 99;
+
+/// The text a tab's count pill shows.
+pub fn format_tab_count(count: usize) -> String {
+    if count > TAB_COUNT_MAX {
+        format!("{TAB_COUNT_MAX}+")
+    } else {
+        count.to_string()
+    }
+}
+
+/// What a screen reader says for a tab with a count: the label, then the
+/// full number in words a listener can follow ("Inbox, 120 items").
+pub fn tab_spoken_label(label: &str, count: usize) -> String {
+    match count {
+        0 => format!("{label}, no items"),
+        1 => format!("{label}, 1 item"),
+        n => format!("{label}, {n} items"),
+    }
+}
+
 /// Room between two [`TabVariant::Folder`] tabs, holding their separator.
 pub(super) const FOLDER_TAB_GAP: Pixels = px(4.);
 
@@ -567,6 +589,8 @@ pub struct Tab {
     prefix: Option<AnyElement>,
     pub(super) tab_bar_prefix: Option<bool>,
     suffix: Option<AnyElement>,
+    /// A count shown after the label, such as unread items.
+    count: Option<usize>,
     children: Vec<AnyElement>,
     variant: TabVariant,
     size: Size,
@@ -640,6 +664,7 @@ impl Default for Tab {
             hovered: false,
             prefix: None,
             suffix: None,
+            count: None,
             variant: TabVariant::default(),
             size: Size::default(),
             max_width: None,
@@ -667,7 +692,19 @@ impl Tab {
     }
 
     fn a11y_label(&self) -> Option<SharedString> {
-        self.aria_label.clone().or_else(|| self.label.clone())
+        let label = self.aria_label.clone().or_else(|| self.label.clone());
+        match (label, self.count) {
+            (Some(label), Some(count)) => Some(tab_spoken_label(&label, count).into()),
+            (label, _) => label,
+        }
+    }
+
+    /// Show a count after the label, such as the unread items behind the tab.
+    /// Counts above [`TAB_COUNT_MAX`] read as "99+"; the spoken label always
+    /// says the full number.
+    pub fn count(mut self, count: usize) -> Self {
+        self.count = Some(count);
+        self
     }
 
     /// Set icon for the tab.
@@ -908,6 +945,23 @@ impl RenderOnce for Tab {
         let fg_to = tab_style.fg;
         // Icon-only tabs are fixed-size and exempt from `max_width`.
         let max_width = self.max_width.filter(|_| self.icon.is_none());
+        // The count rides in the label box, so the selected fill and the
+        // sliding indicator take it in. Its fill is the tab's own ink at a low
+        // strength, which holds on a plain, pill or segmented tab alike.
+        let count_pill = self.count.map(|count| {
+            let small = matches!(self.size, Size::XSmall | Size::Small);
+            h_flex()
+                .flex_shrink_0()
+                .ml(if small { px(4.) } else { px(6.) })
+                .h(px(16.))
+                .min_w(px(16.))
+                .px(px(5.))
+                .justify_center()
+                .rounded_full()
+                .bg(tab_style.fg.opacity(0.1))
+                .text_badge()
+                .child(format_tab_count(count))
+        });
 
         let inner_content = h_flex()
             .flex_1()
@@ -952,6 +1006,7 @@ impl RenderOnce for Tab {
                         (None, _) => this,
                     })
                     .children(self.children)
+                    .when_some(count_pill, |this, pill| this.child(pill))
                     // With the prefix's gap, 8px between icon and title, as in a Button.
                     .when(folder && has_prefix, |this| this.ps(px(4.), cx)),
             })
@@ -1206,6 +1261,30 @@ mod tests {
                     .width
             })
             .collect()
+    }
+
+    #[test]
+    fn counts_above_the_cap_read_as_ninety_nine_plus() {
+        assert_eq!(format_tab_count(0), "0");
+        assert_eq!(format_tab_count(7), "7");
+        assert_eq!(format_tab_count(99), "99");
+        assert_eq!(format_tab_count(100), "99+");
+        assert_eq!(format_tab_count(12_000), "99+");
+    }
+
+    #[test]
+    fn spoken_count_says_the_full_number_in_words() {
+        assert_eq!(tab_spoken_label("Inbox", 0), "Inbox, no items");
+        assert_eq!(tab_spoken_label("Inbox", 1), "Inbox, 1 item");
+        assert_eq!(tab_spoken_label("Inbox", 120), "Inbox, 120 items");
+    }
+
+    #[gpui::test]
+    fn a_count_joins_the_spoken_label(_cx: &mut TestAppContext) {
+        let tab = Tab::new().label("Inbox").count(4);
+        assert_eq!(tab.a11y_label(), Some("Inbox, 4 items".into()));
+        let tab = Tab::new().label("Inb").aria_label("Inbox").count(1);
+        assert_eq!(tab.a11y_label(), Some("Inbox, 1 item".into()));
     }
 
     #[gpui::test]
