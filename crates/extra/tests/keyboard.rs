@@ -175,3 +175,82 @@ fn tab_reaches_a_column_header_and_enter_sorts_it(cx: &mut TestAppContext) {
         .unwrap();
     }
 }
+
+struct FinderHarness {
+    finder: Entity<isonomic_ui_extra::agent_finder::AgentFinder>,
+}
+
+impl Render for FinderHarness {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().p_4().child(self.finder.clone())
+    }
+}
+
+#[isonomic_ui::test]
+fn the_finder_opens_folders_and_quick_looks_documents_from_the_keyboard(cx: &mut TestAppContext) {
+    use isonomic_ui::Focusable as _;
+    use isonomic_ui_extra::agent_finder::{AgentFinder, FinderAgent, FinderFile};
+
+    let finder_slot = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let slot = finder_slot.clone();
+    let window = open_view(cx, move |cx| {
+        let finder = cx.new(|cx| {
+            AgentFinder::new(
+                "Q3 close",
+                vec![
+                    FinderAgent::new("planner", "Planner")
+                        .child(FinderAgent::new("researcher", "Researcher"))
+                        .file(
+                            FinderFile::new("checklist", "Close checklist.pdf")
+                                .exchange("{}", "Created"),
+                        ),
+                    FinderAgent::new("ledger", "Ledger"),
+                ],
+                cx,
+            )
+        });
+        *slot.borrow_mut() = Some(finder.clone());
+        cx.new(|_| FinderHarness { finder })
+    });
+    let finder = finder_slot.borrow().clone().expect("finder built");
+    let press = |cx: &mut TestAppContext, key: &str| {
+        cx.update_window(window.into(), |_, window, cx| {
+            window.press(key, cx);
+            window.render_frame(cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    cx.update_window(window.into(), |_, window, cx| {
+        window.render_frame(cx);
+        finder.read(cx).focus_handle(cx).focus(window, cx);
+    })
+    .unwrap();
+
+    // The first arrow picks the first folder; Enter steps into it.
+    press(cx, "right");
+    press(cx, "enter");
+    let found = |cx: &mut TestAppContext, label: &str| {
+        cx.update_window(window.into(), |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find_by_label(label).is_some()
+        })
+        .unwrap()
+    };
+    assert!(found(cx, "Close checklist.pdf, PDF document"));
+    assert!(!found(cx, "Ledger"));
+
+    // The next item is the document; Space shows it, Escape hides it again.
+    press(cx, "right");
+    press(cx, "space");
+    assert!(found(cx, "Quick look: Close checklist.pdf"));
+    press(cx, "escape");
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(400));
+    press(cx, "escape");
+    assert!(!found(cx, "Quick look: Close checklist.pdf"));
+
+    // Backspace goes back up to the top.
+    press(cx, "backspace");
+    assert!(found(cx, "Ledger"));
+}
