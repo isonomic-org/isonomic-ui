@@ -3,10 +3,10 @@
 
 use gpui::{
     AnyElement, App, IntoElement, ParentElement, RenderOnce, StyleRefinement, Styled, Window, div,
-    prelude::FluentBuilder as _, relative, rems,
+    prelude::FluentBuilder as _, rems,
 };
 
-use crate::{ActiveTheme as _, StyledExt as _, v_flex};
+use crate::{ActiveTheme as _, StyledExt as _, TextRole as _, v_flex};
 
 /// A presentational empty state with independently styled header and content slots.
 ///
@@ -75,7 +75,7 @@ impl RenderOnce for Empty {
             .p_6()
             .rounded(cx.theme().radius_tokens().xl)
             .border_dashed()
-            .border_color(cx.theme().border)
+            .border_color(crate::look::ink::hairline(cx))
             .text_center()
             .text_color(cx.theme().foreground)
             .refine_style(&self.style)
@@ -217,10 +217,11 @@ impl RenderOnce for EmptyMedia {
             .justify_center()
             .mb_2()
             .when(self.variant == EmptyMediaVariant::Icon, |this| {
+                // A wash tile with the icon in icon ink.
                 this.size_8()
                     .rounded(cx.theme().radius_tokens().lg)
-                    .bg(cx.theme().muted)
-                    .text_color(cx.theme().foreground)
+                    .bg(crate::look::ink::wash_strong(cx))
+                    .text_color(crate::look::ink::icon(cx))
                     // Icon inherits one rem unless it has an explicit size.
                     .text_base()
             })
@@ -269,8 +270,7 @@ impl RenderOnce for EmptyTitle {
         div()
             .max_w_full()
             .min_w_0()
-            .text_sm()
-            .font_medium()
+            .text_label()
             .whitespace_normal()
             .refine_style(&self.style)
             .children(self.children)
@@ -317,9 +317,8 @@ impl RenderOnce for EmptyDescription {
         div()
             .w_full()
             .min_w_0()
-            .text_sm()
-            .line_height(relative(1.625))
-            .text_color(cx.theme().muted_foreground)
+            .text_body()
+            .text_color(crate::look::ink::subtle(cx))
             .whitespace_normal()
             .refine_style(&self.style)
             .children(self.children)
@@ -369,7 +368,7 @@ impl RenderOnce for EmptyContent {
             .min_w_0()
             .items_center()
             .gap_2p5()
-            .text_sm()
+            .text_body()
             .refine_style(&self.style)
             .children(self.children)
     }

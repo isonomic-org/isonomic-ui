@@ -7,7 +7,7 @@ use std::{rc::Rc, time::Duration};
 use gpui::{
     Animation, AnimationExt as _, AnyElement, App, ClickEvent, DefiniteLength, DismissEvent, Edges,
     EventEmitter, FocusHandle, InteractiveElement as _, IntoElement, ParentElement, Pixels,
-    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px, rems,
+    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 use isonomic_ui_base::{
     ElementExt as _, LayoutDirection, LogicalStyledExt as _, Sheet as BaseSheet,
@@ -17,7 +17,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ActiveTheme, IconName, Placement, Sizable, StyledExt as _, WindowExt as _,
+    ActiveTheme, IconName, Placement, Sizable, StyledExt as _, TextRole as _, WindowExt as _,
     button::{Button, ButtonVariants as _},
     dialog::overlay_color,
     h_flex,
@@ -195,9 +195,11 @@ impl RenderOnce for Sheet {
             .test_support()
             .absolute()
             .occlude()
-            .bg(cx.theme().tokens.background)
-            .border_color(cx.theme().border)
-            .shadow_xl()
+            // A modal surface like the dialog's: the popover fill, no border,
+            // its edge a 0.5px ring and its lift the dialog's long soft drop.
+            .bg(cx.theme().popover)
+            .text_color(cx.theme().popover_foreground)
+            .shadow(crate::dialog::dialog_shadow(1.))
             .refine_style(&self.style)
             .map(|this| {
                 // Set the size of the sheet.
@@ -208,21 +210,23 @@ impl RenderOnce for Sheet {
                 }
             })
             .map(|this| match self.placement {
-                Placement::Top => this.top(top).left_0().right_0().border_b_1(),
-                Placement::Right => this.top(top).right_0().bottom_0().border_l_1(),
-                Placement::Bottom => this.bottom_0().left_0().right_0().border_t_1(),
-                Placement::Left => this.top(top).left_0().bottom_0().border_r_1(),
+                Placement::Top => this.top(top).left_0().right_0(),
+                Placement::Right => this.top(top).right_0().bottom_0(),
+                Placement::Bottom => this.bottom_0().left_0().right_0(),
+                Placement::Left => this.top(top).left_0().bottom_0(),
             })
             .child(
                 // TitleBar
                 h_flex()
                     .flex_row_dir(cx)
                     .justify_between()
-                    .ps(rems(1.), cx)
-                    .pe(rems(0.75), cx)
-                    .py_2()
+                    // A 15/22 medium title, like the dialog's, on a 16px edge;
+                    // the close button sits 4px nearer its edge.
+                    .ps(px(16.), cx)
+                    .pe(px(12.), cx)
+                    .py(px(12.))
                     .w_full()
-                    .font_semibold()
+                    .text_title()
                     .child(self.title.unwrap_or(div().into_any_element()))
                     .child(
                         Button::new("close")
@@ -251,8 +255,9 @@ impl RenderOnce for Sheet {
                 this.child(
                     h_flex()
                         .justify_between()
-                        .px_4()
-                        .py_3()
+                        .gap_2()
+                        .px(px(16.))
+                        .py(px(12.))
                         .w_full()
                         .child(footer),
                 )

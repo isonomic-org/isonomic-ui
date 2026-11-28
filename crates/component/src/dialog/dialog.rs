@@ -354,7 +354,7 @@ pub(crate) fn overlay_color(overlay: bool, cx: &App) -> Hsla {
 
 /// A dialog's edge and lift: a 0.5px ring and a long, soft drop, both at
 /// `delta` of their full strength while the dialog animates in.
-fn dialog_shadow(delta: f32) -> Vec<BoxShadow> {
+pub(crate) fn dialog_shadow(delta: f32) -> Vec<BoxShadow> {
     vec![
         BoxShadow {
             color: hsla(0., 0., 0., 0.1 * delta),

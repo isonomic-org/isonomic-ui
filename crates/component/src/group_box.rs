@@ -3,11 +3,11 @@
 
 use gpui::{
     AnyElement, App, Background, ElementId, InteractiveElement as _, IntoElement, ParentElement,
-    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder, relative,
+    RenderOnce, StyleRefinement, Styled, Window, div, prelude::FluentBuilder,
 };
 use smallvec::SmallVec;
 
-use crate::{ActiveTheme, StyledExt as _, v_flex};
+use crate::{ActiveTheme, StyledExt as _, TextRole as _, v_flex};
 
 /// The variant of the GroupBox.
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
@@ -143,10 +143,13 @@ impl GroupBoxVariants for GroupBox {
 
 impl RenderOnce for GroupBox {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
-        let (bg, border, has_paddings): (Option<Background>, _, _) = match self.variant {
-            GroupBoxVariant::Normal => (None, None, false),
-            GroupBoxVariant::Fill => (Some(cx.theme().tokens.group_box.into()), None, true),
-            GroupBoxVariant::Outline => (None, Some(cx.theme().border), true),
+        // Fill is a quiet well; Outline is a raised card with no border, its
+        // edge the card's 0.5px ring and its depth the contact shadow.
+        let (bg, raised, has_paddings): (Option<Background>, _, _) = match self.variant {
+            GroupBoxVariant::Normal => (None, false, false),
+            GroupBoxVariant::Fill => (Some(cx.theme().tokens.group_box.into()), false, true),
+            // Opaque, so the shadow under the card cannot show through it.
+            GroupBoxVariant::Outline => (Some(cx.theme().background.into()), true, true),
         };
 
         v_flex()
@@ -158,8 +161,8 @@ impl RenderOnce for GroupBox {
             .when_some(self.title, |this, title| {
                 this.child(
                     div()
-                        .text_color(cx.theme().muted_foreground)
-                        .line_height(relative(1.25))
+                        .text_label()
+                        .text_color(crate::look::ink::muted(cx))
                         .refine_style(&self.title_style)
                         .child(title),
                 )
@@ -172,19 +175,21 @@ impl RenderOnce for GroupBox {
                     .child(
                         v_flex()
                             .when_some(bg, |this, bg| this.bg(bg))
-                            .when_some(border, |this, border| this.border_color(border).border_1())
+                            .when(raised, |this| {
+                                this.shadow(crate::look::surface::resting(cx))
+                            })
                             .text_color(cx.theme().group_box_foreground)
                             .when(has_paddings, |this| this.p_4())
                             .gap_4()
-                            .rounded(cx.theme().radius)
+                            .rounded(cx.theme().radius_lg)
                             .refine_style(&self.content_style)
                             .children(self.children),
                     )
                     .when_some(self.footer, |this, footer| {
                         this.child(
                             div()
-                                .text_sm()
-                                .text_color(cx.theme().muted_foreground)
+                                .text_caption()
+                                .text_color(crate::look::ink::subtle(cx))
                                 .child(footer),
                         )
                     }),
