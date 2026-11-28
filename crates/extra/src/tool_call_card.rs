@@ -18,6 +18,7 @@ use std::{
 };
 
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::base::{Easing, MotionReveal, Presence, transition};
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Rope, Sizable as _, StyledExt as _, ThemeStyled as _,
@@ -25,17 +26,19 @@ use isonomic_ui::component::{
     clipboard::Clipboard,
     h_flex,
     highlighter::SyntaxHighlighter,
+    look,
     shimmer::ShimmerText,
     spinner::Spinner,
     v_flex,
 };
 use isonomic_ui::{
-    App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _, IntoElement,
-    ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement,
-    Styled, StyledText, Task, Window, div, prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, ClickEvent, Context, ElementId, HighlightStyle, InteractiveElement as _,
+    IntoElement, ParentElement as _, RenderOnce, SharedString, StatefulInteractiveElement as _,
+    StyleRefinement, Styled, StyledText, Task, Window, canvas, div, percentage,
+    prelude::FluentBuilder as _, px, relative,
 };
 
-use crate::common::resting_shadow;
+use crate::common::{ease, ease_out, hover_state, over, paint_tick, resting_shadow, track_hover};
 
 /// How often a running call redraws its timer.
 const TICK: Duration = Duration::from_millis(100);
@@ -377,7 +380,8 @@ fn code_section(
 ) -> impl IntoElement {
     let theme = cx.theme();
     let quiet = theme.muted_foreground;
-    let panel = theme.foreground.opacity(0.04);
+    let panel = theme.foreground.opacity(0.03);
+    let border = look::ink::hairline(cx);
     let radius = theme.radius;
     let mono = theme.mono_font_family.clone();
     let is_long = text.lines().count() > CAPPED_LINES;
@@ -400,6 +404,8 @@ fn code_section(
             div()
                 .p_2p5()
                 .rounded(radius)
+                .border_1()
+                .border_color(border)
                 .bg(panel)
                 .font_family(mono)
                 .text_caption()
@@ -429,7 +435,6 @@ impl RenderOnce for ToolCallCard {
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
         let fill = theme.background;
-        let accent = theme.info;
         let danger = theme.danger;
         let radius = theme.radius;
         let mono = theme.mono_font_family.clone();
@@ -479,10 +484,41 @@ impl RenderOnce for ToolCallCard {
             }
         });
         let open = self.open.unwrap_or(open);
+        let child_id = |name: &'static str| ElementId::from((self.id.clone(), name));
+        let height = transition(
+            child_id("body-height"),
+            if open { 1.0_f32 } else { 0. },
+            over(380, ease_out()),
+            window,
+            cx,
+        );
+        let shown = transition(
+            child_id("body-fade"),
+            if open { 1.0_f32 } else { 0. },
+            over(240, ease()),
+            window,
+            cx,
+        );
+        let turn = transition(
+            child_id("chevron"),
+            if open { 0.5_f32 } else { 0. },
+            over(360, ease_out()),
+            window,
+            cx,
+        );
+        let showing = open || height > 0.;
+        let hovered = hover_state(child_id("hover"), window, cx);
+        let lit = transition(
+            child_id("hover-fade"),
+            if *hovered.read(cx) { 1.0_f32 } else { 0. },
+            over(160, ease()),
+            window,
+            cx,
+        );
 
         // Lay out and colour the code only while it shows.
         let mut code: [Option<(SharedString, Styles)>; 2] = [None, None];
-        if open {
+        if showing {
             for (ix, raw) in [&self.arguments, &self.result].into_iter().enumerate() {
                 let Some(raw) = raw else {
                     continue;
@@ -531,6 +567,46 @@ impl RenderOnce for ToolCallCard {
             ToolCallStatus::Failed => Some("Failed".into()),
         };
 
+        let status_key = match status {
+            ToolCallStatus::Running => "running",
+            ToolCallStatus::Success => "done",
+            ToolCallStatus::Failed => "failed",
+        };
+        let entered = Presence::new(ElementId::from((self.id.clone(), status_key)), true)
+            .transition(over(360, Easing::Linear))
+            .sample(window, cx)
+            .progress;
+        let drawn = transition(
+            child_id("check"),
+            if status == ToolCallStatus::Success {
+                1.0_f32
+            } else {
+                0.
+            },
+            over(360, ease_out()),
+            window,
+            cx,
+        );
+        let wash = look::ink::wash(cx);
+        let mark: AnyElement = match status {
+            ToolCallStatus::Running => Spinner::new().small().color(quiet).into_any_element(),
+            ToolCallStatus::Success => div()
+                .flex_none()
+                .size(px(16.))
+                .child(
+                    canvas(
+                        |_, _, _| {},
+                        move |bounds, _, window, _| paint_tick(bounds, drawn, ink, window),
+                    )
+                    .size_full(),
+                )
+                .into_any_element(),
+            ToolCallStatus::Failed => Icon::new(IconName::CircleAlert)
+                .small()
+                .text_color(danger)
+                .into_any_element(),
+        };
+
         let head = Pressable::new((self.id.clone(), "head"))
             .accessibility_label(call_name(
                 &self.name,
@@ -557,13 +633,15 @@ impl RenderOnce for ToolCallCard {
                     }
                 }
             })
+            .on_hover(track_hover(hovered))
             .justify_start()
             .gap_2p5()
             .w_full()
-            .h(px(44.))
+            .h(px(42.))
             .px_3()
+            .line_height(px(20.))
             .rounded(radius)
-            .cursor_pointer()
+            .bg(look::mix(wash.opacity(0.), wash, lit))
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(Icon::new(self.icon).small().flex_none().text_color(quiet))
             .child(
@@ -573,7 +651,6 @@ impl RenderOnce for ToolCallCard {
                     .truncate()
                     .font_family(mono)
                     .text_size(px(12.))
-                    .font_medium()
                     .child(self.name),
             )
             .child(
@@ -588,15 +665,8 @@ impl RenderOnce for ToolCallCard {
                 h_flex()
                     .flex_none()
                     .gap_1p5()
-                    .map(|this| match status {
-                        ToolCallStatus::Running => this.child(Spinner::new().small().color(accent)),
-                        ToolCallStatus::Success => {
-                            this.child(Icon::new(IconName::CircleCheck).small().text_color(accent))
-                        }
-                        ToolCallStatus::Failed => {
-                            this.child(Icon::new(IconName::CircleAlert).small().text_color(danger))
-                        }
-                    })
+                    .opacity(entered)
+                    .child(mark)
                     .children(time.map(|time| {
                         div()
                             .text_caption()
@@ -609,17 +679,14 @@ impl RenderOnce for ToolCallCard {
                     })),
             )
             .child(
-                Icon::new(if open {
-                    IconName::ChevronUp
-                } else {
-                    IconName::ChevronDown
-                })
-                .xsmall()
-                .flex_none()
-                .text_color(quiet),
+                Icon::new(IconName::ChevronDown)
+                    .xsmall()
+                    .flex_none()
+                    .text_color(quiet)
+                    .rotate(percentage(turn)),
             );
 
-        let body = open.then(|| {
+        let body = showing.then(|| {
             let [arguments, result] = code;
             let has_arguments = arguments.is_some();
             let has_result = result.is_some();
@@ -634,21 +701,28 @@ impl RenderOnce for ToolCallCard {
             };
             let note = |text: &'static str| div().text_color(quiet).child(text);
 
-            v_flex()
+            let content = v_flex()
+                .w_full()
                 .gap_3()
                 .px_3()
                 .pb_3()
+                .opacity(shown)
                 .when(status == ToolCallStatus::Failed, |this| {
                     let message = self.error.unwrap_or_else(|| "The tool call failed.".into());
                     this.child(
                         h_flex()
-                            .items_start()
+                            .items_center()
                             .gap_2()
+                            .py_2()
+                            .pl_3()
+                            .pr_2()
+                            .rounded(radius)
+                            .bg(danger.opacity(0.08))
+                            .text_color(danger)
                             .child(
                                 Icon::new(IconName::CircleAlert)
                                     .small()
                                     .flex_none()
-                                    .mt_0p5()
                                     .text_color(danger),
                             )
                             .child(div().flex_1().min_w_0().child(message))
@@ -657,6 +731,8 @@ impl RenderOnce for ToolCallCard {
                                     Button::new((self.id.clone(), "retry"))
                                         .outline()
                                         .xsmall()
+                                        .bg(fill)
+                                        .text_color(ink)
                                         .icon(IconName::RefreshCw)
                                         .label("Retry")
                                         .on_click(move |_, window, cx| on_retry(window, cx)),
@@ -694,7 +770,8 @@ impl RenderOnce for ToolCallCard {
                 .when(
                     !has_arguments && !has_result && status == ToolCallStatus::Success,
                     |this| this.child(note("No arguments or result.")),
-                )
+                );
+            MotionReveal::new(child_id("body"), height, content.into_any_element())
         });
 
         v_flex()
@@ -877,6 +954,28 @@ impl RenderOnce for ToolCallGroup {
         .flatten()
         .collect::<Vec<_>>()
         .join(", ");
+        let child_id = |name: &'static str| ElementId::from((self.id.clone(), name));
+        let height = transition(
+            child_id("calls-height"),
+            if open { 1.0_f32 } else { 0. },
+            over(380, ease_out()),
+            window,
+            cx,
+        );
+        let shown = transition(
+            child_id("calls-fade"),
+            if open { 1.0_f32 } else { 0. },
+            over(240, ease()),
+            window,
+            cx,
+        );
+        let turn = transition(
+            child_id("chevron"),
+            if open { 0.5_f32 } else { 0. },
+            over(360, ease_out()),
+            window,
+            cx,
+        );
         let head = Pressable::new((self.id.clone(), "head"))
             .accessibility_label(name)
             .aria_expanded(open)
@@ -895,7 +994,6 @@ impl RenderOnce for ToolCallGroup {
             .h(px(32.))
             .pr_1()
             .rounded(radius)
-            .cursor_pointer()
             .when(is_focused, |this| this.focus_ring_style(window, cx))
             .child(
                 // The tools overlap like a hand of cards: raised tiles, each
@@ -932,14 +1030,11 @@ impl RenderOnce for ToolCallGroup {
                     .child(format!("· {}", format_duration(total, running)))
             }))
             .child(
-                Icon::new(if open {
-                    IconName::ChevronUp
-                } else {
-                    IconName::ChevronDown
-                })
-                .xsmall()
-                .flex_none()
-                .text_color(quiet),
+                Icon::new(IconName::ChevronDown)
+                    .xsmall()
+                    .flex_none()
+                    .text_color(quiet)
+                    .rotate(percentage(turn)),
             );
 
         v_flex()
@@ -950,8 +1045,21 @@ impl RenderOnce for ToolCallGroup {
             .text_body()
             .line_height(relative(1.45))
             .child(h_flex().child(head))
-            .when(open, |this| {
-                this.child(v_flex().gap_2().children(self.calls))
+            .when(open || height > 0., |this| {
+                // The reveal clips, so leave the cards' shadows room inside it.
+                this.child(
+                    div().m(px(-4.)).child(MotionReveal::new(
+                        child_id("calls"),
+                        height,
+                        v_flex()
+                            .w_full()
+                            .gap_2()
+                            .p(px(4.))
+                            .opacity(shown)
+                            .children(self.calls)
+                            .into_any_element(),
+                    )),
+                )
             })
             .refine_style(&self.style)
     }

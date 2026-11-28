@@ -9,12 +9,8 @@
 
 use std::rc::Rc;
 
-use std::time::Duration;
-
 use isonomic_ui::assets::IconName as AssetIcon;
-use isonomic_ui::base::{
-    Easing, MotionReveal, Presence, PressableExt as _, Transition, transition,
-};
+use isonomic_ui::base::{Easing, MotionReveal, Presence, PressableExt as _, transition};
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
@@ -22,13 +18,14 @@ use isonomic_ui::component::{
     h_flex, look, v_flex,
 };
 use isonomic_ui::{
-    AnyElement, App, Bounds, ElementId, Entity, Hsla, InteractiveElement as _, IntoElement,
-    ParentElement as _, PathBuilder, Pixels, RenderOnce, Role, SharedString,
-    StatefulInteractiveElement as _, StyleRefinement, Styled, Window, canvas, div, percentage,
-    point, prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, Role, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled,
+    Window, canvas, div, percentage, prelude::FluentBuilder as _, px, relative,
 };
 
-use crate::common::{panel, resting_shadow, shell};
+use crate::common::{
+    ease, ease_out, hover_state, over, paint_tick, panel, resting_shadow, shell, track_hover,
+};
 
 /// A group of options that filter by the same thing, such as "Stage".
 #[derive(Debug, Clone)]
@@ -295,20 +292,6 @@ struct MenuState {
     cursor: usize,
 }
 
-/// The reference's ease-out for heights, turns and strokes.
-fn ease_out() -> Easing {
-    Easing::cubic_bezier(0.22, 1.0, 0.36, 1.0).expect("static curve is valid")
-}
-
-/// The plain `ease` curve fills, fades and hovers ride on.
-fn ease() -> Easing {
-    Easing::cubic_bezier(0.25, 0.1, 0.25, 1.0).expect("static curve is valid")
-}
-
-fn over(ms: u64, easing: Easing) -> Transition {
-    Transition::new(Duration::from_millis(ms)).easing(easing)
-}
-
 /// Where a key hint's cap and words go.
 fn key_cap(icon: AssetIcon, cx: &App) -> impl IntoElement {
     div()
@@ -322,50 +305,6 @@ fn key_cap(icon: AssetIcon, cx: &App) -> impl IntoElement {
         .shadow(resting_shadow(cx))
         .text_color(look::ink::icon(cx))
         .child(Icon::new(icon).size(px(12.)))
-}
-
-/// The tick in a 20px box, drawn up to `drawn` (0 to 1) of its length.
-fn paint_tick(bounds: Bounds<Pixels>, drawn: f32, color: Hsla, window: &mut Window) {
-    if drawn <= 0.01 {
-        return;
-    }
-    let unit = bounds.size.width / 20.;
-    let at = |x: f32, y: f32| point(bounds.origin.x + unit * x, bounds.origin.y + unit * y);
-    let (a, b, c): ((f32, f32), (f32, f32), (f32, f32)) = ((5.5, 10.5), (8.5, 13.5), (14.5, 6.5));
-    let first = ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt();
-    let second = ((c.0 - b.0).powi(2) + (c.1 - b.1).powi(2)).sqrt();
-    let length = (first + second) * drawn.clamp(0., 1.);
-    let mut line = PathBuilder::stroke(unit * 1.75);
-    line.move_to(at(a.0, a.1));
-    if length <= first {
-        let t = length / first;
-        line.line_to(at(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t));
-    } else {
-        let t = (length - first) / second;
-        line.line_to(at(b.0, b.1));
-        line.line_to(at(b.0 + (c.0 - b.0) * t, b.1 + (c.1 - b.1) * t));
-    }
-    if let Ok(path) = line.build() {
-        window.paint_path(path, color);
-    }
-}
-
-/// Whether the pointer is over `id`, kept between frames.
-fn hover_state(id: ElementId, window: &mut Window, cx: &mut App) -> Entity<bool> {
-    window.use_keyed_state(id, cx, |_, _| false)
-}
-
-fn track_hover(state: Entity<bool>) -> impl Fn(&bool, &mut Window, &mut App) + 'static {
-    move |hovered, window, cx| {
-        let hovered = *hovered;
-        state.update(cx, |state, cx| {
-            if *state != hovered {
-                *state = hovered;
-                cx.notify();
-            }
-        });
-        window.refresh();
-    }
 }
 
 impl RenderOnce for FilterMenu {
