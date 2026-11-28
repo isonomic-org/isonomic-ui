@@ -8,20 +8,22 @@
 
 use std::{rc::Rc, time::Duration};
 
+use isonomic_ui::assets::IconName as AssetIcon;
 use isonomic_ui::base::Button as Pressable;
+use isonomic_ui::base::{Easing, MotionReveal, Presence, transition};
 use isonomic_ui::component::TextRole as _;
 use isonomic_ui::component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, ThemeStyled as _,
+    ActiveTheme as _, Icon, StyledExt as _, ThemeStyled as _,
     button::{Button, ButtonVariants as _},
-    h_flex, v_flex,
+    h_flex, look, v_flex,
 };
 use isonomic_ui::{
-    App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, RenderOnce,
-    SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task, Window, div,
-    prelude::FluentBuilder as _, px, relative,
+    AnyElement, App, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
+    RenderOnce, SharedString, StatefulInteractiveElement as _, StyleRefinement, Styled, Task,
+    Window, div, prelude::FluentBuilder as _, px, relative,
 };
 
-use crate::common::resting_shadow;
+use crate::common::{ease, ease_out, over, panel, shell};
 
 /// How long the confirmation stays before the row leaves.
 const CONFIRM: Duration = Duration::from_millis(1100);
@@ -197,20 +199,20 @@ impl ListState {
 /// The heading for a number of waiting decisions.
 fn heading(waiting: usize) -> SharedString {
     match waiting {
-        0 => "All answered".into(),
-        1 => "1 decision waiting".into(),
-        n => format!("{n} decisions waiting").into(),
+        0 => "All caught up".into(),
+        n => format!("{n} need your input").into(),
     }
 }
+
+/// What the list says once nothing is waiting.
+const EMPTY: &str = "Nothing waiting on you \u{2013} new decisions show up here.";
 
 impl RenderOnce for QuickDecisionList {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
-        let fill = theme.background;
-        let line = theme.border;
-        let radius = theme.radius_lg;
+        let line = look::ink::hairline(cx);
         let warning = theme.warning;
         let success = theme.success;
 
@@ -221,19 +223,53 @@ impl RenderOnce for QuickDecisionList {
         });
         let on_decide = self.on_decide;
         let list_id = self.id.clone();
+        let part = |name: String| ElementId::NamedChild(list_id.clone().into(), name.into());
 
-        let items = self.decisions.into_iter().filter_map(|decision| {
-            let row = rows
+        let mut items: Vec<AnyElement> = Vec::new();
+        for decision in self.decisions {
+            let Some(row) = rows
                 .iter()
                 .find(|(id, _)| id == &decision.id)
-                .map(|(_, row)| row.clone())?;
-            if row.gone {
-                return None;
-            }
+                .map(|(_, row)| row.clone())
+            else {
+                continue;
+            };
             let id = decision.id.clone();
             let row_id = ElementId::NamedChild(list_id.clone().into(), id.clone());
 
-            if !row.open {
+            // A row that has left folds away before it is dropped.
+            let stays = transition(
+                part(format!("{id}-stays")),
+                if row.gone { 0.0_f32 } else { 1. },
+                over(460, ease_out()),
+                window,
+                cx,
+            );
+            let visible = transition(
+                part(format!("{id}-visible")),
+                if row.gone { 0.0_f32 } else { 1. },
+                over(300, ease()),
+                window,
+                cx,
+            );
+            if row.gone && stays == 0. {
+                continue;
+            }
+            let opened = transition(
+                part(format!("{id}-opened")),
+                if row.open { 1.0_f32 } else { 0. },
+                over(420, ease_out()),
+                window,
+                cx,
+            );
+            let first = items.is_empty();
+
+            let title: AnyElement = if row.open {
+                div()
+                    .font_medium()
+                    .child(decision.title.clone())
+                    .into_any_element()
+            } else {
                 // Folded: one quiet line that opens the decision.
                 let focus_handle = window
                     .use_keyed_state((row_id.clone(), "focus"), cx, |_, cx| cx.focus_handle())
@@ -241,146 +277,174 @@ impl RenderOnce for QuickDecisionList {
                     .clone();
                 let is_focused = focus_handle.is_focused(window);
                 let state = state.clone();
-                return Some(
-                    Pressable::new(row_id)
-                        .accessibility_label(decision.title.clone())
-                        .aria_expanded(false)
-                        .track_focus(&focus_handle)
-                        .on_click(move |_, _, cx| {
-                            state.update(cx, |state, cx| {
-                                if let Some(row) = state.row(&id) {
-                                    row.open = true;
-                                }
-                                cx.notify();
-                            })
-                        })
-                        .justify_start()
-                        .w_full()
-                        .px_4()
-                        .py_3()
-                        .border_t_1()
-                        .border_color(line)
-                        .line_height(relative(1.5))
-                        .text_color(quiet)
-                        .cursor_pointer()
-                        .hover(|style| style.text_color(ink))
-                        .when(is_focused, |this| this.focus_ring_style(window, cx))
-                        .child(div().min_w_0().truncate().child(decision.title))
-                        .into_any_element(),
-                );
-            }
-
-            let actions = match row.answered {
-                Some(answer) => h_flex()
-                    .h(px(28.))
-                    .gap_1p5()
-                    .font_medium()
-                    .text_color(success)
-                    .child(Icon::new(IconName::CircleCheck).small())
-                    .child(answer)
-                    .into_any_element(),
-                None => {
-                    let pick = |answer: DecisionAnswer, label: SharedString| {
-                        let state = state.clone();
-                        let on_decide = on_decide.clone();
-                        let id = id.clone();
-                        move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
-                            state.update(cx, |state, cx| {
-                                if let Some(row) = state.row(&id) {
-                                    row.answered = Some(label.clone());
-                                }
-                                let id = id.clone();
-                                let timer = cx.spawn(async move |this, cx| {
-                                    cx.background_executor().timer(CONFIRM).await;
-                                    _ = this.update(cx, |state, cx| {
-                                        state.finish(&id);
-                                        cx.notify();
-                                    });
-                                });
-                                state.timers.push(timer);
-                                cx.notify();
-                            });
-                            if let Some(on_decide) = &on_decide {
-                                on_decide(&id, answer, window, cx);
+                let id = id.clone();
+                Pressable::new(row_id.clone())
+                    .accessibility_label(decision.title.clone())
+                    .aria_expanded(false)
+                    .track_focus(&focus_handle)
+                    .on_click(move |_, _, cx| {
+                        state.update(cx, |state, cx| {
+                            if let Some(row) = state.row(&id) {
+                                row.open = true;
                             }
-                        }
-                    };
-                    h_flex()
-                        .gap_2()
-                        .child(
-                            Button::new((row_id.clone(), "primary"))
-                                .primary()
-                                .small()
-                                .label(decision.primary.clone())
-                                .on_click(pick(DecisionAnswer::Primary, decision.primary)),
-                        )
-                        .child(
-                            Button::new((row_id, "secondary"))
-                                .outline()
-                                .small()
-                                .label(decision.secondary.clone())
-                                .on_click(pick(DecisionAnswer::Secondary, decision.secondary)),
-                        )
-                        .into_any_element()
-                }
+                            cx.notify();
+                        })
+                    })
+                    .justify_start()
+                    .w_full()
+                    .text_size(px(16.))
+                    .line_height(px(24.))
+                    .text_color(quiet)
+                    .hover(|style| style.text_color(ink))
+                    .when(is_focused, |this| this.focus_ring_style(window, cx))
+                    .child(div().min_w_0().truncate().child(decision.title.clone()))
+                    .into_any_element()
             };
 
-            Some(
-                v_flex()
-                    .px_4()
-                    .py_3()
-                    .gap_0p5()
-                    .border_t_1()
-                    .border_color(line)
-                    .child(div().font_medium().child(decision.title))
-                    .when_some(decision.detail, |this, detail| {
-                        this.child(div().text_color(quiet).child(detail))
-                    })
-                    .child(div().mt_2().child(actions))
-                    .into_any_element(),
-            )
-        });
-        let items: Vec<_> = items.collect();
+            let body = (row.open || opened > 0.).then(|| {
+                let actions = match row.answered.clone() {
+                    Some(answer) => {
+                        let entered = Presence::new(part(format!("{id}-answered")), true)
+                            .transition(over(360, Easing::Linear))
+                            .sample(window, cx)
+                            .progress;
+                        h_flex()
+                            .h(px(32.))
+                            .gap_1p5()
+                            .opacity(entered)
+                            .text_color(success)
+                            .child(Icon::new(AssetIcon::CheckmarkFilled).size(px(16.)))
+                            .child(answer)
+                            .into_any_element()
+                    }
+                    None => {
+                        let pick = |answer: DecisionAnswer, label: SharedString| {
+                            let state = state.clone();
+                            let on_decide = on_decide.clone();
+                            let id = id.clone();
+                            move |_: &isonomic_ui::ClickEvent, window: &mut Window, cx: &mut App| {
+                                state.update(cx, |state, cx| {
+                                    if let Some(row) = state.row(&id) {
+                                        row.answered = Some(label.clone());
+                                    }
+                                    let id = id.clone();
+                                    let timer = cx.spawn(async move |this, cx| {
+                                        cx.background_executor().timer(CONFIRM).await;
+                                        _ = this.update(cx, |state, cx| {
+                                            state.finish(&id);
+                                            cx.notify();
+                                        });
+                                    });
+                                    state.timers.push(timer);
+                                    cx.notify();
+                                });
+                                if let Some(on_decide) = &on_decide {
+                                    on_decide(&id, answer, window, cx);
+                                }
+                            }
+                        };
+                        h_flex()
+                            .gap_2()
+                            .child(
+                                Button::new((row_id.clone(), "primary"))
+                                    .primary()
+                                    .h(px(32.))
+                                    .text_size(px(14.))
+                                    .label(decision.primary.clone())
+                                    .on_click(pick(DecisionAnswer::Primary, decision.primary)),
+                            )
+                            .child(
+                                Button::new((row_id.clone(), "secondary"))
+                                    .outline()
+                                    .h(px(32.))
+                                    .text_size(px(14.))
+                                    .label(decision.secondary.clone())
+                                    .on_click(pick(DecisionAnswer::Secondary, decision.secondary)),
+                            )
+                            .into_any_element()
+                    }
+                };
+                MotionReveal::new(
+                    part(format!("{id}-body")),
+                    opened,
+                    v_flex()
+                        .w_full()
+                        .opacity(opened)
+                        .when_some(decision.detail, |this, detail| {
+                            this.child(div().pt_0p5().text_color(quiet).child(detail))
+                        })
+                        .child(div().pt_3().child(actions))
+                        .into_any_element(),
+                )
+            });
+
+            let content = v_flex()
+                .w_full()
+                .px_4()
+                .py_3()
+                .when(!first, |this| this.border_t_1().border_color(line))
+                .opacity(visible)
+                .child(title)
+                .children(body);
+            // Only a row on its way out needs measuring; the rest lay out as is.
+            items.push(if row.gone {
+                MotionReveal::new(part(format!("{id}-row")), stays, content.into_any_element())
+                    .into_any_element()
+            } else {
+                content.into_any_element()
+            });
+        }
         let is_empty = items.is_empty();
 
-        v_flex()
+        let caught_up = transition(
+            part("caught-up".into()),
+            if waiting == 0 { 1.0_f32 } else { 0. },
+            over(300, ease()),
+            window,
+            cx,
+        );
+        let head_color = look::mix(warning, success, caught_up);
+        let empty = Presence::new(part("empty".into()), is_empty)
+            .transition(over(420, ease()).delay(Duration::from_millis(300)))
+            .sample(window, cx);
+
+        shell(cx)
             .id(self.id)
-            .w_full()
             .max_w(px(440.))
-            .overflow_hidden()
-            .rounded(radius)
-            .bg(fill)
             .text_color(ink)
             .text_body()
             .line_height(relative(1.5))
-            .shadow(resting_shadow(cx))
             .child(
                 h_flex()
                     .gap_2()
-                    .h(px(44.))
-                    .px_4()
+                    .h(px(36.))
+                    .px(px(10.))
+                    .mb(px(6.))
                     .font_medium()
-                    .child(if waiting > 0 {
-                        Icon::new(IconName::TriangleAlert)
-                            .small()
-                            .text_color(warning)
-                    } else {
-                        Icon::new(IconName::CircleCheck).small().text_color(success)
-                    })
+                    .text_color(head_color)
+                    .child(
+                        Icon::new(if waiting > 0 {
+                            AssetIcon::WarningAltFilled
+                        } else {
+                            AssetIcon::CheckmarkFilled
+                        })
+                        .size(px(16.)),
+                    )
                     .child(heading(waiting)),
             )
-            .children(items)
-            .when(is_empty, |this| {
-                this.child(
-                    div()
-                        .px_4()
-                        .py_3()
-                        .border_t_1()
-                        .border_color(line)
-                        .text_color(quiet)
-                        .child("New decisions will appear here."),
-                )
-            })
+            .child(panel(cx).overflow_hidden().children(items).when(
+                is_empty && empty.should_render(),
+                |this| {
+                    this.child(
+                        div()
+                            .px_4()
+                            .py_3()
+                            .opacity(empty.progress)
+                            .text_color(quiet)
+                            .child(EMPTY),
+                    )
+                },
+            ))
             .refine_style(&self.style)
     }
 }
@@ -397,9 +461,9 @@ mod tests {
 
     #[test]
     fn headings_count_what_is_waiting() {
-        assert_eq!(heading(0).as_ref(), "All answered");
-        assert_eq!(heading(1).as_ref(), "1 decision waiting");
-        assert_eq!(heading(12).as_ref(), "12 decisions waiting");
+        assert_eq!(heading(0).as_ref(), "All caught up");
+        assert_eq!(heading(1).as_ref(), "1 need your input");
+        assert_eq!(heading(12).as_ref(), "12 need your input");
     }
 
     #[test]

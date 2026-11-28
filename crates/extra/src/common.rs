@@ -3,10 +3,14 @@
 
 //! Small pieces shared by the components in this crate.
 
+use std::time::Duration;
+
+use isonomic_ui::base::{Easing, Transition};
 use isonomic_ui::component::{ActiveTheme as _, Icon, TextRole as _, h_flex, look};
 use isonomic_ui::{
-    AnyElement, App, BoxShadow, Div, ElementId, Hsla, IntoElement, ParentElement as _, Styled as _,
-    Window, div, prelude::FluentBuilder as _, px,
+    AnyElement, App, Bounds, BoxShadow, Div, ElementId, Entity, Hsla, IntoElement,
+    ParentElement as _, PathBuilder, Pixels, Styled as _, Window, div, point,
+    prelude::FluentBuilder as _, px,
 };
 
 /// The meaning a status carries, resolved to theme colors.
@@ -132,6 +136,64 @@ pub fn shell_header(
         .when_some(aside, |this, aside| {
             this.child(h_flex().flex_none().gap_2().child(aside))
         })
+}
+
+/// The reference's ease-out for heights, turns and strokes.
+pub fn ease_out() -> Easing {
+    Easing::cubic_bezier(0.22, 1.0, 0.36, 1.0).expect("static curve is valid")
+}
+
+/// The plain `ease` curve fills, fades and hovers ride on.
+pub fn ease() -> Easing {
+    Easing::cubic_bezier(0.25, 0.1, 0.25, 1.0).expect("static curve is valid")
+}
+
+pub fn over(ms: u64, easing: Easing) -> Transition {
+    Transition::new(Duration::from_millis(ms)).easing(easing)
+}
+
+/// The tick in a 20px box, drawn up to `drawn` (0 to 1) of its length.
+pub fn paint_tick(bounds: Bounds<Pixels>, drawn: f32, color: Hsla, window: &mut Window) {
+    if drawn <= 0.01 {
+        return;
+    }
+    let unit = bounds.size.width / 20.;
+    let at = |x: f32, y: f32| point(bounds.origin.x + unit * x, bounds.origin.y + unit * y);
+    let (a, b, c): ((f32, f32), (f32, f32), (f32, f32)) = ((5.5, 10.5), (8.5, 13.5), (14.5, 6.5));
+    let first = ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt();
+    let second = ((c.0 - b.0).powi(2) + (c.1 - b.1).powi(2)).sqrt();
+    let length = (first + second) * drawn.clamp(0., 1.);
+    let mut line = PathBuilder::stroke(unit * 1.75);
+    line.move_to(at(a.0, a.1));
+    if length <= first {
+        let t = length / first;
+        line.line_to(at(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t));
+    } else {
+        let t = (length - first) / second;
+        line.line_to(at(b.0, b.1));
+        line.line_to(at(b.0 + (c.0 - b.0) * t, b.1 + (c.1 - b.1) * t));
+    }
+    if let Ok(path) = line.build() {
+        window.paint_path(path, color);
+    }
+}
+
+/// Whether the pointer is over `id`, kept between frames.
+pub fn hover_state(id: ElementId, window: &mut Window, cx: &mut App) -> Entity<bool> {
+    window.use_keyed_state(id, cx, |_, _| false)
+}
+
+pub fn track_hover(state: Entity<bool>) -> impl Fn(&bool, &mut Window, &mut App) + 'static {
+    move |hovered, window, cx| {
+        let hovered = *hovered;
+        state.update(cx, |state, cx| {
+            if *state != hovered {
+                *state = hovered;
+                cx.notify();
+            }
+        });
+        window.refresh();
+    }
 }
 
 /// The hover wash at `fade` of its strength, for a quiet row, chip or icon
