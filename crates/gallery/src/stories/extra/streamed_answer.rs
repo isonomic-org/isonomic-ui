@@ -45,9 +45,56 @@ fn ask(answer: &Entity<StreamedAnswer>, cx: &mut App) {
     .detach();
 }
 
+const REASONING: &str = "The question is about one account in one month, so start from the September ledger and compare it with August.
+
+The rise is about 660. Look for anything new in the month: seats added, a renewal, or fees.";
+
+const SHORT_ANSWER: &str = "**Yes.** The storage plan renewal is booked in full in September, so October will look about 600 lower without any change in spending.";
+
+/// Streams a reasoned answer in a few words at a time, the way tokens
+/// arrive from a model.
+fn ask_with_reasoning(answer: &Entity<StreamedAnswer>, cx: &mut App) {
+    answer.update(cx, |answer, cx| {
+        answer.set_streaming(true, cx);
+        answer.set_answer("", cx);
+        answer.start(cx);
+    });
+    let answer = answer.downgrade();
+    cx.spawn(async move |cx| {
+        cx.background_executor()
+            .timer(Duration::from_millis(1400))
+            .await;
+        let words: Vec<String> = SHORT_ANSWER
+            .split_inclusive(' ')
+            .map(ToString::to_string)
+            .collect();
+        for chunk in words.chunks(3) {
+            let text = chunk.concat();
+            if answer
+                .update(cx, |answer, cx| answer.push_text(&text, cx))
+                .is_err()
+            {
+                return;
+            }
+            cx.background_executor()
+                .timer(Duration::from_millis(120))
+                .await;
+        }
+        answer
+            .update(cx, |answer, cx| answer.set_streaming(false, cx))
+            .ok();
+    })
+    .detach();
+}
+
 /// A bookkeeping question answered from six made-up sources.
 pub struct StreamedAnswerStory {
     answer: Entity<StreamedAnswer>,
+    /// Reasons first, then streams its answer in as small pieces of text.
+    reasoned: Entity<StreamedAnswer>,
+    /// Shown at once, with the reasoning folded under how long it took.
+    settled: Entity<StreamedAnswer>,
+    _reasoned_events: Subscription,
     last: SharedString,
     _events: Subscription,
 }
@@ -94,6 +141,27 @@ impl StreamedAnswerStory {
                     .follow_up("Compare software costs with last year")
             });
             ask(&answer, cx);
+            let reasoned = cx.new(|cx| {
+                StreamedAnswer::new("Will October look cheaper?", cx)
+                    .framed(true)
+                    .reasoning(REASONING)
+                    .speed(60.)
+            });
+            ask_with_reasoning(&reasoned, cx);
+            let reasoned_events = cx.subscribe(&reasoned, |_: &mut Self, answer, event, cx| {
+                if let StreamedAnswerEvent::Regenerate = event {
+                    ask_with_reasoning(&answer, cx);
+                }
+            });
+            let settled = cx.new(|cx| {
+                StreamedAnswer::new("Is the renewal booked yet?", cx)
+                    .framed(true)
+                    .animate(false)
+                    .reasoning(REASONING)
+                    .reasoning_took(Duration::from_secs(8))
+                    .answer(SHORT_ANSWER)
+            });
+            settled.update(cx, |settled, cx| settled.start(cx));
             let events = cx.subscribe(&answer, |this: &mut Self, answer, event, cx| {
                 if let StreamedAnswerEvent::Regenerate = event {
                     ask(&answer, cx);
@@ -116,6 +184,9 @@ impl StreamedAnswerStory {
             });
             Self {
                 answer,
+                reasoned,
+                settled,
+                _reasoned_events: reasoned_events,
                 last: "Nothing yet".into(),
                 _events: events,
             }
@@ -143,6 +214,8 @@ impl Render for StreamedAnswerStory {
             .gap_3()
             .max_w(px(640.))
             .child(self.answer.clone())
+            .child(self.reasoned.clone())
+            .child(self.settled.clone())
             .child(
                 div()
                     .text_xs()
