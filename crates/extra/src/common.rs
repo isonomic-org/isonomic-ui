@@ -5,8 +5,8 @@
 
 use isonomic_ui::component::{ActiveTheme as _, Icon, TextRole as _, h_flex, look};
 use isonomic_ui::{
-    AnyElement, App, BoxShadow, Div, Hsla, IntoElement, ParentElement as _, Styled as _, div,
-    prelude::FluentBuilder as _, px,
+    AnyElement, App, BoxShadow, Div, ElementId, Hsla, IntoElement, ParentElement as _,
+    Styled as _, Window, div, prelude::FluentBuilder as _, px,
 };
 
 /// The meaning a status carries, resolved to theme colors.
@@ -132,6 +132,38 @@ pub fn shell_header(
         .when_some(aside, |this, aside| {
             this.child(h_flex().flex_none().gap_2().child(aside))
         })
+}
+
+/// The hover wash at `fade` of its strength, for a quiet row, chip or icon
+/// button whose hover is eased with `look::tracked_hover` instead of
+/// snapping. Set it before any selected fill, so the selected fill wins.
+pub fn hover_wash(fade: f32, cx: &App) -> Hsla {
+    let wash = look::ink::wash(cx);
+    wash.alpha(wash.a * fade)
+}
+
+/// Eased hovers for a run of parts of `id` (rows, chips, segments), one per
+/// item of `enabled`, named `<part>-<index>`. Take each with `Option::take`
+/// while building the part. Call before borrowing the theme.
+pub fn tracked_hovers(
+    id: &ElementId,
+    part: &str,
+    enabled: impl IntoIterator<Item = bool>,
+    window: &mut Window,
+    cx: &mut App,
+) -> Vec<Option<(f32, look::HoverListener)>> {
+    enabled
+        .into_iter()
+        .enumerate()
+        .map(|(ix, enabled)| {
+            Some(look::tracked_hover(
+                ElementId::NamedChild(id.clone().into(), format!("{part}-{ix}").into()),
+                enabled,
+                window,
+                cx,
+            ))
+        })
+        .collect()
 }
 
 #[cfg(test)]

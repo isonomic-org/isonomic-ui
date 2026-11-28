@@ -112,11 +112,18 @@ impl RenderOnce for LabelledIconButton {
             .read(cx)
             .clone();
         let focused = focus.is_focused(window);
+        // The hover wash and ink fade in instead of snapping.
+        let (hover, on_hover) = isonomic_ui::component::look::tracked_hover(
+            ElementId::NamedChild(self.id.clone().into(), "hover".into()),
+            true,
+            window,
+            cx,
+        );
+        let wash = crate::common::hover_wash(hover, cx);
         let theme = cx.theme();
         let ring = theme.ring;
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
-        let chip = theme.muted;
         let accent = theme.primary;
         let fill = theme.background;
         let on = self.pressed == Some(true);
@@ -133,9 +140,14 @@ impl RenderOnce for LabelledIconButton {
             .justify_center()
             .rounded(px(7.))
             .cursor_pointer()
-            .text_color(if on { accent } else { quiet })
+            .bg(wash)
+            .text_color(if on {
+                accent
+            } else {
+                isonomic_ui::component::look::mix(quiet, ink, hover)
+            })
             .when(on, |this| this.bg(accent.opacity(0.12)))
-            .hover(|s| s.bg(chip).text_color(ink))
+            .on_hover(on_hover)
             .role(Role::Button)
             .track_focus(&focus)
             .when(focused, |this| this.border_2().border_color(ring))

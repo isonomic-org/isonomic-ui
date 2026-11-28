@@ -112,6 +112,13 @@ impl RenderOnce for StatusBadge {
                 .read(cx)
                 .clone()
         });
+        // The remove button's wash fades in instead of snapping.
+        let (remove_hover, remove_on_hover) = isonomic_ui::component::look::tracked_hover(
+            ElementId::NamedChild(self.id.clone().into(), "remove-hover".into()),
+            self.on_remove.is_some(),
+            window,
+            cx,
+        );
         let theme = cx.theme();
         let ring = theme.ring;
         let color = match self.tone {
@@ -187,7 +194,8 @@ impl RenderOnce for StatusBadge {
                     .justify_center()
                     .rounded_full()
                     .cursor_pointer()
-                    .hover(|s| s.bg(fg.opacity(0.15)))
+                    .bg(fg.opacity(0.15 * remove_hover))
+                    .on_hover(remove_on_hover)
                     .aria_label(format!("Remove {}", self.label))
                     .on_click(move |_, window, cx| remove(window, cx))
                     .child(Icon::new(IconName::Close).xsmall())
