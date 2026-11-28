@@ -154,6 +154,9 @@ pub struct Input {
     height: Option<DefiniteLength>,
     appearance: bool,
     cleanable: bool,
+    search: bool,
+    invalid: bool,
+    description: Option<SharedString>,
     mask_toggle: bool,
     disabled: bool,
     readonly: bool,
@@ -275,6 +278,9 @@ impl Input {
             height: None,
             appearance: true,
             cleanable: false,
+            search: false,
+            invalid: false,
+            description: None,
             mask_toggle: false,
             disabled: false,
             readonly: false,
@@ -359,6 +365,30 @@ impl Input {
     /// Set whether to show the clear button when the input field is not empty, default is false.
     pub fn cleanable(mut self, cleanable: bool) -> Self {
         self.cleanable = cleanable;
+        self
+    }
+
+    /// Make this a search field: a search icon leads (unless a prefix is
+    /// given), a clear button shows while there is text, Escape clears the
+    /// text before it reaches anything else, and screen readers hear a search
+    /// field. With the field already empty, Escape passes on, so it still
+    /// closes the menu or dialog around it.
+    pub fn search(mut self, search: bool) -> Self {
+        self.search = search;
+        self
+    }
+
+    /// Mark the value wrong: the field's ring turns to the danger colour.
+    /// Say what is wrong with [`Self::description`] or a labelled field.
+    pub fn invalid(mut self, invalid: bool) -> Self {
+        self.invalid = invalid;
+        self
+    }
+
+    /// Words a screen reader reads after the field's name, such as its hint
+    /// or what is wrong with the value.
+    pub fn description(mut self, description: impl Into<SharedString>) -> Self {
+        self.description = Some(description.into());
         self
     }
 
@@ -720,12 +750,16 @@ impl RenderOnce for Input {
         let is_multi_line = presentation.is_multi_line();
         // Without a content type, a masked input is a password field to screen
         // readers, so they announce it as one.
+        let role = match self.role {
+            RoleOverride::Implicit if self.search && !is_multi_line => Role::SearchInput.into(),
+            role => role,
+        };
         let accessibility_role = accessibility_role(
             is_multi_line,
             content_type.or(presentation
                 .is_masked()
                 .then_some(InputContentType::Password)),
-            self.role,
+            role,
         );
         let input_focused =
             presentation.focus_handle().is_focused(window) && !presentation.is_disabled();
@@ -754,12 +788,24 @@ impl RenderOnce for Input {
         } else {
             bg
         };
-        let prefix = self.prefix;
+        let search = self.search && !is_multi_line;
+        let prefix = self.prefix.or_else(|| {
+            search.then(|| {
+                crate::Icon::new(IconName::Search)
+                    .with_size(match self.size {
+                        Size::XSmall | Size::Small => Size::XSmall,
+                        _ => Size::Small,
+                    })
+                    .text_color(crate::look::ink::icon(cx))
+                    .into_any_element()
+            })
+        });
         let suffix = self.suffix;
-        let show_clear_button = self.cleanable
+        let has_text = state.text(cx).len() > 0;
+        let show_clear_button = (self.cleanable || search)
             && presentation.is_editable()
             && !presentation.is_loading()
-            && state.text(cx).len() > 0
+            && has_text
             && !presentation.is_multi_line();
         let has_suffix =
             suffix.is_some() || presentation.is_loading() || self.mask_toggle || show_clear_button;
@@ -779,7 +825,8 @@ impl RenderOnce for Input {
                 .with_label(aria_label)
                 .with_placeholder(placeholder)
                 .with_accessibility_id(self.accessibility_id)
-                .with_value_exposed(exposes_accessibility_value(content_type)),
+                .with_value_exposed(exposes_accessibility_value(content_type))
+                .with_description(self.description),
             cx,
         );
         let id = self
@@ -795,16 +842,15 @@ impl RenderOnce for Input {
         );
         let hovered = boxed && !disabled && *hover_state.read(cx);
         let fade = crate::look::hover_fade(id.clone(), hovered, window, cx);
+        let invalid = self.invalid && !disabled;
         let field_shadow = boxed.then(|| {
-            if focused && self.focus_bordered {
-                crate::look::surface::field_focus(cx)
-            } else {
-                crate::look::mix_shadows(
-                    &crate::look::surface::field(cx),
-                    &crate::look::surface::field_hover(cx),
-                    fade,
-                )
-            }
+            crate::look::surface::field_for(
+                fade,
+                focused && self.focus_bordered,
+                invalid,
+                false,
+                cx,
+            )
         });
         BaseInput::new(id)
             .semantic_owner(state.entity_id())
@@ -900,6 +946,14 @@ impl RenderOnce for Input {
             })
             .relative()
             .children(overlays.floating)
+            .when(search && has_text && presentation.is_editable(), |this| {
+                // The editor lets Escape through when it has nothing of its
+                // own to dismiss; a search field spends it on the text first.
+                let state = state.clone();
+                this.on_action(move |_: &super::Escape, window, cx| {
+                    state.clean(window, cx);
+                })
+            })
             .when_some(paste_handler, |this, handler| {
                 this.capture_action(move |_: &isonomic_ui_base::input::Paste, window, cx| {
                     if let Some(clipboard) = cx.read_from_clipboard() {

@@ -17,6 +17,9 @@ pub struct InputStory {
     input1: Entity<InputState>,
     input2: Entity<InputState>,
     input_esc: Entity<InputState>,
+    search_input: Entity<InputState>,
+    search_empty: Entity<InputState>,
+    invalid_input: Entity<InputState>,
     input_text_centered: Entity<InputState>,
     input_text_right: Entity<InputState>,
     mask_input: Entity<InputState>,
@@ -81,6 +84,18 @@ impl InputStory {
             InputState::new(window, cx)
                 .placeholder("Enter text and clear it by pressing ESC")
                 .clean_on_escape()
+        });
+
+        let search_input = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder("Search invoices")
+                .default_value("overdue march")
+        });
+        let search_empty = cx.new(|cx| InputState::new(window, cx).placeholder("Search people"));
+        let invalid_input = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder("name@example.com")
+                .default_value("billing@northwind")
         });
 
         let mask_input = cx.new(|cx| {
@@ -269,6 +284,9 @@ impl InputStory {
             input1,
             input2,
             input_esc,
+            search_input,
+            search_empty,
+            invalid_input,
             mask_input,
             disabled_input: cx
                 .new(|cx| InputState::new(window, cx).default_value("This is disabled input")),
@@ -400,6 +418,34 @@ impl Render for InputStory {
                         Input::new(&self.input2)
                             .with_size(self.size)
                             .role(Role::EmailInput),
+                    ),
+            )
+            .child(
+                section("Search")
+                    .description(
+                        "A leading search icon, a clear button while there is text, and Escape clears.",
+                    )
+                    .w_128()
+                    .child(
+                        Input::new(&self.search_input)
+                            .with_size(self.size)
+                            .search(true),
+                    )
+                    .child(
+                        Input::new(&self.search_empty)
+                            .with_size(self.size)
+                            .search(true),
+                    ),
+            )
+            .child(
+                section("Invalid")
+                    .description("A wrong value turns the ring to the danger colour.")
+                    .w_128()
+                    .child(
+                        Input::new(&self.invalid_input)
+                            .with_size(self.size)
+                            .invalid(true)
+                            .description("Error: the address needs a domain such as .com"),
                     ),
             )
             .child(
