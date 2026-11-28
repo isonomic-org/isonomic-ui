@@ -6,12 +6,13 @@
 use std::time::Duration;
 
 use crate::Story;
+use isonomic_ui::assets::IconName as CatalogIcon;
 use isonomic_ui::component::{ActiveTheme as _, h_flex, v_flex};
 use isonomic_ui::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, Styled as _,
-    Window, div,
+    Window, div, prelude::FluentBuilder as _,
 };
-use isonomic_ui_extra::action_button::{ActionButton, ActionState};
+use isonomic_ui_extra::action_button::{ActionButton, ActionEmphasis, ActionState};
 
 /// Three actions the story plays: sending reminders works then finishes,
 /// posting fails the first time, and voiding asks twice.
@@ -85,6 +86,16 @@ impl Story for ActionButtonStory {
     }
 }
 
+impl ActionButtonStory {
+    fn caption(text: &'static str, cx: &App) -> impl IntoElement {
+        div()
+            .pt_2()
+            .text_xs()
+            .text_color(cx.theme().muted_foreground)
+            .child(text)
+    }
+}
+
 impl Render for ActionButtonStory {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (a, b, c) = (cx.entity(), cx.entity(), cx.entity());
@@ -141,6 +152,62 @@ impl Render for ActionButtonStory {
                     .text_xs()
                     .text_color(cx.theme().muted_foreground)
                     .child("Posting fails the first time, then works."),
+            )
+            .child(Self::caption("Four emphases, small and medium", cx))
+            .children([false, true].map(|medium| {
+                h_flex().gap_3().flex_wrap().children(
+                    [
+                        (ActionEmphasis::Primary, "Publish"),
+                        (ActionEmphasis::Secondary, "Duplicate"),
+                        (ActionEmphasis::Ghost, "Rename"),
+                        (ActionEmphasis::Danger, "Delete"),
+                    ]
+                    .map(|(emphasis, label)| {
+                        ActionButton::new(format!("emphasis-{label}-{medium}"), label)
+                            .emphasis(emphasis)
+                            .when(medium, |b| b.medium())
+                    }),
+                )
+            }))
+            .child(Self::caption("Icon only, in each state", cx))
+            .child(
+                h_flex().gap_3().flex_wrap().children(
+                    [
+                        ActionState::Idle,
+                        ActionState::Working,
+                        ActionState::Done,
+                        ActionState::Failed,
+                        ActionState::Confirming,
+                    ]
+                    .into_iter()
+                    .enumerate()
+                    .map(|(ix, state)| {
+                        ActionButton::new(format!("icon-only-{ix}"), "Sync 12 ledgers")
+                            .icon(CatalogIcon::Renew)
+                            .icon_only()
+                            .emphasis(ActionEmphasis::Ghost)
+                            .words("Syncing\u{2026}", "Synced", "Couldn't sync, try again")
+                            .state(state)
+                    }),
+                ),
+            )
+            .child(Self::caption("Working, in both sizes", cx))
+            .child(
+                h_flex()
+                    .gap_3()
+                    .flex_wrap()
+                    .child(
+                        ActionButton::new("working-small", "Export")
+                            .words("Exporting\u{2026}", "Exported", "Couldn't export")
+                            .state(ActionState::Working),
+                    )
+                    .child(
+                        ActionButton::new("working-medium", "Export")
+                            .medium()
+                            .secondary()
+                            .words("Exporting\u{2026}", "Exported", "Couldn't export")
+                            .state(ActionState::Working),
+                    ),
             )
     }
 }

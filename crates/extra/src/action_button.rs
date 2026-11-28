@@ -8,16 +8,21 @@
 //! a moment (the owner decides how long). Failed, it turns to the danger
 //! colour with its failure words and can be clicked to try again. A
 //! destructive action asks for a second click, saying what will happen.
+//!
+//! It comes in two sizes (small, the default, and medium), four emphases
+//! (primary, secondary, ghost and danger) and an icon-only form that keeps
+//! its words for the tooltip and for a screen reader.
 
-use isonomic_ui::component::spinner::Spinner;
 use std::rc::Rc;
 
+use isonomic_ui::assets::IconName as CatalogIcon;
+
 use isonomic_ui::component::{
-    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, Size,
     button::{Button, ButtonVariants as _},
 };
 use isonomic_ui::{
-    App, ElementId, IntoElement, ParentElement as _, RenderOnce, SharedString, Styled as _, Window,
+    App, ElementId, IntoElement, RenderOnce, SharedString, Styled as _, Window,
     prelude::FluentBuilder as _,
 };
 
@@ -48,6 +53,42 @@ pub fn click_means(state: ActionState, destructive: bool) -> Option<ActionState>
     }
 }
 
+/// How loudly the button asks to be pressed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ActionEmphasis {
+    /// Solid ink: the one main action.
+    #[default]
+    Primary,
+    /// Outlined: an action beside the main one.
+    Secondary,
+    /// No fill until the pointer is over it: a quiet action in a toolbar.
+    Ghost,
+    /// The danger colour: an action that destroys something.
+    Danger,
+}
+
+/// The emphasis a state paints with: asking to confirm and failing always
+/// use the danger colour, and so does a destructive action.
+pub fn emphasis_in(
+    state: ActionState,
+    destructive: bool,
+    chosen: ActionEmphasis,
+) -> ActionEmphasis {
+    match (state, destructive) {
+        (ActionState::Confirming | ActionState::Failed, _) | (_, true) => ActionEmphasis::Danger,
+        _ => chosen,
+    }
+}
+
+/// What a screen reader hears: the action alone while idle, then the action
+/// and where it is.
+pub fn spoken_label(label: &str, state_words: &str, state: ActionState) -> String {
+    match state {
+        ActionState::Idle => label.to_string(),
+        _ => format!("{label}: {state_words}"),
+    }
+}
+
 type ClickHandler = Rc<dyn Fn(ActionState, &mut Window, &mut App)>;
 
 /// A button that shows an action's progress.
@@ -61,8 +102,10 @@ pub struct ActionButton {
     confirm: SharedString,
     state: ActionState,
     destructive: bool,
-    primary: bool,
-    icon: Option<IconName>,
+    emphasis: ActionEmphasis,
+    size: Size,
+    icon_only: bool,
+    icon: Option<Icon>,
     on_click: Option<ClickHandler>,
 }
 
@@ -78,7 +121,9 @@ impl ActionButton {
             confirm: "Click again to confirm".into(),
             state: ActionState::Idle,
             destructive: false,
-            primary: true,
+            emphasis: ActionEmphasis::Primary,
+            size: Size::Small,
+            icon_only: false,
             icon: None,
             on_click: None,
         }
@@ -106,13 +151,33 @@ impl ActionButton {
 
     /// Use the outline look instead of the primary one.
     pub fn secondary(mut self) -> Self {
-        self.primary = false;
+        self.emphasis = ActionEmphasis::Secondary;
+        self
+    }
+
+    /// Choose how loudly the button asks to be pressed. Asking to confirm
+    /// and failing still use the danger colour.
+    pub fn emphasis(mut self, emphasis: ActionEmphasis) -> Self {
+        self.emphasis = emphasis;
+        self
+    }
+
+    /// Use the medium size, 28px tall, instead of the small 24px one.
+    pub fn medium(mut self) -> Self {
+        self.size = Size::Medium;
+        self
+    }
+
+    /// Show only the icon. The words move to the tooltip and the spoken
+    /// name; working shows the spinner in the icon's place.
+    pub fn icon_only(mut self) -> Self {
+        self.icon_only = true;
         self
     }
 
     /// Show an icon when idle.
-    pub fn icon(mut self, icon: IconName) -> Self {
-        self.icon = Some(icon);
+    pub fn icon(mut self, icon: impl Into<Icon>) -> Self {
+        self.icon = Some(icon.into());
         self
     }
 
@@ -145,32 +210,32 @@ impl RenderOnce for ActionButton {
             ActionState::Done => self.done.clone(),
             ActionState::Failed => self.failed.clone(),
         };
+        let icon_only = self.icon_only;
+        let icon: Option<Icon> = match state {
+            ActionState::Idle => self.icon.clone(),
+            ActionState::Confirming => icon_only.then(|| Icon::new(CatalogIcon::WarningAlt)),
+            ActionState::Working => self.icon.clone().filter(|_| icon_only),
+            ActionState::Done => Some(Icon::new(IconName::Check).text_color(success)),
+            ActionState::Failed => Some(Icon::new(IconName::RefreshCw)),
+        };
+        // An icon-only button needs something to show while idle.
+        let icon = icon.or_else(|| icon_only.then(|| Icon::new(CatalogIcon::Play)));
         Button::new(self.id.clone())
-            .small()
-            .map(|b| match (state, destructive, self.primary) {
-                (ActionState::Confirming | ActionState::Failed, _, _) | (_, true, _) => b.danger(),
-                (_, _, true) => b.primary(),
-                _ => b.outline(),
+            .with_size(self.size)
+            .map(|b| match emphasis_in(state, destructive, self.emphasis) {
+                ActionEmphasis::Primary => b.primary(),
+                ActionEmphasis::Secondary => b.outline(),
+                ActionEmphasis::Ghost => b.ghost(),
+                ActionEmphasis::Danger => b.danger(),
             })
-            .when(state == ActionState::Idle, |b| match self.icon {
-                Some(icon) => b.icon(icon),
-                None => b,
-            })
-            .when(state == ActionState::Done, |b| {
-                b.icon(Icon::new(IconName::Check).text_color(success))
-            })
-            .when(state == ActionState::Failed, |b| {
-                b.icon(IconName::RefreshCw)
-            })
-            .when(state == ActionState::Working, |b| {
-                b.child(Spinner::new().xsmall())
-            })
-            .label(label.clone())
-            .disabled(matches!(state, ActionState::Working | ActionState::Done))
-            .accessibility_label(match state {
-                ActionState::Idle => self.label.to_string(),
-                _ => format!("{}: {label}", self.label),
-            })
+            .when_some(icon, |b, icon| b.icon(icon))
+            .when(!icon_only, |b| b.label(label.clone()))
+            .when(icon_only, |b| b.tooltip(label.clone()))
+            // Working uses the base loading state: a spinner, the button's
+            // own colours, and clicks ignored.
+            .loading(state == ActionState::Working)
+            .disabled(state == ActionState::Done)
+            .accessibility_label(spoken_label(&self.label, &label, state))
             .on_click(move |_, window, cx| {
                 if let (Some(next), Some(on_click)) = (click_means(state, destructive), &on_click) {
                     on_click(next, window, cx);
@@ -201,6 +266,31 @@ mod tests {
         assert_eq!(
             click_means(ActionState::Failed, false),
             Some(ActionState::Working)
+        );
+    }
+
+    #[test]
+    fn confirming_and_failing_paint_as_danger() {
+        use ActionEmphasis::*;
+        assert_eq!(emphasis_in(ActionState::Idle, false, Ghost), Ghost);
+        assert_eq!(
+            emphasis_in(ActionState::Working, false, Secondary),
+            Secondary
+        );
+        assert_eq!(emphasis_in(ActionState::Confirming, false, Ghost), Danger);
+        assert_eq!(emphasis_in(ActionState::Failed, false, Primary), Danger);
+        assert_eq!(emphasis_in(ActionState::Idle, true, Primary), Danger);
+    }
+
+    #[test]
+    fn spoken_label_names_the_state_after_idle() {
+        assert_eq!(
+            spoken_label("Archive", "Archive", ActionState::Idle),
+            "Archive"
+        );
+        assert_eq!(
+            spoken_label("Archive", "Archiving\u{2026}", ActionState::Working),
+            "Archive: Archiving\u{2026}"
         );
     }
 }
