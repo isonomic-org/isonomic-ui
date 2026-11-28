@@ -7,10 +7,16 @@
 //! on its own as a word: "Running", "Needs review", "Paid". A live dot
 //! pulses while something is in progress. A count is capped ("99+"), and a
 //! removable badge has a named close button, for filters and tags.
+//!
+//! Each of the five tones (neutral, info, success, warning, danger) can lead
+//! with a still dot or an icon: its own icon from [`tone_icon`], or any other.
 
 use std::rc::Rc;
 
+use isonomic_ui::assets::IconName as CatalogIcon;
+use isonomic_ui::base::PressableExt as _;
 use isonomic_ui::component::TextRole as _;
+use isonomic_ui::component::look;
 use isonomic_ui::component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, h_flex,
 };
@@ -32,6 +38,40 @@ pub fn capped(count: u32, max: u32) -> String {
     }
 }
 
+/// The icon a tone leads with when it is asked to show its own.
+pub fn tone_icon(tone: Tone) -> CatalogIcon {
+    match tone {
+        Tone::Neutral => CatalogIcon::CircleDash,
+        Tone::Info => CatalogIcon::Information,
+        Tone::Success => CatalogIcon::CheckmarkOutline,
+        Tone::Warning => CatalogIcon::WarningAlt,
+        Tone::Danger => CatalogIcon::Error,
+    }
+}
+
+/// What a screen reader hears: the label, the count, and "in progress"
+/// while live.
+pub fn spoken_label(label: &str, count: Option<u32>, live: bool) -> String {
+    let live = if live { ", in progress" } else { "" };
+    match count {
+        Some(n) => format!("{label}, {n}{live}"),
+        None => format!("{label}{live}"),
+    }
+}
+
+/// What leads the label.
+#[derive(Clone)]
+enum Lead {
+    /// Nothing.
+    None,
+    /// A still dot in the tone.
+    Dot,
+    /// An icon in the tone.
+    Icon(Box<Icon>),
+    /// The tone's own icon, whatever the tone ends up being.
+    ToneIcon,
+}
+
 /// A labelled status pill.
 #[derive(IntoElement)]
 pub struct StatusBadge {
@@ -43,6 +83,7 @@ pub struct StatusBadge {
     count: Option<u32>,
     max: u32,
     solid: bool,
+    lead: Lead,
     on_remove: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
 }
 
@@ -58,6 +99,7 @@ impl StatusBadge {
             count: None,
             max: 99,
             solid: false,
+            lead: Lead::None,
             on_remove: None,
         }
     }
@@ -78,6 +120,25 @@ impl StatusBadge {
     pub fn count(mut self, count: u32, max: u32) -> Self {
         self.count = Some(count);
         self.max = max.max(1);
+        self
+    }
+
+    /// Lead with a still dot in the tone. A live badge's pulsing dot takes
+    /// its place.
+    pub fn dot(mut self) -> Self {
+        self.lead = Lead::Dot;
+        self
+    }
+
+    /// Lead with an icon in the tone.
+    pub fn icon(mut self, icon: impl Into<Icon>) -> Self {
+        self.lead = Lead::Icon(Box::new(icon.into()));
+        self
+    }
+
+    /// Lead with the tone's own icon (see [`tone_icon`]).
+    pub fn tone_icon(mut self) -> Self {
+        self.lead = Lead::ToneIcon;
         self
     }
 
@@ -136,18 +197,7 @@ impl RenderOnce for StatusBadge {
             .text_color(fg)
             .text_label_small()
             .role(Role::Status)
-            .aria_label(match self.count {
-                Some(n) => format!(
-                    "{}, {n}{}",
-                    self.label,
-                    if self.live { ", in progress" } else { "" }
-                ),
-                None => format!(
-                    "{}{}",
-                    self.label,
-                    if self.live { ", in progress" } else { "" }
-                ),
-            })
+            .aria_label(spoken_label(&self.label, self.count, self.live))
             .when(self.live, |this| {
                 this.child(div().size(px(6.)).rounded_full().bg(fg).with_animation(
                     ElementId::NamedChild(self.id.clone().into(), "pulse".into()),
@@ -155,6 +205,17 @@ impl RenderOnce for StatusBadge {
                     |dot, delta| dot.opacity(0.35 + 0.65 * (1. - (delta * 2. - 1.).abs())),
                 ))
             })
+            .when(!self.live && matches!(self.lead, Lead::Dot), |this| {
+                this.child(div().flex_none().size(px(6.)).rounded_full().bg(fg))
+            })
+            .when_some(
+                match self.lead.clone() {
+                    Lead::Icon(icon) if !self.live => Some(*icon),
+                    Lead::ToneIcon if !self.live => Some(Icon::new(tone_icon(self.tone))),
+                    _ => None,
+                },
+                |this, icon| this.pl(px(6.)).child(icon.size(px(12.)).text_color(fg)),
+            )
             .child(label)
             .children(self.count.map(|n| {
                 div()
@@ -166,11 +227,15 @@ impl RenderOnce for StatusBadge {
             .children(self.on_remove.zip(remove_focus).map(|(remove, focus)| {
                 let on_key = remove.clone();
                 let focused = focus.is_focused(window);
+                let remove_id = ElementId::NamedChild(self.id.clone().into(), "remove".into());
+                let hovered = window.use_keyed_state(
+                    ElementId::NamedChild(self.id.clone().into(), "remove-hover".into()),
+                    cx,
+                    |_, _| false,
+                );
+                let fade = look::hover_fade(remove_id.clone(), *hovered.read(cx), window, cx);
                 div()
-                    .id(ElementId::NamedChild(
-                        self.id.clone().into(),
-                        "remove".into(),
-                    ))
+                    .id(remove_id)
                     .role(Role::Button)
                     .track_focus(&focus)
                     .when(focused, |this| this.border_1().border_color(ring))
@@ -186,8 +251,17 @@ impl RenderOnce for StatusBadge {
                     .items_center()
                     .justify_center()
                     .rounded_full()
-                    .cursor_pointer()
-                    .hover(|s| s.bg(fg.opacity(0.15)))
+                    .pressable(true)
+                    .bg(look::mix(fg.opacity(0.), fg.opacity(0.15), fade))
+                    .on_hover(move |over, window, cx| {
+                        hovered.update(cx, |state, cx| {
+                            if *state != *over {
+                                *state = *over;
+                                cx.notify();
+                            }
+                        });
+                        window.refresh();
+                    })
                     .aria_label(format!("Remove {}", self.label))
                     .on_click(move |_, window, cx| remove(window, cx))
                     .child(Icon::new(IconName::Close).xsmall())
@@ -205,5 +279,31 @@ mod tests {
         assert_eq!(capped(7, 99), "7");
         assert_eq!(capped(99, 99), "99");
         assert_eq!(capped(140, 99), "99+");
+    }
+
+    #[test]
+    fn every_tone_has_its_own_icon() {
+        let icons = [
+            Tone::Neutral,
+            Tone::Info,
+            Tone::Success,
+            Tone::Warning,
+            Tone::Danger,
+        ]
+        .map(tone_icon);
+        for (ix, icon) in icons.iter().enumerate() {
+            assert!(!icons[ix + 1..].contains(icon), "{icon:?} is used twice");
+        }
+    }
+
+    #[test]
+    fn spoken_label_says_count_and_progress() {
+        assert_eq!(spoken_label("Paid", None, false), "Paid");
+        assert_eq!(spoken_label("Overdue", Some(7), false), "Overdue, 7");
+        assert_eq!(
+            spoken_label("Running", Some(3), true),
+            "Running, 3, in progress"
+        );
+        assert_eq!(spoken_label("Running", None, true), "Running, in progress");
     }
 }

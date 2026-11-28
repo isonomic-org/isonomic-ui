@@ -118,6 +118,7 @@ pub struct Tag {
     outline: bool,
     size: Size,
     rounded: Option<AbsoluteLength>,
+    mono: bool,
     children: Vec<AnyElement>,
 }
 impl Tag {
@@ -129,6 +130,7 @@ impl Tag {
             outline: false,
             size: Size::default(),
             rounded: None,
+            mono: false,
             children: Vec::new(),
         }
     }
@@ -186,6 +188,13 @@ impl Tag {
     /// Use outline style
     pub fn outline(mut self) -> Self {
         self.outline = true;
+        self
+    }
+
+    /// Set the text in the mono family at regular weight, for identifiers,
+    /// versions, hashes and keys: "v2.4.1", "INV-2240", "a3f9c1e".
+    pub fn mono(mut self) -> Self {
+        self.mono = true;
         self
     }
 
@@ -271,6 +280,10 @@ impl RenderOnce for Tag {
                     .line_height(px(16.)),
             })
             .font_weight(FontWeight::MEDIUM)
+            .when(self.mono, |this| {
+                this.font_family(cx.theme().mono_font_family.clone())
+                    .font_weight(FontWeight::NORMAL)
+            })
             .bg(bg)
             .text_color(fg)
             .rounded(rounded)
