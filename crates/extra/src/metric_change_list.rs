@@ -159,7 +159,7 @@ impl Styled for MetricChangeList {
 }
 
 impl RenderOnce for MetricChangeList {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let ink = theme.foreground;
         let quiet = theme.muted_foreground;
@@ -171,6 +171,12 @@ impl RenderOnce for MetricChangeList {
         let stacked = self.stacked;
         let inset = if stacked { px(14.) } else { px(16.) };
 
+        let mut hovers = (0..self.changes.len())
+            .map(|ix| {
+                isonomic_ui::component::look::tracked_hover(("metric-hover", ix), true, window, cx)
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
         let rows = self.changes.into_iter().enumerate().map(|(ix, change)| {
             let arrow = change.arrow();
             let spoken = spoken_change(&change);
@@ -179,6 +185,7 @@ impl RenderOnce for MetricChangeList {
                 Some(TrendDirection::Up) => IconName::ArrowUp,
                 Some(TrendDirection::Down) => IconName::ArrowDown,
             };
+            let (hover_fade, hover_on_hover) = hovers.next().expect("one hover per row");
             let row = div()
                 .id(ix)
                 .role(Role::ListItem)
@@ -188,7 +195,8 @@ impl RenderOnce for MetricChangeList {
                 .px(inset)
                 .border_t_1()
                 .border_color(line)
-                .hover(|style| style.bg(wash))
+                .bg(crate::common::faded(wash, hover_fade))
+                .on_hover(hover_on_hover)
                 .map(|this| {
                     if stacked {
                         this.flex_col().gap_1().py_2p5()

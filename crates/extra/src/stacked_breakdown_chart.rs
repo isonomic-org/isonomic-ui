@@ -746,6 +746,13 @@ impl RenderOnce for StackedBreakdownChart {
                         .map(|(column, (name, _))| {
                             let state = state.clone();
                             let is_hidden = hidden.contains(&column);
+                            let (hover_fade, hover_on_hover) =
+                                isonomic_ui::component::look::tracked_hover(
+                                    ("legend-hover", column),
+                                    true,
+                                    window,
+                                    cx,
+                                );
                             h_flex()
                                 .id(("legend", column))
                                 .gap_1p5()
@@ -753,7 +760,8 @@ impl RenderOnce for StackedBreakdownChart {
                                 .px_1p5()
                                 .rounded(radius)
                                 .cursor_pointer()
-                                .hover(|this| this.bg(chip))
+                                .bg(crate::common::faded(chip, hover_fade))
+                                .on_hover(hover_on_hover)
                                 .when(is_hidden, |this| this.opacity(0.45).line_through())
                                 .on_click(move |_, _, cx| {
                                     state.update(cx, |state, cx| {
