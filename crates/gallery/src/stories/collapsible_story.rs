@@ -276,13 +276,14 @@ impl CollapsibleStory {
                         Button::new(DISCLOSURE)
                             .ghost()
                             .w_full()
-                            .justify_between()
                             .accessibility_label(if open {
                                 "Payment terms, expanded"
                             } else {
                                 "Payment terms, collapsed"
                             })
                             .child(div().font_medium().child("Payment terms"))
+                            // A spacer takes the free width, so the chevron sits at the end.
+                            .child(div().flex_1())
                             .child(
                                 Icon::new(IconName::ChevronDown)
                                     .small()

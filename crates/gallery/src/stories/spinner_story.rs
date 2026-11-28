@@ -85,7 +85,8 @@ impl Render for SpinnerStory {
                 section("Rays and dots")
                     .description(
                         "Thinking indicators: rays running round, or three dots brightening in \
-                         turn beside a line of text.",
+                         turn. The dots carry a spoken label, so a screen reader hears \
+                         \"Loading\".",
                     )
                     .gap_x_2()
                     .child(Spinner::new().rays().with_size(self.size))

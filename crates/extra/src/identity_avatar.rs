@@ -49,7 +49,8 @@ pub enum Presence {
 }
 
 impl Presence {
-    fn word(self) -> &'static str {
+    /// The state in words, lower case; empty when there is nothing to say.
+    pub fn word(self) -> &'static str {
         match self {
             Self::Unknown => "",
             Self::Online => "online",
@@ -76,7 +77,8 @@ pub enum Activity {
 }
 
 impl Activity {
-    fn word(self) -> &'static str {
+    /// The state in words, lower case; empty when there is nothing to say.
+    pub fn word(self) -> &'static str {
         match self {
             Self::Idle => "",
             Self::Working => "working",

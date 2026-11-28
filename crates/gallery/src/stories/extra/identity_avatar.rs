@@ -71,15 +71,18 @@ fn states() -> Vec<Identity> {
     ]
 }
 
+/// One short word under each avatar: what they are doing, else whether they
+/// are here.
 fn caption(who: &Identity) -> String {
-    let mut parts = vec![];
-    if who.presence != Presence::Unknown {
-        parts.push(format!("{:?}", who.presence));
-    }
-    if who.shown_activity() != Activity::Idle {
-        parts.push(format!("{:?}", who.shown_activity()));
-    }
-    parts.join(" · ")
+    let word = match who.shown_activity() {
+        Activity::Idle => who.presence.word(),
+        activity => activity.word(),
+    };
+    let mut chars = word.chars();
+    chars
+        .next()
+        .map(|first| first.to_uppercase().chain(chars).collect())
+        .unwrap_or_default()
 }
 
 impl Render for IdentityAvatarStory {
